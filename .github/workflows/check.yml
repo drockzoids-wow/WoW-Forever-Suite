@@ -1,0 +1,23 @@
+name: Addon checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare check dependencies
+        shell: pwsh
+        run: ./scripts/Bootstrap-Checks.ps1
+      - name: Check addon
+        run: node scripts/check-addon.cjs

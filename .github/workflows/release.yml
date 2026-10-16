@@ -1,0 +1,101 @@
+name: Package and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Clone project
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Prepare check dependencies
+        shell: pwsh
+        run: ./scripts/Bootstrap-Checks.ps1
+
+      - name: Check addon
+        run: node scripts/check-addon.cjs
+
+      - name: Match release tag to addon version
+        if: github.event_name == 'push'
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const toc = fs.readFileSync('src/WoWForeverSuite/WoWForeverSuite.toc', 'utf8');
+          const version = toc.match(/^## Version:\s*(\d+\.\d+\.\d+)\s*$/m)?.[1];
+          if (!version || process.env.GITHUB_REF_NAME !== `v${version}`) {
+            throw new Error('The release tag must match the version in Core.lua and both TOCs.');
+          }
+          NODE
+
+      - name: Check CurseForge authentication
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_KEY }}
+        run: |
+          if [ -z "$CF_API_TOKEN" ]; then
+            echo 'Missing required GitHub Actions repository secret: CF_API_KEY'
+            exit 1
+          fi
+          status=$(curl --silent --show-error --max-time 30 \
+            --output "$RUNNER_TEMP/curseforge-versions.json" \
+            --write-out '%{http_code}' \
+            --header "X-Api-Token: $CF_API_TOKEN" \
+            'https://wow.curseforge.com/api/game/versions')
+          if [ "$status" != '200' ]; then
+            echo "CurseForge authentication request failed (HTTP $status)."
+            exit 1
+          fi
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const data = JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP, 'curseforge-versions.json'), 'utf8'));
+          if (!Array.isArray(data) || !data.length || !data.every(row => Number.isInteger(row.id) && typeof row.name === 'string')) {
+            throw new Error('CurseForge did not return a valid game-version list.');
+          }
+          console.log('CurseForge accepted the game-version request. Project upload permission is checked by the release upload.');
+          NODE
+
+      - name: Build preview package without uploading
+        uses: BigWigsMods/packager@v2
+        with:
+          args: -d -p 1749120 -g forever
+
+      - name: Verify package contains only addon files
+        run: |
+          mapfile -t archives < <(find .release -maxdepth 1 -type f -name '*.zip')
+          if [ "${#archives[@]}" -ne 1 ]; then
+            echo 'Expected exactly one addon archive.'
+            exit 1
+          fi
+          find src/WoWForeverSuite -type f | sed 's#^src/##' | LC_ALL=C sort > "$RUNNER_TEMP/expected-package.txt"
+          unzip -Z -1 "${archives[0]}" | sed '/\/$/d' | LC_ALL=C sort > "$RUNNER_TEMP/actual-package.txt"
+          diff -u "$RUNNER_TEMP/expected-package.txt" "$RUNNER_TEMP/actual-package.txt"
+          echo 'Package contents match src/WoWForeverSuite.'
+
+      - name: Publish to CurseForge and GitHub
+        if: github.event_name == 'push'
+        uses: BigWigsMods/packager@v2
+        with:
+          args: -p 1749120 -g forever
+        env:
+          GH_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CF_API_TOKEN: ${{ secrets.CF_API_KEY }}

@@ -1,0 +1,63 @@
+## Interface: 16001
+## Title: Forever Suite
+## Notes: A personal collection of optional tools for WoW Forever.
+## Author: Drockzoids
+## IconTexture: Interface\AddOns\WoWForeverSuite\Media\ForeverSuiteIcon.tga
+## Version: 0.2.57
+## Bindings: Bindings.xml
+## SavedVariables: WoWForeverSuiteDB
+## SavedVariablesPerCharacter: WoWForeverSuiteCharDB
+## Category: Quality of Life
+
+Core.lua
+Bindings.lua
+Scoring.lua
+Minimap.lua
+MinimapButton.lua
+MinimapDrawer.lua
+MapRevealData.lua
+WorldMap.lua
+Windows.lua
+BagSort.lua
+CombinedBags.lua
+AutoOpen.lua
+BagSpace.lua
+ActionBars.lua
+ActionBarSkin.lua
+HUDSkin.lua
+BuffBorders.lua
+Keybinds.lua
+UnitFrames.lua
+TargetThreat.lua
+Vendor.lua
+Quests.lua
+QuestItem.lua
+ProfessionHelper.lua
+Castbars.lua
+ZoneReputation.lua
+QuestTrackerSkin.lua
+Loot.lua
+Mail.lua
+Chat.lua
+Audio.lua
+Items.lua
+Character.lua
+Inventory.lua
+CharacterDashboard.lua
+InventorySearch.lua
+OfflineBank.xml
+OfflineBank.lua
+Tooltips.lua
+MacroItems.lua
+Macros.lua
+CampingItems.lua
+Camping.lua
+Leveling.lua
+BuffCatalog.lua
+MissingBuffs.lua
+DamageMeters.lua
+DamageMeterMenus.lua
+DamageMeterDetails.lua
+Setup.lua
+SettingsCatalog.lua
+GUI.lua

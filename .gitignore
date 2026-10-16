@@ -1,0 +1,8 @@
+.cache/
+dist/
+.release/
+.env
+.env.*
+!.env.example
+wow-dev.config.local.json
+*.bak

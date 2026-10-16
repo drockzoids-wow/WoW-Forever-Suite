@@ -1,0 +1,25 @@
+package-as: WoWForeverSuite
+enable-nolib-creation: no
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
+ignore:
+  - .cache
+  - .github
+  - .gitignore
+  - .pkgmeta
+  - .release
+  - AGENTS.md
+  - CHANGELOG.md
+  - README.md
+  - artwork
+  - dist
+  - docs
+  - scripts
+  - tests
+  - wow-dev.config.local.json
+
+move-folders:
+  WoWForeverSuite/src/WoWForeverSuite: WoWForeverSuite

@@ -1,0 +1,14 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+    <!-- Native Camelot slot artwork without live bank mixins, events or item actions. -->
+    <ItemButton name="WoWForeverSuiteBankSlotTemplate" virtual="true">
+        <NormalTexture atlas="bank-frame-item-slotframe"/>
+    </ItemButton>
+    <ItemButton name="WoWForeverSuiteBankBagTemplate" virtual="true" scale=".75">
+        <NormalTexture atlas="bank-frame-bag-slotframe"/>
+        <Layers>
+            <Layer level="BACKGROUND">
+                <Texture parentKey="Background" setAllPoints="true" atlas="bank-frame-bag-slot-bg"/>
+            </Layer>
+        </Layers>
+    </ItemButton>
+</Ui>

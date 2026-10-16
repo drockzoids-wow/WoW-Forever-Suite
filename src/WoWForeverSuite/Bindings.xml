@@ -1,0 +1,8 @@
+<Bindings>
+    <Binding name="CLICK WoWForeverSuiteQuestItemButton:LeftButton" category="Forever Suite" header="WOWFOREVERSUITE">
+        if WoWForeverSuiteQuestItemButton then WoWForeverSuiteQuestItemButton:Click("LeftButton") end
+    </Binding>
+    <Binding name="CLICK WoWForeverSuiteBankToggleButton:LeftButton" category="Forever Suite">
+        WoWForeverSuiteBankToggleButton:Click("LeftButton")
+    </Binding>
+</Bindings>
