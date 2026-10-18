@@ -1,5 +1,11 @@
 # Forever Suite development
 
+## Required working directory
+
+- User instruction, October 16, 2026: make all Forever Suite updates only in `P:\GitHub Repos\WoW Forever Suite`. This is the canonical working copy for code, documentation, artwork, checks and release configuration in every Forever Suite chat.
+- If a chat starts in another directory, direct file edits and command working directories to this canonical checkout and read its project instructions before continuing. Do not update or synchronize changes back to `C:\Games\Development\WoW Forever Suite` or another copy.
+- The user will manage the junction into the game's AddOns folder. Do not deploy or change that junction unless the user later requests it.
+
 Build a personal, modular addon for WoW Forever. The user wants selected QoL features and an original GUI. Treat Enhance QoL as a feature reference; do not copy its implementation, assets, layouts or visual identity. Its upstream LICENSE is all rights reserved.
 
 Read `docs/forever-development.md`, `docs/feature-plan.md` and `docs/testing.md` before substantial changes. Keep these findings and feature decisions current.

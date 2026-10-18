@@ -6,6 +6,7 @@ The minimap drawer uses its original-button collection behavior as a reference.
 Action keybind abbreviations and the heavier size/shadow treatment also follow its behavior.
 Following the Windows audio device uses Retail ZoidsTools as a behavior reference with an original Suite implementation.
 Profession modifier actions, castbar controls and zone reputation use prior ZoidsTools behavior review as references; their Suite implementations are original.
+Quest pickup uses Retail ZoidsTools quest-data readiness as a behavior reference with an original Suite implementation.
 Its class and shared-bank icons use artwork provided by the WoW client.
 
 ZoidsTools license:

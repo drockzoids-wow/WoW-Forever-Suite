@@ -1,4 +1,707 @@
 {
+  "questPickupReadiness": {
+    "reviewedOn": "2026-10-18",
+    "version": "0.2.69",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Unreported; corrected native pickup rate and taint results pending.",
+    "request": "Compare intermittent automatic quest pickup failures with Retail ZoidsTools and correct readiness handling.",
+    "userEvidence": "Estimated 20% failure, resolved by moving out of NPC range and returning; no trace or measured sample supplied.",
+    "comparison": {
+      "path": "P:/GitHub Repos/ZoidsTools/Modules/QuestAutomation.lua",
+      "sha256": "dc1d9bea1941c476bff002bdcd2a5577737ecd383bc71ade0a44c97035bc4e2f",
+      "license": "MIT; existing shipped notice retained.",
+      "qualification": "Read-only behavior reference; original Suite implementation. Retail waits for quest data, Suite previously accepted on the next frame. This difference is a plausible cause, not a confirmed native diagnosis."
+    },
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/QuestLogDocumentation.lua",
+        "cachePath": ".cache/quest-pickup-0269/Blizzard_APIDocumentationGenerated__QuestLogDocumentation.lua",
+        "sha256": "e637368f36d153f8b432455cfa247d0c67c84996dce8d591bc1eb4d1cd7bc098"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_UIPanels_Game/Mainline/QuestFrame.lua",
+        "cachePath": ".cache/quest-pickup-0269/Blizzard_UIPanels_Game__Mainline__QuestFrame.lua",
+        "sha256": "5abe250648f8b5caaeb77829bd35d001651aca184be6d56d7455389f4a87be8c"
+      }
+    ],
+    "apiQualification": "RequestLoadQuestByID takes a validated public quest ID; secret arguments only AllowedWhenUntainted. QUEST_DATA_LOAD_RESULT is synchronous and carries questID/success. Check capabilities and success plus retained stage/identity before action. Native availability still requires in-game testing.",
+    "implementation": [
+      "One data request per shown detail stage; matching readable successful result resumes through existing coalesced worker.",
+      "Keep NPC/quest/frame/Shift/option/PvP/combat checks and synchronous deduplication.",
+      "Failed/rejected loads remain manual without polling; a fresh detail event may retry loading.",
+      "No outgoing confirmation/reward/gossip policy changes, acceptance retry loop or acceptance-success inference.",
+      "Missing load API retains guarded native fallback; missing auto-accept acknowledgment cannot invoke AcceptQuest."
+    ],
+    "validation": {
+      "command": "node scripts/check-addon.cjs",
+      "luaFiles": 54,
+      "behaviorChecks": 9819,
+      "tocsIdentical": true,
+      "beforeFix": "Delayed-data regression fails: expected 0 acceptance requests, got 1.",
+      "afterFix": "Delayed data and all existing checks pass.",
+      "inGameResult": "Pending; see docs/testing.md."
+    },
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.69.zip",
+      "files": 62,
+      "byteIdenticalToSource": true,
+      "sha256": "1da329807791dcf68993c78934ef4f2212bfc5ed3e15a6eeca6674b0b88de2a3"
+    }
+  },
+  "buffActionRouting": {
+    "reviewedOn": "2026-10-18",
+    "version": "0.2.68",
+    "installedExecutable": "1.60.1.70450 (last read)",
+    "runningBuildInterface": "Unreported; native chat, item, placement and taint results pending.",
+    "request": "Chat-only notices when no compatible buff/item exists, visual reminders when compatible supplies exist, top-center default near mirror timers.",
+    "userEvidence": "Screenshot: MISSING BUFFS panel with a single MH question-mark icon.",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/ItemDocumentation.lua",
+        "cachePath": ".cache/training-buffs-0262/Blizzard_APIDocumentationGenerated__ItemDocumentation.lua",
+        "sha256": "59c5dd2f70757cdb9bc4511cb0fafe6287bbfb51d58a7389097dcbb485785af0"
+      }
+    ],
+    "sourceQualification": "Reuse matching 70450 source revision 172a387e3ab85b26e6640d3058d5ec1e6ccd4c63. GetItemIconByID takes ItemInfo and returns nilable fileID; only ordinary sanitized item IDs are used.",
+    "implementation": [
+      "Separate candidate model, visual actions/choices and local chat notices.",
+      "Remove outgoing group-request code and Ask icons; summarize local notices once per known deficit episode with a 60-second per-family/hand rearm minimum and no notification timer.",
+      "Suppress fallback when owned weapon spells or compatible carried alternatives exist; preserve deliberate selection and native click revalidation.",
+      "Use existing picker categories and sharp/blunt matching for items; do not auto-select or apply a different item. Selection-only clicks open existing matching-hand Macros settings.",
+      "Resolve real coating icons through the guarded native item getter; unavailable supplies do not leave a question-mark window.",
+      "Skip no-source claims when learned/inventory/aura data is unknown; suppress combat coatings without a valid prepared item/cache and never scan bags in combat.",
+      "TOP/UIParent/TOP 0,-140 is the new default/reset for action, preview and passive panels; custom positions and native mirror timers stay owned by their current systems."
+    ],
+    "validation": {
+      "command": "node scripts/check-addon.cjs",
+      "luaFiles": 54,
+      "behaviorChecks": 9789,
+      "tocsIdentical": true,
+      "qualification": "Old group-request scenarios were replaced for the new local-only behavior; assertion counts are not directly comparable with 0.2.67.",
+      "inGameResult": "Pending; see docs/testing.md."
+    },
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.68.zip",
+      "files": 62,
+      "byteIdenticalToSource": true,
+      "sha256": "0a112952148ee532b1729bddf3a65393b81f3263659bdb6554c2b8674e855f1f"
+    }
+  },
+  "meterPinnedBackdrop": {
+    "reviewedOn": "2026-10-18",
+    "version": "0.2.67",
+    "installedExecutable": "1.60.1.70450 (last read)",
+    "runningBuildInterface": "Not present in the supplied trace; corrected native results pending.",
+    "request": "Fix three nil-method errors at DamageMeters.lua:79 during pinned-row creation.",
+    "userEvidence": {
+      "line": 79,
+      "callee": "Backdrop -> SetBackdrop",
+      "caller": "EnsureRows -> Layout -> Apply",
+      "frameType": "Plain Button",
+      "qualification": "Line numbers match the pre-fix 0.2.66 source; actual running version/build was omitted."
+    },
+    "reproduction": {
+      "modelCorrection": "Meter-local CreateFrame accepts template and removes backdrop methods from frames without BackdropTemplate.",
+      "previousCodeResult": "src/WoWForeverSuite/DamageMeters.lua:79: attempt to call a nil value (method 'SetBackdrop')",
+      "correctedResult": "Existing suite passes under the stricter model."
+    },
+    "implementation": [
+      "Only the two pinned rows per meter request BackdropTemplate through the shared row constructor.",
+      "Ordinary pooled source rows remain plain Buttons.",
+      "Opaque plate/layering, input, data guards, preparation outside combat and layout readiness are preserved."
+    ],
+    "validation": {
+      "command": "node scripts/check-addon.cjs",
+      "luaFiles": 54,
+      "behaviorChecks": 10030,
+      "addedChecks": 0,
+      "tocsIdentical": true,
+      "inGameResult": "Pending; see docs/testing.md."
+    },
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.67.zip",
+      "files": 62,
+      "byteIdenticalToSource": true,
+      "sha256": "af1d2851148825ec45ad829632dcc9cde780a376449652f383bed70964c75ea0"
+    }
+  },
+  "guiScrollDirection": {
+    "reviewedOn": "2026-10-18",
+    "version": "0.2.66",
+    "installedExecutable": "1.60.1.70450 (last read during 0.2.65 work)",
+    "runningBuildInterface": "Unreported; native held-mouse drag retest remains pending.",
+    "request": "Correct reversed held-mouse dragging on the Suite GUI scrollbar.",
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleSliderAPIDocumentation.lua",
+        "cachePath": ".cache/scroll-direction-0266/Interface__AddOns__Blizzard_APIDocumentationGenerated__SimpleSliderAPIDocumentation.lua",
+        "sha256": "f988b61cf0b1c777fb6c755e49faf20827a06613649d6f7ae1ec6e99f60fa24b"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_SharedXML/Shared/Scroll/MinimalScrollBar.lua",
+        "cachePath": ".cache/scroll-direction-0266/Interface__AddOns__Blizzard_SharedXML__Shared__Scroll__MinimalScrollBar.lua",
+        "sha256": "922d270366c375b9ab4903c8a7e97c4cb021cc6f2204d013631affd5c159da48"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_SharedXML/Shared/Scroll/ScrollBar.lua",
+        "cachePath": ".cache/scroll-direction-0266/Interface__AddOns__Blizzard_SharedXML__Shared__Scroll__ScrollBar.lua",
+        "sha256": "496ac3b9ff889aea10be4cdde1edd0e7c198ae6a02f02268bac45b85189d33fb"
+      }
+    ],
+    "sourceQualification": "Matching API confirms the existing Slider methods. Native ScrollBarMixin uses downward percentages and negative-Y thumb placement with its own controller. The native direction report comes from the user; substitutes do not exercise physical slider input.",
+    "change": [
+      "Invert the shared vertical slider-to-offset mapping in both directions.",
+      "Preserve wheel stepping, clamping, range changes, synchronization guard, thumb geometry and combat deferral.",
+      "Shared factory covers outer GUI and nested macro/setup/preview scrollbars; horizontal numeric sliders are unchanged."
+    ],
+    "validation": {
+      "command": "node scripts/check-addon.cjs",
+      "luaFiles": 54,
+      "behaviorChecks": 10030,
+      "addedChecks": 0,
+      "tocsIdentical": true,
+      "inGameResult": "Pending; see docs/testing.md."
+    },
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.66.zip",
+      "files": 62,
+      "byteIdenticalToSource": true,
+      "sha256": "2fe92015e98f00d518fb9b4e99d2292104722b0265e78d9defa5493de1fd02ba"
+    }
+  },
+  "meterLayoutReadiness": {
+    "reviewedOn": "2026-10-18",
+    "version": "0.2.65",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Unreported; corrected native startup and taint results are pending.",
+    "request": "Fix reported 0.2.64 DamageMeters.lua:431 nil visibleRows error.",
+    "userEvidence": {
+      "version": "0.2.64",
+      "metric": "HealingDone",
+      "session": "Current",
+      "durationSeconds": 5,
+      "totalAmount": 0,
+      "maxAmount": 0,
+      "visibleRows": "nil",
+      "meterRectangles": "Absent from supplied self locals",
+      "qualification": "The trace confirms no prepared viewport; native startup screen dimensions were not reported."
+    },
+    "reproduction": {
+      "setup": "First activation with UIParent width/height 0 and empty native five-second session.",
+      "previousCodeResult": "src/WoWForeverSuite/DamageMeters.lua:431: attempt to perform arithmetic on a nil value (field 'visibleRows')",
+      "correctedResult": "Passes without premature session/duration queries or combat geometry, then recovers via ordinary events."
+    },
+    "implementation": [
+      "Numeric zero viewport and explicit layout readiness on creation.",
+      "Pending-layout retries on normal coalesced updates outside combat; no idle timer.",
+      "Mark all windows ready only after row construction and final placement.",
+      "Visibility, native row reads and live clock require prepared layout.",
+      "Prepared rows continue working while an optional new third window waits. Minimized ready windows remain supported."
+    ],
+    "validation": {
+      "command": "node scripts/check-addon.cjs",
+      "luaFiles": 54,
+      "behaviorChecks": 10030,
+      "addedChecks": 25,
+      "tocsIdentical": true,
+      "inGameResult": "Pending; see docs/testing.md."
+    },
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.65.zip",
+      "files": 62,
+      "byteIdenticalToSource": true,
+      "sha256": "2d22f0209e1285dd7a7a37ed8bb1ae1eed0ca63598197033acd26b497b74e60d",
+      "existingGameJunction": "Unchanged; already exposes canonical P-drive source 0.2.65 after reload."
+    }
+  },
+  "trainingDockAndLevelUp": {
+    "reviewedOn": "2026-10-18",
+    "version": "0.2.64",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Unreported; native attachment, level-up delivery, availability and taint results are pending.",
+    "request": "Attach Training Planner beside the open trainer and pop up Available now every player level.",
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "sourceURL": "https://github.com/Gethe/wow-ui-source/tree/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/PlayerInfoDocumentation.lua",
+        "cachePath": ".cache/training-dock-0264/Interface__AddOns__Blizzard_APIDocumentationGenerated__PlayerInfoDocumentation.lua",
+        "sha256": "1b48d47177ec5957d0f04160a1ab12aafbbe89da4f142437e0a83e05d4b54311"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/PlayerScriptDocumentation.lua",
+        "cachePath": ".cache/training-dock-0264/Interface__AddOns__Blizzard_APIDocumentationGenerated__PlayerScriptDocumentation.lua",
+        "sha256": "61ae4d1471b8ac8696a2a56e335bf6484d2cb3a31b2fa81637430afb58bde9a2"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/TrainerConstantsDocumentation.lua",
+        "cachePath": ".cache/training-dock-0264/Interface__AddOns__Blizzard_APIDocumentationGenerated__TrainerConstantsDocumentation.lua",
+        "sha256": "c837c30251e33128e1ccf36a3219c8904b4dec5891fd8eba4c75bbe77db93061"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/TrainerDocumentation.lua",
+        "cachePath": ".cache/training-dock-0264/Interface__AddOns__Blizzard_APIDocumentationGenerated__TrainerDocumentation.lua",
+        "sha256": "8428e3ce0247031621cf029041f00a605895e991e96479b949c0fe3d5082eee2"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua",
+        "cachePath": ".cache/training-dock-0264/Interface__AddOns__Blizzard_APIDocumentationGenerated__UnitDocumentation.lua",
+        "sha256": "a823e84f90fabe58d9ffe547ea17eae83708d451e593b4052bce002cc02ce5c1"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_TrainerUI/Blizzard_TrainerUI.toc",
+        "cachePath": ".cache/training-dock-0264/Interface__AddOns__Blizzard_TrainerUI__Blizzard_TrainerUI.toc",
+        "sha256": "5aaa15668e8c061d3ca331471178ffa3de871fea14325f93c822e07bad4a0f9b"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_TrainerUI/Mainline/Blizzard_TrainerUI.xml",
+        "cachePath": ".cache/training-dock-0264/Interface__AddOns__Blizzard_TrainerUI__Mainline__Blizzard_TrainerUI.xml",
+        "sha256": "63d205c72b78ef0b0878a618611e296450868b342cdd17256f45921490cb88fa"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_TrainerUI/Mainline/Blizzard_TrainerUI.lua",
+        "cachePath": ".cache/training-buffs-0262/Blizzard_TrainerUI__Mainline__Blizzard_TrainerUI.lua",
+        "sha256": "399648fb2ef9a1ddc03fec341cff92b49135c38a5569cee822a2d635a4e30471"
+      }
+    ],
+    "findings": [
+      "Native trainer root is ClassTrainerFrame; retain its parent, anchors, scale, scripts and panel management.",
+      "PLAYER_LEVEL_UP is synchronous with the new numeric level as its first payload; guard it and allow UnitLevel to lag.",
+      "Matching native trainer Lua reads skill and ability prerequisites through the same guarded getters used for optional saved prerequisite metadata."
+    ],
+    "implementation": [
+      "UIParent-owned planner attaches through a relative side anchor; no native hooks, reparenting, panel edits or idle updater.",
+      "Standalone position/drag remains separate; temporary native attachment and combat recovery never overwrite saved standalone placement.",
+      "Separate default-on level preference under the default-off training module; every valid event starts Available now at row one, with latest-only combat deferral and stale-work cancellation.",
+      "Saved future-level estimates use sanitized capture level/prerequisites and copied runtime rows. Explicit missing nonlevel requirements stay separate; estimates never rewrite captured native availability.",
+      "No away trainer scan or training purchase/selection/filter mutation. Empty history still opens with guidance."
+    ],
+    "limits": [
+      "Saved eligibility and prices are historical; native filters may omit skills. Revisit a trainer to confirm.",
+      "Legacy snapshots have no capture level and can estimate only the exact new level.",
+      "Attached-side placement, native movement/scale behavior and taint require in-game smoke testing."
+    ],
+    "validation": {
+      "command": "node scripts/check-addon.cjs",
+      "luaFiles": 54,
+      "behaviorChecks": 10005,
+      "addedChecks": 78,
+      "tocsIdentical": true,
+      "inGameResult": "Pending; see docs/testing.md."
+    },
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.64.zip",
+      "files": 62,
+      "byteIdenticalToSource": true,
+      "sha256": "36e151db64c047b77dcf950fdc84d8e7f286fbb3640ac5fe3198b9c6b1a4104d",
+      "existingGameJunction": "Unchanged; points to canonical P-drive source, now 0.2.64. Reload required."
+    }
+  },
+  "meterParity": {
+    "reviewedOn": "2026-10-18",
+    "version": "0.2.63",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Not supplied; in-game parity, rendering, input permissions and taint remain unverified.",
+    "request": "Audit and close supported gaps with the default built-in damage meters, including deliberate omissions.",
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "sourceURL": "https://github.com/Gethe/wow-ui-source/tree/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/DamageMeterConstantsDocumentation.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_APIDocumentationGenerated__DamageMeterConstantsDocumentation.lua",
+        "sha256": "d1433275d0268dec98052604fed95ad0fcd63f0f37f515b23cce3a5bc9a41a88"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/DamageMeterDocumentation.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_APIDocumentationGenerated__DamageMeterDocumentation.lua",
+        "sha256": "0cd8c6dab1618c88a8a460b983331132f9a844a8a6a8eaf5dbd3ad99249d211c"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/DeathRecapConstantsDocumentation.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_APIDocumentationGenerated__DeathRecapConstantsDocumentation.lua",
+        "sha256": "325b75ad4046d8bc716c964ccaef2c650e53c6f4e8395d27a981da8900d45ade"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/DeathRecapDocumentation.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_APIDocumentationGenerated__DeathRecapDocumentation.lua",
+        "sha256": "24836a813f5df75e5c6928588daa49468bcc28ba3c6ad93bea277cf6e346e705"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SecretPredicateAPIDocumentation.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_APIDocumentationGenerated__SecretPredicateAPIDocumentation.lua",
+        "sha256": "668a0c15d372a358fbe169465651cdc1ae2e66d0916c81b41eccdd4da92274ae"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleStatusBarAPIDocumentation.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_APIDocumentationGenerated__SimpleStatusBarAPIDocumentation.lua",
+        "sha256": "8a1adba0e8b921e31b3d537f5a24095a946bb69ea9014db134f2c175245265e0"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleStatusBarConstantsDocumentation.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_APIDocumentationGenerated__SimpleStatusBarConstantsDocumentation.lua",
+        "sha256": "5ea10963827c338cdf73f2be0c4f585fb44becfa17414b12244f212b01edf719"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SpellBookDocumentation.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_APIDocumentationGenerated__SpellBookDocumentation.lua",
+        "sha256": "509fabe6d33de10f7166dc71bfb853dc969803d86536acac0833d30b1d0f9179"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SpellDocumentation.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_APIDocumentationGenerated__SpellDocumentation.lua",
+        "sha256": "86583940d9a2c4594092eb248a1396a93a285084872af1f3f4875169796e7d2b"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/StringUtilDocumentation.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_APIDocumentationGenerated__StringUtilDocumentation.lua",
+        "sha256": "912b03af096957e6ff7e0887e68f72c8e4acaa4d0f99be07256153c0fd1f51e6"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_DamageMeter/Blizzard_DamageMeter.toc",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_DamageMeter__Blizzard_DamageMeter.toc",
+        "sha256": "efd26e2e9f80fedee011fabf8ae9fe49809c40a19dc3c853e009b3b72da23264"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_DamageMeter/Camelot/DamageMeterEntryOverrides.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_DamageMeter__Camelot__DamageMeterEntryOverrides.lua",
+        "sha256": "373d65217d88f8e1ee8c534992e051b8f710dc12e3ecf8064647daf34d5f6e6e"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_DamageMeter/DamageMeter.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_DamageMeter__DamageMeter.lua",
+        "sha256": "68f8ded358c242ab6bacd79731d55252cd0c3e93e15756a6d55406a9e663dbde"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_DamageMeter/DamageMeter.xml",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_DamageMeter__DamageMeter.xml",
+        "sha256": "f809b5174d0b7dccedad59c191dd817d87a183b1c5b53a791bbc3bb260c1f141"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_DamageMeter/DamageMeterConstants.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_DamageMeter__DamageMeterConstants.lua",
+        "sha256": "43afd639cc62940ea4f3dd7549e022cb4968a291e0fde5ecff9a19e8d0677587"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_DamageMeter/DamageMeterEntry.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_DamageMeter__DamageMeterEntry.lua",
+        "sha256": "c8550eefb91a0f6f682430ae25ee829f18e87031c1bf182c304c608e3a39eba8"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_DamageMeter/DamageMeterEntry.xml",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_DamageMeter__DamageMeterEntry.xml",
+        "sha256": "c3c79887969a5458a40a85f9d35a5664b0e1752c99b81bb25200bb1554f34a70"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_DamageMeter/DamageMeterSessionWindow.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_DamageMeter__DamageMeterSessionWindow.lua",
+        "sha256": "b8eef129e3c614f9d0292d2b4645b6b58df6fe76283c92e10031eeae1dc87ece"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_DamageMeter/DamageMeterSessionWindow.xml",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_DamageMeter__DamageMeterSessionWindow.xml",
+        "sha256": "3270073347be1d3b5dbdeeb5733a0df1a31f09779eec73cc6eb291af5ba2dc7f"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_DamageMeter/DamageMeterSettingsDropdownButton.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_DamageMeter__DamageMeterSettingsDropdownButton.lua",
+        "sha256": "66fe4d29bab0ffdfad4596c8011a27eae692724d623a4bb0dc1ac1ab77f26ea7"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_DamageMeter/DamageMeterSettingsDropdownButton.xml",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_DamageMeter__DamageMeterSettingsDropdownButton.xml",
+        "sha256": "7e60461916299b78a4a2069e3291a97e583c2056773241f6d1d4a228ef2e707e"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_DamageMeter/DamageMeterSourceWindow.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_DamageMeter__DamageMeterSourceWindow.lua",
+        "sha256": "924126de079516ddf474f7f9493866e74983a25a2f892f2fc6fac5e71c8057ad"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_DamageMeter/DamageMeterSourceWindow.xml",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_DamageMeter__DamageMeterSourceWindow.xml",
+        "sha256": "417d9b8e7494151129c40397cb1092819cd68a52742198ddb0666fd6ec9ff406"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_DeathRecap/Mainline/Blizzard_DeathRecap.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_DeathRecap__Mainline__Blizzard_DeathRecap.lua",
+        "sha256": "529de75ea1c110710e7baeb876b126de639e2ba2a20e1a9a44375a5260fc2285"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_DeathRecap/Mainline/Blizzard_DeathRecap_Bootstrap.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_DeathRecap__Mainline__Blizzard_DeathRecap_Bootstrap.lua",
+        "sha256": "c75123aa1c30c2203412b41bece7d8751a12db546bc0eff431f37de5fb1b46d5"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_DeathRecap/Mainline/Localization.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_DeathRecap__Mainline__Localization.lua",
+        "sha256": "835100e9c62e81bde9181d26349865ae5cdea459b04929ca019182859d9dd02d"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_UIParent/UIParent.lua",
+        "cachePath": ".cache/meter-parity-0263/Interface__AddOns__Blizzard_UIParent__UIParent.lua",
+        "sha256": "7ee72baff31b5df22643508aaedcccc53f16420b8787adabe0f11b177eb5503b"
+      }
+    ],
+    "findings": [
+      "Native picker exposes the same ten Suite metrics; Absorbs is an internal enum but is not offered by the native picker.",
+      "Native sources/spells are retained in supplied order. Suite has no player, damage, healing or spell exclusion filter.",
+      "Camelot overrides classification-star display off. Native rows do not separately present overkillAmount/isAvoidable/isDeadly.",
+      "Native metadata guards permit source spec/class/personal pin/recap behavior. Hidden source-type/faction information cannot be inferred.",
+      "Source-query secret arguments are AllowedWhenUntainted; Suite never passes hidden player/creature IDs. Hidden percentages remain unavailable to ordinary Lua.",
+      "Native death recap is delegated with a public readable ID; Suite intentionally defers native UI loading until out of combat without retaining IDs."
+    ],
+    "implementation": [
+      "Spec/class icons, readable enemy faction markers, native enemy-icon suppression, prepared pinned rows and full-width death timestamps.",
+      "Native death recap helper, pet/unit name and icon priorities, right-click selection and Shift sticky details.",
+      "Native information-content modes plus existing Standard/number precision; readable shares only.",
+      "Visible-live-combat-only cancellable duration clock; no idle updater or repeated source snapshots from ticks.",
+      "Optional third meter with independent geometry and shared lock; original two-window docking remains.",
+      "Per-window icons/pin/visibility/minimized/pass-through preferences; combat-safe preparation and cleanup."
+    ],
+    "retainedDifferences": [
+      "Original Suite slate/teal styling and contiguous bars, user-selected shared lock/pair docking and one compact report.",
+      "No hidden-ID query, hidden percentage arithmetic or hidden team inference. Native recap UI loading only after combat.",
+      "Opaque times use direct native seconds rather than Lua m:ss arithmetic."
+    ],
+    "validation": {
+      "command": "node scripts/check-addon.cjs",
+      "luaFiles": 54,
+      "behaviorChecks": 9927,
+      "addedChecks": 95,
+      "tocsIdentical": true,
+      "inGameResult": "Pending; see docs/testing.md."
+    },
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.63.zip",
+      "files": 62,
+      "byteIdenticalToSource": true,
+      "sha256": "0b4592a9136fcb57815a33500b884def201d160c5754f63d4ea82a8552cb343f",
+      "existingGameJunction": "Unchanged; already points to the canonical P-drive source, now 0.2.63. Reload required."
+    }
+  },
+  "trainingAndBuffReminders": {
+    "reviewedOn": "2026-10-18",
+    "version": "0.2.62",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Not supplied; no native test claimed.",
+    "request": "Add EverCore Training Planner and missing buff expiry/custom/combat/coating capabilities to Suite.",
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/TrainerDocumentation.lua",
+        "cachePath": ".cache/training-buffs-0262/Blizzard_APIDocumentationGenerated__TrainerDocumentation.lua",
+        "sha256": "8428e3ce0247031621cf029041f00a605895e991e96479b949c0fe3d5082eee2"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/PaperDollInfoDocumentation.lua",
+        "cachePath": ".cache/training-buffs-0262/Blizzard_APIDocumentationGenerated__PaperDollInfoDocumentation.lua",
+        "sha256": "aeb86e1baf051544f82552912d7be286d9181e913d936d23b21074fb97ec671d"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitAuraDocumentation.lua",
+        "cachePath": ".cache/training-buffs-0262/Blizzard_APIDocumentationGenerated__UnitAuraDocumentation.lua",
+        "sha256": "4d58b2e5a7033c96b58aff395b6e49197acb2a1b110a648552e69e9cf8380358"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/ItemDocumentation.lua",
+        "cachePath": ".cache/training-buffs-0262/Blizzard_APIDocumentationGenerated__ItemDocumentation.lua",
+        "sha256": "59c5dd2f70757cdb9bc4511cb0fafe6287bbfb51d58a7389097dcbb485785af0"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SpellBookDocumentation.lua",
+        "cachePath": ".cache/training-buffs-0262/Blizzard_APIDocumentationGenerated__SpellBookDocumentation.lua",
+        "sha256": "509fabe6d33de10f7166dc71bfb853dc969803d86536acac0833d30b1d0f9179"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitAuraSharedDocumentation.lua",
+        "cachePath": ".cache/training-buffs-0262/Blizzard_APIDocumentationGenerated__UnitAuraSharedDocumentation.lua",
+        "sha256": "0b406ed169b747887588c1c04f41ac3ee651fc985db8f3609d6290011b7b962f"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_TrainerUI/Mainline/Blizzard_TrainerUI.lua",
+        "cachePath": ".cache/training-buffs-0262/Blizzard_TrainerUI__Mainline__Blizzard_TrainerUI.lua",
+        "sha256": "399648fb2ef9a1ddc03fec341cff92b49135c38a5569cee822a2d635a4e30471"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SecretPredicatesDocumentation.lua",
+        "cachePath": ".cache/training-buffs-0262/Blizzard_APIDocumentationGenerated__SecretPredicatesDocumentation.lua",
+        "sha256": "546ecda1e19d34a45fc54ec4b1cff6f9faee4c3fe1f4bb6f9bb0d3a8a48e3aa6"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SecretPredicateAPIDocumentation.lua",
+        "cachePath": ".cache/training-buffs-0262/Blizzard_APIDocumentationGenerated__SecretPredicateAPIDocumentation.lua",
+        "sha256": "668a0c15d372a358fbe169465651cdc1ae2e66d0916c81b41eccdd4da92274ae"
+      }
+    ],
+    "behaviorReferences": [
+      "P:/GitHub Repos/EverCore/Trainer.lua",
+      "P:/GitHub Repos/EverCore/Buffs.lua",
+      "P:/GitHub Repos/EverCore/CombatBuffs.lua",
+      "P:/GitHub Repos/EverCore/API_NOTES.md"
+    ],
+    "sourceQualification": "Exact installed-executable-matching Blizzard source. Trainer return order from Mainline UI; C_PaperDollInfo temporary enchant inventory-slot/millisecond fields; targeted aura reads require explicit non-secret per-spell predicates. References do not prove ordinary-addon access or native visual/security behavior.",
+    "implementation": "Original Suite namespace modules, default-off planner and optional expiry/combat/coating controls. Read-only per-character trainer snapshots/budgets; learned custom spells; guarded timed reminders; separate ordinary passive combat widgets and prepared coating matches. Native gameplay stays under explicit outside-combat clicks.",
+    "implementationFiles": [
+      {
+        "path": "src/WoWForeverSuite/Training.lua",
+        "sha256": "a6a2ad0fffda1802fed0b6c1a105f58f84dc9f423c29442bb2a48b3c6a3b7101"
+      },
+      {
+        "path": "src/WoWForeverSuite/BuffReminders.lua",
+        "sha256": "7143c856c0534dc7a341f2b4e9370950c38f962710a1d69fcf629789697a6f23"
+      },
+      {
+        "path": "src/WoWForeverSuite/MissingBuffs.lua",
+        "sha256": "62ed03cdfab7218a32827251a45bf2e37cf0e934a922e3c4e628e562f46856ba"
+      },
+      {
+        "path": "src/WoWForeverSuite/BuffCatalog.lua",
+        "sha256": "b2c0654f27e283cac0e9a794a494ac029dbc45c6b486d61ebafe15594ab95f2c"
+      },
+      {
+        "path": "src/WoWForeverSuite/Core.lua",
+        "sha256": "f785ff3052ae6437e0685570eb32128e4c9ea5c5f154201ebde6a0261c3c585e"
+      },
+      {
+        "path": "src/WoWForeverSuite/GUI.lua",
+        "sha256": "5367950a44d9f6ddd54a3b35a8fafad37a1d355eff9dbd04f195623852ce4c94"
+      },
+      {
+        "path": "src/WoWForeverSuite/SettingsCatalog.lua",
+        "sha256": "ad8ef994da0d168d73c35f23943f0ed38d58ef24e4476088e25bf21cb0433c5c"
+      },
+      {
+        "path": "tests/training_spec.lua",
+        "sha256": "0102f6106040a95ea42f6db237932677b73a66a42e8ce4fe96c96b6612be456e"
+      },
+      {
+        "path": "tests/missing_buffs_spec.lua",
+        "sha256": "7de9ca77992cc1a10c5930ebe480608ffe55d5d079c3c972465cd55e4a487894"
+      }
+    ],
+    "offlineValidation": {
+      "command": "node scripts/check-addon.cjs",
+      "lua51Files": 53,
+      "identicalTOCs": true,
+      "behaviorChecks": 9832,
+      "additionalAssertions": 209,
+      "result": "Pass with substitutes; trainer no-mutation, burst/cancellation and passive combat tripwires plus new behavior cases."
+    },
+    "nativeResults": "Pending focused trainer data/visual/input/persistence tests and buff spell/item actions, combat data availability, driver behavior and taint.",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.62.zip",
+      "files": 61,
+      "allEntriesMatchSource": true,
+      "sha256": "350d6bcb8605510be37fdeec298e822c8bca904bf7da8fa0c474d35a5f694ac4",
+      "deployment": "Existing user-managed junction points to canonical P-drive source and exposes 0.2.62; unchanged."
+    }
+  },
+  "meterClassColorRGB": {
+    "reviewedOn": "2026-10-18",
+    "version": "0.2.61",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Not supplied; corrected native meter rendering and taint checks pending.",
+    "nativeEvidence": "Four 0.2.60 errors at DamageMeters.lua:443 in RefreshWindow during Apply. classColors=true, HUNTER, native color table has r/g/b/colorStr but no numeric indexes.",
+    "cause": "The 0.2.59 allocation change returned native named-field class-color records while both renderers still expected arrays, passing nil RGB arguments.",
+    "correction": "Return three readable finite RGB scalars for both class and Suite palette paths; update player and spell-detail consumers. Preserve alpha, guards, settings, viewport pooling and refresh batching without per-row color tables.",
+    "sourceQualification": "No API addition. Supplied runtime locals and exact installed source establish the data-shape defect. Existing cached status-bar references reused; no new 70450 API-source refresh claimed.",
+    "implementationFiles": [
+      "src/WoWForeverSuite/DamageMeters.lua",
+      "src/WoWForeverSuite/DamageMeterDetails.lua",
+      "tests/meters_spec.lua"
+    ],
+    "offlineValidation": {
+      "command": "node scripts/check-addon.cjs",
+      "lua51Files": 51,
+      "identicalTOCs": true,
+      "behaviorChecks": 9623,
+      "additionalAssertions": 22,
+      "oldCodeReplay": "Strict numeric setter plus named-field Hunter fixture fails before fix.",
+      "result": "Pass after correction, including player/detail colors, combat reuse and invalid/restricted fallback."
+    },
+    "nativeResults": "Pending focused reload/class-color/player-row/spell-detail/combat smoke test. User-managed game junction unchanged.",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.61.zip",
+      "files": 59,
+      "allEntriesMatchSource": true,
+      "sha256": "8f10b9455035e67b967cba7bebced4df8fd899226cef0b19d2f4b334e1cbd672",
+      "deployment": "Existing user-managed P-drive junction already exposes 0.2.61; unchanged."
+    }
+  },
+  "targetThreatContrast": {
+    "reviewedOn": "2026-10-17",
+    "version": "0.2.58",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Not supplied. Screenshot shows the existing rectangle at 62%; corrected native alignment/contrast remains pending.",
+    "request": "Align the threat indicator with the visible target-frame left edge and make its background threat color clearer in combat.",
+    "userEvidence": {
+      "screenshot": "C:/Users/DROCKZ~1/AppData/Local/Temp/codex-clipboard-bc82ddc9-5c81-4097-812f-509e06faff8d.png",
+      "observation": "Gold rectangle displays 62% above Rabid Thistle Bear, extending slightly left of the visible frame trim. User finds threat tint too subtle in combat."
+    },
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "sourceQualification": "Five exact matching 70450 frame/border files fetched into the P-drive ignored cache. All five hashes match their prior 70425 counterparts. Native Camelot TargetFrame reanchors ReputationColor independently of the health/power bars; native tooltip corners use their frame points. The three-unit visual correction is based on the supplied screenshot and requires native scale/atlas verification. No threat API or restriction behavior is changed.",
+    "presentation": {
+      "upperAttachment": "BOTTOMLEFT to ReputationColor TOPLEFT, x=3 instead of 0, existing y=1; follows native target effective scale.",
+      "knownThreatAlpha": "0.40 + 0.40 * (percentage / 100), reaching 0.648 at 62% and 0.80 at full threat.",
+      "unknownAlpha": 0.2,
+      "preserved": "60x24 size, Blizzard gold tooltip border, black chat background, outlined full-opacity text, existing grey/orange/red RGB curve and aura-aware below/outside placement."
+    },
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_UnitFrame/Mainline/TargetFrame.xml",
+        "cachePath": ".cache/threat-contrast-0258/Interface/AddOns/Blizzard_UnitFrame/Mainline/TargetFrame.xml",
+        "sha256": "e8aece3cd72665f1b70577c2f98547e0983506d374e1996cd1bf65f52b2ce598"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_UnitFrame/Camelot/TargetFrame.lua",
+        "cachePath": ".cache/threat-contrast-0258/Interface/AddOns/Blizzard_UnitFrame/Camelot/TargetFrame.lua",
+        "sha256": "858a7d4cdc77df5860ef46c256c3bb0ef0c285753ed2599c52d25c2bb0a8af81"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_SharedXML/NineSlice.lua",
+        "cachePath": ".cache/threat-contrast-0258/Interface/AddOns/Blizzard_SharedXML/NineSlice.lua",
+        "sha256": "2554bdcdea78356e6bfb9b70732fd134bfbe89d5db9df2c1d08694675449d265"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_SharedXML/Mainline/NineSliceLayouts.lua",
+        "cachePath": ".cache/threat-contrast-0258/Interface/AddOns/Blizzard_SharedXML/Mainline/NineSliceLayouts.lua",
+        "sha256": "679f46d39cde6cd77df3899d41a439f8daf036a992c0e36100ddb59cf98400fe"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_SharedXML/Camelot/NineSliceLayoutOverrides.lua",
+        "cachePath": ".cache/threat-contrast-0258/Interface/AddOns/Blizzard_SharedXML/Camelot/NineSliceLayoutOverrides.lua",
+        "sha256": "b7de41631dc37c84bf7cec4b7b36cc70c044c45d53cf6ab5ab8b0649017a459a"
+      }
+    ],
+    "implementationFiles": [
+      {
+        "path": "src/WoWForeverSuite/TargetThreat.lua",
+        "sha256": "f09257aa68329b1bc3e6934d6bd9abc412d652a57f3025405770b69cfc00bda6"
+      },
+      {
+        "path": "tests/targetthreat_spec.lua",
+        "sha256": "33e6a1e5eafc4dd09deca9a7d6997730eb45b5825240f874d262c11108c21d71"
+      }
+    ],
+    "offlineValidation": {
+      "command": "node scripts/check-addon.cjs",
+      "lua51Files": 51,
+      "identicalTOCs": true,
+      "behaviorChecks": 9542,
+      "additionalAssertions": 0,
+      "result": "All pass. Existing full-threat visual contract now requires a strong still-translucent fill. Existing guarded data, eligibility, native ownership, scale, aura-side, combat deferral and lifecycle checks remain. Substitutes do not render real assets or prove native permissions/taint."
+    },
+    "nativeResults": "Corrected alignment across UI/Edit Mode scales, varied-scene combat contrast and taint await the focused smoke test. No in-game test is claimed.",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.58.zip",
+      "files": 59,
+      "allEntriesMatchSource": true,
+      "sha256": "91d536413fabd31be8594bff01fd19dd147ec43c6856101a88b263fdff0c0f42",
+      "deployment": "User-managed junction; no deployment changes performed."
+    }
+  },
   "bankPanelAndChatCopy": {
     "reviewedOn": "2026-10-16",
     "version": "0.2.57",
@@ -9724,5 +10427,159 @@
       "result": "Pass with fixed-layer/fading API substitutes; actual corrected rendering pending"
     },
     "nativeResult": "User screenshot establishes dim/obscured middle icons after installing more addons. Fixed-layer/fade interaction is supported by source inspection and modeled checks; corrected actual render/coexistence requires reload confirmation."
+  },
+  "memoryAllocation": {
+    "reviewedOn": "2026-10-17",
+    "version": "0.2.59",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Not supplied",
+    "canonicalCheckout": "P:/GitHub Repos/WoW Forever Suite",
+    "userEvidence": "About 21 MB during play followed by an automatic drop to 6 MB; enabled modules and sample timings unreported.",
+    "interpretation": "Consistent with temporary Lua allocation/collection; no proven retained leak and no attribution of the measured peak to a particular module.",
+    "implementation": "Viewport-sized reusable player rows (default 8+8 rather than 48+48), OOC growth capped at 48 each; 0.20-second event coalescer; conditional history reads; hidden-window source release; validated class-color reuse; main GUI constructed on first use with public combat-open deferral and immediate combat close retained. Preserve prebuilt menus/details, native data APIs, features, settings and saved data. No forced collection or idle worker.",
+    "sourceQualification": "Lua allocation/lifecycle refactor using the previously reviewed native session/widget methods. No new native API/event, source refresh or claim of a matching 70450 meter-source audit. Running client remains authoritative.",
+    "implementationFiles": [
+      {
+        "path": "src/WoWForeverSuite/Core.lua",
+        "sha256": "34d4a356727bc6bb06666e5909e34bb74c10ed627a1f88d589554e0652e453c7"
+      },
+      {
+        "path": "src/WoWForeverSuite/GUI.lua",
+        "sha256": "0478f750bbf68084cf6a7ceee2772d9dfc03a93d9a02c965f812b894a9190276"
+      },
+      {
+        "path": "src/WoWForeverSuite/DamageMeters.lua",
+        "sha256": "3771c24769e97f6cdaa358bf1d126bb9ed182335c775642013c47bc072867900"
+      },
+      {
+        "path": "tests/addon_spec.lua",
+        "sha256": "1ee7d3201a9d35c74bdb216dd574a3b80e8b9d469beeab433ecf89c97c5fb8ad"
+      },
+      {
+        "path": "tests/meters_spec.lua",
+        "sha256": "b747a7445eeb7aabbeb6f8f3df07575feaa2d57f49ca12e97da235f5df191160"
+      }
+    ],
+    "offlineValidation": {
+      "version": "0.2.59",
+      "lua51Files": 51,
+      "behaviorChecks": 9575,
+      "additionalAssertions": 33,
+      "regressions": [
+        {
+          "name": "eager settings startup",
+          "rejected": true,
+          "assertion": "tests/addon_spec.lua:6: returning login does not allocate the Suite settings panel: expected nil, got table: 0x1f33"
+        },
+        {
+          "name": "maximum row preallocation",
+          "rejected": true,
+          "assertion": "tests/addon_spec.lua:6: default first meter allocates only its eight visible rows: expected 8, got 48"
+        },
+        {
+          "name": "rapid native snapshot refresh",
+          "rejected": true,
+          "assertion": "tests/addon_spec.lua:6: native data snapshots are coalesced over a fifth of a second: expected 0.2, got 0.08"
+        }
+      ],
+      "nativeMemoryMeasured": false
+    },
+    "nativeResults": "Actual MB/CPU improvement, responsiveness, visual/input and combat/taint tests pending. Existing game junction inspected read-only; no deployment, other-addon or SavedVariables changes.",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.59.zip",
+      "files": 59,
+      "allEntriesMatchSource": true,
+      "sha256": "4a94aa25201a3969ec9f26cfc96011f2afe3848023324ce05011a57cda0b382d",
+      "deployment": "Existing user-managed game junction resolves to the canonical P-drive addon and exposes version 0.2.59. No junction/deployment changes."
+    }
+  },
+  "containerSequence": {
+    "reviewedOn": "2026-10-17",
+    "version": "0.2.60",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Not supplied; corrected native batch outcome pending.",
+    "userEvidence": "Intermittent failure to open bag items, particularly when multiple openable items are looted together. No current item/status trace supplied.",
+    "diagnosis": "Reproduced reentrant Quick loot READY -> LootSlot -> CLOSED -> late AutoOpen READY/OPENED: old latch blocks the remaining batch. Also continue after a native request rejection and observe completed native window hiding. Actual user event order not captured.",
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "sourceQualification": "Seven exact matching 70450 files fetched to the canonical ignored cache. Loot event declarations are synchronous; native LootFrame uses animated close and emits LootFrame.Hide from OnHide. CallbackRegistry validates explicit callback/owner registration and owner-based removal. No native timing is inferred from substitute timer execution.",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/LootDocumentation.lua",
+        "cachePath": ".cache/container-sequence-0260/Interface/AddOns/Blizzard_APIDocumentationGenerated/LootDocumentation.lua",
+        "sha256": "09a2ad19fb155772d17c33fc0fea4cfb63f867ad96de4e1b9472d436b65cda01"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/ContainerDocumentation.lua",
+        "cachePath": ".cache/container-sequence-0260/Interface/AddOns/Blizzard_APIDocumentationGenerated/ContainerDocumentation.lua",
+        "sha256": "dd3e4741d45720384f814d3f78ce975dab3951458ae894e728ed3aedc8ae56b3"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_UIPanels_Game/Mainline/LootFrame.lua",
+        "cachePath": ".cache/container-sequence-0260/Interface/AddOns/Blizzard_UIPanels_Game/Mainline/LootFrame.lua",
+        "sha256": "3e0e992271a5271dab9e856946c28970de772bb146529676ccda2bb9bae085fd"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_UIPanels_Game/Mainline/ScrollingFlatPanel.lua",
+        "cachePath": ".cache/container-sequence-0260/Interface/AddOns/Blizzard_UIPanels_Game/Mainline/ScrollingFlatPanel.lua",
+        "sha256": "a952dea12e66d2715321430e46ac6b608268f47e0ea5f0591e024f321b6116df"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_UIPanels_Game/Mainline/ScrollingFlatPanel.xml",
+        "cachePath": ".cache/container-sequence-0260/Interface/AddOns/Blizzard_UIPanels_Game/Mainline/ScrollingFlatPanel.xml",
+        "sha256": "6c52f1d3d2f7af968c55139f16923cc645582133d90188594edf1929d4719e4d"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_SharedXMLBase/CallbackRegistry.lua",
+        "cachePath": ".cache/container-sequence-0260/Interface/AddOns/Blizzard_SharedXMLBase/CallbackRegistry.lua",
+        "sha256": "95ba8fb6cf3fe38864296703e4334247da5cb6207827d6bc617a621ad25aad01"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_SharedXMLBase/GlobalCallbackRegistry.lua",
+        "cachePath": ".cache/container-sequence-0260/Interface/AddOns/Blizzard_SharedXMLBase/GlobalCallbackRegistry.lua",
+        "sha256": "4614d57e7f651101302b8371ecdbdcde3d7a4fee33736bef0ec746dbe15be3f0"
+      }
+    ],
+    "implementationFiles": [
+      {
+        "path": "src/WoWForeverSuite/AutoOpen.lua",
+        "sha256": "e4b239bed4bd864d9b71ffe235b73307d3e8ca1f6e3588f47969b40ec9e9d7fb"
+      },
+      {
+        "path": "tests/autoopen_spec.lua",
+        "sha256": "99586c8a3370c74a2cdb36766069363d75324796d5c2e6dd04a4a9bce1990e34"
+      }
+    ],
+    "offlineValidation": {
+      "version": "0.2.60",
+      "lua51Files": 51,
+      "behaviorChecks": 9601,
+      "additionalAssertions": 26,
+      "regressions": [
+        {
+          "name": "late loot-ready state",
+          "rejected": true,
+          "assertion": "tests/addon_spec.lua:6: synchronous fast loot drains all newly acquired containers despite late ready/open notifications: expected 13, got 11"
+        },
+        {
+          "name": "rejected-item continuation",
+          "rejected": true,
+          "assertion": "tests/addon_spec.lua:6: a rejected first container does not abandon the second: expected 20, got 19"
+        },
+        {
+          "name": "world-entry stale state",
+          "rejected": true,
+          "assertion": "tests/addon_spec.lua:6: world entry reconciles a loot session whose close notification was lost: expected 21, got 20"
+        }
+      ],
+      "nativeOutcomeVerified": false
+    },
+    "nativeResults": "Pending actual multi-container opening, Auto Loot/Quick loot/manual variants, full bags/context/combat, native permissions and taint. No junction, other-addon or SavedVariables changes.",
+    "package": {
+      "deployment": "Existing user-managed P-drive junction only; unchanged.",
+      "files": 59,
+      "sha256": "d9552eb454989f6b23f35480bc4cadaa1932783292e0426459ed15fa05a2304a",
+      "allEntriesMatchSource": true,
+      "path": "dist/WoWForeverSuite-0.2.60.zip"
+    }
   }
 }

@@ -3,7 +3,7 @@ local buffs, oldDB, oldPending = Suite.MissingBuffs, Suite.db, Suite.pending
 local names = { "CreateFrame", "RegisterStateDriver", "C_Timer", "C_Spell", "C_SpellBook", "C_UnitAuras", "C_Secrets", "C_Item", "C_EventUtils", "C_ChatInfo", "Enum",
     "UnitExists", "UnitIsConnected", "UnitIsVisible", "UnitIsDeadOrGhost", "UnitCanAssist", "UnitGUID", "UnitName", "UnitClass", "UnitLevel",
     "UnitInParty", "IsInRaid", "IsInGroup", "LE_PARTY_CATEGORY_HOME", "LE_PARTY_CATEGORY_INSTANCE", "GetTime",
-    "GetNumGroupMembers", "GetNumSubgroupMembers", "IsResting", "GetInventoryItemID" }
+    "GetNumGroupMembers", "GetNumSubgroupMembers", "IsResting", "GetInventoryItemID", "C_PaperDollInfo", "UnitIsUnit" }
 local previous = {}; for _, name in ipairs(names) do previous[name] = _G[name] end
 local oldScan = Suite.MacroItems.Scan
 local oldPrint, feedback = Suite.Print, {}
@@ -66,8 +66,8 @@ RegisterStateDriver = function(frame, state, condition)
     end
     frame:RunState("peaceful")
 end
-C_Timer = { NewTimer = function(_, callback)
-    local timer = { callback = callback, Cancel = function(self) self.cancelled = true end }
+C_Timer = { NewTimer = function(delay, callback)
+    local timer = { delay = delay, callback = callback, Cancel = function(self) self.cancelled = true end }
     timers[#timers + 1] = timer; return timer
 end }
 local function Flush()
@@ -137,7 +137,12 @@ C_Item = { GetWeaponEnchantInfo = function(slot) return enchants[slot] end,
 local carried = { { id = 9001, name = "Instant Poison", icon = 132273, class = 0, subclass = 6 }, { id = 9002, name = "Occult Poison", icon = 132274, class = 0, subclass = 6 } }
 Suite.MacroItems.Scan = function() itemReads = itemReads + 1; return { list = carried } end
 local function Find(kind, key)
-    for index, entry in ipairs(buffs.entries or {}) do if entry.kind == kind and (entry.family and entry.family.catalog.key == key or entry.hand == key) then return entry, buffs.buttons[index] end end
+    for _, entry in ipairs(buffs.entries or {}) do
+        if entry.kind == kind and (entry.family and entry.family.catalog.key == key or entry.hand == key) then
+            for _, button in ipairs(buffs.buttons) do if button.entry == entry then return entry, button end end
+            return entry
+        end
+    end
 end
 Suite.db.missingBuffs = true; resting = true; buffs:Apply()
 equal(reads, 0, "rested areas perform no missing-buff aura scans")
@@ -175,110 +180,52 @@ local outgoing, outgoingButton = Find("group", "intellect")
 equal(#outgoing.names, 3, "outgoing family aggregates every missing eligible party member")
 equal(outgoingButton.attributes.unit, "party1", "outgoing action targets the first missing member")
 local incoming, incomingButton = Find("incoming", "fortitude")
-equal(incoming.names[1], units.party1.name, "incoming suggestion names a present provider")
-equal(incomingButton.attributes.type1, nil, "incoming requests have no secure spell or macro action")
-equal(incomingButton.caption.text, "Ask", "incoming reminders are visibly distinct")
+local function NoticeCount(text)
+    local count = 0
+    for _, message in ipairs(feedback) do
+        if message:find("Missing buffs:", 1, true) and (not text or message:find(text, 1, true)) then count = count + 1 end
+    end
+    return count
+end
+equal(incoming.names[1], units.party1.name, "incoming suggestion retains its eligible provider")
+equal(incomingButton, nil, "buffs we cannot provide have no Ask placeholder in the action bar")
+equal(NoticeCount("Fortitude"), 1, "unavailable own buff is reported in local chat")
+equal(#messages, 0, "local reminders never broadcast to party or raid")
 equal(Find("incoming", "spirit"), nil, "unknown teammate talents are not inferred")
-equal(#messages, 0, "activation and spellbook events never request buffs automatically")
-incomingButton:PostClick("LeftButton", true); incomingButton:PostClick("MiddleButton", false)
-intellectButton:PostClick("LeftButton", false); outgoingButton:PostClick("LeftButton", false); Flush()
-equal(#messages, 0, "mouse-down, other mouse buttons and castable buffs never send chat")
-incoming, incomingButton = Find("incoming", "fortitude")
-incomingButton:PostClick("LeftButton", false); Flush()
-equal(#messages, 1, "only left-click release requests an incoming missing buff")
-equal(messages[1].message, "Missing " .. C_Spell.GetSpellLink(1243), "request contains the native clickable spell link and exact phrase")
-equal(messages[1].channel, "PARTY", "home parties route requests to party chat")
-incomingButton:PostClick("LeftButton", false); Flush()
-equal(#messages, 1, "repeated clicks on one buff are throttled")
-local _, markButton = Find("incoming", "mark")
-clock = clock + 1; markButton:PostClick("LeftButton", false); Flush()
-equal(#messages, 1, "rapid requests for different buffs are throttled too")
-clock = clock + 2; markButton:PostClick("LeftButton", false); Flush()
-equal(#messages, 2, "another family can be requested after the short global cooldown")
-clock = clock + 26; incomingButton:PostClick("LeftButton", false); Flush()
-equal(#messages, 2, "same-family cooldown lasts thirty seconds")
-clock = clock + 1; incomingButton:PostClick("LeftButton", false); Flush()
-equal(#messages, 3, "same-family requests resume after thirty seconds without a timer")
-for index, token in ipairs({ "player", "party1", "party2", "party3" }) do units["raid" .. index], auras["raid" .. index] = units[token], auras[token] end
-raid = true; clock = clock + 30; incomingButton:PostClick("LeftButton", false); Flush()
-equal(messages[#messages].channel, "RAID", "home raids route requests to raid chat")
-instanceGroup = true; clock = clock + 30; incomingButton:PostClick("LeftButton", false); Flush()
-equal(messages[#messages].channel, "INSTANCE_CHAT", "instance group chat takes precedence over a simultaneous home raid")
-raid, instanceGroup = false, false
-local function Blocked(change, restore, reason)
-    buffs:Refresh()
-    local _, button = Find("incoming", "fortitude")
-    local count = #messages
-    clock = clock + 30; change(); button:PostClick("LeftButton", false)
-    equal(#messages, count, reason)
-    restore(); Flush()
-end
-Blocked(function() homeGroup = false end, function() homeGroup = true end, "leaving the group before clicking sends no chat")
-Blocked(function() instanceGroup = secret end, function() instanceGroup = false end, "unknown instance membership cannot fall back to a home channel")
-local nativeGroup = IsInGroup
-Blocked(function() IsInGroup = function() error("Group unavailable") end end, function() IsInGroup = nativeGroup end, "group API failure cannot route a request")
-Blocked(function() LE_PARTY_CATEGORY_INSTANCE = secret end, function() LE_PARTY_CATEGORY_INSTANCE = 2 end, "unreadable category constants cannot route requests")
-Blocked(function() chatLock = true end, function() chatLock = false end, "native chat lockdown suppresses a clicked request")
-Blocked(function() chatLock = secret end, function() chatLock = false end, "unreadable chat lockdown never permits sending")
-local nativeChat = C_ChatInfo
-Blocked(function() C_ChatInfo = nil end, function() C_ChatInfo = nativeChat end, "missing modern chat APIs do not use a legacy sender")
-Blocked(function() C_ChatInfo.InChatMessagingLockdown = nil end,
-    function() C_ChatInfo.InChatMessagingLockdown = function() return chatLock end end, "missing lockdown predicate keeps chat access unknown")
-Blocked(function() clock = secret end, function() clock = 1000 end, "secret clocks cannot be compared or used for throttling")
-Blocked(function() clock = 0 / 0 end, function() clock = 1030 end, "nonfinite clocks cannot permit requests")
-Blocked(function() auras.player = { { name = "Fortitude", spellId = 1243 } } end, function() auras.player = {} end, "a newly received buff cancels a stale request icon")
-Blocked(function() units.party1.connected = false end, function() units.party1.connected = true end, "a departed provider cancels a stale request")
-Blocked(function() units.party1.level = 0 end, function() units.party1.level = 40 end, "a provider with unavailable level cannot establish a castable buff")
-local nativeAuras = C_UnitAuras.GetAuraDataByIndex
-Blocked(function() C_UnitAuras.GetAuraDataByIndex = function() return secret end end,
-    function() C_UnitAuras.GetAuraDataByIndex = nativeAuras end, "unknown current auras never establish a missing buff for chat")
-local nativeLines, nativeBookItem = C_SpellBook.GetNumSpellBookSkillLines, C_SpellBook.GetSpellBookItemInfo
-Blocked(function() C_SpellBook.GetNumSpellBookSkillLines = function() return secret end end,
-    function() C_SpellBook.GetNumSpellBookSkillLines = nativeLines end, "unknown learned spellbooks cannot prove that we need someone else's buff")
-Blocked(function() C_SpellBook.GetSpellBookItemInfo = function() return secret end end,
-    function() C_SpellBook.GetSpellBookItemInfo = nativeBookItem end, "incomplete learned spellbooks cannot authorize a group request")
-Blocked(function() resting = true end, function() resting = false end, "entering a rested area cancels clicked requests")
-Blocked(function() units.player.dead = true end, function() units.player.dead = false end, "death cancels clicked requests")
-Blocked(function() Suite.db.missingBuffIncoming = false end, function() Suite.db.missingBuffIncoming = true end, "disabling incoming reminders cancels stale requests")
-Blocked(function() Suite.db.missingBuffs = false end, function() Suite.db.missingBuffs = true end, "disabling the feature cancels stale requests")
-local nativeLink = C_Spell.GetSpellLink
-for _, value in ipairs({ secret, "Fortitude", "|Hspell:976|h[Shadow Protection]|h", "|Hspell:1243|h[Bad\nlink]|h", string.rep("x", 248) }) do
-    Blocked(function() C_Spell.GetSpellLink = function() return value end end,
-        function() C_Spell.GetSpellLink = nativeLink end, "unreadable, malformed, mismatched or oversized spell links cannot enter chat")
-end
-Blocked(function() C_Spell.GetSpellLink = function() return nil end end,
-    function() C_Spell.GetSpellLink = nativeLink end, "loading spell links send no fabricated fallback text")
-Blocked(function() C_Spell.GetSpellLink = function() error("Link unavailable") end end,
-    function() C_Spell.GetSpellLink = nativeLink end, "failed link queries cannot escape the click handler or enter chat")
-local nativeSend, attempts = C_ChatInfo.SendChatMessage, 0
-Blocked(function() C_ChatInfo.SendChatMessage = function() attempts = attempts + 1; error("Native send rejected") end end,
-    function() C_ChatInfo.SendChatMessage = nativeSend end, "native sender rejection is contained without a fallback channel")
-equal(attempts, 1, "native rejection causes just one send attempt")
-incoming, incomingButton = Find("incoming", "fortitude")
-local countAfterFailure = #messages
-incomingButton:PostClick("LeftButton", false); Flush()
-equal(#messages, countAfterFailure, "unknown delivery outcomes are throttled and never retried automatically")
--- Own learned buffs remain ours to cast even when their personal filter is off.
+local unchangedNotices = NoticeCount()
+buffs:Refresh(); clock = clock + 61; buffs:Refresh()
+equal(NoticeCount(), unchangedNotices, "unchanged missing buffs do not repeat after cooldown or aura refreshes")
+auras.player = { { name = "Fortitude", spellId = 1243 } }; buffs:Refresh()
+auras.player = {}; buffs:Refresh()
+equal(NoticeCount("Fortitude"), 2, "a newly missing buff can notify again after it was supplied")
+auras.player = { { name = "Fortitude", spellId = 1243 } }; buffs:Refresh()
+auras.player = {}; clock = clock + 1; buffs:Refresh()
+equal(NoticeCount("Fortitude"), 2, "rapid loss and recovery respects the local notice cooldown")
+clock = clock + 60; buffs:Refresh()
+equal(NoticeCount("Fortitude"), 3, "a suppressed new loss can notify on a later normal update")
+intellectButton:PostClick("LeftButton", false); Flush()
+equal(#messages, 0, "casting an available spell never sends chat")
 units.party2.class = "MAGE"; Suite.db.missingBuffSelf = false; buffs:Refresh()
-equal(Find("incoming", "intellect"), nil, "disabling own buff reminders does not turn a learned buff into a request")
+equal(Find("incoming", "intellect"), nil, "turning off own buff icons never turns a learned spell into a chat reminder")
 units.player.class, learned, Suite.db.missingBuffSelf = "PRIEST", {}, true; buffs.bookDirty = true; buffs:Refresh()
-incoming, incomingButton = Find("incoming", "fortitude")
-clock = clock + 30; learned = { 1243 }; Suite.db.missingBuffSelf = false
-local countBeforeLearned = #messages
-incomingButton:PostClick("LeftButton", false); Flush()
-equal(#messages, countBeforeLearned, "clicking rediscovers newly learned own buffs before requesting")
-equal(Find("incoming", "fortitude"), nil, "newly learned own buff disappears from incoming requests despite disabled self filter")
+local beforeLearning = NoticeCount("Fortitude")
+learned = { 1243 }; Suite.db.missingBuffSelf = false; buffs.bookDirty = true; buffs:Refresh()
+equal(Find("incoming", "fortitude"), nil, "newly learned own spell stops incoming reminders")
+equal(NoticeCount("Fortitude"), beforeLearning, "a compatible learned buff suppresses local fallback even with self icons off")
 units.player.class, units.party2.class, learned, Suite.db.missingBuffSelf = "MAGE", "DRUID", { 1459, 1461, 6117, 7302 }, true
 buffs.bookDirty = true; buffs:Refresh()
-incoming, incomingButton = Find("incoming", "fortitude")
-local countBeforeRightClick = #messages
-incomingButton:PostClick("RightButton", false); Flush()
-equal(#messages, countBeforeRightClick, "right-click hides the family without sending chat")
-buffs:ResetChoices(); Flush(); incoming, incomingButton = Find("incoming", "fortitude")
+incoming = Find("incoming", "fortitude")
 buffs:Cycle(incoming); Flush()
-equal(Find("incoming", "fortitude"), nil, "right-click can hide an unwanted incoming family without sending messages")
+equal(Find("incoming", "fortitude"), nil, "existing hidden family choices also suppress local notices")
 buffs:ResetChoices(); Flush()
-equal(Find("incoming", "fortitude") ~= nil, true, "restoring choices brings incoming reminders back")
+equal(Find("incoming", "fortitude") ~= nil, true, "restoring family choices restores the watched local reminder")
+local nativeSkillCount = C_SpellBook.GetNumSpellBookSkillLines
+local beforeUnknownBook = NoticeCount()
+C_SpellBook.GetNumSpellBookSkillLines = function() return secret end
+buffs.bookDirty = true; buffs:Refresh()
+equal(NoticeCount(), beforeUnknownBook, "unknown learned spells never authorize a cannot-apply chat fallback")
+C_SpellBook.GetNumSpellBookSkillLines = nativeSkillCount; buffs.bookDirty = true; buffs:Refresh()
+local countBeforeRightClick = 0
 units.party1.level = 10; buffs:Refresh()
 equal(Find("incoming", "shadow"), nil, "provider level gates baseline class suggestions")
 units.party1.level = 40
@@ -313,7 +260,7 @@ equal(buffs.bar:IsShown(), false, "secure combat entry hides the protected bar")
 equal(buffs.timer, nil, "combat entry cancels pending scans")
 local beforeCombatReads, beforeMade = reads, made
 local beforeCombatMessages = #messages
-incomingButton:PostClick("LeftButton", false)
+buffs.buttons[1]:PostClick("LeftButton", false)
 equal(#messages, beforeCombatMessages, "combat clicks never send buff requests")
 stale.callback(); buffs:Refresh(); buffs:Collect()
 equal(reads, beforeCombatReads, "combat performs no aura scans")
@@ -368,6 +315,7 @@ weapons[16], weapons[17], enchants[0], enchants[1] = 1, 99, { { hasEnchant = tru
 buffs:Refresh()
 local poison, poisonButton = Find("poison", "MH")
 equal(poisonButton.attributes.type1, nil, "poison application requires an explicit carried-item choice")
+equal(poison.spell.icon, 777, "carried poison choices use the actual item icon before selection")
 equal(Find("poison", "OH"), nil, "shield off hands never request poison")
 buffs:Cycle(poison); Flush(); poison, poisonButton = Find("poison", "MH")
 equal(poisonButton.attributes.macrotext1, "/use item:9001\n/use 16", "chosen carried poison targets its exact equipped hand")
@@ -381,6 +329,13 @@ carried[1].name = "Instant Poison"
 local poisonScans = itemReads; buffs:Refresh(); equal(itemReads, poisonScans, "aura changes reuse carried poison metadata")
 carried = {}; poisonButton:PreClick("LeftButton")
 equal(poisonButton.attributes.type1, nil, "removed poison cancels a stale item action")
+Flush()
+local noPoison, noPoisonButton = Find("poison", "MH")
+equal(noPoison ~= nil, true, "missing poison remains in the reminder model")
+equal(noPoisonButton, nil, "missing poison supplies never leave an MH placeholder on the bar")
+equal(NoticeCount("Main-hand"), 1, "missing poison supplies produce a local hand reminder")
+local noPoisonNotices = NoticeCount("Main-hand"); buffs:Refresh()
+equal(NoticeCount("Main-hand"), noPoisonNotices, "unchanged missing poison supplies do not spam chat")
 carried = { { id = 9001, name = "Instant Poison", icon = 132273, class = 0, subclass = 6 } }
 enchants[0] = { { hasEnchant = true, enchantType = 3 } }; buffs.itemsDirty = true; buffs:Refresh()
 equal(Find("poison", "MH"), nil, "native active imbue satisfies rogue poison upkeep independently of oils")
@@ -422,6 +377,235 @@ equal(Find("self", "intellect").spell.id, 1461, "asynchronous spell data complet
 equal(buffs:InitializeChoices(secret)["MAGE:armor"], nil, "secret choice tables are discarded")
 equal(buffs:InitializeChoices({ ["MAGE:armor"] = secret, bad = 42 })["MAGE:armor"], nil, "secret choices and unrecognized keys are discarded")
 equal(buffs:InitializeChoices({ ["MAGE:armor"] = 0 })["MAGE:armor"], 0, "hidden family choice survives normalization")
+-- Expiry, custom spells, coating choices and passive combat presentation.
+do
+    local extra = Suite.BuffReminders
+    local originalUnits, originalAuras, originalLearned, originalClock = units, auras, learned, clock
+    local originalMacroDB = Suite.macroDB
+    local originalNotices, originalNoticeTimes = buffs.notices, buffs.noticeTimes
+    buffs.notices, buffs.noticeTimes = {}, {}
+    local settings = { Suite.db.missingBuffSelf, Suite.db.missingBuffOutgoing, Suite.db.missingBuffIncoming, Suite.db.missingBuffClass }
+    units, auras = {}, {}; Unit("player", "MAGE", 60); Unit("party1", "MAGE", 60)
+    Suite.db.missingBuffIncoming, Suite.db.missingBuffOutgoing = false, false
+    Suite.db.missingBuffSelf, Suite.db.missingBuffClass, Suite.db.missingBuffExpiry = true, true, true
+    Suite.db.missingBuffWarning = 60; clock = 100; learned = { 1461 }; buffs.bookDirty = true
+    auras.player = { { name = "Arkane Intelligenz", spellId = 1461, duration = 3600, expirationTime = clock + 61 } }
+    buffs:Refresh()
+    equal(Find("self", "intellect"), nil, "long buff remains covered before its warning")
+    equal(extra.deadline ~= nil, true, "next expiry warning schedules a cancellable deadline")
+    equal(extra.deadline.delay > 1 and extra.deadline.delay < 2, true, "deadline targets the warning boundary")
+    clock = 102; local deadline = extra.deadline; deadline.callback()
+    local entry, button = Find("self", "intellect")
+    equal(entry.remaining, 59, "long buff warns without waiting for another aura event")
+    equal(button.attributes.type1, "spell", "expiring outside-combat reminder retains native click action")
+    auras.player[1].expirationTime = clock + 3600; button:PreClick("LeftButton")
+    equal(button.attributes.type1, nil, "freshly refreshed aura cancels stale expiry click")
+    auras.player[1].duration, auras.player[1].expirationTime = 1799, clock + 16; buffs:Refresh()
+    equal(Find("self", "intellect"), nil, "short buff does not use the long-buff interval")
+    auras.player[1].expirationTime = clock + 15; buffs:Refresh()
+    equal(Find("self", "intellect") ~= nil, true, "short buff warns at fifteen seconds")
+    auras.player[1].duration, auras.player[1].expirationTime = 1800, clock + 60; buffs:Refresh()
+    equal(Find("self", "intellect") ~= nil, true, "thirty-minute full duration uses long interval")
+    auras.player[1].expirationTime = secret; buffs:Refresh()
+    equal(Find("self", "intellect"), nil, "restricted expiry cannot imply imminent expiration")
+    auras.player[1].duration, auras.player[1].expirationTime = secret, clock + 16; buffs:Refresh()
+    equal(Find("self", "intellect"), nil, "unknown full duration uses the later short warning")
+    auras.player[1].expirationTime = 0; buffs:Refresh()
+    equal(Find("self", "intellect"), nil, "permanent aura never expires")
+    auras.player = { { name = "Arkane Intelligenz", spellId = 1461, duration = 3600, expirationTime = clock + 20 },
+        { name = "Arcane Brilliance", spellId = 23028, duration = 3600, expirationTime = clock + 200 } }
+    buffs:Refresh(); equal(Find("self", "intellect"), nil, "another covering equivalent suppresses an expiring rank")
+    equal(extra.deadline.delay > 140, true, "equivalent coverage schedules the last covering aura")
+    auras.player = { { name = "Arkane Intelligenz", spellId = 1461 } }
+    auras.party1 = { { name = "Arkane Intelligenz", spellId = 1461, duration = 3600, expirationTime = clock + 10 } }
+    Suite.db.missingBuffOutgoing = true; buffs:Refresh()
+    equal(Find("group", "intellect").names[1], "Name party1", "expiring group member becomes the next click target")
+    Suite.db.missingBuffExpiry = false; buffs:Refresh()
+    equal(Find("group", "intellect"), nil, "expiry toggle leaves missing-only behavior intact")
+    equal(extra:Custom(secret)[1], nil, "restricted custom tables are rejected")
+    equal(#extra:Custom({ { id = secret }, { id = 9005 }, { id = 9005 } }), 1, "custom validation rejects secrets and duplicates")
+    Spell(9005, "Custom Guard"); learned = { 1461, 9005 }; buffs.bookDirty = true
+    equal(extra:AddCustom("9005", false), true, "custom spell IDs can be saved without casting")
+    equal(extra:AddCustom("9005", true), false, "custom duplicates are rejected")
+    equal(extra:AddCustom("not a spell", false), false, "invalid custom input is rejected")
+    extra:OpenOptions()
+    equal(extra.options:IsShown(), true, "custom editor opens from its settings action")
+    equal(extra.options.rows[1].label.text:find("9005", 1, true) ~= nil, true, "custom editor shows the saved spell")
+    extra.options.rows[1].scope:OnClick()
+    equal(Suite.db.missingBuffCustom[1].group, true, "scope control enables group watching")
+    extra.options.rows[1].scope:OnClick()
+    equal(Suite.db.missingBuffCustom[1].group, false, "scope control restores self watching")
+    extra.options.input:OnEscapePressed()
+    equal(extra.options:IsShown(), false, "Escape from the edit field closes the custom editor")
+    buffs:Refresh(); local custom, customButton = Find("self", "CUSTOM:9005")
+    equal(custom.spell.id, 9005, "learned custom spell gets its own reminder")
+    equal(customButton.attributes.spell1, 9005, "custom click binds the learned spell")
+    customButton:PostClick("RightButton", false); buffs:Refresh()
+    equal(Find("self", "CUSTOM:9005"), nil, "custom reminder can be hidden by right-click")
+    equal(buffs:InitializeChoices(Suite.db.missingBuffChoices, Suite.db.missingBuffCustom)["CUSTOM:9005"], 0, "hidden custom choice survives saved-data normalization")
+    Suite.db.missingBuffChoices["CUSTOM:9005"] = nil
+    Suite.db.missingBuffCustom[1].group = true; buffs:Refresh()
+    equal(Find("group", "CUSTOM:9005").unit, "party1", "custom group opt-in targets a group member")
+    learned = { 1461 }; buffs.bookDirty = true; buffs:Refresh()
+    equal(Find("self", "CUSTOM:9005"), nil, "unlearned custom spells never become actions")
+    equal(Find("group", "CUSTOM:9005"), nil, "unlearned custom group spells never become actions")
+    Suite.db.missingBuffCustom = {}
+    -- Prepared standard coating choices use no macro creation or automatic item use.
+    local savedCarried = carried
+    carried = { { id = 9001, name = "Selected Oil", icon = 777, class = 0, subclass = 6 } }
+    local supplyIncomplete = false
+    Suite.MacroItems.Scan = function()
+        itemReads = itemReads + 1
+        local byID = {}; for _, item in ipairs(carried) do byID[item.id] = item end
+        return { list = carried, byID = byID, incomplete = supplyIncomplete }
+    end
+    Suite.macroDB = { entries = { { recipe = "mainhand", item = 9001 } } }
+    weapons[16] = 50; buffs.itemsDirty = true
+    local enchantInfo
+    C_PaperDollInfo = { GetTemporaryEnchantmentInfo = function(slot) equal(slot, 16, "coating reader uses inventory slot sixteen"); return enchantInfo end }
+    Suite.db.missingBuffWeapons = true; buffs:Refresh()
+    local coating
+    for _, item in ipairs(buffs.entries) do if item.kind == "coating" then coating = item end end
+    equal(coating.item.id, 9001, "selected carried oil supplies a coating reminder")
+    equal(extra:CoatingClick(coating), true, "coating click revalidates current inventory")
+    equal(coating.spell.icon, 777, "coatings resolve the native item icon instead of relying on scanner-only metadata")
+    local availableOil = carried
+    carried = { { id = 9002, name = "Alternative Oil", class = 0, subclass = 6 } }
+    buffs.itemsDirty = true; buffs:Refresh()
+    local alternativeCoating, alternativeButton = Find("coating", "MH")
+    equal(alternativeCoating.item, nil, "alternative coating is not applied without an explicit choice")
+    equal(#alternativeCoating.choices, 1, "compatible carried alternative is retained as a choice")
+    equal(alternativeButton ~= nil, true, "compatible carried alternative stays on the missing-buff window")
+    equal(alternativeButton.attributes.type1, nil, "choosing an alternative does not invent a secure item action")
+    equal(alternativeCoating.spell.icon, 777, "alternative selection displays the real carried item icon")
+    local oldOpenPage, oldSelected, openedCoating = Suite.GUI.OpenPage, Suite.GUI.macroSelected
+    Suite.GUI.OpenPage = function(_, page) openedCoating = page end
+    alternativeButton:PostClick("LeftButton", false)
+    equal(openedCoating, "macros", "available coating choice opens its normal item selection page")
+    equal(Suite.GUI.macroSelected, Suite.macroDB.entries[1], "coating choice selects the matching hand settings")
+    Suite.GUI.OpenPage, Suite.GUI.macroSelected = oldOpenPage, oldSelected
+    local beforeUnknownSupplies = NoticeCount("Main-hand")
+    supplyIncomplete = true; carried = {}; buffs.itemsDirty = true; buffs:Refresh()
+    equal(NoticeCount("Main-hand"), beforeUnknownSupplies, "unknown inventory never emits a no-supplies reminder")
+    supplyIncomplete = false
+    local beforeAbsentCoating = NoticeCount("Main-hand")
+    carried = {}; buffs.itemsDirty = true; buffs:Refresh()
+    equal(NoticeCount("Main-hand"), beforeAbsentCoating + 1, "known missing coating supplies produce one local notice")
+    local absentCoating, absentButton = Find("coating", "MH")
+    equal(absentCoating.item, nil, "missing selected coating is represented without an invented item")
+    equal(absentButton, nil, "missing selected coating never creates the reported question-mark icon")
+    local showSelf, showClass = Suite.db.missingBuffSelf, Suite.db.missingBuffClass
+    Suite.db.missingBuffSelf, Suite.db.missingBuffClass = false, false; buffs:Refresh()
+    equal(#buffs.displayEntries, 0, "only unavailable supplies leave no visual action entries")
+    equal(buffs.bar:IsShown(), false, "the reported single MH question-mark window is hidden when no action is available")
+    for _, button in ipairs(buffs.buttons) do equal(button.attributes.type1, nil, "chat-only state releases stale secure actions") end
+    Suite.db.missingBuffSelf, Suite.db.missingBuffClass = showSelf, showClass; buffs:Refresh()
+    local absentNotices = NoticeCount("Main-hand"); buffs:Refresh()
+    equal(NoticeCount("Main-hand"), absentNotices, "missing selected coating remains quiet while unchanged")
+    units.player.class, learned, enchants[0] = "SHAMAN", { 8232 }, {}
+    buffs.bookDirty = true; buffs:Refresh()
+    equal(Find("self", "imbue") ~= nil, true, "learned weapon buff is offered when selected item is unavailable")
+    equal(#buffs.chatEntries, 0, "available learned weapon buff prevents an unavailable-item chat fallback")
+    carried = availableOil; buffs.itemsDirty = true; buffs:Refresh()
+    coating = Find("coating", "MH")
+    equal(coating.item.id, 9001, "restocking restores the selected item action")
+    local nativeWeaponInfo = C_Item.GetItemInfoInstant
+    C_Item.GetItemInfoInstant = function(id) return id, nil, nil, "INVTYPE_WEAPON", nil, 2, 4 end
+    carried = { { id = 9001, name = "Sharpening Stone", class = 0, subclass = 6, family = "sharp", tier = 1 } }
+    buffs.itemsDirty = true; buffs:Refresh()
+    local incompatibleStone, incompatibleButton = Find("coating", "MH")
+    equal(incompatibleStone.item, nil, "a sharp stone cannot become an action for a blunt weapon")
+    equal(#incompatibleStone.choices, 0, "incompatible stones are excluded from carried alternatives")
+    equal(incompatibleButton, nil, "an incompatible carried stone does not create a placeholder")
+    C_Item.GetItemInfoInstant = nativeWeaponInfo; carried = availableOil
+    buffs.itemsDirty = true; buffs:Refresh(); coating = Find("coating", "MH")
+    Suite.macroDB.entries[1].item = 9002
+    equal(extra:CoatingClick(coating), false, "changed macro choice cancels a stale coating action")
+    Suite.macroDB.entries[1].item = 9001
+    enchantInfo = { hasExpirationTime = true, remainingTimeMs = 10000 }; buffs:Refresh()
+    equal(extra:CoatingState(coating), false, "any active temporary coating provides coverage with expiry off")
+    units.player.class, learned = "SHAMAN", { 8232 }; buffs.bookDirty = true; buffs:Refresh()
+    equal(Find("self", "imbue"), nil, "selected standard coating avoids demanding a conflicting class imbue")
+    Suite.db.missingBuffExpiry = true; buffs:Refresh()
+    local needed, remaining = extra:CoatingState(coating)
+    equal(needed, true, "selected coating warns before expiry")
+    equal(remaining, 10, "native enchant milliseconds convert to seconds")
+    enchantInfo.remainingTimeMs = secret
+    equal(extra:CoatingState(coating), false, "unknown remaining time never implies expiration")
+    enchantInfo = secret; equal(extra:CoatingState(coating), nil, "restricted enchant records do not imply missing coating")
+    enchantInfo = nil; weapons[16] = 51
+    equal(extra:CoatingClick(coating), false, "weapon swap invalidates a stale coating action")
+    weapons[16] = 50
+    Suite.db.missingBuffCombat = true; units.player.class = "WARRIOR"; learned = { 6673 }; buffs.bookDirty = true
+    auras.player, auras.party1 = {}, {}; buffs:Refresh()
+    equal(extra.combatFrame.parent, UIParent, "passive combat panel has an independent ordinary parent")
+    equal(extra.combatFrame.protected, false, "combat panel is explicitly independent of protected buttons")
+    equal(#extra.combatButtons, 8, "combat icons are prepared once outside combat")
+    local combatReads, forbidden = 0, false
+    C_Secrets.ShouldSpellAuraBeSecret = function() return forbidden end
+    local combatAura
+    C_UnitAuras.GetAuraDataBySpellName = function(unit, name, filter)
+        assert(InCombatLockdown(), "targeted combat getter is used only in combat")
+        combatReads = combatReads + 1; return combatAura
+    end
+    local framesBefore, bagReadsBefore, spellReadsBefore = made, itemReads, bookReads
+    SetCombat(true); buffs.controller:RunState("combat"); buffs.events:OnEvent("PLAYER_REGEN_DISABLED"); Flush()
+    equal(extra.combatFrame:IsShown(), true, "native combat entry reveals passive missing-buff reminders")
+    equal(extra.combatEntries[1].spell.id, 6673, "selected Battle Shout is combat useful")
+    buffs.itemsDirty = true; extra:RefreshCombat()
+    local dirtyCoating = false
+    for _, item in ipairs(extra.combatEntries) do if item.kind == "coating" then dirtyCoating = true end end
+    equal(dirtyCoating, false, "combat inventory changes suppress stale coating availability without a bag scan")
+    buffs.itemsDirty = false; extra:RefreshCombat()
+    equal(extra.combatButtons[1].attributes.type1, nil, "combat icon has no secure action")
+    equal(extra.combatButtons[1].OnClick, nil, "combat icon cannot cast or use items")
+    equal(made, framesBefore, "combat reminder updates create no frames")
+    equal(itemReads, bagReadsBefore, "combat refresh performs no bag scans")
+    equal(bookReads, spellReadsBefore, "combat refresh performs no spellbook discovery")
+    equal(buffs.bar:IsShown(), false, "native secure driver keeps click-action bar hidden")
+    combatAura = { name = "Battle Shout", spellId = 6673, duration = 120, expirationTime = clock + 16 }
+    extra:RefreshCombat(); equal(extra.combatEntries[1].kind, "coating", "covered shout is suppressed while coating can remain missing")
+    clock = clock + 2; extra:RefreshCombat()
+    equal(extra.combatEntries[1].spell.id, 6673, "short shout warns at its fifteen-second boundary in combat")
+    forbidden = true; local priorReads = combatReads; extra:RefreshCombat()
+    equal(combatReads, priorReads, "per-spell secrecy blocks targeted aura reads")
+    equal(extra.combatEntries[1].kind, "coating", "restricted aura is omitted instead of invented missing")
+    forbidden = secret; priorReads = combatReads; extra:RefreshCombat()
+    equal(combatReads, priorReads, "secret predicate result fails closed")
+    local predicate = C_Secrets.ShouldSpellAuraBeSecret
+    C_Secrets.ShouldSpellAuraBeSecret = nil
+    C_Secrets.HasSecretRestrictions = function() return true end
+    C_Secrets.ShouldAurasBeSecret = function() return false end
+    extra:RefreshCombat()
+    equal(combatReads, priorReads, "general aura policy cannot substitute for a missing per-spell predicate")
+    C_Secrets.ShouldSpellAuraBeSecret = predicate
+    forbidden = false; combatAura = secret; extra:RefreshCombat()
+    equal(extra.combatEntries[1].kind, "coating", "restricted aura result is omitted")
+    combatAura = { name = "Different aura", spellId = 9005 }; extra:RefreshCombat()
+    equal(extra.combatEntries[1].kind, "coating", "mismatched targeted aura data is rejected")
+    Suite.db.missingBuffWeapons = false; extra:RefreshCombat()
+    equal(extra.combatFrame:IsShown(), false, "coating opt-out immediately suppresses cached combat coatings")
+    Suite.db.missingBuffWeapons = true
+    weapons[16] = 51; extra:RefreshCombat()
+    equal(extra.combatFrame:IsShown(), false, "combat weapon swaps suppress old coating matches")
+    combatAura = nil; Suite.db.missingBuffCombat = false; extra:Apply()
+    equal(extra.combatFrame:IsShown(), false, "combat reminder opt-out hides passive widgets immediately")
+    Suite.db.missingBuffCombat = true; extra:OnEvent("UNIT_AURA"); local cancelled = extra.combatTimer
+    Suite.db.missingBuffs = false; buffs:Apply(); extra:Apply()
+    if cancelled then cancelled.callback() end
+    equal(extra.combatFrame:IsShown(), false, "cancelled late combat work cannot revive a disabled panel")
+    equal(extra.deadline, nil, "disable cancels expiry deadlines")
+    LeaveCombat()
+    Suite.db.missingBuffs = true
+    Suite.db.missingBuffExpiry, Suite.db.missingBuffCombat, Suite.db.missingBuffWeapons = false, false, false
+    units, auras, learned, clock, carried = originalUnits, originalAuras, originalLearned, originalClock, savedCarried
+    Suite.macroDB = originalMacroDB
+    buffs.notices, buffs.noticeTimes = originalNotices, originalNoticeTimes
+    Suite.MacroItems.Scan = function() itemReads = itemReads + 1; return { list = carried } end
+    Suite.db.missingBuffSelf, Suite.db.missingBuffOutgoing, Suite.db.missingBuffIncoming, Suite.db.missingBuffClass = unpack(settings)
+    buffs.bookDirty, buffs.itemsDirty = true, true; buffs:Apply(); extra:Apply()
+end
+
 SlashCmdList.WOWFOREVERSUITE("buffs")
 equal(Suite.GUI.page, "buffs", "buff bar has its own slash-accessible settings page")
 for index = 1, 8 do
@@ -431,6 +615,13 @@ end
 buffs:SetPreview(true); equal(buffs.preview:IsShown(), true, "settings can preview placement without actions")
 Suite.GUI:Select("overview"); equal(buffs.preview:IsShown(), false, "navigation cancels the non-actionable preview")
 buffs:ResetPosition(); equal(next(Suite.db.missingBuffPosition), nil, "bar position reset leaves other saved layouts alone")
+equal(buffs.bar.point[1], "TOP", "default missing-buff window uses the top of the screen")
+equal(buffs.bar.point[3], "TOP", "default placement stays horizontally centered")
+equal(buffs.bar.point[5], -140, "default window clears the top edge near breath and fatigue bars")
+Suite.db.missingBuffPosition = { x = 0.1, y = -0.2 }; buffs:Place(buffs.bar)
+equal(buffs.bar.point[1], "CENTER", "an existing dragged position overrides the new default")
+equal(Suite.db.missingBuffPosition.x, 0.1, "new default does not rewrite customized placement")
+buffs:ResetPosition()
 Suite.db.missingBuffs = false; buffs:Apply()
 equal(next(buffs.events.registered), nil, "disable removes buff feature event subscriptions")
 equal(buffs.timer, nil, "disable leaves no timer")

@@ -3,7 +3,7 @@ local open=Suite.AutoOpen
 local names={"CreateFrame","C_Container","C_Item","ItemLocation","C_Timer","UnitIsDeadOrGhost","GetCursorInfo",
     "UnitCastingInfo","UnitChannelInfo","SpellIsTargeting","GetNumLootItems","NUM_TOTAL_EQUIPPED_BAG_SLOTS",
     "MerchantFrame","BankFrame","BankPanel","GuildBankFrame","MailFrame","TradeFrame","AuctionHouseFrame","AuctionFrame",
-    "ItemInteractionFrame","ScrappingMachineFrame","ItemUpgradeFrame","LootFrame","C_TooltipInfo","ITEM_OPENABLE"}
+    "ItemInteractionFrame","ScrappingMachineFrame","ItemUpgradeFrame","LootFrame","C_TooltipInfo","ITEM_OPENABLE","EventRegistry","Enum","GetLootSlotType","LootSlot"}
 local saved,state={},{}
 for _,key in ipairs(names)do saved[key]=_G[key]end
 for key,value in pairs(open)do state[key]=value end
@@ -46,6 +46,11 @@ C_TooltipInfo={GetBagItem=function(bag,slot)
     if tipChange then tooltips[slot]=nil end
     return data
 end}
+local callbacks={}
+EventRegistry={RegisterCallback=function(_,event,callback,owner)
+    assert(owner==open); assert(not callbacks[event],"duplicate loot-hide observer")
+    callbacks[event]=callback
+end,UnregisterCallback=function(_,event,owner)assert(owner==open);callbacks[event]=nil end}
 -- A clam's explicit native opening prompt is sufficient even without hasLoot.
 items[3]={itemID=5523,stackCount=1,hasLoot=false,isLocked=false,guid="clam"}
 tooltips[3]={id=5523,lines={{leftText="Small Barnacled Clam"},{leftText=ITEM_OPENABLE}}}
@@ -131,9 +136,9 @@ reads=0;recycle=true;open:Queue();Drain();equal(#calls,0,"recycled slot identity
 items[1].guid="first";items[2].hasLoot=true
 open:Queue();Drain();equal(#calls,1,"exactly one container is opened at a time")
 equal(calls[1][1],0,"auto-open uses carried bags only");equal(calls[1][2],1,"auto-open uses revalidated slot")
-open:OnEvent("LOOT_OPENED");open:OnEvent("BAG_UPDATE_DELAYED");Drain();Drain()
+loot=1;open:OnEvent("LOOT_OPENED");open:OnEvent("BAG_UPDATE_DELAYED");Drain();Drain()
 equal(#calls,1,"loot window pauses serial opening")
-free=0;open:OnEvent("LOOT_CLOSED");Drain();equal(#calls,1,"free space is rechecked after each container")
+loot=0;free=0;open:OnEvent("LOOT_CLOSED");Drain();equal(#calls,1,"free space is rechecked after each container")
 free=1;open:OnEvent("BAG_UPDATE_DELAYED");Drain();equal(#calls,2,"next eligible container opens after loot closes")
 equal(calls[2][2],2,"unchanged first stack is not retried")
 Drain();Drain();equal(#calls,2,"settling timer cannot retry failed unchanged containers")
@@ -177,9 +182,9 @@ tooltips[2].lines={{leftText=ITEM_OPENABLE}}
 open.events.OnEvent(open.events,"ITEM_DATA_LOAD_RESULT",5523,true);Drain()
 equal(#calls,used+1,"a completed native item load resumes tooltip-only clam opening")
 equal(calls[#calls][2],1,"first eligible clam stack opens first")
-open:OnEvent("LOOT_OPENED");Drain();Drain()
+loot=1;open:OnEvent("LOOT_OPENED");Drain();Drain()
 equal(#calls,used+1,"clam loot pauses the next automatic opening")
-items[1].stackCount=1;open:OnEvent("LOOT_CLOSED");Drain()
+loot=0;items[1].stackCount=1;open:OnEvent("LOOT_CLOSED");Drain()
 equal(#calls,used+2,"remaining clams in a changed stack continue serially")
 items[1]=nil;open:OnEvent("LOOT_CLOSED");Drain()
 equal(#calls,used+3,"a separate clam of the same item type opens next")
@@ -239,6 +244,118 @@ equal(#calls,beforePause,"tooltip-only clams keep the vendor pause")
 _G.MerchantFrame=nil;open:Queue();Suite.db.autoOpenContainers=false;open:Apply();Drain()
 equal(#calls,beforePause,"disable cancels a queued clam opening")
 equal(open.tooltipWait,nil,"disable drops pending native tooltip identities")
+-- Native fast-loot handlers can close synchronously before our READY/OPENED handler.
+local originalUse=C_Container.UseContainerItem
+local function FreshContainers(count)
+    Suite.db.autoOpenContainers=false;open:Apply();Drain()
+    items,tooltips={},{};loot,free,family,targeting=0,1,0,false;reject=false
+    _G.LootFrame=nil
+    for i=1,count do items[i]={itemID=100+i,stackCount=1,hasLoot=true,isLocked=false,guid="sequence-"..i}end
+    Suite.db.autoOpenContainers=true;open:Apply()
+end
+local quick=Suite.Loot
+local quickActive,quickVisit=quick.active,quick.visit
+Suite.db.quickLoot=true;quick.active=true;quick.visit=nil
+Enum={LootSlotType={Item=1,Money=2,Currency=3}}
+GetLootSlotType=function()return 1 end
+LootSlot=function()
+    loot=loot-1
+    if loot==0 then
+        quick:OnEvent("LOOT_CLOSED")
+        open:OnEvent("LOOT_CLOSED")
+    end
+end
+FreshContainers(3)
+local beforeSequence=#calls
+C_Container.UseContainerItem=function(bag,slot)
+    assert(loot==0,"a second container must not overlap native loot")
+    originalUse(bag,slot);items[slot]=nil;loot=1
+    -- Model the Suite Quick loot listener running before AutoOpen for the same event.
+    quick:OnEvent("LOOT_READY",true)
+    open:OnEvent("LOOT_READY",true)
+    open:OnEvent("LOOT_OPENED",true)
+end
+Drain();Drain();Drain();Drain()
+equal(#calls,beforeSequence+3,"synchronous fast loot drains all newly acquired containers despite late ready/open notifications")
+equal(open.lootOpen==true,false,"late ready/open events cannot relatch an already closed loot session")
+equal(Pending(),0,"finished synchronous container batch leaves no polling worker")
+quick.active,quick.visit=quickActive,quickVisit
+C_Container.UseContainerItem=originalUse
+
+-- Both listener orders must progress, with no worker while native loot remains.
+FreshContainers(2);beforeSequence=#calls
+quick.active=true;quick.visit=nil
+C_Container.UseContainerItem=function(bag,slot)
+    originalUse(bag,slot);items[slot]=nil;loot=1
+    open:OnEvent("LOOT_READY",true)
+    quick:OnEvent("LOOT_READY",true)
+end
+Drain();Drain();Drain()
+equal(#calls,beforeSequence+2,"auto-open-first loot listener ordering also drains the batch")
+equal(Pending(),0,"both fast-loot listener orders finish without polling")
+quick.active,quick.visit=quickActive,quickVisit
+C_Container.UseContainerItem=originalUse
+FreshContainers(1)
+loot={secret=true};open:OnEvent("LOOT_READY",true);Drain()
+equal(open.lootOpen,true,"restricted loot count at ready remains blocked")
+local countBefore=#calls
+loot=1;open:OnEvent("LOOT_OPENED");open:Queue();Drain()
+equal(#calls,countBefore,"ordinary pending native loot still prevents another item use")
+loot=0;open:OnEvent("LOOT_CLOSED");Drain()
+equal(#calls,countBefore+1,"confirmed native close resumes a manual or restricted-count session")
+
+-- A close event can precede the end of native hide animation; resume on actual hide.
+FreshContainers(2);beforeSequence=#calls;Drain()
+items[1]=nil;loot=1;open:OnEvent("LOOT_OPENED")
+local lootShown=true
+_G.LootFrame={IsShown=function()return lootShown end}
+loot=0;open:OnEvent("LOOT_CLOSED");Drain()
+equal(#calls,beforeSequence+1,"still-visible closing loot frame pauses the next container")
+equal(Pending(),0,"closing loot waits for native hide without polling")
+equal(type(callbacks["LootFrame.Hide"]),"function","auto-open observes the native finished-hide callback")
+lootShown=false;callbacks["LootFrame.Hide"](open);Drain()
+equal(#calls,beforeSequence+2,"native hide resumes remaining containers without a bag event")
+open:OnEvent("LOOT_CLOSED");Drain();Drain()
+Suite.db.autoOpenContainers=false;open:Apply()
+equal(callbacks["LootFrame.Hide"],nil,"disable unregisters the native hide observer")
+open:OnEvent("LOOT_OPENED")
+equal(open.lootOpen,nil,"late native notifications cannot revive disabled loot state")
+
+
+-- One denied native request must not abandon other physical items or retry the denial.
+FreshContainers(2);beforeSequence=#calls
+C_Container.UseContainerItem=function(bag,slot)
+    reject=slot==1;originalUse(bag,slot)
+end
+Drain();Drain();Drain();Drain();Drain()
+equal(#calls,beforeSequence+2,"a rejected first container does not abandon the second")
+equal(calls[beforeSequence+2][2],2,"rejection continuation skips the already attempted physical stack")
+equal(Pending(),0,"a rejected batch terminates without idle retrying")
+reject=false;C_Container.UseContainerItem=originalUse
+for i=1,20 do open:OnEvent("BAG_UPDATE_DELAYED")end;Drain()
+equal(#calls,beforeSequence+2,"subsequent bag bursts cannot repeat unchanged rejected requests")
+
+FreshContainers(1);beforeSequence=#calls
+loot=1;open:OnEvent("LOOT_OPENED");loot=0
+open:OnEvent("PLAYER_ENTERING_WORLD");Drain()
+equal(#calls,beforeSequence+1,"world entry reconciles a loot session whose close notification was lost")
+Suite.db.autoOpenContainers=false;open:Apply();Drain()
+equal(callbacks["LootFrame.Hide"],nil,"final shutdown releases the native loot observer")
+FreshContainers(1);beforeSequence=#calls
+local hiddenCallback=callbacks["LootFrame.Hide"]
+SetCombat(true);hiddenCallback(open);Drain()
+equal(#calls,beforeSequence,"native hide notification in combat cannot open containers")
+SetCombat(false);open:OnEvent("PLAYER_REGEN_ENABLED");Drain()
+equal(#calls,beforeSequence+1,"combat exit resumes the deferred container pass")
+Suite.db.autoOpenContainers=false;open:Apply();hiddenCallback(open);Drain()
+equal(#calls,beforeSequence+1,"a queued old hide callback cannot use an item after disable")
+equal(Pending(),0,"disable leaves no continuation or settling timer")
+local registry=EventRegistry;EventRegistry=nil
+FreshContainers(0);Drain()
+equal(open.active,true,"missing native registry does not disable ordinary container opening")
+equal(open.lootRegistry,nil,"missing native registry creates no observer")
+Suite.db.autoOpenContainers=false;open:Apply();EventRegistry=registry
+
 open:Cancel();for key in pairs(open)do open[key]=nil end;for key,value in pairs(state)do open[key]=value end
 for _,key in ipairs(names)do _G[key]=saved[key]end
 Suite.db,Suite.pending=oldDB,oldPending;SetCombat(false)

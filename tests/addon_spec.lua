@@ -579,6 +579,36 @@ equal(Suite.Tooltips.initialized, nil, "disabled tooltip module installs no hook
 equal(Suite.Minimap.initialized, nil, "disabled minimap creates no UI")
 
 UISpecialFrames = {}
+do
+    local savedApply = Suite.Apply
+    Suite.Apply = function() end
+    Suite.db.setupGuide.seen = true
+    frames[1].OnEvent(frames[1], "PLAYER_LOGIN")
+    equal(Suite.GUI.frame, nil, "returning login does not allocate the Suite settings panel")
+    Suite.Apply = savedApply
+    combat = true
+    local beforeOpen = #frames
+    Suite.GUI:Initialize()
+    Suite.GUI:Toggle()
+    Suite.GUI:OpenMeters(2)
+    Suite.GUI:OpenPage("overview")
+    equal(Suite.GUI.frame, nil, "first settings request waits through combat")
+    equal(#frames, beforeOpen, "combat settings requests allocate no frames")
+    equal(type(Suite.pending.guiOpen), "function", "combat settings requests coalesce")
+    combat = false
+    frames[1].OnEvent(frames[1], "PLAYER_REGEN_ENABLED")
+    equal(Suite.GUI.page, "overview", "latest settings request opens after combat")
+    equal(Suite.GUI.frame:IsShown(), true, "deferred first open shows settings")
+    local existing, beforeReuse = Suite.GUI.frame, #frames
+    Suite.GUI:OpenPage("overview")
+    equal(Suite.GUI.frame, existing, "settings retain their original frame on reopening")
+    equal(#frames, beforeReuse, "reopening a built page allocates no more frames")
+    combat = true; Suite.GUI:Toggle()
+    equal(Suite.GUI.frame:IsShown(), false, "an already open panel can still close in combat")
+    equal(Suite.pending.guiOpen, nil, "combat close does not queue a delayed reopen")
+    combat = false
+    Suite.GUI:Select("overview"); Suite.GUI.frame:Hide()
+end
 Suite.GUI:Initialize()
 equal(Suite.GUI.frame.height, 680, "configuration panel has room for six two-line helpers and its footer")
 equal(#Suite.GUI.rows, 6, "overview exposes the requested feature groups")
@@ -1526,4 +1556,5 @@ assert(loadfile("tests/qol_trio_spec.lua"))(Suite, equal, Frame, function(value)
 assert(loadfile("tests/audio_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/autoopen_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/leveling_spec.lua"))(Suite, equal, Frame, function(value) combat = value end, frames[1])
+assert(loadfile("tests/training_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 print("Behavior checks passed: " .. checks)

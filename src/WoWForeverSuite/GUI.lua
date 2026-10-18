@@ -32,9 +32,13 @@ local pages = {
         { action = "levelingSession", label = "Start a new session", help = "Reset tracked XP, gold and elapsed time. Rates appear after one minute.\nReload keeps the session; a fresh login starts a new one. Idle time counts." },
         { action = "levelingPosition", label = "Reset tracker position", help = "Return this character's tracker to the top left.\nCtrl-right-clicking its unlocked header also resets its position." },
     }, note = "Gold/hour includes spending and transfers. Estimates use your session pace; incomplete XP tracking shows no estimate." },
-    professions = { title = "Professions", description = "A deliberate shortcut for items you choose to disenchant.", rows = {
+    professions = { title = "Professions", description = "Plan training costs and use deliberate profession shortcuts.", rows = {
         { key = "modifierDisenchant", label = "Modifier-click Disenchant", help = "Hold the selected modifier and left-click highlighted bag equipment.\nDisenchant destroys the item; the character must know the spell." },
         { action = "disenchantModifier", label = "Choose modifier key", help = "Cycle Alt, Ctrl and Shift. Hold only that modifier.\nEquipped gear, bank items, locked slots and combat are excluded." },
+        { key = "trainingPlanner", label = "Record trainer offerings", help = "Save this character's visible unlearned skills, requirements and prices.\nStarts off. Training purchases remain manual." },
+        { key = "trainingAuto", label = "Show Training Planner at trainers", help = "Open beside the trainer after readable offerings arrive.\nClosing the planner dismisses it for that visit." },
+        { key = "trainingLevelUp", label = "Show Training Planner on level up", help = "Open Available now after each level while recording is enabled.\nUses saved offerings; confirm skills and prices at a trainer." },
+        { action = "trainingOpen", label = "Open Training Planner", help = "Review available skills and future training levels, costs and savings gaps.\nAway from a trainer, shows the last saved offerings." },
     }, note = "Only uncommon, rare or epic weapons and armor are offered.\nThe game makes the final skill and eligibility check. Nothing is disenchanted automatically." },
     castbars = { title = "Castbars", description = "Adjust player, target and focus castbar sizes. Native positions are kept.", rows = {},
         note = "Each bar is optional. Turning custom size off restores its native dimensions.\nPreview ends on leaving this page or a real cast; combat cleanup waits until combat ends." },
@@ -99,16 +103,21 @@ local pages = {
     meters = { title = "Two views of the fight.", description = "Suite colors, familiar bars, and independent metric and fight menus.", rows = {
         { key = "damageMeters", label = "Damage meters", help = "Show two configurable windows using the game's recorded fights." },
     }, note = "Drag the dotted header area to move; either lower corner resizes. Ctrl+scroll also resizes. Alt+drag detaches; Ctrl+right-click resets." },
-    buffs = { title = "Ready for the next pull.", description = "Missing buffs for you and your group, plus class upkeep.\nHidden in rested areas, combat and while dead.", rows = {
+    buffs = { title = "Ready for the next pull.", description = "Missing buffs for you and your group, plus class upkeep.\nClickable outside combat; optional passive combat reminders.", rows = {
         { key = "missingBuffs", label = "Missing buff bar", help = "Show reminders for missing buffs and class upkeep." },
         { key = "missingBuffSelf", label = "My missing buffs", help = "Show learned group buffs you can cast on yourself." },
         { key = "missingBuffOutgoing", label = "Buff my party and raid", help = "Click to buff the first listed member missing your learned buff." },
-        { key = "missingBuffIncoming", label = "Buffs my group can give me", help = "Click a gold Ask icon to request a missing buff in group chat." },
+        { key = "missingBuffIncoming", label = "Buffs my group can give me", help = "Show local chat reminders for missing buffs you cannot provide.\nNo messages are sent to your group." },
         { key = "missingBuffClass", label = "Class upkeep", help = "Aspects, armor, auras, totems, shields, imbues and rogue poisons." },
         { action = "buffPreview", label = "Preview position", help = "Drag the preview header. Closing settings ends the preview." },
-        { action = "buffReset", label = "Reset bar position", help = "Restore the default position; Ctrl+right-click its header also resets." },
+        { action = "buffReset", label = "Reset bar position", help = "Restore the top-center position near breath and fatigue bars.\nCtrl+right-click its header also resets." },
         { action = "buffChoices", label = "Restore buff choices", help = "Undo hidden families, selected alternatives and chosen poisons." },
-    }, note = "Gold Ask icons send Missing [spell link] only on left-click. Right-click chooses alternatives or hides a family." },
+        { key = "missingBuffExpiry", label = "Warn before buffs expire", help = "Short buffs warn at 15 seconds; long buffs use your chosen interval.\nUnknown expiry never counts as an expiring buff." },
+        { action = "buffWarning", label = "Long-buff warning interval", help = "Cycle 30, 60 or 120 seconds for buffs lasting at least 30 minutes and coatings." },
+        { key = "missingBuffCombat", label = "Combat buff reminders", help = "Show passive reminders for selected shouts, Thorns, shields and Righteous Fury.\nRefresh from your action bar; restricted aura data is skipped." },
+        { key = "missingBuffWeapons", label = "Weapon coating reminders", help = "Use main/off-hand choices from Macros for stones, oils and poisons.\nCarried compatible supplies appear on the bar.\nMissing supplies use local chat reminders." },
+        { action = "buffCustom", label = "Custom learned buff spells", help = "Add up to eight spell IDs, each for yourself or party / raid.\nOnly learned spells appear; custom spells stay outside combat." },
+    }, note = "Usable buffs and carried items appear on the bar; unavailable buffs use local chat reminders. Right-click chooses alternatives or hides a family." },
     actionbars = { title = "Your buttons, Suite style.", description = "Slate and teal to match your meters and minimap.", rows = {
         { key = "fullButtonRange", label = "Full button range indicator", help = "Turn the whole action icon red when your target is out of range.\nButtons return to their normal colors when range clears." },
         { key = "actionBarSkin", label = "Suite action bar skin", help = "Square icons, slate backgrounds and fine teal borders.\nIncludes pet and stance buttons; removes the main bar's ornamental art." },
@@ -156,6 +165,11 @@ function GUI:Action(action)
     elseif action == "levelingMinimize" then Suite.Leveling:SetMinimized(not Suite.Leveling.db.minimized); self:Select("leveling")
     elseif action == "disenchantModifier" then
         Suite.Set("disenchantModifier", ({ alt="ctrl", ctrl="shift", shift="alt" })[Suite.ProfessionHelper:Modifier()]); self:Select("professions")
+    elseif action == "trainingOpen" then Suite.Training:Open()
+    elseif action == "buffCustom" then Suite.BuffReminders:OpenOptions()
+    elseif action == "buffWarning" then
+        Suite.Set("missingBuffWarning", ({ [30]=60, [60]=120, [120]=30 })[Suite.db.missingBuffWarning] or 60)
+        self:Select("buffs")
     elseif action == "audioRefresh" then Suite.Audio:SyncNow()
     elseif action == "reset" then Suite.Windows:ResetAll()
     elseif action == "bagSpaceReset" then Suite.BagSpace:ResetBlacklist()
@@ -327,6 +341,7 @@ function GUI:Select(key)
                 row:SetScript("OnClick", function() Suite.Set(data.key, not Suite.db[data.key]); self:Select(key) end)
             else
                 row.value:SetText(data.action == "preset" and Suite.Scoring.presets[Suite.db.scorePreset].label
+                    or data.action == "buffWarning" and (Suite.db.missingBuffWarning .. "s")
                     or data.action == "disenchantModifier" and Suite.ProfessionHelper:Modifier():upper()
                     or data.action == "upgradePreference" and (Suite.Scoring.Preference(Suite.db) == "ilevel" and "Item level" or "Stats")
                     or data.action == "campingPose" and Suite.Camping:GetPose().label
@@ -930,7 +945,8 @@ function GUI:SyncScrollBar(scroll, range)
     local offset = math.max(0, math.min(maximum, scroll.suiteOffset or 0))
     scroll.suiteOffset = offset
     bar.syncing = true
-    bar:SetValue(maximum > 0 and offset / maximum or 0)
+    -- Native vertical sliders increase toward the top; scroll offsets increase toward the bottom.
+    bar:SetValue(1 - (maximum > 0 and offset / maximum or 0))
     bar.syncing = nil
     -- Thumb geometry is cosmetic layout, and can wait while scrolling remains usable.
     if InCombatLockdown() then
@@ -964,7 +980,7 @@ function GUI:CreateSuiteScrollFrame(parent)
     bar:SetScript("OnLeave", function() thumb:SetColorTexture(0.41, 0.84, 0.75, 0.75) end)
     bar:SetScript("OnValueChanged", function(_, fraction)
         if bar.syncing or not ScrollNumber(fraction) then return end
-        local offset = math.max(0, math.min(1, fraction)) * scroll.suiteMaximum
+        local offset = (1 - math.max(0, math.min(1, fraction))) * scroll.suiteMaximum
         if scroll == self.scrollFrame then self:ScrollTo(offset)
         else scroll.suiteOffset = offset; scroll:SetVerticalScroll(offset); self:SyncScrollBar(scroll) end
     end)
@@ -1174,7 +1190,7 @@ function GUI:BuildSettingsSearch(header)
 end
 
 function GUI:Initialize()
-    if self.frame then return end
+    if self.frame or InCombatLockdown() then return end
     local frame = CreateFrame("Frame", "WoWForeverSuitePanel", UIParent, "BackdropTemplate")
     self.frame = frame
     frame:SetSize(800, 680)
@@ -1401,6 +1417,14 @@ end
 
 function GUI:Toggle()
     if not Suite.db then return end
+    if InCombatLockdown() then
+        if self.frame and self.frame:IsShown() then
+            Suite.pending.guiOpen = nil
+            self.frame:Hide()
+        else Suite.AfterCombat("guiOpen", function() self:Toggle() end) end
+        return
+    end
+    Suite.pending.guiOpen = nil
     self:Initialize()
     if not self.frame:IsShown() then self:Select(self.page or "overview") end
     self.frame:SetShown(not self.frame:IsShown())
@@ -1410,6 +1434,8 @@ function GUI:OpenPage(key)
     if not Suite.db then return end
     if not pages[key] then return end
     if key == "setup" and not self.setupPanel and InCombatLockdown() then Suite.Setup:Open(); return end
+    if InCombatLockdown() then Suite.AfterCombat("guiOpen", function() self:OpenPage(key) end); return end
+    Suite.pending.guiOpen = nil
     self:Initialize()
     self:Select(key)
     self.frame:Show()
@@ -1417,9 +1443,11 @@ end
 
 function GUI:OpenMeters(index)
     if not Suite.db then return end
+    if InCombatLockdown() then Suite.AfterCombat("guiOpen", function() self:OpenMeters(index) end); return end
+    Suite.pending.guiOpen = nil
     self:Initialize()
     if index and index ~= self.meterIndex then self:FinishMeterInputs() end
-    if index == 1 or index == 2 then self.meterIndex = index end
+    if index == 1 or index == 2 or index == 3 then self.meterIndex = index end
     self:Select("meters")
     self.frame:Show()
 end
@@ -1464,7 +1492,7 @@ function GUI:BuildMeters()
     if self.meterPanel then self.meterPanel:Show(); return end
     local panel = CreateFrame("Frame", nil, self.content)
     self.meterPanel, self.meterFields, self.meterButtons, self.meterIndex = panel, {}, {}, self.meterIndex or 1
-    panel:SetPoint("TOPLEFT", 0, -154); panel:SetSize(514, 350)
+    panel:SetPoint("TOPLEFT", 0, -154); panel:SetSize(514, 504)
     local function Button(name, x, y, width, callback)
         local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
         button:SetSize(width, 30); button:SetPoint("TOPLEFT", x, -y); Fill(button, palette.row)
@@ -1472,9 +1500,9 @@ function GUI:BuildMeters()
         button:SetScript("OnClick", function() self:FinishMeterInputs(); callback() end); self.meterButtons[name] = button
         return button
     end
-    for index = 1, 2 do
+    for index = 1, 3 do
         local index = index
-        local tab = Button("window" .. index, (index - 1) * 128, 0, 120, function()
+        local tab = Button("window" .. index, (index - 1) * 86, 0, 78, function()
             self.meterIndex = index; self:RefreshMeters()
         end)
         tab.label:SetText("Window " .. index)
@@ -1558,6 +1586,35 @@ function GUI:BuildMeters()
     Button("lock", 0, 318, 160, function() Suite.DamageMeters:SetLocked(not Suite.db.meterLocked) end)
     Button("reset", 172, 318, 168, function() Suite.DamageMeters:Reset(self.meterIndex) end).label:SetText("Reset window layout")
     Button("detach", 352, 318, 160, function() Suite.DamageMeters:Detach() end).label:SetText("Detach windows")
+    Button("content", 0, 356, 248, function()
+        local settings = Suite.db.meterWindows[self.meterIndex]
+        local nextMode = { standard = "paired", paired = "complete", complete = "minimal", minimal = "standard" }
+        Suite.DamageMeters:SetOption(self.meterIndex, "content", nextMode[settings.content])
+    end)
+    Button("icons", 264, 356, 248, function()
+        local settings = Suite.db.meterWindows[self.meterIndex]
+        Suite.DamageMeters:SetOption(self.meterIndex, "icons", not settings.icons)
+    end)
+    Button("pinSelf", 0, 394, 248, function()
+        local settings = Suite.db.meterWindows[self.meterIndex]
+        Suite.DamageMeters:SetOption(self.meterIndex, "pinSelf", not settings.pinSelf)
+    end)
+    Button("minimized", 264, 394, 248, function()
+        local settings = Suite.db.meterWindows[self.meterIndex]
+        Suite.DamageMeters:SetOption(self.meterIndex, "minimized", not settings.minimized)
+    end)
+    Button("visibility", 0, 432, 248, function()
+        local settings = Suite.db.meterWindows[self.meterIndex]
+        local nextMode = { always = "combat", combat = "group", group = "always" }
+        Suite.DamageMeters:SetOption(self.meterIndex, "visibility", nextMode[settings.visibility])
+    end)
+    Button("clickThrough", 264, 432, 248, function()
+        local settings = Suite.db.meterWindows[self.meterIndex]
+        Suite.DamageMeters:SetOption(self.meterIndex, "clickThrough", not settings.clickThrough)
+    end)
+    local inputHint = Text(panel, 11, palette.muted)
+    inputHint:SetPoint("TOPLEFT", 0, -476); inputHint:SetWidth(512)
+    inputHint:SetText("Shift-click a bar to keep details open. Use /wfs to restore mouse input.")
     panel:SetScript("OnHide", function()
         for _, field in pairs(self.meterFields) do field.cancelEdit = true; field:ClearFocus(); field.cancelEdit = nil; field.editIndex = nil end
         self:CommitMeterValues()
@@ -1569,11 +1626,18 @@ function GUI:RefreshMeters()
     Suite.DamageMeters:Normalize()
     local index = self.meterIndex or 1
     local settings, buttons = Suite.db.meterWindows[index], self.meterButtons
-    for i = 1, 2 do Fill(buttons["window" .. i], i == index and { 0.1, 0.2, 0.21 } or palette.row) end
-    buttons.test.label:SetText(Suite.DamageMeters.preview and "Stop test" or "Test both windows")
+    for i = 1, 3 do Fill(buttons["window" .. i], i == index and { 0.1, 0.2, 0.21 } or palette.row) end
+    buttons.test.label:SetText(Suite.DamageMeters.preview and "Stop test"
+        or #Suite.DamageMeters.windows == 3 and "Test windows" or "Test both windows")
     buttons.shown.label:SetText((Suite.DamageMeters.preview and "After test, Window " or "Show Window ") .. index .. ": " .. (settings.shown and "On" or "Off"))
     buttons.classColors.label:SetText(settings.classColors and "Bars: class colors" or "Bars: Suite teal")
     buttons.numbers.label:SetText(settings.numbers == "compact" and "Numbers: compact" or "Numbers: full")
+    buttons.content.label:SetText("Values: " .. ({ minimal = "Primary", standard = "Standard", paired = "Total + rate", complete = "Total, rate, share" })[settings.content])
+    buttons.icons.label:SetText("Class / spec icons: " .. (settings.icons and "On" or "Off"))
+    buttons.pinSelf.label:SetText("Keep my row visible: " .. (settings.pinSelf and "On" or "Off"))
+    buttons.minimized.label:SetText(settings.minimized and "Window: Minimized" or "Window: Expanded")
+    buttons.visibility.label:SetText("Visible: " .. ({ always = "Always", combat = "In combat", group = "In a group" })[settings.visibility])
+    buttons.clickThrough.label:SetText("Mouse input: " .. (settings.clickThrough and "Off" or "On"))
     buttons.snap.label:SetText("Snap windows: " .. (Suite.db.meterSnap and "On" or "Off"))
     buttons.lock.label:SetText(Suite.db.meterLocked and "Windows: Locked" or "Windows: Unlocked")
     buttons.detach:SetEnabled(Suite.db.meterDock.anchor ~= nil)

@@ -66,11 +66,11 @@ equal(gui.scrollOffset, maximum, "scrolling clamps to the last reachable setting
 equal(gui.content.verticalScroll, nil, "scroll is applied to the viewport rather than moving row anchors")
 equal(gui.scrollFrame.verticalScroll, maximum, "the native scroll widget receives the clamped position")
 local bar = gui.scrollFrame.suiteScrollBar
-equal(bar.value, 1, "bottom scroll places the custom thumb at its normalized bottom endpoint")
+equal(bar.value, 0, "bottom scroll places the native vertical thumb at its bottom endpoint")
 equal(bar:IsShown(), true, "overflow pages show the custom scrollbar")
 equal(bar.thumb.height > 24, true, "the thumb represents the visible portion rather than a fixed tiny knob")
-bar:SetValue(0)
-equal(gui.scrollOffset, 0, "dragging the custom slider to its top returns to the first control")
+bar:SetValue(1)
+equal(gui.scrollOffset, 0, "dragging the native vertical slider to its top returns to the first control")
 bar:SetValue(0.5)
 equal(gui.scrollOffset, maximum / 2, "the slider and content share one continuous range")
 equal(gui.scrollFrame.verticalScroll, maximum / 2, "thumb dragging moves actual viewport content")
@@ -83,7 +83,7 @@ for _, invalid in ipairs({ { secret = true }, math.huge, 0 / 0 }) do
 end
 gui.scrollFrame.OnScrollRangeChanged(gui.scrollFrame, 0, maximum / 2)
 equal(gui.scrollOffset, maximum / 2, "native range changes clamp an obsolete lower offset")
-equal(bar.value, 1, "the thumb reaches the end of the actual new range")
+equal(bar.value, 0, "the thumb reaches the bottom of the actual new range")
 gui.scrollFrame.OnScrollRangeChanged(gui.scrollFrame, 0, { secret = true })
 equal(gui.scrollOffset, maximum / 2, "unreadable native range changes preserve the known position")
 gui:Select("buffs"); gui:ScrollTo(maximum)
@@ -96,7 +96,7 @@ gui:Select("buffs"); equal(gui.scrollOffset, maximum, "toggling a setting on the
 gui:Select("bags"); equal(gui.scrollOffset, 0, "changing pages begins at the top")
 gui:Select("windows")
 equal(bar:IsShown(), false, "short pages hide the scrollbar entirely")
-equal(bar.value, 0, "short pages reset the thumb without recursive scroll callbacks")
+equal(bar.value, 1, "short pages reset the thumb to the top without recursive scroll callbacks")
 gui:Select("bags")
 
 local function Find(key)

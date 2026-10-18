@@ -1,6 +1,6 @@
 # Forever Suite
 
-A modular addon for WoW Forever with optional quality of life tools and an original slate-and-teal control panel. Version **0.2.57** fixes auto-open falsely detecting a closed bank and removes chat selection hooks that ran before Blizzard's protected clipboard action. Most features start off. The installed client was read as 1.60.1.70425, with exact feature-specific source reviews and native smoke tests tracked in [testing.md](docs/testing.md).
+A modular addon for WoW Forever with optional quality of life tools and an original slate-and-teal control panel. Version **0.2.69** waits for quest data before automatic pickup, following the readiness approach used by Retail ZoidsTools. Most features start off. The installed client was read as 1.60.1.70450; the change needs the [focused native test](docs/testing.md#quest-pickup-readiness--0269).
 
 ## Leveling tracker
 
@@ -10,13 +10,21 @@ Right-click the unlocked tracker to open its settings; Ctrl-right-click restores
 
 Rates appear after one minute and include idle time. Gold is net change, including purchases, repairs and transfers. `/reload` continues the same session, including loading time when available; a fresh login starts over and excludes offline time. Disabling ends tracking; re-enabling starts fresh. Partial totals have a `~` marker, and missing/paused/incomplete XP tracking has no time-to-level estimate. This brings over EverCore's leveling/session behavior in a focused Suite tracker. Native appearance, hover/click routing, persistence and combat behavior need the [tracker smoke test](docs/testing.md#vertical-leveling-tracker--0254).
 
+## Training Planner
+
+Open **Bags & Gear → Professions** and enable **Record trainer offerings**. The planner opens beside the trainer after readable data arrives; its separate auto-open toggle can be turned off. The attachment follows the trainer and uses the left side when that fits better. **/wfs training** opens the latest saved view. Available now, future training levels and Other requirements show unlearned offers, ranks, costs, group totals, your gold and savings gaps. Scroll longer groups; totals include every listed offer. Training purchases remain manual.
+
+With recording enabled, **Show Training Planner on level up** opens **Available now** after every level, independently of trainer auto-opening. Combat delays the popup until combat ends. Newly reached saved level requirements appear as **Level met · confirm at trainer** estimates; known unmet prerequisites remain separate. Visit a trainer to populate or refresh the saved list.
+
+Snapshots and standalone placement save per character. Saved prices and eligibility are historical, native filters can hide offerings, and unknown prices produce a known partial total. Pet training uses points and is excluded. Away from trainers, drag the header to place the planner; temporary trainer attachment preserves that position. X/Escape closes it. Native appearance and data delivery still need the focused test.
+
 ## Square minimap header
 
 After `/reload`, the existing **Square minimap** choice uses a clear two-line location header, with tracking and the native day/night indicator on the left and calendar on the right. The new gold location-button background stays hidden even during hover/click. Native map-opening clicks, tracking, calendar, clock and day/night updates remain in control. Disabling square mode restores the original native layout. Check the [current-header smoke test](docs/testing.md#current-minimap-header-and-daynight-art--0250) for appearance, scaling and combat results.
 
 ## Target threat indicator
 
-After `/reload`, open `/wfs unitframes` and enable **Target threat indicator**. On a living enemy NPC, a compact 60×24 percentage rectangle uses Blizzard tooltip-border art with warm trim and a translucent chat background. Its light threat tint warms from grey through orange to red toward 100%, while the text stays bright. It sits above the left name strip normally, and below/outside the left edge when **Buffs on top** is selected. Native movement/scale and input stay in control. **--** means no readable percentage is available. The setting starts off independently; initial setup and layout changes wait through combat. Check the [restyled threat smoke test](docs/testing.md#blizzard-style-threat-rectangle--0253) for native appearance, clearance and combat results.
+After `/reload`, open `/wfs unitframes` and enable **Target threat indicator**. On a living enemy NPC, a compact 60×24 percentage rectangle uses Blizzard tooltip-border art with warm trim and a translucent chat background. Its stronger translucent threat fill warms from grey through orange to red toward 100%, while the outlined percentage stays bright. It aligns with the visible left frame edge above the name strip normally, and below/outside the left edge when **Buffs on top** is selected. Native movement/scale and input stay in control. **--** means no readable percentage is available. The setting starts off independently; initial setup and layout changes wait through combat. Check the [threat alignment and contrast smoke test](docs/testing.md#threat-alignment-and-contrast--0258) for native appearance, clearance and combat results.
 
 ## Combined bag order
 
@@ -108,26 +116,22 @@ The guide uses original Suite code, wording and presentation. ElvUI 15.26 was re
 
 ## Missing buffs
 
-After `/reload`, open `/wfs buffs` and enable **Missing buff bar**. It starts off. Four independent filters cover your own group buffs, buffs you can give your party/raid, buffs your group can give you, and class upkeep such as hunter aspects, armor, paladin auras, shaman shields/totems/imbues and rogue poisons. The bar hides in rested areas, combat, while dead, and when nothing readable is missing.
+After /reload, open /wfs buffs and enable **Missing buff bar**. It starts off. Your learned buffs, group buffs you can supply, and compatible carried coating items appear in the window. Buffs only a teammate may provide and missing weapon supplies appear in **your local chat**, without Ask placeholders or outgoing group requests. Notices stay quiet while the same deficit remains; a newly missing buff can notify again with a 60-second minimum per family/hand. Existing self, outgoing, incoming and class-upkeep switches remain independent. Unknown data never proves a buff or supply is missing.
 
-The title and buffs stay centered. A single buff gets a small box just wide enough for MISSING BUFFS; two buffs widen it, and additional buffs grow it automatically. Lists wrap after eight icons, with the final row centered. The box shrinks again as buffs are supplied.
+Self/group spell buttons retain native casting, targeting and click-time checks. Right-click cycles learned alternatives, then hides a family. Group entries list affected members and cast for the first eligible member; an active toggle aura remains a passive coverage reminder so clicking cannot switch it off. Group class/level suggestions do not reveal another player's learned spells or talents.
 
-If enabling 0.2.0 raised an unknown-event error for LEARNED_SPELL_IN_TAB, `/reload` loads the 0.2.1 correction. Your enabled setting and saved choices remain. Try the bar outside a rested area; the corrected live activation still needs the [retest](docs/testing.md#missing-buff-activation-event-fix--021).
+**Weapon coating reminders** reuse the main/off-hand choices from Macros and ordinary automatic stone matching. Selected carried supplies get an item action. A compatible carried alternative remains visible as a choice; click it to open that hand's Macros selection, then choose deliberately. Creating a macro is unnecessary. Rogue poison choices remain deliberate through right-click. Items, selection and equipped weapon are rechecked before applying; no item is applied automatically. Missing supplies have no question-mark action icon. A known compatible weapon spell suppresses redundant missing-item notices. Native item restrictions and replacement confirmations still apply.
 
-**Self** buttons cast your learned buff on you. Numbered buttons list missing group members in their tooltip and buff the first member; party effects cast on you. Click again after the bar updates to continue through the group. An already-active toggle aura shows a coverage reminder with no cast, so clicking cannot turn it off. Gold **Ask** buttons suggest teammates' usual class buffs from their class and level; they do not know those players' learned spellbooks or talents. Left-click an Ask icon to send `Missing [spell link]`: instance group chat takes priority, then raid, then party. The icon stays until the buff arrives. A request rechecks the buff, eligible providers and your learned spells; buffs you can supply yourself never become requests when their self filter is off. Party-only effects stay within your raid subgroup. Hidden, disconnected, dead or unavailable-data members do not establish a missing buff.
+The default position is **top center**, near breath/fatigue bars. Existing dragged positions are preserved; use **Reset bar position** or Ctrl-right-click the header to apply the new default. Drag the header outside combat or use **Preview position** when nothing is missing. The title stays centered, grows with the number of usable actions, wraps after eight icons and shrinks again. The ordinary bar remains hidden while rested, dead or in combat.
 
-Requests for the same buff have a 30-second cooldown, with three seconds between different buff requests. Nothing is sent automatically when the bar refreshes or an aura changes. Native chat restrictions, missing spell links or a changed buff list cancel the click and give local feedback; they never schedule a retry. Actual chat delivery still needs the [request smoke test](docs/testing.md#clicked-missing-buff-requests--023).
-
-Right-click a castable buff to cycle learned alternatives, then hide that family; any active alternative satisfies upkeep. Right-click an Ask reminder to hide its family. Rogue **MH/OH** buttons require you to right-click and choose a carried poison before left-clicking to apply it to that hand. A native weapon imbue satisfies poison/shaman upkeep; permanent enchants and oils do not. Ordinary poisons use localized native spell names; additional Forever poisons are also recognized by their English names. Spell/item data that is still loading never creates an invented action.
-
-Drag the bar's header outside combat to position it, or use **Preview position** in settings when no buffs are missing. Ctrl-right-click the header or **Reset bar position** restores its default position. **Restore buff choices** brings back hidden families. The maintained catalogue covers class upkeep, rather than every temporary combat proc or cooldown. Native targeting, range, reagents, coating classification, appearance and taint still need the [live checklist](docs/testing.md#missing-buff-bar--020).
+**Warn before buffs expire** uses 15 seconds for short spells and selectable **30 / 60 / 120 seconds** for spells lasting at least 30 minutes and coatings. Unknown timing and permanent/equivalent coverage do not imply expiry. **Custom learned buff spells** supports up to eight learned IDs with self or explicit party/raid scope. Optional **Combat buff reminders** show prepared useful class buffs and carried coatings in a separate passive panel; inventory changes suppress stale coating availability without combat bag scans. These additions start off. See the [native smoke test](docs/testing.md#actionable-buff-bar-and-local-reminders--0268) before treating rendering, casting or taint as verified.
 
 ## First version
 
 | Area | Included |
 | --- | --- |
 | Setup guide | Five pages of staged choices, current/suggested options, a final review and one-time account welcome; `/wfs setup` reruns it |
-| Missing buffs | Optional self/group upkeep actions, incoming class-and-level reminders, aspects/auras/totems/imbues and chosen carried poisons; hidden while rested or in combat |
+| Missing buffs | Usable self/group spells and carried item choices on a top-center bar; unavailable buffs use local chat notices |
 | Minimap | Square mask and border; optional FPS, home/world latency, coordinates and local clock strip; addon-button drawer |
 | World map | Reveal unexplored terrain over a translucent slate cover with a 0–100% terrain opacity slider; prepared maps refresh in combat |
 | Windows | Dragging from empty native header space, including bags and Calendar; saved positions, proportional resizing, Ctrl-right-click reset and reset all |
@@ -140,10 +144,10 @@ Drag the bar's header outside combat to position it, or use **Preview position**
 | Cross-character search | Original results popup beside native bags/banks and the saved bank, with owners, bag/bank counts, paging and snapshot dates |
 | Macros | Fixed recovery, self-bandage and weapon-coating recipes; chosen-item variants, preview and optional automatic updates |
 | Camping | Nearby-camp bar with carried objects, counts, cooldowns and a remembered resting pose |
-| Damage meters | Two slate/teal windows with metric/fight menus, clickable player breakdowns, quick reset, independent appearance and snapping with shared-edge sizing |
+| Damage meters | Up to three slate/teal windows with metric/fight menus, clickable player breakdowns, quick reset, independent appearance and snapping with shared-edge sizing |
 | Action bars | Optional square slate-and-teal skin with native controls and Edit Mode layout; independently optional full-icon red range feedback |
 | Vendor | Independent automatic repair with personal/guild funding, paced gray-item selling with Buyback, or confirmed native instant junk selling |
-| Quests | Independent pickup, ready turn-in with zero/one reward choice and single-option gossip; Shift bypass and manual confirmations |
+| Quests | Pickup after quest data loads, ready turn-in with zero/one reward choice and single-option gossip; Shift bypass and manual confirmations |
 | Quick loot | Immediate auto-loot pass respecting the game's Auto Loot setting/modifier; native rolls and bind confirmations |
 | Audio | Optional following of the Windows default playback device, coalesced sound refreshes and Sync now; pauses during movies/cinematics |
 | Mail | Searchable class-colored character/recipient list beside Send Mail, sorting/paging, saved contacts and optional successful-send recipient memory |
@@ -252,6 +256,10 @@ The existing deployment junction loads these changes on `/reload`; no other addo
 
 ## Damage meters
 
+Version **0.2.63** adds an optional **Window 3**, native spec icons, an offscreen personal-row pin, pet/recipient labels, death timestamps and native recap clicks after combat. Each window now offers value-detail modes, icon and self-pin toggles, Always/In combat/In a group visibility, header-only minimization and mouse pass-through. Restore mouse input through `/wfs meters`. The original snapped pair remains independent of Window 3; the shared lock includes all three. Current/Overall time advances during combat through a cancellable clock. Shift-click keeps a breakdown open; either mouse button selects a source.
+
+The meters use every native source/spell in its supplied order. Complete values show shares only when the required totals are readable; hidden values still use supported native display paths. Restricted source IDs require another click after combat. See the [native meter comparison](docs/meter-parity.md) for the exact source review, supported additions and remaining differences. Native comparison and taint tests are pending.
+
 Each size/appearance setting has a right-aligned editable value beside its label and a teal slider below. Drag or scroll the slider for live adjustments, or type a precise value and press Enter. Opacity uses percentages. Escape cancels an unfinished typed edit; sliders and numbers remain synchronized when switching windows or resizing from a corner.
 
 Bar text now starts at Blizzard's 14-point size with a normal, antialiased outline. The old 11-point default upgrades once; other custom sizes are kept, and you can still choose 9–16 in settings afterward. Names and values share the native meter font family.
@@ -266,7 +274,7 @@ The meters use Blizzard's meter font, textured bar fill, soft shaded edges and a
 
 Click either header's **padlock**, **Windows: Unlocked** in settings, or **Lock both windows** in the `...` menu to lock the pair. Both windows hide their resize corners and drag dots, and movement, corner sizing, Ctrl-scroll and the background reset gesture stop. Menus and body scrolling remain available. The lock saves across reloads. Unlock from the same controls; deliberate size/position resets in settings remain available while locked.
 
-The small **reset arrow** beside the padlock clears Overall, Current and stored fights for both Suite windows and the built-in meters through the native shared reset. Layout, styling, chosen metrics and the lock remain saved. In test mode it restarts the sample display and preserves real fights. Hover for the reset scope; the button is unavailable if the client lacks native reset support. Layout resets remain in settings.
+The small **reset arrow** beside the padlock clears Overall, Current and stored fights for all Suite windows and the built-in meters through the native shared reset. Layout, styling, chosen metrics and the lock remain saved. In test mode it restarts the sample display and preserves real fights. Hover for the reset scope; the button is unavailable if the client lacks native reset support. Layout resets remain in settings.
 
 Damage bars show the exact grouped total followed by DPS in parentheses, such as **16,568 (13.5)**. Healing shows total healing followed by HPS, and damage-taken views pair their own totals and rates. Compact/full number settings apply to both values; Compact remains available for abbreviations such as **972.6k (38.9k)**. Dedicated DPS/HPS views keep their single `/s` value; action counts remain single numbers. A missing rate leaves only the total. These values come from the selected Current, Overall or retained native fight.
 

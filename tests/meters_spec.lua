@@ -22,8 +22,8 @@ meters.OpenMenu = function(self, ...)
     oldOpenMenu(self, ...)
     if self.menuUI and self.menuUI.rootDescription then menus[#menus + 1] = self.menuUI.rootDescription end
 end
-C_Timer = { NewTimer = function(_, callback)
-    local timer = { callback = callback, Cancel = function(self) self.cancelled = true end }
+C_Timer = { NewTimer = function(delay, callback)
+    local timer = { delay = delay, callback = callback, Cancel = function(self) self.cancelled = true end }
     timers[#timers + 1] = timer
     return timer
 end }
@@ -56,11 +56,15 @@ do
     equal(Suite.db.meterWindows[1].numbers, "full", "restricted number preferences migrate without comparison")
     Suite.db.meterWindows = saved
 end
-CreateFrame = function(kind, name, parent)
+CreateFrame = function(kind, name, parent, template)
     assert(not InCombatLockdown(), "no meter frame construction in combat")
     created = created + 1
     local frame = Frame(name)
-    frame.objectType, frame.parent = kind, parent
+    frame.objectType, frame.parent, frame.template = kind, parent, template
+    -- Modern plain frames/buttons do not receive backdrop mixin methods automatically.
+    if not template or not template:find("BackdropTemplate", 1, true) then
+        frame.SetBackdrop, frame.SetBackdropColor, frame.SetBackdropBorderColor = nil, nil, nil
+    end
     frame.SetAllPoints = function() end
     frame.SetClipsChildren = function(self, clip) self.clipsChildren = clip end
     frame.SetMinMaxValues = function(self, low, high) self.low, self.high = low, high end
@@ -82,7 +86,15 @@ CreateFrame = function(kind, name, parent)
         self.statusTexture = self.statusTexture or self:CreateTexture()
         return self.statusTexture
     end
-    frame.SetStatusBarColor = function(self, ...) self.barColor = { ... } end
+    frame.SetStatusBarColor = function(self, r, g, b, a)
+        for _, component in ipairs({ r, g, b, a }) do
+            assert(not issecretvalue(component), "meter color components must stay readable")
+        end
+        assert(type(r) == "number" and type(g) == "number" and type(b) == "number",
+            "SetStatusBarColor requires three numeric RGB components")
+        assert(a == nil or type(a) == "number", "status-bar alpha must be numeric when supplied")
+        self.barColor = { r, g, b, a }
+    end
     frame.SetMaxLetters = function() end
     frame.SetTextInsets = function() end
     frame.HasFocus = function(self) return self.focused == true end
@@ -177,13 +189,13 @@ for index, metric in ipairs(meters.metrics) do Enum.DamageMeterType[metric.key] 
 local histories = { { sessionID = 77, name = "Repeated fight", durationSeconds = 61 },
     { sessionID = 78, name = "Repeated fight", durationSeconds = nil }, { sessionID = 79, name = "", durationSeconds = Secret() },
     { sessionID = Secret(), name = "Unavailable ID" } }
-local calls, idCalls = {}, {}
+local calls, idCalls, historyCalls = {}, {}, 0
 local sources = {}
 for i = 1, 100 do sources[i] = { name = "Player " .. i, classFilename = "MAGE", totalAmount = 1000 - i, amountPerSecond = 200 - i } end
 local data = { combatSources = sources, maxAmount = 1000, durationSeconds = 61 }
 C_DamageMeter = {
     IsDamageMeterAvailable = function() return available, "Unavailable in this mode" end,
-    GetAvailableCombatSessions = function() return restrictedHistory and Secret() or histories end,
+    GetAvailableCombatSessions = function() historyCalls = historyCalls + 1; return restrictedHistory and Secret() or histories end,
     GetCombatSessionFromType = function(sessionType, metric) calls[#calls + 1] = { sessionType, metric }; return data end,
     GetCombatSessionFromID = function(id, metric) idCalls[#idCalls + 1] = { id, metric }; return data end,
 }
@@ -195,9 +207,63 @@ SetCombat(true)
 meters:Apply()
 equal(created, 0, "enabling in combat defers meter construction")
 SetCombat(false)
+local startupData = data
+data = { combatSources = {}, totalAmount = 0, maxAmount = 0, durationSeconds = 5 }
+UIParent:SetSize(0, 0)
 local apply = Suite.pending.meters; Suite.pending.meters = nil; apply()
+equal(meters.windows[1].visibleRows, 0, "unlaid first window starts with a numeric empty viewport")
+equal(meters.windows[2].visibleRows, 0, "unlaid healing window starts with a numeric empty viewport")
+equal(#meters.windows[2].rows, 0, "unavailable startup geometry does not allocate an invented viewport")
+equal(meters.windows[1].frame:IsShown(), false, "unlaid first window remains hidden")
+equal(meters.windows[2].frame:IsShown(), false, "unlaid healing window remains hidden")
+equal(meters.rects, nil, "unavailable screen dimensions do not invent saved rectangles")
+equal(#calls, 0, "unlaid windows do not query native sessions")
+meters.events:OnEvent("DAMAGE_METER_COMBAT_SESSION_UPDATED"); Flush()
+equal(#calls, 0, "scheduled empty-session update safely waits for initial layout")
+local startupFrames, startupClockCalls = created, 0
+C_DamageMeter.GetSessionDurationSeconds = function() startupClockCalls = startupClockCalls + 1; return 5 end
+SetCombat(true); meters.events:OnEvent("PLAYER_REGEN_DISABLED"); Flush()
+equal(meters.clockTimer, nil, "unprepared startup windows cannot arm a live clock")
+equal(startupClockCalls, 0, "unprepared startup windows do not query a duration")
+C_DamageMeter.GetSessionDurationSeconds = nil
+equal(created, startupFrames, "layout recovery creates no rows during combat")
+UIParent.width, UIParent.height = 1000, 800
+meters.events:OnEvent("PLAYER_ENTERING_WORLD"); Flush()
+equal(meters.windows[2].frame:IsShown(), false, "world entry cannot reveal an unprepared window during combat")
+equal(#calls, 0, "combat startup recovery cannot fetch for an unprepared viewport")
+SetCombat(false); meters.events:OnEvent("PLAYER_REGEN_ENABLED"); Flush()
+equal(meters.windows[2].layoutReady, true, "combat exit completes the healing viewport layout")
+equal(meters.windows[2].frame:IsShown(), true, "healing meter appears after its geometry is ready")
+equal(meters.windows[2].empty.text, "Waiting for combat data", "reported empty healing session refreshes safely after recovery")
+equal(meters.layoutPending, false, "successful startup recovery clears pending layout")
+data = startupData; meters:Refresh()
 equal(#meters.windows, 2, "enable creates exactly two windows")
 local first, second = meters.windows[1], meters.windows[2]
+equal(#first.rows, 8, "default first meter allocates only its eight visible rows")
+equal(#second.rows, 8, "default second meter allocates only its eight visible rows")
+do
+    meters:CancelTimer(); Flush()
+    local beforeQueries, beforeHistory, beforeFrames = #calls, historyCalls, created
+    for _ = 1, 500 do meters.events:OnEvent("DAMAGE_METER_COMBAT_SESSION_UPDATED") end
+    equal(#timers, 1, "native update burst allocates only one worker")
+    equal(timers[1].delay, 0.2, "native data snapshots are coalesced over a fifth of a second")
+    equal(#calls, beforeQueries, "queued burst does not fetch intermediate native snapshots")
+    Flush()
+    equal(#calls - beforeQueries, 2, "burst fetches one snapshot per visible meter")
+    equal(historyCalls, beforeHistory, "current meters do not repeatedly allocate fight-history lists")
+    equal(created, beforeFrames, "burst refresh uses only the existing viewport pool")
+    equal(#timers, 0, "refresh leaves no idle polling worker")
+    second.fightID = 77
+    meters:Refresh()
+    equal(historyCalls, beforeHistory + 1, "a selected historical fight still validates the native retained list")
+    local priorQueries = #calls + #idCalls
+    Suite.db.meterWindows[2].shown = false
+    meters:Refresh()
+    equal(historyCalls, beforeHistory + 1, "a hidden historical meter does not allocate history snapshots")
+    equal(#calls + #idCalls - priorQueries, 1, "a hidden meter does not fetch a native session snapshot")
+    Suite.db.meterWindows[2].shown, second.fightID = true, nil
+    meters:Refresh()
+end
 equal(first.frame.firstShowAnchor[1], "BOTTOMLEFT", "first meter has its final anchor before becoming visible")
 equal(second.frame.firstShowAnchor[1], "BOTTOMLEFT", "second meter has its final anchor before becoming visible")
 equal(first.frame.firstShowAnchor[4], meters.rects[1].x, "first meter show uses the settled horizontal position")
@@ -206,6 +272,43 @@ equal(first.frame.foreverMeter, true, "meter has its own layout ownership marker
 Suite.Windows:Track("meterTest", first.frame)
 equal(Suite.Windows.tracked.meterTest, nil, "general mover cannot also own a meter window")
 equal(first.rows[1].bar.barColor[1], 0.20, "default bar uses Suite teal")
+do
+    local source, settings = sources[1], Suite.db.meterWindows[1]
+    local originalClass, originalPreference = source.classFilename, settings.classColors
+    local colors = RAID_CLASS_COLORS
+    local hunter = { r = 0.666667, g = 0.827451, b = 0.447059, colorStr = "ffaad372" }
+    colors.HUNTER = hunter -- Native records have named fields and no numeric array entries.
+    source.classFilename, settings.classColors = "HUNTER", true
+    meters:RefreshWindow(first)
+    equal(first.rows[1].bar.barColor[1], hunter.r, "reported Hunter row receives its class red")
+    equal(first.rows[1].bar.barColor[2], hunter.g, "reported Hunter row receives its class green")
+    equal(first.rows[1].bar.barColor[3], hunter.b, "reported Hunter row receives its class blue")
+    equal(first.rows[1].bar.barColor[4], 0.85, "class color retains meter opacity")
+    local beforeFrames = created
+    SetCombat(true); meters:RefreshWindow(first)
+    equal(first.rows[1].bar.barColor[2], hunter.g, "class colors also refresh during combat")
+    equal(created, beforeFrames, "class color refresh reuses prepared rows in combat")
+    SetCombat(false)
+    source.classFilename = "MAGE"; meters:RefreshWindow(first)
+    equal(first.rows[1].bar.barColor[3], 1, "recycled row follows a different native class record")
+    source.classFilename = "UNKNOWN"; meters:RefreshWindow(first)
+    equal(first.rows[1].bar.barColor[1], 0.20, "unknown class falls back to Suite red")
+    equal(first.rows[1].bar.barColor[2], 0.54, "unknown class falls back to Suite green")
+    equal(first.rows[1].bar.barColor[3], 0.49, "unknown class falls back to Suite blue")
+    source.classFilename, hunter.g = "HUNTER", Secret(); meters:RefreshWindow(first)
+    equal(first.rows[1].bar.barColor[1], 0.20, "restricted class component uses readable Suite color")
+    hunter.g, hunter.b = 0.827451, math.huge; meters:RefreshWindow(first)
+    equal(first.rows[1].bar.barColor[1], 0.20, "nonfinite class component falls back safely")
+    hunter.b = nil; meters:RefreshWindow(first)
+    equal(first.rows[1].bar.barColor[1], 0.20, "missing class component falls back safely")
+    colors.HUNTER = Secret(); meters:RefreshWindow(first)
+    equal(first.rows[1].bar.barColor[1], 0.20, "restricted class record is not traversed")
+    RAID_CLASS_COLORS = Secret(); meters:RefreshWindow(first)
+    equal(first.rows[1].bar.barColor[1], 0.20, "restricted class-color table is not indexed")
+    RAID_CLASS_COLORS, colors.HUNTER = colors, nil
+    source.classFilename, settings.classColors = originalClass, originalPreference
+    meters:RefreshWindow(first)
+end
 equal(first.rows[1].bar.statusTexture.atlas, "UI-HUD-CoolDownManager-Bar", "bar uses matching native meter fill artwork")
 equal(first.rows[1].background.atlas, "ui-damagemeters-bar-shadowbg", "row uses native shaded track artwork")
 equal(first.rows[1].edge.atlas, "ui-damagemeters-bar-shadowedge", "row uses native soft bar edges")
@@ -561,6 +664,8 @@ equal(meters.timer, nil, "disable cancels refresh timer")
 equal(next(meters.events.events), nil, "disable unregisters feature events")
 equal(first.frame:IsShown(), false, "disable hides window one")
 equal(second.frame:IsShown(), false, "disable hides window two")
+equal(first.rows[1].source, nil, "disabling releases first meter native source references")
+equal(second.rows[1].source, nil, "disabling releases second meter native source references")
 Flush()
 equal(first.frame:IsShown(), false, "cancelled refresh cannot revive disabled UI")
 
@@ -755,6 +860,31 @@ equal(first.frame.height, 800, "corner growth supports viewport height beyond ol
 equal(meters.rects[1].x, 0, "large resized meter remains inside horizontal screen bounds")
 equal(meters.rects[1].y, 0, "large resized meter remains inside vertical screen bounds")
 equal(first.visibleRows > 20, true, "larger row pool supports taller meters")
+equal(#first.rows, first.visibleRows, "outside-combat growth allocates only the larger viewport")
+do
+    local beforeFrames, rowCount, firstRow = created, #first.rows, first.rows[1]
+    meters:Layout(); meters:Refresh()
+    equal(created, beforeFrames, "unchanged layout and refresh allocate no replacement rows")
+    Suite.db.meterWindows[1].height = 120
+    meters:Layout(); meters:Refresh()
+    equal(#first.rows, rowCount, "shrinking retains the bounded reusable row pool")
+    equal(first.rows[1], firstRow, "shrinking reuses existing player rows")
+    equal(first.rows[first.visibleRows + 1].source, nil, "unused pooled rows release native source records")
+    equal(first.rows[first.visibleRows + 1]:IsShown(), false, "unused pooled rows stay hidden")
+    SetCombat(true); first.visibleRows = rowCount + 1; meters:EnsureRows(first)
+    equal(created, beforeFrames, "row pool cannot grow in combat")
+    SetCombat(false); meters:Layout()
+    local screenHeight = UIParent.GetHeight
+    local settings = Suite.db.meterWindows[1]
+    local height, rowHeight = settings.height, settings.rowHeight
+    UIParent.GetHeight = function() return 1200 end
+    settings.height, settings.rowHeight = 1000, 18
+    meters:Layout(); meters:Refresh()
+    equal(first.visibleRows, 48, "largest viewport retains the existing 48-row display limit")
+    equal(#first.rows, 48, "viewport growth remains bounded to 48 pooled rows")
+    UIParent.GetHeight, settings.height, settings.rowHeight = screenHeight, height, rowHeight
+    meters:Layout(); meters:Refresh()
+end
 
 for _, side in ipairs({ "LEFT", "RIGHT", "TOP", "BOTTOM" }) do
     for index = 1, 2 do
@@ -1105,6 +1235,25 @@ equal(created, beforeCombatDetails, "combat click creates no popup or rows")
 equal(details.frame:IsShown(), true, "locked player bar opens its prebuilt popup in combat")
 equal(details.frame.events.GLOBAL_MOUSE_DOWN, true, "visible popup listens for click-away dismissal")
 do
+    local settings, selection = Suite.db.meterWindows[1], details.selection
+    local originalPreference, originalClass = settings.classColors, selection.class
+    RAID_CLASS_COLORS.HUNTER = { r = 0.666667, g = 0.827451, b = 0.447059 }
+    settings.classColors, selection.class = true, "HUNTER"
+    meters:RefreshDetails()
+    equal(details.rows[1].bar.barColor[1], 0.666667, "combat spell bars receive native class red")
+    equal(details.rows[1].bar.barColor[2], 0.827451, "combat spell bars receive native class green")
+    equal(details.rows[1].bar.barColor[3], 0.447059, "combat spell bars receive native class blue")
+    equal(details.rows[1].bar.barColor[4], 0.85, "spell class bars retain meter opacity")
+    selection.class = Secret(); meters:RefreshDetails()
+    equal(details.rows[1].bar.barColor[1], 0.20, "restricted spell source class uses Suite color")
+    selection.class, settings.classColors = "HUNTER", false; meters:RefreshDetails()
+    equal(details.rows[1].bar.barColor[2], 0.54, "spell bars honor the Suite color preference")
+    RAID_CLASS_COLORS.HUNTER = nil
+    settings.classColors, selection.class = originalPreference, originalClass
+    meters:RefreshDetails()
+    equal(created, beforeCombatDetails, "spell class styling creates no frames during combat")
+end
+do
     for _, focus in ipairs({ details.frame, details.rows[1], details.rows[1].bar, details.close }) do
         mouseFoci = { UIParent, focus }; details.frame:OnEvent("GLOBAL_MOUSE_DOWN", "LeftButton")
         equal(details.frame:IsShown(), true, "clicking popup content or descendants keeps the details open")
@@ -1252,6 +1401,242 @@ equal(details.frame:IsShown(), false, "disabling meters dismisses the breakdown"
 equal(details.frame.events.GLOBAL_MOUSE_DOWN, nil, "disabling meters leaves no popup mouse listener")
 equal(Suite.db.meterWindows[1].sourceGUID, nil, "source selection never enters saved preferences")
 equal(Suite.db.meterDetails, nil, "no saved combat breakdown table is introduced")
+-- Native 70450 parity: exercise data semantics and lifecycle, not implementation mirrors.
+do
+    local oldRecap, oldShift, oldGrouped, oldCombat = OpenDeathRecapUI, IsShiftKeyDown, IsInGroup, UnitAffectingCombat
+    local recap, inCombat, grouped = nil, false, false
+    OpenDeathRecapUI = function(id) assert(not issecretvalue(id)); recap = id end
+    UnitAffectingCombat = function() return inCombat end
+    IsInGroup = function() return grouped end
+    IsShiftKeyDown = function() return false end
+    Suite.db.damageMeters, Suite.db.meterLocked = true, false
+    Suite.db.meterDock = {}
+    for index = 1, 3 do Suite.db.meterWindows[index] = meters:Defaults(index) end
+    local personal = { name = "My player", totalAmount = 50, amountPerSecond = 2.5,
+        sourceGUID = "Player-local", classFilename = "MAGE", specIconID = 626000, isLocalPlayer = true }
+    local list = {}
+    for index = 1, 40 do list[index] = { name = "Native " .. index, totalAmount = 1000 - index,
+        amountPerSecond = 20, classFilename = "MAGE" } end
+    list[20] = personal
+    data = { combatSources = list, totalAmount = 10000, maxAmount = 999, durationSeconds = 123 }
+    first.fightID, second.fightID, first.offset, second.offset = nil, nil, 0, 0
+    meters:Apply(); Flush()
+    equal(Suite.db.meterWindows[3].shown, false, "third native window starts optional")
+    equal(first.pinned[2].source, personal, "local player remains pinned below the viewport")
+    equal(first.pinned[2].sourceIndex, 20, "pinned player retains native rank")
+    equal(first.pinned[2].icon.texture, 626000, "source specialization icon takes priority over class")
+    equal(first.pinned[2].value.text, "50 (2.5)", "pinned values use supplied native totals and rates")
+    equal(first.rows[1].source, list[1], "pinning does not remove or sort native rows")
+    first.offset = 20; meters:Refresh()
+    equal(first.pinned[1].source, personal, "local player pins above a scrolled viewport")
+    equal(first.pinned[2]:IsShown(), false, "only the needed overlay is shown")
+    first.offset = 14; meters:Refresh()
+    equal(first.pinned[1]:IsShown(), false, "onscreen local player has no duplicate overlay")
+    equal(first.pinned[2]:IsShown(), false, "onscreen player suppresses bottom overlay")
+    first.offset = 0; meters:ChooseMetric(1, "EnemyDamageTaken")
+    equal(first.rows[1].icon:IsShown(), false, "enemy damage matches native icon suppression")
+    equal(first.pinned[2]:IsShown(), false, "enemy damage does not pin local player")
+    meters:ChooseMetric(1, "Deaths")
+    equal(first.pinned[2]:IsShown(), false, "deaths do not pin a local player")
+    meters:ChooseMetric(1, "DamageDone")
+    meters:SetOption(1, "pinSelf", false)
+    equal(first.pinned[2]:IsShown(), false, "self pin is independently optional")
+    meters:SetOption(1, "pinSelf", true)
+    meters:SetOption(1, "content", "complete")
+    equal(first.rows[1].value.text, "999 (20) 10%", "complete values include readable native-session share")
+    meters:ChooseMetric(1, "Dps")
+    equal(first.rows[1].value.text, "20 (999) 10%", "complete DPS puts supplied rate before total")
+    meters:SetOption(1, "content", "paired")
+    equal(first.rows[1].value.text, "20 (999)", "native paired mode keeps rate and total without adding share")
+    meters:SetOption(1, "content", "minimal")
+    equal(first.rows[1].value.text, "20/s", "minimal rate view retains rate precision")
+    local hiddenMinimalRate = Secret()
+    list[1].amountPerSecond = hiddenMinimalRate; meters:Refresh()
+    equal(first.rows[1].value.nativeSecret, hiddenMinimalRate, "minimal rate forwards hidden supplied DPS directly to native text")
+    list[1].amountPerSecond = 20
+    meters:ChooseMetric(1, "Dispels")
+    equal(first.rows[1].value.text, "999", "minimal actions suppress rates")
+    meters:SetOption(1, "content", "complete")
+    equal(first.rows[1].value.text, "999 10%", "complete action counts include share without rate")
+    meters:ChooseMetric(1, "DamageDone")
+    local hiddenTotal, hiddenAmount = Secret(), Secret()
+    data.totalAmount, personal.totalAmount = hiddenTotal, hiddenAmount
+    SetCombat(true); inCombat = true; meters:Refresh()
+    equal(first.pinned[2].bar.value, hiddenAmount, "hidden pinned total passes directly to native bar")
+    equal(first.pinned[2].value.nativeArgs[1], hiddenAmount, "hidden pinned amount uses native formatting")
+    equal(first.pinned[2].value.nativeFormat:find("%%%%") == nil, true, "hidden values never enter percentage arithmetic")
+    personal.isLocalPlayer, personal.specIconID, personal.classFilename = Secret(), Secret(), Secret()
+    meters:Refresh()
+    equal(first.pinned[2]:IsShown(), false, "restricted player marker is not branched upon")
+    SetCombat(false); inCombat = false
+    personal.isLocalPlayer, personal.specIconID, personal.classFilename, personal.totalAmount = true, 626000, "MAGE", 50
+    data.totalAmount = 10000
+    Enum.DamageMeterSourceDisplayType = { Enemy = 2 }
+    list[1].sourceDisplayType, list[1].factionGroup = 2, "Horde"
+    meters:SetOption(1, "classColors", true)
+    equal(first.rows[1].name.text, "|A:HordeSymbol:14:14|a Native 1", "readable enemy team metadata supplies native faction marker")
+    list[1].sourceDisplayType = Secret(); meters:Refresh()
+    equal(first.rows[1].name.text, "Native 1", "restricted enemy metadata is never compared or inferred")
+    list[1].sourceDisplayType, list[1].factionGroup = nil, nil
+    meters:ChooseMetric(1, "Deaths")
+    list[1].deathRecapID, list[1].deathTimeSeconds = 88, 123
+    meters:Refresh()
+    equal(first.rows[1].rank.text, "", "native death recap rows omit rank")
+    equal(first.rows[1].bar.value, 1, "native death recap rows use a full bar")
+    equal(first.rows[1].bar.high, 1, "death row full range is independent of total deaths")
+    equal(first.rows[1].value.text, "2m03s", "death row shows native time rather than death count")
+    local queries = #sourceTypeCalls + #sourceIDCalls
+    first.rows[1]:OnClick()
+    equal(recap, 88, "death click delegates readable ID to native recap")
+    equal(#sourceTypeCalls + #sourceIDCalls, queries, "death click does not issue a spell-source query")
+    recap = nil; SetCombat(true); inCombat = true
+    list[1].deathTimeSeconds = Secret(); meters:Refresh()
+    equal(first.rows[1].value.nativeFormat, "%.0fs", "hidden death time formats directly in native text")
+    first.rows[1]:OnClick()
+    equal(recap, nil, "combat does not load or open the native recap UI")
+    SetCombat(false); inCombat = false
+    meters:ChooseSession(1, "Overall")
+    equal(first.rows[1].value.text, "", "Overall recap does not show a nonexistent encounter death time")
+    meters:ChooseSession(1, "Current")
+    list[1].deathRecapID, list[1].deathTimeSeconds = nil, nil
+    meters:ChooseMetric(1, "DamageDone")
+    personal.sourceGUID = "Player-local"; first.offset = 14; meters:Refresh()
+    local localRow = first.rows[6]
+    spellData.combatSpells[1] = { spellID = 9001, totalAmount = 90, amountPerSecond = 9,
+        creatureName = "Wolf", combatSpellDetails = { unitName = "Recipient", specIconID = 12345, unitClassFilename = "MAGE" } }
+    localRow:OnClick()
+    equal(details.rows[1].name.text, "Ability 9001 (Wolf)", "pet label takes precedence over target label")
+    equal(details.rows[1].icon.texture, 12345, "breakdown prioritizes native unit specialization icon")
+    spellData.combatSpells[1].combatSpellDetails.specIconID = 0
+    meters:RefreshDetails()
+    equal(details.rows[1].icon.atlas, "classicon-MAGE", "breakdown falls back to native unit class")
+    spellData.combatSpells[1].combatSpellDetails.unitClassFilename = ""
+    meters:RefreshDetails()
+    equal(details.rows[1].icon.texture, 49001, "breakdown falls back to spell texture")
+    spellData.combatSpells[1].creatureName = Secret(); meters:RefreshDetails()
+    equal(details.rows[1].name.nativeArgs[2], spellData.combatSpells[1].creatureName, "hidden pet label goes directly to native text")
+    spellData.combatSpells[1].creatureName = ""
+    local spellNameGetter = C_Spell.GetSpellName
+    C_Spell.GetSpellName = function() return nil end
+    spellData.combatSpells[1].spellID = 0; meters:RefreshDetails()
+    equal(details.rows[1].name.text, "Recipient", "unit-only native breakdown entries do not invent Spell 0")
+    C_Spell.GetSpellName = spellNameGetter
+    IsShiftKeyDown = function() return true end
+    localRow:OnClick(); mouseFoci = {}
+    details.frame:OnEvent("GLOBAL_MOUSE_DOWN")
+    equal(details.frame:IsShown(), true, "Shift-click retains sticky breakdown on outside clicks")
+    details.close:OnClick()
+    equal(details.frame:IsShown(), false, "sticky details still close normally")
+    IsShiftKeyDown = function() return false end
+    meters:SetOption(1, "icons", false)
+    equal(first.rows[1].icon:IsShown(), false, "icon preference applies to reused player rows")
+    equal(first.rows[1].bar.point[4], 0, "disabling icons gives their width back to bars")
+    meters:SetOption(1, "clickThrough", true)
+    equal(first.frame.mouseEnabled, false, "noninteractive meters pass background clicks through")
+    equal(first.header.mouseEnabled, false, "noninteractive meters pass header clicks through")
+    equal(first.settings.mouseEnabled, false, "noninteractive meters pass control clicks through")
+    equal(first.rows[1].mouseEnabled, false, "noninteractive meters pass source clicks through")
+    equal(first.pinned[2].mouseEnabled, false, "noninteractive meters pass pinned source clicks through")
+    meters:SetOption(1, "clickThrough", false)
+    equal(first.header.mouseEnabled, true, "settings restore header mouse input")
+    local topBeforeMinimize = first.frame.point[5] + first.frame.height
+    meters:SetOption(1, "minimized", true)
+    equal(first.frame.point[5] + first.frame.height, topBeforeMinimize, "minimizing preserves header screen position")
+    equal(first.frame.height, 24, "minimized window shows only the header")
+    equal(first.visibleRows, 0, "minimized window has no visible source rows")
+    equal(first.rows[1]:IsShown(), false, "minimized window clears player rows")
+    equal(first.pinned[2]:IsShown(), false, "minimized window clears pinned player")
+    equal(first.empty:IsShown(), false, "minimized window hides empty-state text")
+    equal(first.more:IsShown(), false, "minimized window hides scroll cue")
+    equal(first.corners.LEFT:IsShown(), false, "minimized window hides resize handles")
+    meters:SetOption(1, "minimized", false)
+    equal(first.frame.height, 220, "expanding restores saved meter height")
+    meters:SetOption(1, "visibility", "combat")
+    equal(first.frame:IsShown(), false, "combat visibility hides idle meter")
+    SetCombat(true); inCombat = true; meters.events:OnEvent("PLAYER_IN_COMBAT_CHANGED")
+    equal(first.frame:IsShown(), true, "combat event shows prepared meter without geometry changes")
+    SetCombat(false); inCombat = false; meters.events:OnEvent("PLAYER_IN_COMBAT_CHANGED")
+    equal(first.frame:IsShown(), false, "combat exit hides combat-only window")
+    meters:SetOption(1, "visibility", "group")
+    equal(first.frame:IsShown(), false, "group visibility hides solo meter")
+    grouped = true; meters.events:OnEvent("GROUP_ROSTER_UPDATE")
+    equal(first.frame:IsShown(), true, "group event shows prepared meter")
+    grouped = Secret(); meters.events:OnEvent("GROUP_ROSTER_UPDATE")
+    equal(first.frame:IsShown(), false, "restricted grouping cannot drive window visibility")
+    grouped = false; meters:SetOption(1, "visibility", "always")
+    local duration, durationCalls = 126, 0
+    C_DamageMeter.GetSessionDurationSeconds = function(sessionType)
+        assert(not issecretvalue(sessionType)); durationCalls = durationCalls + 1; return duration
+    end
+    meters:Refresh()
+    equal(first.duration.text, "2:06", "session timer reads the native duration API")
+    equal(meters.clockTimer, nil, "idle meters have no clock worker")
+    SetCombat(true); inCombat = true; meters.events:OnEvent("PLAYER_IN_COMBAT_CHANGED"); Flush()
+    equal(meters.clockTimer.delay, 1, "combat clock uses one cancellable second timer")
+    local beforeTicks = #calls
+    duration = 127; meters.clockTimer.callback()
+    equal(first.duration.text, "2:07", "combat clock advances without damage events")
+    equal(#calls, beforeTicks, "clock tick does not allocate full combat-session snapshots")
+    duration = Secret(); meters:Refresh()
+    equal(first.duration.nativeSecret, duration, "restricted session duration uses native formatting")
+    equal(first.duration.nativeFormat, "%.0fs", "hidden session duration requires no Lua arithmetic")
+    local clock = meters.clockTimer
+    SetCombat(false); inCombat = false; meters.events:OnEvent("PLAYER_IN_COMBAT_CHANGED")
+    equal(clock.cancelled, true, "combat exit cancels the clock")
+    equal(meters.clockTimer, nil, "combat exit leaves no idle clock")
+    C_DamageMeter.GetSessionDurationSeconds = nil
+    SetCombat(true); inCombat = true
+    meters:SetOption(3, "shown", true)
+    equal(#meters.windows, 2, "third window creation defers while in combat")
+    SetCombat(false); inCombat = false
+    local oldViewportSource = first.rows[1].source
+    UIParent.width = 0
+    local pendingThird = Suite.pending.meters; Suite.pending.meters = nil; pendingThird()
+    local third = meters.windows[3]
+    equal(third.visibleRows, 0, "new third window starts safely if geometry is temporarily unavailable")
+    equal(third.frame:IsShown(), false, "third window waits to appear until its layout is ready")
+    equal(#third.rows, 0, "third window does not prepare rows against unavailable geometry")
+    equal(first.frame:IsShown(), true, "existing prepared window remains usable during deferred third layout")
+    equal(first.rows[1].source, oldViewportSource, "existing row refresh preserves its native source while third layout waits")
+    equal(meters.layoutPending, true, "adding a window queues layout even with existing pair rectangles")
+    UIParent.width = 1000
+    meters.events:OnEvent("DISPLAY_SIZE_CHANGED"); Flush()
+    equal(third.layoutReady, true, "display event prepares the delayed third window")
+    equal(meters.layoutPending, false, "third-window recovery clears the pending layout")
+    equal(#meters.windows, 3, "optional native third window can be enabled")
+    equal(third.frame:IsShown(), true, "third meter has an independent visible frame")
+    equal(third.rows[1].source, list[1], "third meter consumes the same unfiltered native source list")
+    equal(third.corners.LEFT:IsShown(), true, "third meter supports Suite corner resizing")
+    Suite.db.meterDock = { anchor = 1, side = "RIGHT" }; meters:Layout()
+    local pairBefore = Suite.Copy(meters.rects)
+    meters:StartDrag(3)
+    equal(meters.drag.grouped, false, "third meter never joins the existing snapped pair")
+    meterCursorX = meterCursorX + 30; meters:DragUpdate(); meters:EndDrag()
+    equal(meters.rects[1].x, pairBefore[1].x, "moving third meter leaves first meter in place")
+    equal(meters.rects[2].x, pairBefore[2].x, "moving third meter leaves second meter in place")
+    equal(Suite.db.meterDock.anchor, 1, "moving third meter preserves pair docking")
+    local thirdX = meters.rects[3].x
+    meters:StartDrag(1); meterCursorX = meterCursorX - 15; meters:DragUpdate(); meters:EndDrag()
+    equal(meters.rects[3].x, thirdX, "dragging snapped pair leaves third meter in place")
+    local pairHeight = Suite.db.meterWindows[1].height
+    meters:Resize(3, 1)
+    equal(Suite.db.meterWindows[1].height, pairHeight, "third meter wheel resize leaves pair dimensions intact")
+    meters:Reset(3)
+    equal(Suite.db.meterDock.anchor, 1, "resetting third meter preserves pair docking")
+    meters:SetOption(1, "shown", false); meters:SetOption(2, "shown", false)
+    meters:CancelTimer(); Flush(); meters:Schedule()
+    equal(meters.timer ~= nil, true, "third-only display still schedules native updates")
+    Suite.GUI:OpenMeters(3)
+    equal(Suite.GUI.meterIndex, 3, "settings directly select the third meter")
+    equal(Suite.GUI.meterButtons.window3.label.text, "Window 3", "third meter has its own settings tab")
+    meters:SetLocked(true)
+    equal(third.corners.RIGHT:IsShown(), false, "shared lock includes third meter")
+    Suite.db.damageMeters = false; meters:Apply(); Flush()
+    equal(third.frame:IsShown(), false, "disable hides third meter")
+    equal(first.pinned[2].source, nil, "disable clears pinned combat references")
+    equal(meters.clockTimer, nil, "disable cancels parity timer")
+    OpenDeathRecapUI, IsShiftKeyDown, IsInGroup, UnitAffectingCombat = oldRecap, oldShift, oldGrouped, oldCombat
+end
 for index, source in ipairs(sources) do source.sourceGUID = detailGUIDs[index] end
 C_Spell = oldDetailSpellAPI
 C_DamageMeter.GetCombatSessionSourceFromType, C_DamageMeter.GetCombatSessionSourceFromID = nil, nil

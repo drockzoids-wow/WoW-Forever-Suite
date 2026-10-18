@@ -59,12 +59,12 @@ function Threat:Update()
     end
     if not self:VisualAllowed() then return end
     local percentage = self:Percentage()
-    local r, g, b, alpha = 0.32, 0.34, 0.37, 0.14
+    local r, g, b, alpha = 0.32, 0.34, 0.37, 0.20
     if percentage == nil then self.square.text:SetText("--")
     else
         -- Arithmetic/formatting use only validated ordinary values, never secret threat results.
         local progress = math.min(percentage, 100) / 100
-        alpha = 0.18 + 0.20 * progress
+        alpha = 0.40 + 0.40 * progress
         if progress <= 0.7 then
             local blend = progress / 0.7
             r, g, b = 0.32 + 0.60 * blend, 0.34 + 0.20 * blend, 0.37 - 0.27 * blend
@@ -127,7 +127,7 @@ function Threat:CreateSquare()
     square.fill = square:CreateTexture(nil, "BACKGROUND", nil, 1)
     square.fill:SetPoint("TOPLEFT", square, "TOPLEFT", 3, -3)
     square.fill:SetPoint("BOTTOMRIGHT", square, "BOTTOMRIGHT", -3, 3)
-    square.fill:SetColorTexture(0.32, 0.34, 0.37, 0.14)
+    square.fill:SetColorTexture(0.32, 0.34, 0.37, 0.20)
     square.link = square:CreateTexture(nil, "BORDER")
     square.link:SetAtlas("_Tooltip-NineSlice-EdgeTop")
     square.link:SetSize(7, 2)
@@ -163,7 +163,8 @@ function Threat:Layout(main)
         square:SetPoint("TOPRIGHT", anchor, "BOTTOMLEFT", -6, -1)
         square.link:SetPoint("TOPLEFT", square, "TOPRIGHT", 0, 1)
     else
-        square:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", 0, 1)
+        -- The name-strip texture extends left of the visible frame trim.
+        square:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", 3, 1)
         square.link:SetPoint("TOPLEFT", square, "BOTTOMLEFT", 0, 0)
     end
     self.positioned, self.anchor, self.below, self.scale = true, anchor, top, scale

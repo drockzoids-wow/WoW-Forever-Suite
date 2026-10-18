@@ -1,6 +1,6 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "0.2.57"
+Suite.version = "0.2.69"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {
@@ -30,7 +30,8 @@ Suite.defaults = {
     scorePreset = "balanced", upgradePreference = "stats", playerItemLevel = false, classNames = false,
     macroUpdates = false, macroOwnership = {},
     campingBar = false, campingPose = "sit", campingPosition = {},
-    levelingBar = false,
+    levelingBar = false, trainingPlanner = false, trainingAuto = true, trainingLevelUp = true,
+    missingBuffExpiry = false, missingBuffCombat = false, missingBuffWeapons = false, missingBuffWarning = 60, missingBuffCustom = {},
     missingBuffs = false, missingBuffSelf = true, missingBuffOutgoing = true, missingBuffIncoming = true, missingBuffClass = true,
     missingBuffPosition = {}, missingBuffChoices = {},
     damageMeters = false, meterSnap = true, meterGap = 4, meterLocked = false,
@@ -81,10 +82,12 @@ function Suite.InitializeDB(saved)
     if not Suite.IsReadable(nativeSort) or type(nativeSort) ~= "boolean" then db.bagSortDirectionRestore = nil end
     db.mapRevealOpacity = Suite.WorldMap:Opacity(db)
     db.setupGuide = Suite.Setup:InitializeState(db.setupGuide)
-    db.missingBuffChoices = Suite.MissingBuffs:InitializeChoices(db.missingBuffChoices)
+    db.missingBuffChoices = Suite.MissingBuffs:InitializeChoices(db.missingBuffChoices, db.missingBuffCustom)
     db.bagSpaceBlacklist = Suite.BagSpace:InitializeBlacklist(db.bagSpaceBlacklist)
     db.bagSpacePosition = Suite.BagSpace:InitializePosition(db.bagSpacePosition)
     db.questItemPosition = Suite.BagSpace:InitializePosition(db.questItemPosition)
+    if db.missingBuffWarning ~= 30 and db.missingBuffWarning ~= 60 and db.missingBuffWarning ~= 120 then db.missingBuffWarning = 60 end
+    db.missingBuffCustom = Suite.BuffReminders:Custom(db.missingBuffCustom)
     return db
 end
 
@@ -134,10 +137,11 @@ events:SetScript("OnEvent", function(_, event, name, second)
         Suite.db = WoWForeverSuiteDB
         local character = Suite.IsReadable(WoWForeverSuiteCharDB) and type(WoWForeverSuiteCharDB) == "table" and WoWForeverSuiteCharDB or {}
         local leveling = Suite.Leveling:InitializeCharacter(character.leveling)
+        local training = Suite.Training:InitializeCharacter(character.training)
         WoWForeverSuiteCharDB = Suite.Macros:Initialize(character)
         WoWForeverSuiteCharDB.leveling = leveling
+        WoWForeverSuiteCharDB.training = training
     elseif event == "PLAYER_LOGIN" then
-        Suite.GUI:Initialize()
         Suite.GUI:RegisterSettings()
         Suite.Apply()
         Suite.Setup:OnLogin()
@@ -178,6 +182,7 @@ SlashCmdList.WOWFOREVERSUITE = function(message)
     elseif command == "setup" then Suite.Setup:Open()
     elseif command == "windows" then Suite.Windows:Status()
     elseif command == "resetwindows" then Suite.Windows:ResetAll()
+    elseif command == "training" or command == "trainer" then Suite.Training:Open()
     elseif command == "bank" then Suite.OfflineBank:Toggle()
     elseif command == "macrostatus" then Suite.Macros:Status()
     elseif command == "meters" or command == "damage" then Suite.GUI:OpenMeters()

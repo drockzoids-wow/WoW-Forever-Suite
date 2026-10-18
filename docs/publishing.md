@@ -8,6 +8,8 @@
 - CurseForge game flavor: **Forever**, explicitly selected with `-g forever`.
 - Install folder: **WoWForeverSuite**. Only files in `src/WoWForeverSuite` ship.
 
+The junction inside the game's AddOns directory must also be named exactly **WoWForeverSuite**, with no spaces, and point to `P:\GitHub Repos\WoW Forever Suite\src\WoWForeverSuite`, where the matching TOC files live. The repository folder may contain spaces. On October 17, a junction named `WoW Forever Suite` was corrected to `WoWForeverSuite`; both TOCs were readable through the link and matched source version 0.2.58. In-game discovery still requires confirmation after fully exiting and restarting WoW.
+
 This follows ZoidsTools Retail's version-tag release process. An ordinary commit/push backs up the code and runs addon checks. Pushing a version tag starts checks, packaging and upload to CurseForge, and attaches the package to a GitHub release. CurseForge moderation is a separate step. The decision to push the tag is the release approval; there is no additional GitHub reviewer gate.
 
 ## First-time setup
@@ -30,7 +32,7 @@ The workflow fails before upload for missing credentials, failed addon checks, m
 
 ## Working directory
 
-The cloud-drive checkout is a copy of the original development workspace. At setup, the installed game's addon junction still points to `C:\Games\Development\WoW Forever Suite\src\WoWForeverSuite`. Use one source of truth for future edits and align that junction before testing edits made only in the cloud-drive checkout. The publishing setup does not change the game junction, other addons or SavedVariables.
+User decision, October 16, 2026: `P:\GitHub Repos\WoW Forever Suite` is the canonical working copy. All future Forever Suite updates must be made only in this directory, including code, documentation, artwork and release configuration. Chats opened elsewhere must direct their edits and command working directories here. The user will manage the junction into the game's AddOns folder; do not update the former development copy or change the game junction without a later request.
 
 ## References
 

@@ -141,7 +141,7 @@ for _, value in ipairs({ 25, 50, 70, 85, 100 }) do
 end
 equal(feature.square.fill.color[1], 0.92, "full threat reaches red")
 equal(feature.square.fill.color[2] < 0.12, true, "full threat has a low green channel")
-equal(feature.square.fill.color[4] < 0.5, true, "even full-threat red stays translucent")
+equal(feature.square.fill.color[4] >= 0.75 and feature.square.fill.color[4] < 1, true, "full-threat red is prominent while still translucent")
 percentage = 49.6; Fire("UNIT_THREAT_SITUATION_UPDATE", "player"); Flush()
 equal(feature.square.text.text, "50%", "readable percentages round to whole numbers")
 for _ = 1, 50 do Fire("UNIT_THREAT_LIST_UPDATE", "target") end

@@ -1,5 +1,5 @@
 local _, Suite = ...
-local Buffs = { buttons = {}, requested = {}, requestTimes = {}, bookDirty = true, itemsDirty = true }
+local Buffs = { buttons = {}, requested = {}, notices = {}, noticeTimes = {}, bookDirty = true, itemsDirty = true }
 Suite.MissingBuffs = Buffs
 table.insert(Suite.modules, Buffs)
 local function Read(value, kind) return Suite.IsReadable(value) and type(value) == kind end
@@ -32,7 +32,7 @@ local function Class(unit)
     if ok and Text(class) then return class end
 end
 
-function Buffs:InitializeChoices(value)
+function Buffs:InitializeChoices(value, custom)
     local result = {}
     if not Read(value, "table") then return result end
     for _, family in ipairs(Suite.BuffCatalog) do
@@ -40,6 +40,10 @@ function Buffs:InitializeChoices(value)
         local chosen = value[key]
         if Number(chosen) and chosen == 0 then result[key] = 0
         elseif ID(chosen) then result[key] = chosen end
+    end
+    for _, record in ipairs(Suite.BuffReminders:Custom(custom)) do
+        local key = "CUSTOM:" .. record.id
+        if Number(value[key]) and value[key] == 0 then result[key] = 0 end
     end
     for _, hand in ipairs({ "main", "off" }) do
         local key = "ROGUE:poison:" .. hand
@@ -83,7 +87,7 @@ end
 
 function Buffs:Auras(unit)
     if InCombatLockdown() or not C_UnitAuras or type(C_UnitAuras.GetAuraDataByIndex) ~= "function" then return end
-    local present = { names = {}, ids = {} }
+    local present = { names = {}, ids = {}, records = {} }
     for index = 1, 255 do
         if C_Secrets and type(C_Secrets.ShouldUnitAuraIndexBeSecret) == "function"
             and Call(C_Secrets.ShouldUnitAuraIndexBeSecret, unit, index, "HELPFUL") ~= false then return end
@@ -92,6 +96,7 @@ function Buffs:Auras(unit)
         if aura == nil then return present end
         if not Read(aura, "table") or not Text(aura.name) or not ID(aura.spellId) then return end
         present.names[aura.name], present.ids[aura.spellId] = true, true
+        if Suite.db.missingBuffExpiry then present.records[#present.records + 1] = Suite.BuffReminders:AuraRecord(aura) end
     end
     -- A truncated scan cannot establish that a buff is absent.
 end
@@ -148,7 +153,7 @@ end
 function Buffs:Families(class, learned)
     local families = {}
     for _, catalog in ipairs(Suite.BuffCatalog) do
-        if catalog.class == class then
+        if catalog.class == class and (not catalog.extra or Suite.db.missingBuffCombat) then
             local family = { key = class .. ":" .. catalog.key, catalog = catalog, names = {}, ids = {}, choices = {} }
             local seen = {}
             for _, root in ipairs(catalog.roots) do
@@ -178,11 +183,13 @@ function Buffs:Families(class, learned)
             families[#families + 1] = family
         end
     end
+    Suite.BuffReminders:AppendCustom(families, learned)
     return families
 end
 
-function Buffs:Present(family, auras)
+function Buffs:Present(family, auras, expiry)
     if not auras then return nil end
+    if expiry and Suite.db.missingBuffExpiry and auras.records then return Suite.BuffReminders:Presence(family, auras) end
     for name in pairs(family.names) do if auras.names[name] then return true end end
     for id in pairs(family.ids) do if auras.ids[id] then return true end end
     return false
@@ -232,6 +239,10 @@ function Buffs:Collect()
     if not player then return entries end
     if self.bookDirty then self.learned, self.learnedComplete = self:Learned(); self.bookDirty = false end
     local families = self:Families(player.class, self.learned or {})
+    self.weaponBuffAvailable, self.poisonOptionsAvailable = false, false
+    for _, family in ipairs(families) do
+        if family.catalog.weapon and #family.choices > 0 then self.weaponBuffAvailable = true end
+    end
     local scanGroup, auras = false, { player = self:Auras("player") }
     for _, family in ipairs(families) do if family.spell and family.catalog.group and Suite.db.missingBuffOutgoing then scanGroup = true end end
     if scanGroup then for index = 2, #roster do auras[roster[index].unit] = self:Auras(roster[index].unit) end end
@@ -239,29 +250,33 @@ function Buffs:Collect()
         local spell, catalog = family.spell, family.catalog
         if spell then
             local personal = not catalog.group or catalog.upkeep
-            local present = self:Present(family, auras.player)
+            local present, remaining = self:Present(family, auras.player, true)
             if catalog.weapon then
-                present = self:Weapon(16, Enum and Enum.WeaponSlot and Enum.WeaponSlot.MainHand, true)
+                if Suite.BuffReminders:HasCoating(16) then present = true
+                else present = self:Weapon(16, Enum and Enum.WeaponSlot and Enum.WeaponSlot.MainHand, true) end
             end
             if (personal and Suite.db.missingBuffClass or not personal and Suite.db.missingBuffSelf) and present == false then
-                entries[#entries + 1] = { kind = "self", family = family, spell = spell, unit = "player", guid = player.guid, names = { player.name } }
+                entries[#entries + 1] = { kind = "self", family = family, spell = spell, unit = "player", guid = player.guid, names = { player.name }, remaining = remaining }
             end
             if catalog.group and Suite.db.missingBuffOutgoing then
                 local missing = {}
                 for index = 2, #roster do
                     local member = roster[index]
-                    if (not catalog.party or member.party) and self:Present(family, auras[member.unit]) == false then
+                    local covered, seconds = self:Present(family, auras[member.unit], true)
+                    if (not catalog.party or member.party) and covered == false then
+                        member.remaining = seconds
                         local range = C_Spell and Call(C_Spell.IsSpellInRange, spell.id, member.unit)
                         if range ~= false then missing[#missing + 1] = member end
                     end
                 end
                 if #missing > 0 then
-                    local names = {}; for _, member in ipairs(missing) do names[#names + 1] = member.name end
+                    local names, soon = {}, nil
+                    for _, member in ipairs(missing) do names[#names + 1] = member.name; if member.remaining then soon = math.max(soon or 0, member.remaining) end end
                     local target = catalog.party and player or missing[1]
                     local passive = catalog.toggle and present ~= false
                     entries[#entries + 1] = { kind = "group", family = family, spell = spell, unit = not passive and target.unit or nil,
                         guid = target.guid, names = names, passive = passive,
-                        checkUnit = missing[1].unit, checkGUID = missing[1].guid }
+                        checkUnit = missing[1].unit, checkGUID = missing[1].guid, remaining = soon }
                 end
             end
         end
@@ -291,78 +306,65 @@ function Buffs:Collect()
     end
     if player.class == "ROGUE" and Suite.db.missingBuffClass then
         local choices = self:PoisonChoices()
+        self.poisonOptionsAvailable = #choices > 0
         local trained = C_SpellBook and Call(C_SpellBook.IsSpellKnown, 2842) == true
         if trained or #choices > 0 then
             for _, hand in ipairs({ { "main", 16, "MainHand", "MH" }, { "off", 17, "OffHand", "OH" } }) do
-                if self:Weapon(hand[2], Enum and Enum.WeaponSlot and Enum.WeaponSlot[hand[3]], true) == false then
+                if not Suite.BuffReminders:HasCoating(hand[2]) and self:Weapon(hand[2], Enum and Enum.WeaponSlot and Enum.WeaponSlot[hand[3]], true) == false then
                     local key, chosen = "ROGUE:poison:" .. hand[1], nil
                     local id = Suite.db.missingBuffChoices[key]
                     for _, item in ipairs(choices) do if item.id == id then chosen = item; break end end
-                    local icon = chosen and C_Item and Call(C_Item.GetItemIconByID, chosen.id)
+                    local display = chosen or choices[1]
+                    local icon = display and C_Item and Call(C_Item.GetItemIconByID, display.id)
                     entries[#entries + 1] = { kind = "poison", key = key, choices = choices, item = chosen, slot = hand[2], hand = hand[4],
-                        spell = { name = chosen and chosen.name or "Choose poison", icon = ID(icon) and icon or 132273 }, names = { hand[4] } }
+                        spell = { name = chosen and chosen.name or "Choose poison", icon = ID(icon) and icon or 132273 }, names = { hand[4] },
+                        unknownItems = not self.items or self.items.incomplete == true }
                 end
             end
         end
     end
+    Suite.BuffReminders:AddCoatings(entries)
     return entries
 end
 
-function Buffs:RequestChannel()
-    if not Number(LE_PARTY_CATEGORY_INSTANCE) or not Number(LE_PARTY_CATEGORY_HOME) then return end
-    local instance = Call(IsInGroup, LE_PARTY_CATEGORY_INSTANCE)
-    if instance == true then return "INSTANCE_CHAT" end
-    if instance ~= false then return end
-    local raid = Call(IsInRaid, LE_PARTY_CATEGORY_HOME)
-    if raid == true then return "RAID" end
-    if raid ~= false then return end
-    if Call(IsInGroup, LE_PARTY_CATEGORY_HOME) == true then return "PARTY" end
+-- Local notices never broadcast requests. Keep unavailable supplies off the action bar.
+function Buffs:Route(entries)
+    local display, notices = {}, {}
+    for _, entry in ipairs(entries) do
+        if entry.kind == "incoming" then
+            if self.learnedComplete == true then notices[#notices + 1] = entry end
+        elseif entry.kind == "coating" or entry.kind == "poison" then
+            local choices = entry.choices
+            if entry.item or choices and #choices > 0 then display[#display + 1] = entry
+            elseif self.learnedComplete == true and not entry.unknownItems and not (entry.slot == 16 and self.weaponBuffAvailable)
+                and not self.poisonOptionsAvailable then notices[#notices + 1] = entry end
+        else display[#display + 1] = entry end
+    end
+    return display, notices
 end
-
-function Buffs:Request(entry)
-    if not Enabled() or not self:Context() or not entry or entry.kind ~= "incoming" then return end
-    local channel = self:RequestChannel()
-    if not channel then Suite.Print("No group chat is available for this buff request."); return end
-    if not C_ChatInfo or type(C_ChatInfo.SendChatMessage) ~= "function"
-        or Call(C_ChatInfo.InChatMessagingLockdown) ~= false then
-        Suite.Print("Buff requests are unavailable while chat is restricted."); return
+function Buffs:Notify(entries)
+    local active, lines, now = {}, {}, Call(GetTime)
+    for _, entry in ipairs(entries) do
+        local key, message
+        if entry.kind == "incoming" then
+            key = entry.family.key
+            message = entry.spell.name .. " (a group member may provide it)"
+        else
+            key = "weapon:" .. entry.slot
+            message = (entry.slot == 16 and "Main-hand" or "Off-hand") .. (entry.remaining and " weapon buff expires soon" or " weapon buff is missing")
+                .. " (carry or choose compatible supplies)"
+        end
+        if self.notices[key] then active[key] = true
+        elseif not active[key] and Number(now) and now >= 0 then
+            local last = self.noticeTimes[key]
+            if not Number(last) or now - last >= 60 then
+                lines[#lines + 1] = message
+                active[key], self.noticeTimes[key] = true, now
+            end
+        end
     end
-    local now = Call(GetTime)
-    if not Number(now) or now < 0 then return end
-    local key = entry.family.key
-    local previous = self.requestTimes[key]
-    if Number(previous) and now - previous < 30 then
-        Suite.Print("Wait 30 seconds between requests for the same buff."); return
-    end
-    if Number(self.lastRequestTime) and now - self.lastRequestTime < 3 then
-        Suite.Print("Wait a few seconds before requesting another buff."); return
-    end
-    -- A click must still have an eligible provider and a readable missing buff.
-    -- Rediscover learned spells so we never request something we can now cast.
-    self.bookDirty = true
-    local candidates = self:Collect()
-    if self.learnedComplete ~= true then
-        Suite.Print("Your learned buffs are still unavailable. Try again after they load."); return
-    end
-    local current
-    for _, candidate in ipairs(candidates) do
-        if candidate.kind == "incoming" and candidate.family.key == key then current = candidate; break end
-    end
-    if not current then Suite.Print("The buff list has changed. Check the current icons."); return end
-    local link = C_Spell and Call(C_Spell.GetSpellLink, current.spell.id)
-    if not Read(link, "string") or #link == 0 or #link > 247 or link:find("%c") then
-        Suite.Print("This buff's spell link is unavailable. Try clicking again after it loads."); return
-    end
-    local plain = link:gsub("^|c%x%x%x%x%x%x%x%x", ""):gsub("|r$", "")
-    local linkedID = plain:match("^|Hspell:(%d+)[^|]*|h%[[^|]+%]|h$")
-    if not linkedID or tonumber(linkedID) ~= current.spell.id then
-        Suite.Print("This buff's spell link is unavailable. Try clicking again after it loads."); return
-    end
-    -- Native sending has restrictions and no delivery result. Record an attempt
-    -- before calling it; errors never trigger a retry or a different channel.
-    self.requestTimes[key], self.lastRequestTime = now, now
-    local ok = pcall(C_ChatInfo.SendChatMessage, "Missing " .. link, channel)
-    if not ok then Suite.Print("The buff request could not be sent. Try again later.") end
+    self.notices = active
+    if #lines > 0 then Suite.Print("Missing buffs: " .. table.concat(lines, "; ") .. ".") end
 end
 
 function Buffs:Place(frame)
@@ -371,7 +373,7 @@ function Buffs:Place(frame)
     frame:ClearAllPoints()
     if Read(saved, "table") and Number(saved.x) and Number(saved.y) and math.abs(saved.x) <= 0.5 and math.abs(saved.y) <= 0.5 then
         frame:SetPoint("CENTER", UIParent, "CENTER", saved.x * UIParent:GetWidth(), saved.y * UIParent:GetHeight())
-    else frame:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, 260) end
+    else frame:SetPoint("TOP", UIParent, "TOP", 0, -140) end
 end
 
 function Buffs:StopMoving(frame)
@@ -449,18 +451,15 @@ end
 function Buffs:Tooltip(button)
     local entry = button.entry
     if not entry or not GameTooltip then return end
+    if entry.kind == "coating" then Suite.BuffReminders:Tooltip(button, false); return end
     GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
     GameTooltip:AddLine(entry.spell.name, 0.41, 0.84, 0.75)
-    if entry.kind == "incoming" then
-        GameTooltip:AddLine("Missing on you. Ask " .. table.concat(entry.names, ", ") .. ".", 0.9, 0.72, 0.4, true)
-        GameTooltip:AddLine("Left-click sends Missing [spell link] to instance chat, raid or party. Requests for this buff are limited to once every 30 seconds.", 1, 1, 1, true)
-        GameTooltip:AddLine("Suggested from class and level; learned spells and talents are not visible.", 0.66, 0.77, 0.77, true)
-        GameTooltip:AddLine("Right-click hides this family. Restore buff choices in settings to show it again.", 0.66, 0.77, 0.77, true)
-    elseif entry.kind == "poison" then
+    if entry.kind == "poison" then
         GameTooltip:AddLine(entry.hand .. " poison missing. Right-click to choose a carried poison.", 1, 1, 1, true)
-        GameTooltip:AddLine(entry.item and "Left-click to apply to this weapon." or "Carry poison, then choose it here. Permanent enchants and oils do not satisfy poison upkeep.", 0.66, 0.77, 0.77, true)
+        GameTooltip:AddLine(entry.item and "Left-click to apply to this weapon." or "Right-click to choose from carried poisons before applying. Permanent enchants and oils do not satisfy poison upkeep.", 0.66, 0.77, 0.77, true)
     else
-        GameTooltip:AddLine(entry.kind == "self" and "Missing on you. Left-click to cast." or "Missing: " .. table.concat(entry.names, ", "), 1, 1, 1, true)
+        local status = entry.remaining and (entry.kind == "group" and "Missing / expiring: " or "Expiring: ") or "Missing: "
+        GameTooltip:AddLine(status .. Suite.BuffReminders:Names(entry), 1, 1, 1, true)
         if entry.kind == "group" then
             GameTooltip:AddLine(entry.passive and "Check aura coverage and move closer to these members. This reminder will not toggle an active or unknown aura off."
                 or "Left-click buffs the first listed member; party effects cast on you. Native range and reagent rules apply.", 0.66, 0.77, 0.77, true)
@@ -490,12 +489,14 @@ function Buffs:Button(index)
             local target = self:Unit(entry.unit)
             local check = entry.checkUnit and self:Unit(entry.checkUnit) or target
             local present = entry.family.catalog.weapon and self:Weapon(16, Enum and Enum.WeaponSlot and Enum.WeaponSlot.MainHand, true)
-            if not entry.family.catalog.weapon then present = check and self:Present(entry.family, self:Auras(check.unit)) end
+            if not entry.family.catalog.weapon then present = check and self:Present(entry.family, self:Auras(check.unit), true) end
             local toggleReady = not entry.family.catalog.toggle or self:Present(entry.family, self:Auras("player")) == false
             if not target or target.guid ~= entry.guid or not check or entry.checkGUID and check.guid ~= entry.checkGUID
                 or entry.kind == "group" and entry.family.catalog.party and not check.party or present ~= false or not toggleReady then
                 button:SetAttribute("type1", nil); self:Queue()
             end
+        elseif entry.kind == "coating" then
+            if not Suite.BuffReminders:CoatingClick(entry) then button:SetAttribute("type1", nil); self:Queue() end
         elseif entry.kind == "poison" then
             self.itemsDirty = true
             local carried = false
@@ -507,9 +508,12 @@ function Buffs:Button(index)
     end)
     button:SetScript("PostClick", function(_, mouseButton, down)
         if InCombatLockdown() or down then return end
-        if mouseButton == "RightButton" then self:Cycle(button.entry)
+        if mouseButton == "RightButton" then
+            if button.entry and button.entry.kind ~= "coating" then self:Cycle(button.entry) end
         else
-            if mouseButton == "LeftButton" then self:Request(button.entry) end
+            if mouseButton == "LeftButton" and button.entry and button.entry.kind == "coating" and not button.entry.item then
+                Suite.BuffReminders:ChooseCoating(button.entry)
+            end
             self:Queue()
         end
     end)
@@ -519,13 +523,27 @@ end
 function Buffs:Refresh()
     self:Cancel()
     if InCombatLockdown() then Suite.AfterCombat("missingBuffs", function() self:Apply() end); return end
+    Suite.BuffReminders.nextDue = nil
+    Suite.BuffReminders:Prepare()
     if self.bar and self.cancelMove then self:StopMoving(self.bar) end
     if not Enabled() or not self:Context() then
         if self.bar then self:StopMoving(self.bar); self.bar:Hide() end
-        self.entries = {}; return
+        self.entries, self.displayEntries, self.chatEntries = {}, {}, {}
+        if not Enabled() then self.notices = {} end
+        return
     end
-    local entries = self:Collect(); self.entries = entries
-    if #entries == 0 then if self.bar then self:StopMoving(self.bar); self.bar:Hide() end; return end
+    local collected = self:Collect(); self.entries = collected
+    local entries, notices = self:Route(collected)
+    self.displayEntries, self.chatEntries = entries, notices
+    self:Notify(notices)
+    if #entries == 0 then
+        for _, button in ipairs(self.buttons) do
+            button:Hide(); button.entry = nil
+            for _, attribute in ipairs({ "type1", "spell1", "unit", "macrotext1" }) do button:SetAttribute(attribute, nil) end
+        end
+        if self.bar then self:StopMoving(self.bar); self.bar:Hide() end
+        Suite.BuffReminders:PlaceCombat(); Suite.BuffReminders:Schedule(); return
+    end
     if not self:Build() then return end
     local columns = math.min(8, #entries)
     local titleWidth = Call(self.header.caption.GetUnboundedStringWidth, self.header.caption)
@@ -547,8 +565,8 @@ function Buffs:Refresh()
             button:SetAttribute("type1", "macro"); button:SetAttribute("macrotext1", "/use item:" .. entry.item.id .. "\n/use " .. entry.slot)
         end
         button.icon:SetTexture(entry.spell.icon)
-        button.caption:SetText(entry.kind == "incoming" and "Ask" or entry.kind == "poison" and entry.hand or entry.kind == "group" and tostring(#entry.names) or "Self")
-        button:SetBackdropBorderColor(entry.kind == "incoming" and 0.9 or 0.41, entry.kind == "incoming" and 0.72 or 0.84, entry.kind == "incoming" and 0.4 or 0.75, 0.8)
+        button.caption:SetText((entry.kind == "poison" or entry.kind == "coating") and entry.hand or entry.kind == "group" and tostring(#entry.names) or "Self")
+        button:SetBackdropBorderColor(0.41, 0.84, 0.75, 0.8)
         button:Show()
     end
     for index = #entries + 1, #self.buttons do
@@ -556,9 +574,11 @@ function Buffs:Refresh()
         button:Hide(); button.entry = nil; button:SetAttribute("type1", nil); button:SetAttribute("spell1", nil); button:SetAttribute("unit", nil); button:SetAttribute("macrotext1", nil)
     end
     self.bar:Show()
+    Suite.BuffReminders:PlaceCombat(); Suite.BuffReminders:Schedule()
 end
 
 function Buffs:Cancel()
+    Suite.BuffReminders:Cancel()
     self.work = nil
     if self.timer then self.timer:Cancel(); self.timer = nil end
 end
@@ -584,9 +604,11 @@ function Buffs:Apply()
         if not self.events then
             self.events = CreateFrame("Frame")
             self.events:SetScript("OnEvent", function(_, event, unit)
+                Suite.BuffReminders:OnEvent(event)
                 if event == "PLAYER_REGEN_DISABLED" then
                     self:Cancel(); self:SetPreview(false)
                     if self.bar and self.bar.moving then self.cancelMove = true end
+                    Suite.BuffReminders:OnEvent(event)
                 elseif event == "PLAYER_REGEN_ENABLED" then self:Refresh()
                 elseif event == "UNIT_AURA" or event == "UNIT_FLAGS" or event == "UNIT_CONNECTION" or event == "UNIT_LEVEL" or event == "UNIT_INVENTORY_CHANGED" then
                     if Text(unit) and (unit == "player" or unit:match("^party%d+$") or unit:match("^raid%d+$")) then self:Queue() end
@@ -620,7 +642,7 @@ function Buffs:SetPreview(show)
         self.preview = preview
         preview:SetFrameStrata("DIALOG"); preview:SetSize(320, 75); Surface(preview)
         preview:EnableMouse(true); self:Header(preview, "MISSING BUFFS / POSITION PREVIEW")
-        local text = Label(preview, 11); text:SetPoint("BOTTOMLEFT", 10, 14); text:SetText("Self   ·   Group   ·   Ask   ·   Class upkeep")
+        local text = Label(preview, 11); text:SetPoint("BOTTOMLEFT", 10, 14); text:SetText("Self   ·   Group   ·   Carried items   ·   Class upkeep")
         preview:SetScript("OnHide", function() self:StopMoving(preview); if self.bar and not InCombatLockdown() then self:Place(self.bar) end end)
     end
     self:Place(self.preview); self.preview:Show()
@@ -634,6 +656,7 @@ function Buffs:ResetPosition()
     Suite.db.missingBuffPosition = {}
     if self.bar then self:Place(self.bar) end
     if self.preview then self:Place(self.preview) end
+    Suite.BuffReminders:PlaceCombat()
 end
 function Buffs:ResetChoices()
     Suite.db.missingBuffChoices = {}; self:Queue()

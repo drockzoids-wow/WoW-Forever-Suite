@@ -93,7 +93,9 @@ function Quests:SetStage(mode)
         if not ID(id) then self.stage = nil; return end
     end
     local old = self.stage
-    if not old or old.mode ~= mode or old.id ~= id then self.stage = { mode = mode, id = id } end
+    if not old or old.mode ~= mode or old.id ~= id or old.dataFailed then
+        self.stage = { mode = mode, id = id }
+    end
     if not self:PauseIfShift() then self:Queue() end
 end
 
@@ -157,6 +159,18 @@ function Quests:Greeting()
     end
 end
 
+function Quests:DetailReady(stage)
+    local load = C_QuestLog and C_QuestLog.RequestLoadQuestByID
+    if type(load) ~= "function" or stage.dataReady then return true end
+    if not stage.dataRequested then
+        -- The result may arrive synchronously; retain the stage before requesting it.
+        stage.dataRequested = true
+        local ok = pcall(load, stage.id)
+        if not ok and self.stage == stage then stage.dataFailed = true end
+    end
+    return false
+end
+
 function Quests:Quest(stage)
     if not Shown(QuestFrame) then return end
     local id = Read(GetQuestID)
@@ -165,8 +179,12 @@ function Quests:Quest(stage)
         if not Yes(Suite.db.autoQuestPickup) or not Shown(QuestFrameDetailPanel)
             or not No(Read(QuestFlagsPVP)) then return end
         local automatic = Read(QuestGetAutoAccept)
-        if Yes(automatic) then self:Request("accept:" .. id, AcknowledgeAutoAcceptQuest)
-        elseif No(automatic) then self:Request("accept:" .. id, AcceptQuest) end
+        if not Yes(automatic) and not No(automatic) then return end
+        local accept = AcceptQuest
+        if Yes(automatic) then accept = AcknowledgeAutoAcceptQuest end
+        if type(accept) == "function" and self:DetailReady(stage) then
+            self:Request("accept:" .. id, accept)
+        end
     elseif Yes(Suite.db.autoQuestTurnIn) then
         local cost = Read(GetQuestMoneyToGet)
         if not Count(cost, 1000000000000) or cost > 0 then return end
@@ -200,12 +218,20 @@ function Quests:Queue()
     end)
 end
 
-function Quests:OnEvent(event, continuing)
+function Quests:OnEvent(event, continuing, success)
     if not self.active then return end
     if InCombatLockdown() then self:EndVisit(); return end
     if event == "GOSSIP_SHOW" then self:SetStage("gossip")
     elseif event == "QUEST_GREETING" then self:SetStage("greeting")
     elseif event == "QUEST_DETAIL" then self:SetStage("detail")
+    elseif event == "QUEST_DATA_LOAD_RESULT" then
+        local stage = self.stage
+        if not stage or stage.mode ~= "detail" or not stage.dataRequested or stage.dataReady
+            or stage.requested or not ID(continuing) or continuing ~= stage.id then return end
+        if Yes(success) then
+            stage.dataReady, stage.dataFailed = true, nil
+            self:Queue()
+        elseif No(success) then stage.dataFailed = true end
     elseif event == "QUEST_PROGRESS" then self:SetStage("progress")
     elseif event == "QUEST_COMPLETE" then self:SetStage("reward")
     elseif event == "GOSSIP_CLOSED" then
@@ -242,7 +268,7 @@ function Quests:Apply()
         end
         self.active = true
         for _, event in ipairs({ "GOSSIP_SHOW", "GOSSIP_CLOSED", "GOSSIP_OPTIONS_REFRESHED", "GOSSIP_CONFIRM",
-            "GOSSIP_ENTER_CODE", "QUEST_GREETING", "QUEST_DETAIL", "QUEST_PROGRESS", "QUEST_COMPLETE",
+            "GOSSIP_ENTER_CODE", "QUEST_GREETING", "QUEST_DETAIL", "QUEST_DATA_LOAD_RESULT", "QUEST_PROGRESS", "QUEST_COMPLETE",
             "QUEST_FINISHED", "QUEST_ITEM_UPDATE", "QUEST_LOG_UPDATE", "PLAYER_INTERACTION_MANAGER_FRAME_HIDE",
             "PLAYER_REGEN_DISABLED", "PLAYER_ENTERING_WORLD" }) do
             self.events:RegisterEvent(event)

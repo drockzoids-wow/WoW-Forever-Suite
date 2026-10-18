@@ -1,5 +1,85 @@
 # Forever Suite feature plan
 
+## Quest pickup waits for loaded data — 0.2.69
+
+October 18: user reports roughly one failed pickup in five, requiring leaving and returning to an NPC, and asks to compare Retail ZoidsTools. Read its QuestAutomation.lua and MIT license without changing that repository. ZoidsTools requests C_QuestLog.RequestLoadQuestByID on QUEST_DETAIL and accepts from QUEST_DATA_LOAD_RESULT; Suite previously submitted on the next frame with once-per-visit deduplication. There is no comparable data-ready wait in the prior Suite implementation. Early submission is a plausible cause, not a confirmed native diagnosis.
+
+Use the same event-driven readiness principle in the original Suite stage/visit controller. Request each valid visible offer's data once; accept only after matching readable success, through the existing next-frame worker and all current NPC/quest/panel/option/Shift/combat checks. A failed/rejected load does not spin on metadata updates; a newly opened detail event may retry that load. Clients without the loading API retain capability-checked native acceptance. Reward/gossip policies, confirmations, repeatable deduplication and the twenty-action cap stay as documented. Native full-log/server rejection remains manual; the readiness event is not evidence that acceptance succeeded.
+
+54 Lua 5.1 files, identical 0.2.69 TOCs and 9,819 substitute checks pass. Native pickup rate, event delivery and taint remain pending.
+
+## Actionable buff bar and local reminders — 0.2.68
+
+October 18 user supplies a single MH question-mark reminder and requests chat-only notices when no compatible buff/item can be applied, visual reminders when supplies exist, and a default near breath/fatigue bars. This supersedes the earlier gold Ask/group-message design. Interpret chat window as the player's local chat; do not broadcast requests.
+
+Keep the complete candidate model separate from displayed actions and local notices. Learned buffs and carried selected items remain on the bar. Carried poisons without a selection retain deliberate right-click choice and use a real candidate icon. If another eligible coating is carried while the selected/automatic coating is unavailable, show a choice with its real icon; clicking opens the matching hand's Macros selection without applying or changing an item automatically. Reuse the existing weapon-item rules and reject ordinary stones that do not match the weapon. Only known lack of a compatible source produces a local notice. An owned weapon spell or available poison choice prevents a redundant missing-item fallback. Preserve class/group scope, hidden-family choices, native click revalidation and restricted-data guards.
+
+Group-only incoming buffs and unavailable supplies are summarized locally, once per observed missing episode, with a 60-second per-buff/hand minimum for reappearing deficits and no idle repeat timer. Unknown learned/inventory/aura data does not authorize a no-source notice. Combat suppresses coatings with no prepared item or invalidated bag availability, without scanning bags. Remove outgoing request/channel code and Ask icons. Preserve existing native actions and optional passive combat behavior.
+
+Default and reset anchor is TOP/UIParent/TOP, 0,-140; preview and passive combat panel share it. Saved dragged positions remain unchanged. **54 Lua 5.1 files, identical 0.2.68 TOCs and 9,789 substitute checks pass**. Tests now replace obsolete outgoing-request scenarios with local-notice behavior; the assertion count is not directly comparable with 0.2.67. Native chat appearance, item actions/selection, placement and taint remain pending.
+
+## Pinned meter row backdrop construction — 0.2.67
+
+October 18 user reports three DamageMeters.lua:79 nil-method errors from Backdrop during EnsureRows/Layout. The newly pinned source rows were plain Buttons, so they lacked the backdrop mixin. Fix their construction with BackdropTemplate; keep ordinary source rows plain and preserve pin layering, opacity, clicks, data and out-of-combat preparation. Correct the meter substitute factory to withhold backdrop methods from untemplated frames/buttons. It reproduces the exact line-79 failure before the code fix. **54 Lua 5.1 files, matching 0.2.67 TOCs and 10,030 substitute checks pass** under the stricter model. Corrected native results remain pending.
+
+## GUI scrollbar drag direction — 0.2.66
+
+October 18 user reports grabbing the GUI scrollbar moves in the opposite direction. Correct the shared vertical-slider translation: slider top=1/bottom=0 maps to content top=0/bottom=maximum, in both SyncScrollBar and OnValueChanged. Apply through the existing factory to outer settings, macro list/preview and setup review; preserve wheel stepping, clamping, thumb geometry, numeric horizontal sliders and combat layout deferral. No new control, saved schema, input hook or updater. Existing direction/end-point assertions are corrected to native slider coordinates. **54 Lua 5.1 files, matching 0.2.66 TOCs and 10,030 substitute checks pass**. Actual native thumb/cursor behavior remains pending the focused drag test.
+
+## Meter startup layout readiness — 0.2.65
+
+October 18 user reports a 0.2.64 RefreshWindow error at DamageMeters.lua:431: visibleRows is nil in the healing window, with no meter rectangles and an empty five-second native session. Reproduce the exact arithmetic failure before fixing it by running first activation while UIParent dimensions are unavailable. The supplied trace proves missing viewport initialization; its actual native geometry values were not recorded.
+
+Initialize new windows with visibleRows=0 and layoutReady=false. A completed layout, including row preparation and positioning of every window, alone permits visibility and native-data refresh. Preserve legitimate minimized zero-row windows. Record pending layout when geometry/combat defers it and retry on existing coalesced events outside combat; no idle poll or fabricated viewport. Keep prepared windows usable while an optional new third window waits. Unprepared windows do not query sessions or run the combat clock. **54 Lua 5.1 files, matching 0.2.65 TOCs and 10,030 substitute checks pass** (25 added). Native reload/combat rendering and taint remain pending.
+
+## Trainer attachment and level-up planner — 0.2.64
+
+October 18: user requests the planner alongside the open trainer and an Available now popup on every player level. Keep the Training Planner optional through Record trainer offerings. Add a separate default-on Show Training Planner on level up preference, independent of trainer auto-opening.
+
+Anchor the Suite-owned root to the visible native ClassTrainerFrame's right edge, or left when readable scaled screen geometry shows that side fits. Relative anchors follow native movement/scale without polling, native hooks, parent changes or UIPanelWindows edits. The attached header cannot detach itself; away views retain saved standalone placement and dragging. Trainer closure still hides the companion and restores its standalone anchor. Combat defers construction/anchors and interrupted movement cleanup.
+
+PLAYER_LEVEL_UP supplies the new level before a potentially stale UnitLevel. Each valid event opens page 1/offset 0, even with no saved offerings; combat coalesces to the latest notice. Manual opening, disabling reminders/module and world entry invalidate superseded automatic callbacks. Saved future-level rows can join Available now as explicit Level met · confirm at trainer estimates. Snapshot capture level and readable skill/ability prerequisite status are sanitized; known unmet nonlevel prerequisites remain separate, and native availability is never rewritten. Legacy snapshots support an estimated exact-level match. Trainer queries occur only during a visit; prices/eligibility remain historical away.
+
+Exact 70450 trainer layout/lifecycle, requirement getters and Unit PLAYER_LEVEL_UP payload reviewed at revision 172a387e3ab85b26e6640d3058d5ec1e6ccd4c63. **54 Lua 5.1 files, matching 0.2.64 TOCs and 10,005 substitute checks pass**, 78 additional assertions. Native attachment, visibility, level delivery, saved eligibility and taint remain pending the focused smoke test.
+
+## Native meter parity audit — 0.2.63
+
+October 18: user requests the built-in meter's capabilities and questions deliberately ignored information. Compare the full Blizzard_DamageMeter implementation, Camelot override, native death recap and generated contracts at exact installed **1.60.1.70450 / revision 172a387e3ab85b26e6640d3058d5ec1e6ccd4c63**. No Suite player, spell or amount filter exists; aggregation, ranking, pet attribution and retained sessions belong to the native service. The exact picker also omits the Absorbs enum, correcting the earlier EverCore comparison's suggested gap. The Camelot override suppresses classification stars by design.
+
+Close supported gaps: spec-before-class icons, native enemy-icon suppression and readable enemy faction markers, pinned offscreen local-player rows in the same native categories, death timestamps/full bars/native recap delegation, pet-before-unit labels and unit/spec icons in breakdowns, Shift-click sticky details and right-click source selection. A cancellable one-second combat clock reads only the duration API; it does not allocate session snapshots or run idle. Keep the 0.20-second native-data coalescer.
+
+Preserve existing Standard numbers and add native Primary, Total + rate and Total/rate/share choices, independently of numeric abbreviation. Percentages require readable finite totals. Add per-window icons, pin preference, Always/In combat/In a group visibility, header-only minimization and mouse pass-through restored through /wfs. Add optional Window 3 (initially hidden, prepared only outside combat); original pair snapping and shared lock remain. Suite's original styling, contiguous bars, shared lock, pair docking and one compact detail popup remain user-selected presentation differences.
+
+Hidden GUID/creature-ID source queries and percentage arithmetic remain unavailable to ordinary addon code. Show permitted hidden values through native widgets; don't derive or recover hidden identities. Suite conservatively opens the native recap helper outside combat only, with no retained recap ID. **54 Lua 5.1 files and 9,927 substitute checks pass**; full native comparison, appearance, input permission and taint remain pending. See meter-parity.md and testing.md.
+
+## Training Planner and extended buff reminders — 0.2.62
+
+The user selects these additions from the EverCore comparison. Add a default-off Training Planner under Professions and /wfs training: save visible unlearned offerings per character, separate Available now/future levels/Other requirements, total costs across scrolling, show savings gaps and label saved/partial data. Initial empty or failed/restricted reads cannot auto-open stale data; pet training points are excluded. Recording and auto-opening are independent; all purchases remain manual.
+
+Extend Missing Buffs with optional expiry warnings (15 seconds for short spells, configurable 30/60/120 for long spells/coatings), eight learned custom spell IDs with self/group scope, and main/off-hand macro-choice coating reminders. Preserve existing self/outgoing/incoming/class filters, native clicks and explicit missing-only Ask actions. Add opt-in passive combat reminders for selected useful class buffs and prepared coatings; no combat casting buttons, secure geometry changes or hidden-data inference. Reuse the saved buff position and standard family choices. New options start off; existing selections remain. Exact 70450 source reviewed and **9,832 substitute checks pass**. Native data delivery, visuals, secure clicks and taint remain pending; no other EverCore modules are added.
+
+## Meter class-color RGB correction — 0.2.61
+
+Fix the 0.2.60 error when class colors are enabled: the allocation optimization returned a native r/g/b record, but both player and spell bars read numeric array indexes. Share three validated RGB scalar returns across both renderers, preserving native class colors, Suite teal fallback, alpha and the allocation reduction. No new option or saved schema. October 18 checks pass **51 Lua files, identical TOCs and 9,623 substitute assertions**, including the named-field Hunter regression and combat/fallback coverage. Installed executable is 1.60.1.70450; actual running build/Interface and corrected in-game rendering remain pending the focused test. All edits stay in the canonical P-drive checkout.
+
+## Serial bag-container continuation — 0.2.60
+
+October 17 user reports intermittent auto-open failures, particularly after acquiring several openable items. Preserve existing autoOpenContainers choice and all eligibility/space/context rules. Correct the reproduced synchronous fast-loot sequence in which LOOT_CLOSED happens before AutoOpen sees an older READY/OPENED notification: current readable zero loot cannot restore a stale waiting flag. Positive/unknown/restricted loot remains blocked.
+
+Resume from the native LootFrame.Hide callback when closing presentation outlasts the first scan, using a single removable EventRegistry observer and the existing quarter-second coalescer. Continue past a rejected physical item without retrying its unchanged GUID/count; reconcile stale loot on world entry and ignore inactive events. Keep serial native item use, existing direct-reward settling, Auto Loot/Quick loot/manual confirmations and combat/regular-space checks. No polling, UI script changes, extra setting or saved schema. **9,601 substitute checks pass** against exact 70450 source; the actual multi-container native result remains pending.
+
+## Lower allocation overhead — 0.2.59
+
+October 17: investigate the user's approximately 21 MB during play and later automatic drop to 6 MB. Treat this as evidence consistent with temporary allocation/collection, without labeling it a proven leak or attributing the measured peak to a module. Preserve every feature, default and saved preference.
+
+Prepare damage-meter player rows to the viewport outside combat: default **16 total instead of 96**, with reusable growth capped at 48 per window. Keep combat menus/details ready, scrolling unchanged and native data unsaved. Release hidden player references and avoid per-row color copies. Batch event-driven native session reads at **0.20 seconds**, with one cancellable worker and no idle updater. Query fight history during visible historical selection or menu opening, skipping it for Current/Overall and hidden windows.
+
+Create the main settings panel only on first use; retain native Settings registration, the first-login welcome and all launchers/shortcuts. Public opens defer/coalesce through combat. No forced collection, saved-data trimming or feature setting. All work is in the canonical P-drive checkout. **9,575 substitute checks pass**; actual MB/CPU improvement and native combat/input remain pending the focused test.
+
+## Threat alignment and contrast — 0.2.58
+
+October 17 user feedback requests a flush left edge and more obvious threat color during combat. Shift the upper attachment right by three native UI units and raise the existing grey-to-red overlay to 40–80% opacity, with neutral unknowns at 20%. Retain the compact Blizzard border, transparency, bright text, native scale following, aura-aware lower placement, guarded threat data and combat layout deferral. Work only in the canonical P-drive checkout. Installed executable is 1.60.1.70450; exact matching frame/border references are unchanged from the preceding review. Actual corrected visual/combat results remain pending.
+
 ## GitHub and CurseForge release setup — October 16, 2026
 
 Match ZoidsTools Retail: ordinary pushes back up source and run checks; a pushed matching version tag approves automatic packaging/upload. User selects public `drockzoids-wow/WoWForeverSuite` and CurseForge project **1749120**. Prepare independent repository credentials, explicit Forever game flavor, source-only packaging and a manual setup check without uploading. Remote setup and first release remain to be verified; do not imply commit-only publication or automatic moderation approval. See `publishing.md`.

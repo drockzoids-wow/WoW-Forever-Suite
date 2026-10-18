@@ -3,7 +3,7 @@
 ## Notes: A personal collection of optional tools for WoW Forever.
 ## Author: Drockzoids
 ## IconTexture: Interface\AddOns\WoWForeverSuite\Media\ForeverSuiteIcon.tga
-## Version: 0.2.57
+## Version: 0.2.69
 ## Bindings: Bindings.xml
 ## SavedVariables: WoWForeverSuiteDB
 ## SavedVariablesPerCharacter: WoWForeverSuiteCharDB
@@ -33,6 +33,7 @@ Vendor.lua
 Quests.lua
 QuestItem.lua
 ProfessionHelper.lua
+Training.lua
 Castbars.lua
 ZoneReputation.lua
 QuestTrackerSkin.lua
@@ -55,7 +56,9 @@ Camping.lua
 Leveling.lua
 BuffCatalog.lua
 MissingBuffs.lua
+BuffReminders.lua
 DamageMeters.lua
+MeterParity.lua
 DamageMeterMenus.lua
 DamageMeterDetails.lua
 Setup.lua

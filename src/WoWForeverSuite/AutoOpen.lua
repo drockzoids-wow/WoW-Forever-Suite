@@ -136,7 +136,11 @@ function Open:Run()
                 self.inFlight = true
                 local ok = pcall(C_Container.UseContainerItem, item.bag, item.slot)
                 self.lastAttempt = { id = item.id, bag = item.bag, slot = item.slot, result = ok and "request sent; loot not confirmed" or "native request rejected" }
-                if not ok then self.inFlight = nil; return end
+                if not ok then
+                    self.inFlight = nil
+                    self:Queue() -- Skip this attempted stack and continue with other containers.
+                    return
+                end
                 if self.active and self:Enabled() and self.inFlight then
                     -- Bounded settling for containers that close without a loot
                     -- window (e.g. currency). This is not an idle polling timer.
@@ -153,6 +157,17 @@ function Open:Queue()
     if not self.active or not self:Enabled() or self.timer or self.inFlight or InCombatLockdown()
         or not C_Timer or type(C_Timer.NewTimer) ~= "function" then return end
     self.timer = C_Timer.NewTimer(0.25, function() self.timer = nil; self:Run() end)
+end
+function Open:WatchLoot()
+    if self.lootRegistry or not Suite.IsReadable(EventRegistry) or type(EventRegistry) ~= "table"
+        or type(EventRegistry.RegisterCallback) ~= "function" or type(EventRegistry.UnregisterCallback) ~= "function" then return end
+    self.lootRegistry = EventRegistry
+    self.lootRegistry:RegisterCallback("LootFrame.Hide", self.Queue, self)
+end
+function Open:UnwatchLoot()
+    if not self.lootRegistry then return end
+    self.lootRegistry:UnregisterCallback("LootFrame.Hide", self)
+    self.lootRegistry = nil
 end
 local function Summary(value)
     if not Suite.IsReadable(value) then return "restricted" end
@@ -198,9 +213,17 @@ function Open:Status(itemID)
     if shown == 0 then Suite.Print(itemID and "No readable carried slot matches that item ID." or "No readable openable item found. Add an item ID to inspect it.") end
 end
 function Open:OnEvent(event, value)
-    if event == "PLAYER_LOGOUT" then self:Cancel(); self.active = nil; return end
+    if not self.active then return end
+    if event == "PLAYER_LOGOUT" then self:Cancel(); self:UnwatchLoot(); self.active = nil; return end
     if event == "PLAYER_REGEN_DISABLED" then self:Cancel(); return end
-    if event == "LOOT_OPENED" or event == "LOOT_READY" then self.lootOpen = true; return end
+    if event == "LOOT_OPENED" or event == "LOOT_READY" then
+        -- Another synchronous loot listener may have emptied/closed this session
+        -- before this handler runs. Never latch a completed session as still open.
+        -- Unknown/restricted counts remain blocked; visible loot is checked by Idle.
+        self.lootOpen = Read(GetNumLootItems) ~= 0 or nil
+        return
+    end
+    if event == "PLAYER_ENTERING_WORLD" then self.lootOpen = nil; self:Cancel() end
     if event == "TOOLTIP_DATA_UPDATE" then
         if not Suite.IsReadable(value) or not self.tooltipWait then return end
         if value ~= nil and (not Int(value, 2147483647) or not self.tooltipWait[value]) then return end
@@ -211,7 +234,7 @@ end
 function Open:Apply()
     Suite.pending.autoOpen = nil
     if not self:Enabled() then
-        self.active, self.lootOpen, self.attempted, self.lastAttempt = nil, nil, nil, nil; self:Cancel()
+        self.active, self.lootOpen, self.attempted, self.lastAttempt = nil, nil, nil, nil; self:Cancel(); self:UnwatchLoot()
         if self.events then self.events:UnregisterAllEvents() end
         return
     end
@@ -222,6 +245,7 @@ function Open:Apply()
             self.events:SetScript("OnEvent", function(_, event, value) self:OnEvent(event, value) end)
         end
         self.active = true
+        self:WatchLoot()
         for _, event in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "PLAYER_LOGOUT",
             "BAG_UPDATE_DELAYED", "ITEM_UNLOCKED", "LOOT_READY", "LOOT_OPENED", "LOOT_CLOSED", "MERCHANT_CLOSED",
             "BANKFRAME_CLOSED", "MAIL_CLOSED", "TRADE_CLOSED", "AUCTION_HOUSE_CLOSED", "CURSOR_CHANGED", "UNIT_SPELLCAST_STOP", "UNIT_SPELLCAST_CHANNEL_STOP",

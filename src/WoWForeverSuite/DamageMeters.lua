@@ -6,6 +6,7 @@ table.insert(Suite.modules, Meters)
 -- Layout and input belong to Suite. Only native widgets receive restricted combat values.
 local MIN_WIDTH, MAX_WIDTH, MIN_HEIGHT, MAX_HEIGHT = 240, 1600, 120, 1000
 local MAX_ROWS, HEADER = 48, 24
+local REFRESH_INTERVAL = 0.2 -- Coalesce native session-table allocations; no idle polling.
 local palette = {
     background = { 0.035, 0.05, 0.065 }, header = { 0.055, 0.075, 0.09 },
     teal = { 0.41, 0.84, 0.75 },
@@ -64,14 +65,15 @@ local function RowFont(text, size)
     text:SetFont(path, size, "OUTLINE")
     text:SetTextColor(1, 1, 1)
 end
+-- Native class colors have named fields; return scalar RGB without allocating a row color table.
 local function BarColor(settings, class)
     if settings.classColors and Read(class, "string") and Read(RAID_CLASS_COLORS, "table") then
         local color = RAID_CLASS_COLORS[class]
         if Read(color, "table") and Number(color.r) and Number(color.g) and Number(color.b) then
-            return { color.r, color.g, color.b }
+            return color.r, color.g, color.b
         end
     end
-    return palette.bar
+    return palette.bar[1], palette.bar[2], palette.bar[3]
 end
 local function Backdrop(frame, color, opacity)
     frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
@@ -91,9 +93,10 @@ local function Cursor()
 end
 
 function Meters:Defaults(index)
-    return { shown = true, metric = index == 1 and "DamageDone" or "HealingDone", session = "Current",
+    return { shown = index <= 2, metric = index == 2 and "HealingDone" or "DamageDone", session = "Current",
         width = 300, height = 220, rowHeight = 22, fontSize = 14, fontRevision = 1, classColors = false,
-        opacity = 0.9, numbers = "full", numberRevision = 1, position = {} }
+        opacity = 0.9, numbers = "full", numberRevision = 1, content = "standard", icons = true,
+        pinSelf = true, minimized = false, clickThrough = false, visibility = "always", position = {} }
 end
 
 function Meters:IsActive()
@@ -101,7 +104,16 @@ function Meters:IsActive()
 end
 
 function Meters:IsWindowShown(index)
-    return self:IsActive() and (self.preview or Suite.db.meterWindows[index].shown) or false
+    if not self:IsActive() then return false end
+    if self.preview then return true end
+    local settings = Suite.db.meterWindows[index]
+    if not settings or not settings.shown then return false end
+    if settings.visibility == "combat" then return self:IsPlayerInCombat() end
+    if settings.visibility == "group" then
+        local grouped = type(IsInGroup) == "function" and IsInGroup()
+        return Read(grouped, "boolean") and grouped or false
+    end
+    return true
 end
 
 function Meters:TestSession(metric)
@@ -151,7 +163,7 @@ end
 function Meters:Normalize()
     local db = Suite.db
     if not Read(db.meterWindows, "table") then db.meterWindows = {} end
-    for index = 1, 2 do
+    for index = 1, 3 do
         local saved, defaults = db.meterWindows[index], self:Defaults(index)
         if not Read(saved, "table") then saved = {}; db.meterWindows[index] = saved end
         if not Number(saved.fontRevision) or saved.fontRevision < 1 then
@@ -167,6 +179,8 @@ function Meters:Normalize()
         if not metricByKey[saved.metric] then saved.metric = defaults.metric end
         if saved.session ~= "Current" and saved.session ~= "Overall" then saved.session = "Current" end
         if saved.numbers ~= "compact" and saved.numbers ~= "full" then saved.numbers = "full" end
+        if saved.content ~= "minimal" and saved.content ~= "standard" and saved.content ~= "paired" and saved.content ~= "complete" then saved.content = "standard" end
+        if saved.visibility ~= "always" and saved.visibility ~= "combat" and saved.visibility ~= "group" then saved.visibility = "always" end
         saved.width = Bound(saved.width, MIN_WIDTH, MAX_WIDTH, 300)
         saved.height = Bound(saved.height, MIN_HEIGHT, MAX_HEIGHT, 220)
         saved.rowHeight = Bound(saved.rowHeight, 18, 32, 22)
@@ -288,8 +302,11 @@ function Meters:DescribeMenu(window, root, kind)
         if Suite.db.meterDock.anchor then root:CreateButton("Detach windows", function() self:Detach() end) end
         root:CreateButton("Reset window layout", function() self:Reset(window.index) end)
         if not self.preview then root:CreateButton("Hide this window", function() self:SetOption(window.index, "shown", false) end) end
+        root:CreateButton(Suite.db.meterWindows[window.index].minimized and "Expand this window" or "Minimize this window",
+            function() self:SetOption(window.index, "minimized", not Suite.db.meterWindows[window.index].minimized) end)
         root:CreateDivider()
-        root:CreateButton(Suite.db.meterLocked and "Unlock both windows" or "Lock both windows",
+        root:CreateButton(#self.windows == 3 and (Suite.db.meterLocked and "Unlock all windows" or "Lock all windows")
+            or (Suite.db.meterLocked and "Unlock both windows" or "Lock both windows"),
             function() self:SetLocked(not Suite.db.meterLocked) end)
     end
 end
@@ -377,6 +394,11 @@ Meters.ui = { palette = palette, text = Font, rowFont = RowFont, backdrop = Back
 
 function Meters:RefreshWindow(window)
     if not self:IsWindowShown(window.index) then return end
+    -- Frames may exist before usable screen geometry. Only a completed layout prepares the viewport.
+    if not window.layoutReady or not Number(window.visibleRows) or window.visibleRows < 0 then
+        self.layoutPending = true
+        return
+    end
     local settings, metric = Suite.db.meterWindows[window.index], metricByKey[Suite.db.meterWindows[window.index].metric]
     local available, reason, session
     window.metric.label:SetText(metric.label)
@@ -416,69 +438,43 @@ function Meters:RefreshWindow(window)
     if Read(session, "table") then maximum = session.maxAmount end
     if Suite.IsReadable(maximum) and (not Number(maximum) or maximum <= 0) then maximum = 1 end
     for rowIndex, row in ipairs(window.rows) do
-        local source = sources[rowIndex + window.offset]
-        local visible = rowIndex <= window.visibleRows and Read(source, "table")
-        row.source, row.sourceIndex = visible and source or nil, visible and rowIndex + window.offset or nil
-        row:SetShown(visible)
-        if visible then
-            row.rank:SetFormattedText("%d.", rowIndex + window.offset)
-            local name = source.name
-            if Suite.IsReadable(name) then row.name:SetText(Read(name, "string") and name or "Unknown")
-            else row.name:SetText(name) end
-            local total = source.totalAmount
-            if Suite.IsReadable(total) and not Number(total) then total = 0 end
-            row.bar:SetMinMaxValues(0, maximum)
-            row.bar:SetValue(total)
-            local class = source.classFilename
-            local color = BarColor(settings, class)
-            local atlas
-            if Read(class, "string") and Read(CLASS_ICON_TCOORDS, "table") and Read(CLASS_ICON_TCOORDS[class], "table")
-                and type(GetClassAtlas) == "function" then
-                local result = GetClassAtlas(class)
-                if Read(result, "string") and result ~= "" then atlas = result end
-            end
-            if atlas then row.icon:SetAtlas(atlas); row.icon:Show()
-            else row.icon:SetTexture(nil); row.icon:Hide() end
-            row.bar:SetStatusBarColor(color[1], color[2], color[3], 0.85)
-            if metric.rate then
-                DisplayNumber(row.value, source.amountPerSecond, settings.numbers == "compact", true)
-            elseif metric.count then
-                DisplayNumber(row.value, total, settings.numbers == "compact")
-            else
-                DisplayTotalAndRate(row.value, total, source.amountPerSecond, settings.numbers == "compact")
-            end
-        else
-            row.icon:SetTexture(nil); row.icon:Hide()
-            row.rank:SetText(""); row.name:SetText(""); row.value:SetText("")
-            row.bar:SetMinMaxValues(0, 1); row.bar:SetValue(0)
-        end
+        local sourceIndex = rowIndex + window.offset
+        local source
+        if rowIndex <= window.visibleRows then source = sources[sourceIndex] end
+        self:RenderSourceRow(window, row, source, sourceIndex, metric, maximum, Read(session, "table") and session.totalAmount)
     end
+    self:RefreshPinnedRow(window, sources, metric, maximum, Read(session, "table") and session.totalAmount)
     window.empty:SetText(not available and reason or count == 0 and "Waiting for combat data" or "")
     window.settings.fullLabel = "Window " .. window.index .. " options"
     if count > 0 then
         window.settings.fullLabel = window.settings.fullLabel .. string.format(" · %d–%d of %d players",
             window.offset + 1, math.min(count, window.offset + window.visibleRows), count)
     end
-    window.more:SetShown(count > window.offset + window.visibleRows)
-    local duration
-    if Read(session, "table") then duration = session.durationSeconds end
-    if Number(duration) and duration >= 0 then
-        window.duration:SetFormattedText("%d:%02d", math.floor(duration / 60), math.floor(duration % 60))
-        window.metric.fullLabel = metric.label .. string.format(" · %d:%02d", math.floor(duration / 60), math.floor(duration % 60))
-    else window.duration:SetText("") end
+    window.more:SetShown(not settings.minimized and count > window.offset + window.visibleRows)
+    window.empty:SetShown(not settings.minimized)
+    self:RefreshDuration(window, session, metric)
 end
 
 function Meters:Refresh()
     if not self:IsActive() then return end
-    if not self.preview then self:ReadHistory() end
+    if self.layoutPending and not InCombatLockdown() then self:Layout() end
+    if not self.preview then
+        -- Current/Overall do not need a newly allocated retained-fight list on every update.
+        for _, window in ipairs(self.windows) do
+            if self:IsWindowShown(window.index) and window.fightID then self:ReadHistory(); break end
+        end
+    end
     for _, window in ipairs(self.windows) do self:RefreshWindow(window) end
     self:RefreshDetails()
+    self:UpdateClock()
 end
 
 function Meters:Schedule()
     if self.preview or not Suite.db.damageMeters or self.timer or not C_Timer or not C_Timer.NewTimer then return end
-    if not Suite.db.meterWindows[1].shown and not Suite.db.meterWindows[2].shown then return end
-    self.timer = C_Timer.NewTimer(0.08, function()
+    local visible = false
+    for _, window in ipairs(self.windows) do if self:IsWindowShown(window.index) then visible = true; break end end
+    if not visible then return end
+    self.timer = C_Timer.NewTimer(REFRESH_INTERVAL, function()
         self.timer = nil
         if Suite.db.damageMeters then self:Refresh() end
     end)
@@ -486,22 +482,24 @@ end
 
 function Meters:CancelTimer()
     if self.timer then self.timer:Cancel(); self.timer = nil end
+    if self.clockTimer then self.clockTimer:Cancel(); self.clockTimer = nil end
 end
 
 function Meters:DockVisible()
     local dock = Suite.db.meterDock
-    return dock.anchor and self:IsWindowShown(1) and self:IsWindowShown(2) and dock or nil
+    return dock.anchor and self:IsWindowShown(1) and self:IsWindowShown(2)
+        and not Suite.db.meterWindows[1].minimized and not Suite.db.meterWindows[2].minimized and dock or nil
 end
 
 function Meters:Rects(dock)
     local width, height = Screen()
     if not width then return end
     local rects = {}
-    for index = 1, 2 do
+    for index = 1, #self.windows do
         local settings = Suite.db.meterWindows[index]
         local position = settings.position
         local x = Number(position.x) and position.x * width or math.max(0, width - (3 - index) * 312 - 12)
-        local y = Number(position.y) and position.y * height or 40
+        local y = Number(position.y) and position.y * height or index == 3 and 280 or 40
         rects[index] = { x = x, y = y, width = math.min(settings.width, width), height = math.min(settings.height, height) }
     end
     if dock then
@@ -532,7 +530,13 @@ function Meters:Clamp(rects, grouped)
         if right - left > width or top - bottom > height then return false end
         local dx = left < 0 and -left or right > width and width - right or 0
         local dy = bottom < 0 and -bottom or top > height and height - top or 0
-        for _, rect in ipairs(rects) do rect.x, rect.y = rect.x + dx, rect.y + dy end
+        for index, rect in ipairs(rects) do
+            if index <= 2 then rect.x, rect.y = rect.x + dx, rect.y + dy
+            else
+                rect.x = math.max(0, math.min(width - rect.width, rect.x))
+                rect.y = math.max(0, math.min(height - rect.height, rect.y))
+            end
+        end
     else
         for _, rect in ipairs(rects) do
             rect.x = math.max(0, math.min(width - rect.width, rect.x))
@@ -547,7 +551,8 @@ function Meters:Position(rects)
     for index, rect in ipairs(rects) do
         local frame = self.windows[index].frame
         frame:ClearAllPoints()
-        frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", rect.x, rect.y)
+        local y = Suite.db.meterWindows[index].minimized and rect.y + rect.height - HEADER or rect.y
+        frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", rect.x, y)
     end
     self.rects = rects
 end
@@ -559,6 +564,7 @@ function Meters:SavePositions(rects)
 end
 
 function Meters:Layout(rects)
+    self.layoutPending = true
     if InCombatLockdown() or #self.windows < 2 then return end
     local dock = self:DockVisible()
     local fits = true
@@ -571,7 +577,7 @@ function Meters:Layout(rects)
     self:Clamp(rects, dock ~= nil)
     for index, window in ipairs(self.windows) do
         local settings, rect = Suite.db.meterWindows[index], rects[index]
-        window.frame:SetSize(rect.width, rect.height)
+        window.frame:SetSize(rect.width, settings.minimized and HEADER or rect.height)
         Backdrop(window.frame, palette.background, settings.opacity)
         -- Only the left arrow opens the picker; the passive title belongs to the draggable header.
         local titleWidth = math.min(190, math.max(50, rect.width - 196))
@@ -579,29 +585,39 @@ function Meters:Layout(rects)
         window.session:SetWidth(24)
         window.title:SetWidth(titleWidth)
         window.duration:Show()
-        window.visibleRows = math.min(MAX_ROWS, math.max(1, math.floor((rect.height - HEADER - 4) / settings.rowHeight)))
+        window.visibleRows = settings.minimized and 0 or math.min(MAX_ROWS, math.max(1, math.floor((rect.height - HEADER - 4) / settings.rowHeight)))
+        self:EnsureRows(window)
         -- Native font-string anchors fit the values and give names the remaining space.
         -- Input/frame geometry stays independent of text, including secret-bearing text.
-        local barWidth = rect.width - 8 - settings.rowHeight
-        for rowIndex, row in ipairs(window.rows) do
+        local iconWidth = settings.icons and settings.metric ~= "EnemyDamageTaken" and settings.rowHeight or 0
+        local barWidth = rect.width - 8 - iconWidth
+        local layoutRows = {}
+        for _, row in ipairs(window.rows) do layoutRows[#layoutRows + 1] = row end
+        for _, row in ipairs(window.pinned) do layoutRows[#layoutRows + 1] = row end
+        for rowIndex, row in ipairs(layoutRows) do
+            if row == window.pinned[1] then rowIndex = 1
+            elseif row == window.pinned[2] then rowIndex = math.max(1, window.visibleRows) end
             row:ClearAllPoints()
             row:SetPoint("TOPLEFT", window.frame, "TOPLEFT", 2, -HEADER - 1 - (rowIndex - 1) * settings.rowHeight)
             row:SetSize(rect.width - 4, settings.rowHeight)
             row.icon:SetSize(settings.rowHeight, settings.rowHeight)
-            row.bar:ClearAllPoints(); row.bar:SetPoint("TOPLEFT", row, "TOPLEFT", settings.rowHeight, -1)
+            row.bar:ClearAllPoints(); row.bar:SetPoint("TOPLEFT", row, "TOPLEFT", iconWidth, -1)
             row.bar:SetSize(barWidth, settings.rowHeight - 2)
             RowFont(row.rank, settings.fontSize); RowFont(row.name, settings.fontSize); RowFont(row.value, settings.fontSize)
         end
     end
+    self:RefreshInteraction()
     self:Position(rects)
-    -- Both windows receive their final geometry before any show handler runs.
-    for index, window in ipairs(self.windows) do window.frame:SetShown(self:IsWindowShown(index)) end
+    -- All windows receive complete geometry before visibility or native-data refresh can use them.
+    for _, window in ipairs(self.windows) do window.layoutReady = true end
+    self.layoutPending = false
+    self:UpdateVisibility()
     self:PositionDetails(self.details and self.details.selection and self.details.selection.windowIndex or 1)
     if not self.resizing then self:SavePositions(rects) end
 end
 
 function Meters:SnapCandidate(index, rects)
-    if Suite.db.meterLocked or not Suite.db.meterSnap or not self:IsWindowShown(3 - index) then return end
+    if index > 2 or Suite.db.meterLocked or not Suite.db.meterSnap or not self:IsWindowShown(3 - index) then return end
     local width, height = Screen()
     if not width then return end
     local moving, target, gap = rects[index], rects[3 - index], Suite.db.meterGap
@@ -631,7 +647,7 @@ function Meters:StartDrag(index)
     local header = self.windows[index].header
     if GameTooltip and GameTooltip.IsOwned and GameTooltip:IsOwned(header) then GameTooltip:Hide() end
     self.drag = { index = index, x = x, y = y, start = Suite.Copy(self.rects), detached = detached,
-        grouped = not detached and self:DockVisible() ~= nil }
+        grouped = index <= 2 and not detached and self:DockVisible() ~= nil }
     self.windows[index].header:SetScript("OnUpdate", function() self:DragUpdate() end)
 end
 
@@ -643,7 +659,7 @@ function Meters:DragUpdate()
     if not x then return end
     local rects = Suite.Copy(drag.start)
     for index, rect in ipairs(rects) do
-        if drag.grouped or index == drag.index then rect.x, rect.y = rect.x + x - drag.x, rect.y + y - drag.y end
+        if drag.grouped and index <= 2 or index == drag.index then rect.x, rect.y = rect.x + x - drag.x, rect.y + y - drag.y end
     end
     self:Clamp(rects, drag.grouped)
     self:Position(rects)
@@ -658,7 +674,7 @@ function Meters:EndDrag()
     self:DragUpdate()
     self.windows[drag.index].header:SetScript("OnUpdate", nil)
     self.drag = nil
-    if drag.detached then Suite.db.meterDock = {}
+    if drag.detached and drag.index <= 2 then Suite.db.meterDock = {}
     elseif drag.candidate then
         local target = Suite.db.meterWindows[drag.candidate.anchor]
         local moving = Suite.db.meterWindows[drag.index]
@@ -680,6 +696,7 @@ function Meters:CancelDrag()
 end
 
 function Meters:Resize(index, direction)
+    if Suite.db.meterWindows[index].minimized then return end
     if InCombatLockdown() or Suite.db.meterLocked or not self:IsActive() then return end
     self:CancelDrag()
     self:CancelResize()
@@ -689,7 +706,7 @@ function Meters:Resize(index, direction)
     local factor = direction > 0 and 1.05 or 1 / 1.05
     settings.width = Bound(settings.width * factor, MIN_WIDTH, MAX_WIDTH, 300)
     settings.height = Bound(settings.height * factor, MIN_HEIGHT, MAX_HEIGHT, 220)
-    local dock = self:DockVisible()
+    local dock = index <= 2 and self:DockVisible()
     if dock then
         local partner = Suite.db.meterWindows[3 - index]
         if Horizontal(dock.side) then partner.height = settings.height else partner.width = settings.width end
@@ -698,6 +715,7 @@ function Meters:Resize(index, direction)
 end
 
 function Meters:StartResize(index, corner)
+    if Suite.db.meterWindows[index].minimized then return end
     if InCombatLockdown() or Suite.db.meterLocked or not self:IsActive() or not self.rects or (corner ~= "LEFT" and corner ~= "RIGHT") then return end
     self:CloseMenus()
     self:CancelDrag(); self:CancelResize()
@@ -706,7 +724,7 @@ function Meters:StartResize(index, corner)
     local handle = self.windows[index].corners[corner]
     if GameTooltip and GameTooltip.IsOwned and GameTooltip:IsOwned(handle) then GameTooltip:Hide() end
     self.resizing = { index = index, corner = corner, handle = handle, x = x, y = y,
-        start = Suite.Copy(self.rects), dock = Suite.Copy(self:DockVisible() or {}) }
+        start = Suite.Copy(self.rects), dock = Suite.Copy(index <= 2 and self:DockVisible() or {}) }
     handle:SetScript("OnUpdate", function() self:ResizeUpdate() end)
 end
 
@@ -756,10 +774,12 @@ function Meters:ResizeUpdate()
     if not self:Clamp(rects, dock.anchor ~= nil) then return end
     local current = self.rects[gesture.index]
     if current.x == moving.x and current.y == moving.y and current.width == moving.width and current.height == moving.height then return end
-    local firstRows, secondRows = self.windows[1].visibleRows, self.windows[2].visibleRows
+    local rowCounts = {}
+    for index, window in ipairs(self.windows) do rowCounts[index] = window.visibleRows end
     self:Layout(rects)
-    if firstRows ~= self.windows[1].visibleRows then self:RefreshWindow(self.windows[1]) end
-    if secondRows ~= self.windows[2].visibleRows then self:RefreshWindow(self.windows[2]) end
+    for index, window in ipairs(self.windows) do
+        if rowCounts[index] ~= window.visibleRows then self:RefreshWindow(window) end
+    end
 end
 
 function Meters:EndResize()
@@ -796,11 +816,12 @@ function Meters:RefreshLock()
         -- A passive TEST label remains visible when locking a sample display.
         window.grip:SetShown(not locked or self.preview == true)
         for _, dot in ipairs(window.grip.dots) do dot:SetShown(not locked and not self.preview) end
-        window.lock.fullLabel = locked and "Unlock both windows" or "Lock both windows"
+        window.lock.fullLabel = #self.windows == 3 and (locked and "Unlock all windows" or "Lock all windows")
+            or (locked and "Unlock both windows" or "Lock both windows")
         window.lock.shackleRight:SetShown(locked)
         for _, part in ipairs(window.lock.icon) do part:SetColorTexture(unpack(locked and palette.teal or palette.muted)) end
         for _, corner in pairs(window.corners) do
-            corner:SetShown(not locked)
+            corner:SetShown(not locked and not Suite.db.meterWindows[window.index].minimized)
             if locked and GameTooltip and GameTooltip.IsOwned and GameTooltip:IsOwned(corner) then GameTooltip:Hide() end
         end
         if GameTooltip and GameTooltip.IsOwned and GameTooltip:IsOwned(window.lock) then GameTooltip:Hide() end
@@ -821,10 +842,12 @@ function Meters:SetOption(index, key, value)
     local settings = Suite.db.meterWindows[index]
     if not settings then return end
     local allowed = { shown = "boolean", classColors = "boolean", width = "number", height = "number",
-        rowHeight = "number", fontSize = "number", opacity = "number", numbers = "string" }
+        rowHeight = "number", fontSize = "number", opacity = "number", numbers = "string",
+        content = "string", icons = "boolean", pinSelf = "boolean", minimized = "boolean",
+        clickThrough = "boolean", visibility = "string" }
     if not allowed[key] or not Read(value, allowed[key]) then return end
     if key == "width" or key == "height" then
-        local dock = self:DockVisible()
+        local dock = index <= 2 and self:DockVisible()
         if dock and ((Horizontal(dock.side) and key == "height") or (not Horizontal(dock.side) and key == "width")) then
             Suite.db.meterWindows[3 - index][key] = value
         end
@@ -846,12 +869,71 @@ function Meters:Reset(index)
     self:CancelResize()
     local defaults, settings = self:Defaults(index), Suite.db.meterWindows[index]
     settings.width, settings.height, settings.position = defaults.width, defaults.height, {}
-    Suite.db.meterDock = {}
+    if index <= 2 then Suite.db.meterDock = {} end
     self:Apply(); self:RefreshSettings()
 end
 
+-- Grow to the viewport outside combat and reuse the pool for scrolling/refreshes.
+-- Native widgets cannot be destroyed; retain at most the largest requested viewport.
+function Meters:EnsureRows(window)
+    if InCombatLockdown() then return end
+    for rowIndex = #window.rows + 1, window.visibleRows do window.rows[rowIndex] = self:CreateSourceRow(window) end
+    if not window.pinned then
+        window.pinned = { self:CreateSourceRow(window, true), self:CreateSourceRow(window, true) }
+        for _, row in ipairs(window.pinned) do
+            row:SetFrameLevel(window.frame:GetFrameLevel() + 8)
+            Backdrop(row, palette.background, 1)
+        end
+    end
+end
+
+function Meters:CreateSourceRow(window, withBackdrop)
+    local frame = window.frame
+    -- Only pinned overlays need the opaque plate that covers the underlying source row.
+    local row = CreateFrame("Button", nil, frame, withBackdrop and "BackdropTemplate" or nil)
+    row:SetClipsChildren(true)
+    row:EnableMouse(true); row:EnableMouseWheel(true); row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    row:SetScript("OnClick", function() self:OpenDetails(window, row) end)
+    row:SetScript("OnMouseWheel", function(_, direction) frame:GetScript("OnMouseWheel")(frame, direction) end)
+    row:SetScript("OnEnter", function() row.highlight:Show() end)
+    row:SetScript("OnLeave", function() row.highlight:Hide() end)
+    row.icon = row:CreateTexture(nil, "ARTWORK"); row.icon:SetPoint("LEFT", 0, 0)
+    row.bar = CreateFrame("StatusBar", nil, row)
+    row.bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+    if row.bar.GetStatusBarTexture then row.bar:GetStatusBarTexture():SetAtlas("UI-HUD-CoolDownManager-Bar") end
+    row.bar:EnableMouse(false)
+    row.background = row.bar:CreateTexture(nil, "BACKGROUND")
+    row.background:SetPoint("TOPLEFT", -2, 2); row.background:SetPoint("BOTTOMRIGHT", 2, -2)
+    row.background:SetAtlas("ui-damagemeters-bar-shadowbg")
+    row.edge = row.bar:CreateTexture(nil, "OVERLAY")
+    row.edge:SetPoint("TOPLEFT", -2, 2); row.edge:SetPoint("BOTTOMRIGHT", 2, -2)
+    row.edge:SetAtlas("ui-damagemeters-bar-shadowedge")
+    row.highlight = row.bar:CreateTexture(nil, "ARTWORK"); row.highlight:SetAllPoints()
+    row.highlight:SetColorTexture(0.41, 0.84, 0.75, 0.12); row.highlight:Hide()
+    row.rank = Font(row.bar, 11, palette.text, "OUTLINE"); row.rank:SetPoint("LEFT", 3, 0); row.rank:SetWidth(20)
+    row.rank:SetWordWrap(false)
+    row.value = Font(row.bar, 11, palette.text, "OUTLINE"); row.value:SetPoint("RIGHT", -4, 0); row.value:SetJustifyH("RIGHT")
+    row.value:SetWordWrap(false)
+    row.name = Font(row.bar, 11, palette.text, "OUTLINE"); row.name:SetPoint("LEFT", 24, 0)
+    row.name:SetPoint("RIGHT", row.value, "LEFT", -4, 0); row.name:SetWordWrap(false)
+    row:Hide()
+    return row
+end
+
+function Meters:ClearWindow(window)
+    local rows = {}
+    for _, row in ipairs(window.rows) do rows[#rows + 1] = row end
+    for _, row in ipairs(window.pinned or {}) do rows[#rows + 1] = row end
+    for _, row in ipairs(rows) do
+        row.source, row.sourceIndex = nil, nil
+        row:Hide(); row.highlight:Hide(); row.icon:SetTexture(nil)
+        row.rank:SetText(""); row.name:SetText(""); row.value:SetText("")
+        row.bar:SetMinMaxValues(0, 1); row.bar:SetValue(0)
+    end
+end
+
 function Meters:CreateWindow(index)
-    local window = { index = index, rows = {}, offset = 0 }
+    local window = { index = index, rows = {}, offset = 0, visibleRows = 0, layoutReady = false }
     local frame = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
     window.frame, frame.foreverMeter = frame, true
     frame:SetFrameStrata("MEDIUM")
@@ -952,7 +1034,7 @@ function Meters:CreateWindow(index)
                 GameTooltip:SetOwner(button, "ANCHOR_CURSOR"); GameTooltip:AddLine(button.fullLabel or text)
                 if kind == "reset" and not self.preview then
                     GameTooltip:AddLine("Clears Overall, Current, and stored fights.", 0.88, 0.91, 0.93)
-                    GameTooltip:AddLine("Affects both windows and the built-in meters.", 0.55, 0.65, 0.7)
+                    GameTooltip:AddLine("Affects all Suite windows and the built-in meters.", 0.55, 0.65, 0.7)
                 end
                 GameTooltip:Show()
             end
@@ -1006,35 +1088,6 @@ function Meters:CreateWindow(index)
         end
     end
     window.testLabel = Font(grip, 9, palette.teal); window.testLabel:SetPoint("CENTER"); window.testLabel:SetText("TEST")
-    for rowIndex = 1, MAX_ROWS do
-        local row = CreateFrame("Button", nil, frame)
-        row:SetClipsChildren(true)
-        row:EnableMouse(true); row:EnableMouseWheel(true); row:RegisterForClicks("LeftButtonUp")
-        row:SetScript("OnClick", function() self:OpenDetails(window, row) end)
-        row:SetScript("OnMouseWheel", function(_, direction) frame:GetScript("OnMouseWheel")(frame, direction) end)
-        row:SetScript("OnEnter", function() row.highlight:Show() end)
-        row:SetScript("OnLeave", function() row.highlight:Hide() end)
-        row.icon = row:CreateTexture(nil, "ARTWORK"); row.icon:SetPoint("LEFT", 0, 0)
-        row.bar = CreateFrame("StatusBar", nil, row)
-        row.bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
-        if row.bar.GetStatusBarTexture then row.bar:GetStatusBarTexture():SetAtlas("UI-HUD-CoolDownManager-Bar") end
-        row.bar:EnableMouse(false)
-        row.background = row.bar:CreateTexture(nil, "BACKGROUND")
-        row.background:SetPoint("TOPLEFT", -2, 2); row.background:SetPoint("BOTTOMRIGHT", 2, -2)
-        row.background:SetAtlas("ui-damagemeters-bar-shadowbg")
-        row.edge = row.bar:CreateTexture(nil, "OVERLAY")
-        row.edge:SetPoint("TOPLEFT", -2, 2); row.edge:SetPoint("BOTTOMRIGHT", 2, -2)
-        row.edge:SetAtlas("ui-damagemeters-bar-shadowedge")
-        row.highlight = row.bar:CreateTexture(nil, "ARTWORK"); row.highlight:SetAllPoints()
-        row.highlight:SetColorTexture(0.41, 0.84, 0.75, 0.12); row.highlight:Hide()
-        row.rank = Font(row.bar, 11, palette.text, "OUTLINE"); row.rank:SetPoint("LEFT", 3, 0); row.rank:SetWidth(20)
-        row.rank:SetWordWrap(false)
-        row.value = Font(row.bar, 11, palette.text, "OUTLINE"); row.value:SetPoint("RIGHT", -4, 0); row.value:SetJustifyH("RIGHT")
-        row.value:SetWordWrap(false)
-        row.name = Font(row.bar, 11, palette.text, "OUTLINE"); row.name:SetPoint("LEFT", 24, 0)
-        row.name:SetPoint("RIGHT", row.value, "LEFT", -4, 0); row.name:SetWordWrap(false)
-        row:Hide(); window.rows[rowIndex] = row
-    end
     window.empty = Font(frame, 11, palette.muted); window.empty:SetPoint("TOPLEFT", 12, -HEADER - 15); window.empty:SetWidth(210); window.empty:SetWordWrap(true)
     local more = CreateFrame("Frame", nil, frame)
     more:SetSize(8, 8); more:SetPoint("BOTTOMRIGHT", -16, 1); more:SetFrameLevel(frame:GetFrameLevel() + 3); more:EnableMouse(false)
@@ -1077,11 +1130,13 @@ function Meters:CreateWindow(index)
     end)
     frame:SetScript("OnHide", function()
         self:CloseDetails(index); self:CloseMenus(index)
+        self:ClearWindow(window)
         if self.drag and self.drag.index == index then self:CancelDrag() end
         if self.resizing and self.resizing.index == index then self:CancelResize() end
     end)
     frame:Hide()
     self.windows[index] = window
+    self.layoutPending = true
 end
 
 function Meters:Apply()
@@ -1107,6 +1162,8 @@ function Meters:Apply()
         if not self.events then
             self.events = CreateFrame("Frame")
             self.events:SetScript("OnEvent", function(_, event, name)
+                self:UpdateVisibility()
+                self:UpdateClock()
                 if event == "PLAYER_REGEN_DISABLED" then
                     self:CancelDrag()
                     self:CancelResize()
@@ -1134,12 +1191,14 @@ function Meters:Apply()
             end)
         end
         self.events:UnregisterAllEvents()
-        for _, event in ipairs({ "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD", "DISPLAY_SIZE_CHANGED", "UI_SCALE_CHANGED", "CVAR_UPDATE" }) do self.events:RegisterEvent(event) end
+        for _, event in ipairs({ "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD", "DISPLAY_SIZE_CHANGED", "UI_SCALE_CHANGED", "CVAR_UPDATE", "GROUP_ROSTER_UPDATE", "PLAYER_IN_COMBAT_CHANGED" }) do self.events:RegisterEvent(event) end
         if Suite.db.damageMeters and C_DamageMeter and type(C_DamageMeter.GetCombatSessionFromType) == "function" then
             for _, event in ipairs({ "DAMAGE_METER_COMBAT_SESSION_UPDATED", "DAMAGE_METER_CURRENT_SESSION_UPDATED", "DAMAGE_METER_RESET" }) do self.events:RegisterEvent(event) end
             self.events:RegisterEvent("SPELL_DATA_LOAD_RESULT")
         end
-        for index = 1, 2 do if not self.windows[index] then self:CreateWindow(index) end end
+        for index = 1, 3 do
+            if not self.windows[index] and (index <= 2 or Suite.db.meterWindows[index].shown) then self:CreateWindow(index) end
+        end
         if not self.menuUI then self:CreateMenus() end
         if not self.details then self:CreateDetails() end
         self:Layout(); self:RefreshLock(); self:Refresh()

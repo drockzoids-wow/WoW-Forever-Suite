@@ -101,6 +101,7 @@ function Meters:CreateDetails()
         end
     end)
     frame:SetScript("OnEvent", function(_, event)
+        if details.selection and details.selection.sticky then return end
         if event ~= "GLOBAL_MOUSE_DOWN" or type(GetMouseFoci) ~= "function"
             or type(DoesAncestryIncludeAny) ~= "function" then return end
         -- Native focus ancestry avoids reading combat-tainted widget coordinates or swallowing the click.
@@ -122,15 +123,19 @@ end
 function Meters:OpenDetails(window, row)
     if not self:IsWindowShown(window.index) or not self.details or not Read(row.source, "table") then return end
     self:CloseMenus()
+    if not self.preview and self:OpenRecap(row.source) then return end
     local source, settings, details = row.source, Suite.db.meterWindows[window.index], self.details
     local guid, creatureID = source.sourceGUID, source.sourceCreatureID
     local restricted = not Suite.IsReadable(guid) or not Suite.IsReadable(creatureID)
     -- Source queries allow secret arguments only from untainted code. Never pass a hidden identifier from addon code.
     if not Read(guid, "string") or guid == "" then guid = nil end
     if not Number(creatureID) or creatureID <= 0 then creatureID = nil end
+    local sticky = type(IsShiftKeyDown) == "function" and IsShiftKeyDown()
+    sticky = Read(sticky, "boolean") and sticky
     local selection = { windowIndex = window.index, metric = settings.metric, session = settings.session,
         fightID = window.fightID, guid = guid, creatureID = creatureID, preview = self.preview == true,
         sampleIndex = self.preview and row.sourceIndex or nil, restricted = restricted,
+        sticky = sticky,
         class = Read(source.classFilename, "string") and source.classFilename or nil }
     details.selection, details.offset, details.requested = selection, 0, {}
     TextValue(details.title, source.name, "Combat details")
@@ -173,6 +178,9 @@ local function SpellName(details, font, spell, preview, unit)
     end
     if not Suite.IsReadable(name) then SpellLabel(font, "%s", name, unit)
     elseif Read(name, "string") and name ~= "" then SpellLabel(font, "%s", name, unit)
+    elseif (Suite.IsReadable(id) and id == nil or Number(id) and id == 0)
+        and (not Suite.IsReadable(unit) or Read(unit, "string") and unit ~= "") then
+        TextValue(font, unit)
     elseif Number(id) then
         SpellLabel(font, "Spell %d", id, unit)
         if id > 0 and not details.requested[id] and C_Spell and type(C_Spell.RequestLoadSpellData) == "function" then
@@ -183,6 +191,9 @@ local function SpellName(details, font, spell, preview, unit)
 end
 
 local function SpellIcon(row, spell, preview)
+    local unit = spell.combatSpellDetails
+    if not preview and Read(unit, "table") and Meters:SetUnitIcon(row.icon, unit.specIconID, unit.unitClassFilename) then return end
+    row.icon:Show()
     local icon
     if preview then icon = spell.sampleIcon
     elseif C_Spell and type(C_Spell.GetSpellTexture) == "function" then
@@ -232,7 +243,8 @@ function Meters:RefreshDetails()
     if Read(data, "table") then maximum = data.maxAmount end
     if Suite.IsReadable(maximum) and (not Number(maximum) or maximum <= 0) then maximum = 1 end
     local settings = Suite.db.meterWindows[selection.windowIndex]
-    local metric, color = Metric(selection.metric), ui.barColor(settings, selection.class)
+    local metric = Metric(selection.metric)
+    local r, g, b = ui.barColor(settings, selection.class)
     local total = Read(data, "table") and data.totalAmount
     if Read(data, "table") then ui.number(details.total, data.totalAmount, settings.numbers == "compact")
     elseif selection.guid or selection.creatureID then details.total:SetText("") end
@@ -243,12 +255,15 @@ function Meters:RefreshDetails()
         if visible then
             row.spell = spell
             local unit = spell.combatSpellDetails
-            SpellName(details, row.name, spell, selection.preview, Read(unit, "table") and unit.unitName)
+            local label = Read(unit, "table") and unit.unitName
+            local pet = spell.creatureName
+            if not Suite.IsReadable(pet) or Read(pet, "string") and pet ~= "" then label = pet end
+            SpellName(details, row.name, spell, selection.preview, label)
             SpellIcon(row, spell, selection.preview)
             local amount = spell.totalAmount
             if Suite.IsReadable(amount) and not Number(amount) then amount = 0 end
             row.bar:SetMinMaxValues(0, maximum); row.bar:SetValue(amount)
-            row.bar:SetStatusBarColor(color[1], color[2], color[3], 0.85)
+            row.bar:SetStatusBarColor(r, g, b, 0.85)
             local percentage
             if Number(amount) and Number(total) and total > 0 then
                 local value = amount / total * 100

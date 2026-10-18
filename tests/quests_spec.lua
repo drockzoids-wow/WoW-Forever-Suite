@@ -1,7 +1,7 @@
 local Suite, equal, Frame, SetCombat = ...
 local quests = Suite.Quests
 local names = { "CreateFrame", "C_Timer", "UnitGUID", "IsShiftKeyDown", "C_GossipInfo", "Enum",
-    "C_PlayerInteractionManager",
+    "C_PlayerInteractionManager", "C_QuestLog",
     "GossipFrame", "QuestFrame", "QuestFrameGreetingPanel", "QuestFrameDetailPanel", "QuestFrameProgressPanel",
     "QuestFrameRewardPanel", "GetQuestID", "QuestFlagsPVP", "QuestGetAutoAccept", "AcceptQuest",
     "AcknowledgeAutoAcceptQuest", "IsQuestCompletable", "CompleteQuest", "GetQuestMoneyToGet",
@@ -16,6 +16,7 @@ local active, available, options, forced = {}, {}, {}, false
 local activeCount, availableCount = 0, 0
 local legacyActive, legacyAvailable = {}, {}
 local actionEvent
+local dataRequests, dataResult = {}, true
 local function Secret() return { secret = true } end
 local function Called(action, value)
     calls[#calls + 1] = { action = action, value = value }
@@ -50,6 +51,11 @@ C_Timer = { NewTimer = function(_, callback)
     local timer = { callback = callback, Cancel = function(self) self.cancelled = true end }
     timers[#timers + 1] = timer
     return timer
+end }
+C_QuestLog = { RequestLoadQuestByID = function(questID)
+    dataRequests[#dataRequests + 1] = questID
+    if dataResult == "error" then error("quest data request rejected") end
+    if dataResult ~= nil then Fire("QUEST_DATA_LOAD_RESULT", questID, dataResult) end
 end }
 UnitGUID = function() return guid end
 IsShiftKeyDown = function() return shift end
@@ -100,6 +106,7 @@ local function Show(mode)
 end
 local function Fresh()
     quests:EndVisit(); calls = {}; actionEvent = nil
+    dataRequests, dataResult = {}, true
     guid, shift, id, pvp, automatic, complete, cost, choices = "npc:one", false, 101, false, false, true, 0, 0
     active, available, options, forced = {}, {}, {}, false
     activeCount, availableCount, legacyActive, legacyAvailable = 0, 0, {}, {}
@@ -130,8 +137,64 @@ Fire("QUEST_DETAIL"); Fire("QUEST_ITEM_UPDATE"); Flush()
 equal(#calls, 1, "same stage is requested once despite duplicate events")
 equal(TimerCount(), 0, "completed work leaves no idle timer")
 
+-- A cold quest may show its detail panel before its data request completes.
+Fresh(); dataResult = nil; Show("detail"); Flush()
+equal(#calls, 0, "unloaded quest details cannot submit acceptance early")
+equal(dataRequests[1], 101, "visible current quest requests its own data")
+equal(TimerCount(), 0, "waiting for quest data uses no polling timer")
+Fire("QUEST_DETAIL"); Fire("QUEST_ITEM_UPDATE"); Fire("QUEST_LOG_UPDATE"); Flush()
+equal(#dataRequests, 1, "duplicate detail and metadata events share one pending data request")
+Fire("QUEST_DATA_LOAD_RESULT", 102, true); Fire("QUEST_DATA_LOAD_RESULT", Secret(), true)
+Fire("QUEST_DATA_LOAD_RESULT", 101, Secret()); Flush()
+equal(#calls, 0, "unrelated or unreadable data results cannot authorize pickup")
+Fire("QUEST_DATA_LOAD_RESULT", 101, true)
+equal(#calls, 0, "data completion waits for native handlers before accepting")
+Flush(); equal(calls[1].action, "accept", "matching successful data load resumes pickup")
+Fire("QUEST_DATA_LOAD_RESULT", 101, true); Fire("QUEST_DETAIL"); Flush()
+equal(#calls, 1, "duplicate successful data events cannot resubmit acceptance")
+
+Fresh(); dataResult = false; Show("detail"); Flush()
+equal(#calls, 0, "failed quest data load leaves the offer available manually")
+Fire("QUEST_LOG_UPDATE"); Flush()
+equal(#dataRequests, 1, "failed loads do not spin on log updates")
+dataResult = true; Show("detail"); Flush()
+equal(#dataRequests, 2, "a newly opened detail offer can retry a failed load")
+equal(#calls, 1, "reopened failed load recovers without changing NPC range")
+Fresh(); dataResult = "error"; Show("detail"); Flush()
+equal(#calls, 0, "rejected data request does not accept an unready offer")
+equal(TimerCount(), 0, "rejected data request leaves no recurring timer")
+
+local savedDataAPI = C_QuestLog
+C_QuestLog = nil; Fresh(); Show("detail"); Flush()
+equal(calls[1].action, "accept", "clients without the loading API retain guarded native acceptance")
+C_QuestLog = savedDataAPI
+for _, change in ipairs({ "close", "npc", "quest", "panel", "shift", "combat", "world", "disable", "pickupOff", "confirmation", "pvp", "flags", "forbidden" }) do
+    Fresh(); dataResult = nil; Show("detail"); Flush()
+    if change == "close" then Fire("QUEST_FINISHED")
+    elseif change == "npc" then guid = "npc:two"
+    elseif change == "quest" then id = 102
+    elseif change == "panel" then QuestFrameDetailPanel:Hide()
+    elseif change == "shift" then shift = true
+    elseif change == "combat" then SetCombat(true); Fire("PLAYER_REGEN_DISABLED")
+    elseif change == "world" then Fire("PLAYER_ENTERING_WORLD")
+    elseif change == "disable" then
+        Suite.db.autoQuestPickup, Suite.db.autoQuestTurnIn, Suite.db.autoGossip = false, false, false; quests:Apply()
+    elseif change == "pickupOff" then Suite.db.autoQuestPickup = false; quests:Apply()
+    elseif change == "confirmation" then Fire("GOSSIP_CONFIRM")
+    elseif change == "pvp" then pvp = true
+    elseif change == "flags" then automatic = Secret()
+    elseif change == "forbidden" then QuestFrame.forbidden = true end
+    Fire("QUEST_DATA_LOAD_RESULT", 101, true); Flush()
+    equal(#calls, 0, "late quest data respects " .. change .. " cancellation")
+    if change == "combat" then SetCombat(false); Fire("QUEST_ITEM_UPDATE"); Flush()
+        equal(#calls, 0, "data completion from combat never replays afterward") end
+end
+
 Fresh(); automatic = true; Show("detail"); Flush()
 equal(calls[1].action, "acknowledge", "native auto-accepted quests are acknowledged")
+Fresh(); automatic = true; local acknowledge = AcknowledgeAutoAcceptQuest; AcknowledgeAutoAcceptQuest = nil
+Show("detail"); Flush(); equal(#calls, 0, "missing acknowledgment never falls back to accepting an automatic quest")
+AcknowledgeAutoAcceptQuest = acknowledge
 Fresh(); pvp = true; Show("detail"); Flush(); equal(#calls, 0, "PvP acceptance confirmation stays manual")
 Fresh(); pvp = Secret(); Show("detail"); Flush(); equal(#calls, 0, "restricted PvP flags are not compared")
 Fresh(); automatic = Secret(); Show("detail"); Flush(); equal(#calls, 0, "restricted auto-accept flags stop pickup")

@@ -26,7 +26,7 @@ Catalog.sections = {
     unitframes = { [1] = "Health Bars", [2] = "Target Threat" }, mail = { [1] = "Recipients" }, meters = { [1] = "Damage Meters" },
     audio = { [1] = "Output Device" },
     leveling = { [1] = "Leveling Tracker", [2] = "Header Controls", [4] = "Session & Position" },
-    professions = { [1] = "Disenchant" },
+    professions = { [1] = "Disenchant", [3] = "Training Planner" },
 }
 local extras = {
     { page = "castbars", key = "castbarSizes", label = "Castbar sizes and preview", target = "castbarPanel", words = "player target focus casting width height resize preview" },
@@ -57,7 +57,10 @@ for _, item in ipairs({ { "width", "Meter width" }, { "height", "Meter height" }
 end
 for _, item in ipairs({ { "lock", "Lock damage meters" }, { "snap", "Snap damage meters" }, { "numbers", "Meter number format" },
     { "classColors", "Meter class colors" }, { "shown", "Show a meter window" }, { "reset", "Reset meter layout" },
-    { "detach", "Detach meter windows" }, { "test", "Preview both meters" } }) do
+    { "detach", "Detach meter windows" }, { "test", "Preview meters" },
+    { "content", "Meter value details" }, { "icons", "Meter class and specialization icons" },
+    { "pinSelf", "Keep my meter row visible" }, { "minimized", "Minimize a meter window" },
+    { "visibility", "Meter visibility" }, { "clickThrough", "Meter mouse input" } }) do
     extras[#extras + 1] = { page = "meters", key = "meter_" .. item[1], label = item[2], target = "meterButtons." .. item[1], words = "damage healing dps hps" }
 end
 local synonyms = { characterDashboard = "recorded characters dashboard alts money gold professions levels snapshots dates",
@@ -74,6 +77,12 @@ local synonyms = { characterDashboard = "recorded characters dashboard alts mone
     upgradePreference = "upgrade comparison prefer higher ilevel item level stats weapon dps hands",
     audioSync = "audio sound windows default playback output device speakers headset headphones sync",
     audioRefresh = "sync audio sound windows playback device refresh",
+    trainingPlanner = "trainer skills spells learn cost budget savings future level snapshot",
+    trainingOpen = "trainer training planner saved costs offerings",
+    trainingLevelUp = "trainer training planner level up available skills reminder",
+    buffCustom = "custom learned spell id group raid party", missingBuffExpiry = "expiry expiring duration refresh timer",
+    missingBuffCombat = "combat shout thorns lightning shield righteous fury reminders",
+    missingBuffWeapons = "weapon coating oil stone poison mainhand offhand",
     bagSpaceReset = "blacklist protect trash items", scorePreset = "weights upgrades role", missingBuffClass = "poison imbue aspect upkeep" }
 
 function Catalog:Configure(pages)

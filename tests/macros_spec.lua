@@ -715,7 +715,7 @@ equal(gui.macroRows[7]:GetParent(), gui.macroListContent, "recipe rows belong to
 equal(gui.macroListHeadings[1].label.text, "− General", "ordinary recipes have their own heading")
 equal(gui.macroListHeadings[2].label.text, "− Hunter Macros", "hunter recipes have a separate heading")
 local outerOffset = gui.scrollOffset
-gui.macroListScroll.suiteScrollBar.OnValueChanged(gui.macroListScroll.suiteScrollBar, 1)
+gui.macroListScroll.suiteScrollBar.OnValueChanged(gui.macroListScroll.suiteScrollBar, 0)
 equal(gui.macroListScroll.suiteOffset, gui.macroListScroll.suiteMaximum, "list thumb reaches the last hunter recipe")
 equal(gui.scrollOffset, outerOffset, "list thumb scrolling leaves the surrounding page unchanged")
 gui.macroRows[7].OnClick()
@@ -843,7 +843,7 @@ equal(gui.macroListHeadings[3].label.text, "− Item Macros", "custom item choic
 local selectedAtBottom = gui.macroSelected
 gui:RefreshMacros()
 equal(gui.macroSelected, selectedAtBottom, "ordinary refresh preserves the selected custom entry")
-equal(gui.macroListScroll.suiteScrollBar.value, 1, "ordinary refresh preserves the list position")
+equal(gui.macroListScroll.suiteScrollBar.value, 0, "ordinary refresh preserves the list bottom position")
 local listHeight = gui.macroListContent.height
 SetCombat(true); gui:RefreshMacros()
 equal(gui.macroListContent.height, listHeight, "combat does not relayout list geometry")
