@@ -103,14 +103,14 @@ for _, tab in pairs(gui.groupTabs) do
     tabCount = tabCount + 1
     equal(-tab.point[3] + tab.height < 560, true, "sidebar tabs remain above the edition footer")
 end
-equal(tabCount, 8, "eight task groups replace the long sidebar while retaining setup access")
+equal(tabCount, 7, "six workspaces include standalone Profiles and a separate setup utility")
 for page = 1, 4 do
     setup:Move(page)
     equal(gui.setupReview:IsShown(), false, "choice pages hide the review scrollbar")
     for _, card in ipairs(gui.setupCards) do
         if card:IsShown() then
             equal(-card.point[3] + card.height < 467, true, "choice card stays above instructions")
-            equal(card.point[2] + card.width <= 514, true, "choice card stays inside the content width")
+            equal(card.point[2] + card.width <= 780, true, "choice card stays inside the content width")
         end
     end
 end

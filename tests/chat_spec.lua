@@ -586,7 +586,7 @@ equal(gui.chatApply.label.text, "Restore Blizzard chat", "enabled action restore
 gui.chatApply.OnClick()
 equal(Suite.db.chatStyle, false, "restoration action disables Suite chat")
 equal(first.fontSize, 13, "GUI restoration restores native size")
-equal(gui.tabs.chat.height, 28, "eighteenth sidebar tab fits the compact navigation")
+equal(gui.tabs.chat.height, 27, "contextual Chat navigation fits the workspace sidebar")
 Suite.Set = oldSet
 gui:Select("overview")
 equal(gui.chatPanel:IsShown(), false, "Chat controls hide on another page")

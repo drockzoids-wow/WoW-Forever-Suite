@@ -408,6 +408,36 @@ bags[6][1].stackCount = 7; Fire("PLAYERBANKSLOTS_CHANGED"); Fire("PLAYER_LOGOUT"
 equal(bank:GetSnapshot(0).tabs[1].slots[1].count, 7, "logout flushes complete bank data before save")
 equal(TimerCount(), 0, "logout cancels queued work")
 
+-- Hub browsing selects an actual recorded owner without enabling recording or touching a live bank.
+BankFrame:Hide(); bank:Cancel()
+local originalSnapshot = bank:GetSnapshot(0)
+local altSnapshot = Suite.Copy(originalSnapshot)
+altSnapshot.tabs[1].slots[1].count = 19
+Suite.db.inventory.characters["Player-alt"] = { name = "Alt", fullName = "Alt Pine", realm = "Beta", region = 110, bankView = altSnapshot }
+Suite.db.inventory.characters["Player-remote"] = { name = "Remote", realm = "Beta", region = 111, bankView = altSnapshot }
+Suite.db.offlineBank = false; bank:Apply()
+local readCalls = calls
+equal(bank:OpenFor("Player-alt", 0), true, "hub opens an alt's saved bank with recording disabled")
+equal(bank.viewGUID, "Player-alt", "slot viewer retains the explicit recorded owner")
+equal(bank.buttons[1].bankItem.count, 19, "selected owner supplies the actual displayed slot contents")
+equal(bank.frame.title, "Alt Pine · Saved bank", "slot view identifies the selected character")
+equal(originalSnapshot.tabs[1].slots[1].count, 7, "browsing an alt never overwrites the current character's snapshot")
+equal(calls, readCalls, "opening recorded data makes no live bank scans")
+equal(Suite.db.offlineBank, false, "read-only browsing does not enable recording")
+equal(bank:OpenFor("Player-remote", 0), false, "other-region snapshots cannot be opened")
+equal(bank:OpenFor({ secret = true }, 0), false, "restricted owner IDs never reach a saved-data key")
+equal(bank:GetSnapshot(0, "missing"), nil, "missing owner cannot fall back to the current character")
+equal(bank:GetSnapshot(0, { secret = true }), nil, "direct snapshot lookup rejects a restricted owner")
+BankFrame:Show()
+equal(bank:OpenFor("Player-alt", 0), false, "hub cannot interrupt an open live bank")
+equal(BankFrame:IsShown(), true, "failed saved-view request leaves the live bank open")
+BankFrame:Hide(); SetCombat(true)
+equal(bank:OpenFor("Player-alt", 0), false, "saved-view owner changes are unavailable in combat")
+SetCombat(false)
+bank.frame:Hide()
+equal(bank.viewGUID, nil, "closing clears the recorded-owner override")
+equal(bank:GetSnapshot(0), originalSnapshot, "ordinary bank commands return to the current character")
+
 bank:Cancel(); bank:HideTooltip()
 for _, name in ipairs(names) do _G[name] = old[name] end
 Suite.db, Suite.pending, Suite.Print, Suite.Windows, Suite.Items = oldDB, oldPending, oldPrint, oldWindows, oldItems

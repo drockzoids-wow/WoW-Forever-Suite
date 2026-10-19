@@ -1,5 +1,112 @@
 # Forever Suite
 
+## 0.2.85
+
+- Left-click a gold incoming-buff reminder to ask for that buff in party, raid or instance chat.
+- Recheck the current buff/provider before requesting; keep right-click hiding and original usable-spell/item actions.
+- Add per-buff/global click cooldowns and local feedback for stale, restricted or unavailable requests. Never send from automatic updates or retry rejected messages.
+
+## 0.2.84
+
+- Keep teammate-provided missing buffs visible as gold Group icons instead of local-chat-only reminders, including Arcane Intellect for Hunters.
+- Add class-aware incoming/outgoing targets and learned alternatives; accept readable level-zero metadata and retain conservative unknown-data handling.
+- Update Forever baseline Spirit/Fear Ward and raid resistance-aura scope, without inferring unseen talents or future Salvation changes.
+- Add learned-name/icon custom selection, a searchable hidden-family manager, individual restore, alternative choices and duplicate-rank protection.
+- Add scale/icon-size controls, movement lock, class-aware targeting preference and configurable rested-area visibility; useful defaults require no manual edits.
+- Keep secure combat hiding, native action checks, optional module switches, local notice throttling and no group messages/automatic casting.
+
+## 0.2.83
+
+- Move Profiles to its own top-level sidebar section alongside Home, Bags & Gear and Combat.
+- Open the profile page directly without a duplicate nested entry; preserve all saved profiles, search and slash shortcuts.
+
+## 0.2.82
+
+- Preserve the current setup as Default and add named settings/layout profiles under Home → Profiles.
+- Add independent current/character copies, shared settings, per-character differences, rename and confirmed removal of unused profiles.
+- Show the active editing scope throughout settings; review changes before an explicit UI reload. Keep outgoing settings and private overrides saved.
+- Keep inventory, macros, gear weights, contacts, item protection, training and leveling records separate. Block profile changes in combat.
+- Add bounded/readable-only persistence, corruption recovery and startup, inheritance, reload and GUI regression coverage.
+
+## 0.2.81
+
+- Replace unsupported arrow and multiplication glyphs in upgrade tooltips with plain `->` and `x`.
+- Preserve comparison scores, signed stat changes, profile names and tooltip ownership.
+
+## 0.2.80
+
+- Add two researched class recipes each for Druid, Mage, Paladin, Priest, Rogue, Shaman, Warlock and Warrior; retain the Hunter pair.
+- Use client-localized spell names and complete targeting defaults without manual name/rank/equipment edits.
+- Reuse explicit Preview/Create, class filtering, General-tab ownership protection and combat deferral.
+- Add class-spell search keywords and keep the macro UI pool bounded to the visible class, shared recipes and ten custom items.
+
+## 0.2.79
+
+- Redesign the Suite panel as a wider 1120×760 workspace that automatically fits the available screen.
+- Replace the crowded horizontal page tabs with five expandable sidebar workspaces; keep Setup Guide separate at the bottom.
+- Add a Home screen with six direct tool shortcuts and remove duplicate Home switches.
+- Arrange related settings in aligned two-column cards with more padding and measured text space.
+- Widen character/inventory tables, macro list/details and setup cards. Use three columns for gear profiles and weights to reduce scrolling.
+- Preserve the user-confirmed scrollbar controller, feature switches, saved choices and all 24 page routes.
+
+## 0.2.78
+
+- Replace native-slider scrollbar dragging with explicit thumb movement that preserves where the thumb was grabbed.
+- Map cursor motion across the actual free track, keeping large thumbs predictable on short-overflow pages.
+- Page through content when clicking above/below the thumb; preserve wheel scrolling and proportional sizing.
+- Cancel drag tracking on release, hide, page/range/viewport changes, invalid cursor data or combat. No idle update loop.
+- Exercise real cursor deltas, grab points and UI scales in the scrollbar regression fixtures.
+
+## 0.2.77
+
+- Correct reversed scrollbar thumbs throughout the settings GUI, macro recipe list, macro preview and setup review.
+- Keep top/middle/bottom thumb positions consistent with content, wheel scrolling and page changes.
+- Synchronize nested scrollbar state when content shrinks even without a second native scroll callback.
+- Correct the earlier direction assumption in regression coverage and check every settings page.
+
+## 0.2.76
+
+- Unify Characters, recorded inventory search and saved bank access in an original Characters/Inventory workspace.
+- Browse all recorded items immediately, filter by owner and location, and save eight searches with their filters.
+- Show snapshot ages, distinguish unrecorded locations from recorded empty locations, and count shared-bank contents once.
+- Open an alt's saved bank explicitly without enabling recording or reading the live bank; preserve normal current-character bank access.
+- Handle delayed item names in finite batches; cancel hidden or combat-deferred presentation work.
+
+## 0.2.75
+
+- Add character-specific gear-comparison profiles, with an Automatic class leveling starter and five ready-made roles; custom editing remains optional.
+- Preserve existing role/comparison choices on migration and support eight named custom copies per character with explicit Save/Cancel and guarded removal.
+- Explain upgrade hints with equipped/candidate scores, signed stat contributions, actual accessory replacements and complete weapon-hand comparisons.
+- Add Summary/Full breakdown tooltips, small-gain formatting, searchable profile controls and /wfs gear.
+- Keep unknown data conservative, built-in presets intact and editor setup deferred during combat.
+
+## 0.2.74
+
+- Show only the character's faction in the Weapons tab: Alliance masters for Alliance, Horde masters for Horde.
+- Apply the same separation to recorded visits, preserve older history and retain class-only level-up reminders.
+
+
+## 0.2.73
+
+- Separate class training from weapon trainer visits so weapons cannot replace the class list or appear in level-up reminders.
+- Add Class and Weapons tabs, with eight capital-city weapon masters, locations, stock and reference base prices plus separate recorded visit prices.
+- Keep older mixed records out of level-up reminders; visit a class trainer once to refresh the Class list.
+
+## 0.2.72
+
+- Keep native quest timer headings and countdowns above the Suite quest tracker background.
+- Move only the Suite background to a lower layer while preserving native timer layout and behavior.
+
+## 0.2.71
+
+- Fit the bag bar skin's backgrounds and teal borders to the native icons, correcting oversized frames around the backpack and keyring.
+- Preserve native icon colors, counts, highlights and click areas; retain native frames when icon layout is unavailable.
+
+## 0.2.70
+
+- Fix overlapping Training Planner and settings windows drawing their text, borders and controls through each other.
+- Bring opened windows forward together and make the planner background opaque.
+
 ## 0.2.69
 
 - Wait for the current quest's data to load before automatic pickup, matching the readiness approach used by Retail ZoidsTools.

@@ -4,7 +4,7 @@ Suite.Setup = Setup
 
 -- Original guide content. Suggestions are drafts, never addon defaults.
 Setup.pages = {
-    { title = "Make everyday play easier.", short = "Everyday", description = "Start with looting, vendors and quests. Choose each tool independently.\nSuite choices are shared by your characters; Auto Loot is a game setting.",
+    { title = "Make everyday play easier.", short = "Everyday", description = "Start with looting, vendors and quests. Choose each tool independently.\nSuite choices use your active profile; Auto Loot is a game setting.",
         tip = "Hold your configured loot modifier to reverse Auto Loot. Hold Shift when talking to pause quest automation for that conversation.", options = {
         { key = "autoLoot", native = true, label = "Auto Loot", help = "Collect loot automatically.\nKeeps your current loot modifier.", suggested = true },
         { key = "quickLoot", label = "Quick loot", help = "Collect automatic loot sooner.\nManual loot and prompts stay native.", suggested = true },

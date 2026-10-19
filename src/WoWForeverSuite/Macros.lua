@@ -17,9 +17,66 @@ Macros.recipes = {
         help = "Cast on a friendly focus, then a friendly target, then your pet. Requires Misdirection to be learned." },
     { key = "hunterPet", name = "FS Pet Care", title = "Hunter · Pet care", class = "HUNTER", foodChoice = true,
         help = "Revive a dead pet; Shift with no pet. Mend in combat; feed outside combat. Choose food your pet can eat." },
+    { key = "druidInnervate", name = "FS Innervate", title = "Druid · Innervate", class = "DRUID", spell = 29166,
+        conditions = "[@mouseover,help,nodead][help,nodead][@player]",
+        help = "Restore mana to a living friendly mouseover, then friendly target, otherwise yourself. No form is cancelled." },
+    { key = "druidRebirth", name = "FS Rebirth", title = "Druid · Rebirth", class = "DRUID", spell = 20484,
+        conditions = "[@mouseover,help,dead][help,dead]",
+        help = "Battle-resurrect a dead friendly mouseover, otherwise your dead friendly target. Reagents and form rules still apply." },
+    { key = "mageCounterspell", name = "FS Counterspell", title = "Mage · Counterspell", class = "MAGE", spell = 2139, stopcasting = true,
+        conditions = "[@mouseover,harm,nodead][harm,nodead]",
+        help = "Stop your current cast and interrupt a living enemy mouseover, otherwise your enemy target." },
+    { key = "magePolymorph", name = "FS Polymorph", title = "Mage · Polymorph", class = "MAGE", spell = 118,
+        conditions = "[@mouseover,harm,nodead][harm,nodead]",
+        help = "Polymorph a living enemy mouseover, otherwise your enemy target, without changing your selected target. Creature restrictions apply." },
+    { key = "paladinJustice", name = "FS Justice", title = "Paladin · Hammer of Justice", class = "PALADIN", spell = 853, stopcasting = true,
+        conditions = "[harm,nodead]",
+        help = "Stop your current cast and stun your living enemy target immediately. Range and immunity rules still apply." },
+    { key = "paladinFreedom", name = "FS Freedom", title = "Paladin · Blessing of Freedom", class = "PALADIN", spell = 1044,
+        conditions = "[@mouseover,help,nodead][help,nodead][@player]",
+        help = "Free a living friendly mouseover from movement effects, then friendly target, otherwise yourself." },
+    { key = "priestShield", name = "FS Shield", title = "Priest · Power Word: Shield", class = "PRIEST", spell = 17,
+        conditions = "[@mouseover,help,nodead][help,nodead][@player]",
+        help = "Shield a living friendly mouseover, then friendly target, otherwise yourself. Weakened Soul and other spell rules still apply." },
+    { key = "priestDispel", name = "FS Dispel", title = "Priest · Dispel Magic", class = "PRIEST", spell = 527,
+        conditions = "[@mouseover,help,nodead][@mouseover,harm,nodead][help,nodead][harm,nodead][@player]",
+        help = "Dispel a living friendly or enemy mouseover, then your living target, otherwise yourself. The spell decides which magic can be removed." },
+    { key = "rogueKick", name = "FS Kick", title = "Rogue · Kick", class = "ROGUE", spell = 1766,
+        conditions = "[@mouseover,harm,nodead][harm,nodead]",
+        help = "Interrupt a living enemy mouseover, otherwise your enemy target. Your selected target stays unchanged; melee range is required." },
+    { key = "rogueBlind", name = "FS Blind", title = "Rogue · Blind", class = "ROGUE", spell = 2094,
+        conditions = "[@mouseover,harm,nodead][harm,nodead]",
+        help = "Blind a living enemy mouseover, otherwise your enemy target, without changing your selected target. Native reagent rules apply." },
+    { key = "shamanShock", name = "FS Earth Shock", title = "Shaman · Earth Shock", class = "SHAMAN", spell = 8042, stopcasting = true,
+        conditions = "[@mouseover,harm,nodead][harm,nodead]",
+        help = "Stop your current cast and Earth Shock a living enemy mouseover, otherwise your enemy target. Uses the highest learned rank." },
+    { key = "shamanChainHeal", name = "FS Chain Heal", title = "Shaman · Chain Heal", class = "SHAMAN", spell = 1064,
+        conditions = "[@mouseover,help,nodead][help,nodead][@player]",
+        help = "Chain Heal a living friendly mouseover, then friendly target, otherwise yourself, while keeping your selected target." },
+    { key = "warlockRecall", name = "FS Pet Recall", title = "Warlock · Pet recall", class = "WARLOCK", body = "/petpassive\n/petfollow",
+        help = "Put your pet on Passive and call it back to follow you. It stays Passive afterward; choose its next attack or stance yourself." },
+    { key = "warlockDrain", name = "FS Drain Life", title = "Warlock · Drain Life", class = "WARLOCK", spell = 689,
+        conditions = "[nochanneling,harm,nodead]",
+        help = "Drain Life from your living enemy target without restarting an active channel. This preserves any channel already in progress." },
+    { key = "warriorStrike", name = "FS Heroic Strike", title = "Warrior · Heroic Strike & attack", class = "WARRIOR", spell = 78, nonToggle = true, startattack = true,
+        conditions = "[harm,nodead]",
+        help = "Queue Heroic Strike and start melee attacks against your living enemy target. Repeated presses do not deliberately unqueue it. Costs Rage." },
+    { key = "warriorTaunt", name = "FS Taunt", title = "Warrior · Taunt", class = "WARRIOR", spell = 355,
+        conditions = "[@mouseover,harm,nodead][harm,nodead]",
+        help = "Taunt a living enemy mouseover, otherwise your enemy target. This does not change your stance; native stance requirements apply." },
 }
 Macros.byRecipe = { item = { key = "item", title = "Item macro", help = "Use the item you choose. The item keeps its normal targeting and confirmation prompts." } }
 for _, recipe in ipairs(Macros.recipes) do Macros.byRecipe[recipe.key] = recipe end
+
+function Macros:VisibleCapacity()
+    local shared, largest, classes = 0, 0, {}
+    for _, recipe in ipairs(self.recipes) do
+        if recipe.class then classes[recipe.class] = (classes[recipe.class] or 0) + 1
+        else shared = shared + 1 end
+    end
+    for _, count in pairs(classes) do largest = math.max(largest, count) end
+    return shared + largest + 10
+end
 
 function Macros:PlayerClass()
     if type(UnitClass) ~= "function" then return end
@@ -163,13 +220,21 @@ function Macros:Generate(entry, snapshot)
     if InCombatLockdown() then return nil, "Macro changes wait until combat ends.", true end
     local recipe = self.byRecipe[entry.recipe]
     if not self:Applicable(entry) then return nil, "This recipe is for another class.", true end
+    if recipe.body then
+        if not ValidBody(recipe.body) then return nil, "This recipe exceeds the game's macro text limit.", true end
+        return recipe.body, recipe.help, false, true
+    end
     if recipe.spell then
         local spell = SpellName(recipe.spell)
         if not spell then return nil, "Spell information is unavailable in this client.", true end
-        local body = "#showtooltip " .. spell .. "\n/cast [@focus,help][@target,help][@pet,exists] " .. spell
+        local conditions = recipe.conditions or "[@focus,help][@target,help][@pet,exists]"
+        local body = "#showtooltip " .. spell
+        if recipe.stopcasting then body = body .. "\n/stopcasting" end
+        body = body .. "\n/cast " .. conditions .. " " .. (recipe.nonToggle and "!" or "") .. spell
+        if recipe.startattack then body = body .. "\n/startattack [harm,nodead]" end
         if not ValidBody(body) then return nil, "This spell name exceeds the game's macro text limit.", true end
-        return body,
-            "Friendly focus → friendly target → pet. Requires the learned spell.", false, true
+        return body, recipe.conditions and (recipe.help .. " Requires the learned spell; native restrictions still apply.")
+            or "Friendly focus → friendly target → pet. Requires the learned spell.", false, true
     end
     if snapshot.incomplete then return nil, "Bag data is loading or unavailable. Existing text is kept.", true end
     if recipe.foodChoice then

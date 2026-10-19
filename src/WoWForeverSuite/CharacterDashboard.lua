@@ -192,13 +192,24 @@ end
 function Dashboard:Build(parent)
     if self.panel then return self.panel end
     if InCombatLockdown() then return end
-    local panel = CreateFrame("Frame", nil, parent); self.panel, self.buttons = panel, {}
-    panel:SetSize(514, 100)
+    local root = CreateFrame("Frame", nil, parent); root:SetSize(780, 140)
+    self.panel, self.buttons = root, {}
+    local panel = CreateFrame("Frame", nil, root); panel:SetPoint("TOPLEFT", 0, -40); panel:SetSize(780, 100)
+    self.rosterPanel = panel
+    self.viewTabs = {}
+    for index, entry in ipairs({ { "characters", "Characters" }, { "inventory", "Inventory" } }) do
+        local tab = CreateFrame("Button", nil, root, "BackdropTemplate")
+        tab:SetPoint("TOPLEFT", (index - 1) * 396, 0); tab:SetSize(384, 28)
+        tab:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" })
+        tab.label = Label(tab, 11, teal, 10, -8, 364); tab.label:SetText(entry[2])
+        local key = entry[1]; tab:SetScript("OnClick", function() self:SetView(key) end)
+        self.viewTabs[key] = tab
+    end
     local search = CreateFrame("EditBox", nil, panel, "BackdropTemplate"); self.search = search
-    search:SetSize(314, 28); search:SetPoint("TOPLEFT"); search:SetAutoFocus(false); search:SetMaxLetters(100)
+    search:SetSize(580, 28); search:SetPoint("TOPLEFT"); search:SetAutoFocus(false); search:SetMaxLetters(100)
     search:SetFont("Fonts\\FRIZQT__.TTF", 11, ""); search:SetTextInsets(8, 8, 0, 0)
     search:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" }); search:SetBackdropColor(0.07, 0.095, 0.11)
-    self.placeholder = Label(search, 11, muted, 8, -8, 295); self.placeholder:SetText("Search characters or professions")
+    self.placeholder = Label(search, 11, muted, 8, -8, 561); self.placeholder:SetText("Search characters or professions")
     search:SetScript("OnTextChanged", function(box)
         local text = Call(box.GetText, box)
         if not Suite.IsReadable(text) or type(text) ~= "string" or #text > 100 or text:find("[%c|]") then text = "" end
@@ -213,26 +224,26 @@ function Dashboard:Build(parent)
         button.label = Label(button, 11, teal, 8, -7, width - 16); button.label:SetText(text)
         button:SetScript("OnClick", callback); return button
     end
-    self.sortButton = Button(330, 0, 184, "Sort: Name", function()
+    self.sortButton = Button(596, 0, 184, "Sort: Name", function()
         self.sort = ({ name = "money", money = "level", level = "at", at = "name" })[self.sort] or "name"
         self.page = 1; self:RefreshView()
     end)
-    self.summary = Label(panel, 12, white, 0, -40, 514)
-    self.coverage = Label(panel, 11, muted, 0, -59, 514)
-    Label(panel, 11, muted, 12, -86, 280):SetText("CHARACTER · CLICK FOR PROFESSIONS")
-    local levelHeading = Label(panel, 11, muted, 302, -86, 50); levelHeading:SetJustifyH("CENTER"); levelHeading:SetText("LEVEL")
-    local goldHeading = Label(panel, 11, muted, 364, -86, 138); goldHeading:SetJustifyH("RIGHT"); goldHeading:SetText("GOLD")
-    self.empty = Label(panel, 12, muted, 0, -115, 514); self.empty:SetWordWrap(true); self.empty:SetHeight(40)
+    self.summary = Label(panel, 12, white, 0, -40, 780)
+    self.coverage = Label(panel, 11, muted, 0, -59, 780)
+    Label(panel, 11, muted, 12, -86, 546):SetText("CHARACTER · CLICK TO SELECT")
+    local levelHeading = Label(panel, 11, muted, 568, -86, 50); levelHeading:SetJustifyH("CENTER"); levelHeading:SetText("LEVEL")
+    local goldHeading = Label(panel, 11, muted, 630, -86, 138); goldHeading:SetJustifyH("RIGHT"); goldHeading:SetText("GOLD")
+    self.empty = Label(panel, 12, muted, 0, -115, 780); self.empty:SetWordWrap(true); self.empty:SetHeight(40)
     for index = 1, PAGE_SIZE do
         local row = CreateFrame("Button", nil, panel, "BackdropTemplate"); self.buttons[index] = row
-        row:SetSize(514, 52); row:SetPoint("TOPLEFT", 0, -108 - (index - 1) * 56)
+        row:SetSize(780, 52); row:SetPoint("TOPLEFT", 0, -108 - (index - 1) * 56)
         row:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" }); row:SetBackdropColor(0.07, 0.095, 0.11)
         row.accent = row:CreateTexture(nil, "ARTWORK"); row.accent:SetPoint("TOPLEFT", 0, -5)
         row.accent:SetSize(3, 42)
-        row.name = Label(row, 14, teal, 12, -8, 280)
-        row.money = Label(row, 12, white, 364, -19, 138); row.money:SetJustifyH("RIGHT")
-        row.level = Label(row, 14, white, 302, -18, 50); row.level:SetJustifyH("CENTER")
-        row.context = Label(row, 11, muted, 12, -30, 280)
+        row.name = Label(row, 14, teal, 12, -8, 546)
+        row.money = Label(row, 12, white, 630, -19, 138); row.money:SetJustifyH("RIGHT")
+        row.level = Label(row, 14, white, 568, -18, 50); row.level:SetJustifyH("CENTER")
+        row.context = Label(row, 11, muted, 12, -30, 546)
         row:SetScript("OnClick", function()
             if row.entry then self.selected = row.entry.guid; self:RefreshView() end
         end)
@@ -241,27 +252,56 @@ function Dashboard:Build(parent)
         row:SetScript("OnHide", function() if self.hovered == row then self:HideTooltip() end end)
     end
     self.details = CreateFrame("Frame", nil, panel, "BackdropTemplate")
-    self.details:SetSize(514, 100); self.details:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" })
+    self.details:SetSize(780, 100); self.details:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" })
     self.details:SetBackdropColor(0.07, 0.095, 0.11)
-    self.detailTitle = Label(self.details, 14, white, 12, -12, 490)
-    self.detailContext = Label(self.details, 11, muted, 12, -35, 490)
+    self.detailTitle = Label(self.details, 14, white, 12, -12, 756)
+    self.detailContext = Label(self.details, 11, muted, 12, -35, 756)
     self.skills = {}
     for index = 1, 7 do
-        local x, y = 12 + ((index - 1) % 2) * 250, -64 - math.floor((index - 1) / 2) * 26
-        self.skills[index] = { name = Label(self.details, 12, white, x, y, 156),
-            rank = Label(self.details, 12, teal, x + 162, y, 78) }
+        local x, y = 12 + ((index - 1) % 2) * 383, -64 - math.floor((index - 1) / 2) * 26
+        self.skills[index] = { name = Label(self.details, 12, white, x, y, 288),
+            rank = Label(self.details, 12, teal, x + 294, y, 78) }
         self.skills[index].rank:SetJustifyH("RIGHT")
     end
-    self.skillEmpty = Label(self.details, 12, muted, 12, -64, 490)
+    self.freshness = Label(self.details, 10, muted, 12, -56, 756)
+    self.browseButton = Button(0, 0, 372, "Browse inventory", function() if self.selected then Suite.CharacterBrowser:Open(self.selected) end end)
+    self.bankBrowseButton = Button(0, 0, 372, "Open saved bank", function() if self.selected then Suite.OfflineBank:OpenFor(self.selected, 0) end end)
+    self.browseButton:SetParent(self.details); self.browseButton:ClearAllPoints(); self.browseButton:SetPoint("TOPLEFT", 12, -80)
+    self.bankBrowseButton:SetParent(self.details); self.bankBrowseButton:ClearAllPoints(); self.bankBrowseButton:SetPoint("TOPLEFT", 395, -80)
+    for index, labels in ipairs(self.skills) do
+        local x, y = 12 + ((index - 1) % 2) * 383, -122 - math.floor((index - 1) / 2) * 26
+        labels.name:ClearAllPoints(); labels.name:SetPoint("TOPLEFT", x, y)
+        labels.rank:ClearAllPoints(); labels.rank:SetPoint("TOPLEFT", x + 294, y)
+    end
+    self.skillEmpty = Label(self.details, 12, muted, 12, -122, 756)
     self.previous = Button(0, -100, 85, "Previous", function() self.page = math.max(1, self.page - 1); self:RefreshView() end)
-    self.next = Button(429, -100, 85, "Next", function() self.page = self.page + 1; self:RefreshView() end)
-    self.pageLabel = Label(panel, 11, muted, 100, -108, 314); self.pageLabel:SetJustifyH("CENTER")
+    self.next = Button(695, -100, 85, "Next", function() self.page = self.page + 1; self:RefreshView() end)
+    self.pageLabel = Label(panel, 11, muted, 100, -108, 580); self.pageLabel:SetJustifyH("CENTER")
     panel:SetScript("OnHide", function() self:HideTooltip(); search:ClearFocus() end)
-    self:Render(); return panel
+    self:Render(); return root
+end
+function Dashboard:SetView(view)
+    if not Suite.IsReadable(view) or (view ~= "characters" and view ~= "inventory") then return end
+    if InCombatLockdown() then
+        Suite.pending.dashboardView = function()
+            if Suite.GUI.page == "characters" and Suite.GUI.frame:IsShown() then self:SetView(view) end
+        end
+        return
+    end
+    self.view = view
+    self:RefreshView()
 end
 function Dashboard:Render()
     if not self.panel or InCombatLockdown() then return end
     self:HideTooltip()
+    local inventory = self.view == "inventory"
+    for key, tab in pairs(self.viewTabs) do tab:SetBackdropColor(unpack((key == "inventory") == inventory and { 0.1, 0.2, 0.21 } or { 0.07, 0.095, 0.11 })) end
+    self.rosterPanel:SetShown(not inventory)
+    if inventory then Suite.CharacterBrowser:Build(self.panel) end
+    local browser = Suite.CharacterBrowser
+    if browser.panel then browser.panel:SetShown(inventory) end
+    browser:SetVisible(inventory and Suite.GUI.frame and Suite.GUI.frame:IsShown() == true or false)
+    if inventory then browser:Refresh(); self.panel:SetHeight(40 + browser.panel:GetHeight()); return end
     local rows, total, gold, known, limited, scoped = self:Rows(self.query, self.sort)
     self.rows = rows
     local pages = math.max(1, math.ceil(#rows / PAGE_SIZE)); self.page = math.max(1, math.min(pages, self.page))
@@ -295,7 +335,7 @@ function Dashboard:Render()
         and "No character records yet. Enable recording and log into your characters." or "No matching characters.")
     self.empty:SetShown(count == 0)
     self.previous:ClearAllPoints(); self.previous:SetPoint("TOPLEFT", 0, -bottom)
-    self.next:ClearAllPoints(); self.next:SetPoint("TOPLEFT", 429, -bottom)
+    self.next:ClearAllPoints(); self.next:SetPoint("TOPLEFT", 695, -bottom)
     self.pageLabel:ClearAllPoints(); self.pageLabel:SetPoint("TOPLEFT", 100, -bottom - 8)
     self.pageLabel:SetText(self.page .. " / " .. pages)
     self.previous:SetEnabled(self.page > 1); self.next:SetEnabled(self.page < pages)
@@ -304,11 +344,17 @@ function Dashboard:Render()
     self.details:SetShown(selected ~= nil)
     local skills = selected and selected.professions
     local skillCount = skills and #skills or 0
-    local detailHeight = 64 + math.max(1, math.ceil(skillCount / 2)) * 26 + 10
+    local detailHeight = 122 + math.max(1, math.ceil(skillCount / 2)) * 26 + 10
     self.details:SetHeight(detailHeight)
     if selected then
         self.detailTitle:SetText(selected.name .. " · Professions")
         self.detailContext:SetText(selected.realm .. "  ·  " .. selected.ruleset)
+        self.freshness:SetText("Bags: " .. Suite.CharacterBrowser:Age(selected.bagsAt, selected.bagsAt ~= nil)
+            .. "  ·  Bank: " .. Suite.CharacterBrowser:Age(selected.bankAt, selected.bankAt ~= nil))
+        local available = Suite.OfflineBank:GetSnapshot(0, selected.guid) ~= nil
+        self.bankBrowseButton:SetEnabled(available)
+        self.bankBrowseButton.label:SetText(available and "Open saved bank" or "No bank view recorded")
+        self.bankBrowseButton.label:SetTextColor(unpack(available and teal or muted))
         self.skillEmpty:SetText(skills and "No professions" or "Professions not recorded")
     end
     self.skillEmpty:SetShown(skillCount == 0)
@@ -317,7 +363,8 @@ function Dashboard:Render()
         labels.name:SetShown(skill ~= nil); labels.rank:SetShown(skill ~= nil)
         if skill then labels.name:SetText(skill.name); labels.rank:SetText(skill.rank .. "/" .. skill.maxRank) end
     end
-    self.panel:SetHeight(bottom + (pages > 1 and 38 or 8) + (selected and detailHeight or 0))
+    local height = bottom + (pages > 1 and 38 or 8) + (selected and detailHeight or 0)
+    self.rosterPanel:SetHeight(height); self.panel:SetHeight(40 + height)
 end
 function Dashboard:RefreshView()
     local gui = Suite.GUI

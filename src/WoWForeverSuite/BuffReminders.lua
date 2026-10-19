@@ -11,6 +11,11 @@ local function Call(fn, ...)
     local ok, value = pcall(fn, ...)
     if ok and Suite.IsReadable(value) then return value end
 end
+local function ClassForBuffs(unit)
+    if type(UnitClass) ~= "function" then return end
+    local ok,_,class=pcall(UnitClass,unit)
+    if ok and Text(class) then return class end
+end
 local function Enabled() return Suite.db and Suite.db.missingBuffs == true end
 local function ActiveCombat() return Enabled() and Suite.db.missingBuffCombat == true and InCombatLockdown() end
 local function Surface(frame)
@@ -309,7 +314,7 @@ function Extra:CombatUnits()
 end
 function Extra:RefreshCombat()
     if not self.combatFrame then return end
-    if not ActiveCombat() or Call(UnitIsDeadOrGhost, "player") ~= false or Call(IsResting) ~= false then
+    if not ActiveCombat() or Call(UnitIsDeadOrGhost, "player") ~= false or (Call(IsResting) ~= false and Suite.db.missingBuffRested ~= true) then
         self.combatFrame:Hide(); return
     end
     self.nextDue = nil
@@ -319,8 +324,8 @@ function Extra:RefreshCombat()
         for _, member in ipairs(units) do
             local catalog = family.catalog
             local selfFilter = (not catalog.group or catalog.upkeep) and Suite.db.missingBuffClass or catalog.group and Suite.db.missingBuffSelf
-            if (member.player and selfFilter or not member.player and catalog.group and Suite.db.missingBuffOutgoing)
-                and (not catalog.party or member.party) then
+            if Suite.MissingBuffs:Relevant(catalog,ClassForBuffs(member.unit),family.spell.root or family.spell.id) and (member.player and selfFilter or not member.player and catalog.group and Suite.db.missingBuffOutgoing)
+                and (not Suite.MissingBuffs:PartyOnly(catalog,family.spell.root or family.spell.id) or member.party) then
                 local auras = self:CombatAuras(family, member.unit)
                 local present, seconds
                 if Suite.db.missingBuffExpiry then present, seconds = self:Presence(family, auras)
@@ -333,13 +338,16 @@ function Extra:RefreshCombat()
         if #names > 0 then entries[#entries + 1] = { spell = family.spell, names = names, remaining = remaining } end
     end
     self:AddCoatings(entries)
-    local count, width = math.min(#entries, 8), math.max(140, math.min(#entries, 8) * 43 + 5)
-    self.combatFrame:SetSize(width, 28 + math.ceil(count / 8) * 48)
+    local _,size=Suite.MissingBuffs:DisplayOptions()
+    local stride,rowStride=size+9,size+14
+    local count, width = math.min(#entries, 8), math.max(140, math.min(#entries, 8) * stride + 5)
+    self.combatFrame:SetSize(width, 28 + math.ceil(count / 8) * rowStride)
     for index, button in ipairs(self.combatButtons) do
         local entry = index <= count and entries[index] or nil; button.entry = entry
         if entry then
             local row = math.floor((index - 1) / 8); local rowCount = math.min(8, count - row * 8)
-            button:ClearAllPoints(); button:SetPoint("TOPLEFT", (width - (rowCount * 43 - 9)) / 2 + (index - 1) % 8 * 43, -25 - row * 48)
+            button:SetSize(size,size)
+            button:ClearAllPoints(); button:SetPoint("TOPLEFT", (width - (rowCount * stride - 9)) / 2 + (index - 1) % 8 * stride, -25 - row * rowStride)
             button.icon:SetTexture(entry.spell.icon); button.caption:SetText(entry.hand or (entry.remaining and "Soon" or "Missing"))
         end
         button:SetShown(entry ~= nil)
@@ -352,7 +360,7 @@ function Extra:OnEvent(event)
         self:Cancel(); if self.combatFrame then self.combatFrame:Hide() end; return
     end
     if event == "PLAYER_REGEN_DISABLED" then
-        self:Cancel(); if self.options then self.options:Hide() end
+        self:Cancel()
     end
     if ActiveCombat() and not self.combatTimer and C_Timer and C_Timer.NewTimer then
         local token = {}; self.combatToken = token
@@ -367,66 +375,27 @@ function Extra:AddCustom(text, group)
     local id = tonumber(text:match("^%s*(%d+)%s*$"))
     if not ID(id) then return false end
     local entries = Suite.db.missingBuffCustom
-    for _, entry in ipairs(entries) do if entry.id == id then return false end end
+    local candidate=Suite.MissingBuffs:Spell(id)
+    for _,entry in ipairs(entries) do
+        if entry.id==id then return false end
+        local existing=Suite.MissingBuffs:Spell(entry.id)
+        if candidate and existing and candidate.name==existing.name then return false end
+    end
     if #entries >= 8 then return false end
     entries[#entries + 1] = { id = id, group = group == true }
     Suite.MissingBuffs.bookDirty = true; Suite.MissingBuffs:Queue(); self:RefreshOptions(); return true
 end
 function Extra:RefreshOptions()
-    if not self.options or not self.options:IsShown() then return end
-    for index, row in ipairs(self.options.rows) do
-        local entry = Suite.db.missingBuffCustom[index]; row:SetShown(entry ~= nil)
-        if entry then
-            local spell = Suite.MissingBuffs:Spell(entry.id)
-            row.label:SetText((spell and spell.name or "Spell " .. entry.id) .. " · " .. entry.id)
-            row.scope.label:SetText(entry.group and "Party / raid" or "Self only")
-        end
-    end
+    if Suite.BuffSettings.mode=="spells" then Suite.BuffSettings:Refresh() end
 end
 function Extra:OpenOptions()
-    Suite.AfterCombat("buffOptions", function()
-        if not self.options then
-            local frame = CreateFrame("Frame", "WoWForeverSuiteBuffOptions", UIParent, "BackdropTemplate"); self.options = frame
-            frame:SetSize(510, 425); frame:SetPoint("CENTER"); frame:SetFrameStrata("DIALOG"); frame:SetClampedToScreen(true); Surface(frame)
-            if UISpecialFrames then table.insert(UISpecialFrames, "WoWForeverSuiteBuffOptions") end
-            local title = Label(frame, 16); title:SetPoint("TOPLEFT", 14, -13); title:SetText("Custom buff reminders")
-            Button(frame, "X", 470, -7, 28, function() frame:Hide() end)
-            local info = Label(frame, 11); info:SetPoint("TOPLEFT", 14, -45); info:SetWidth(480); info:SetHeight(42); info:SetWordWrap(true)
-            info:SetText("Add up to eight learned spell IDs. Party / raid is for spells you can cast on teammates. Custom spells appear outside combat.")
-            local input = CreateFrame("EditBox", nil, frame, "InputBoxTemplate"); frame.input = input
-            input:SetPoint("TOPLEFT", 20, -94); input:SetSize(120, 26); input:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE"); input:SetAutoFocus(false); input:SetMaxLetters(12)
-            local function add()
-                if self:AddCustom(input:GetText(), false) then input:SetText(""); input:ClearFocus()
-                else frame.notice:SetText("Enter a new spell ID. The list holds eight spells.") end
-            end
-            input:SetScript("OnEnterPressed", add); input:SetScript("OnEscapePressed", function() frame:Hide() end)
-            Button(frame, "Add spell ID", 155, -94, 120, add)
-            frame.notice = Label(frame, 10); frame.notice:SetPoint("TOPLEFT", 14, -130); frame.notice:SetText("Only spells learned by this character produce reminders.")
-            frame.rows = {}
-            for index = 1, 8 do
-                local row = CreateFrame("Frame", nil, frame); row:SetSize(482, 28); row:SetPoint("TOPLEFT", 14, -151 - (index - 1) * 31)
-                row.label = Label(row, 11); row.label:SetPoint("LEFT", 0, 0); row.label:SetWidth(300)
-                row.scope = Button(row, "Self only", 302, 0, 112, function()
-                    if InCombatLockdown() then return end
-                    local entry = Suite.db.missingBuffCustom[index]; if entry then entry.group = not entry.group; Suite.MissingBuffs:Queue(); self:RefreshOptions() end
-                end)
-                Button(row, "Remove", 420, 0, 62, function()
-                    if InCombatLockdown() then return end
-                    table.remove(Suite.db.missingBuffCustom, index); Suite.MissingBuffs:Queue(); self:RefreshOptions()
-                end)
-                frame.rows[index] = row
-            end
-            frame:SetScript("OnHide", function() input:ClearFocus() end)
-        end
-        self.options:Show(); self:RefreshOptions()
-    end)
+    Suite.BuffSettings:Open("spells")
 end
 function Extra:Apply()
     if self.combatFrame then self.combatFrame:Hide() end
     if not Enabled() then
         self:Cancel(); self.combatToken = nil
         self.watches, self.coatings = nil, nil; Suite.pending.buffOptions = nil
-        if self.options then self.options:Hide() end
         return
     end
     if not InCombatLockdown() then self:Prepare(); self:PlaceCombat(); self:Schedule()

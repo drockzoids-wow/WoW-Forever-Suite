@@ -65,14 +65,15 @@ function Items:CanEquip(info)
     return Read(C_Item and C_Item.IsUsableItem, info.link) == true
 end
 
-function Items:WeaponUpgrade(info, preference)
+function Items:WeaponUpgrade(info, preference, explain)
     local scoring = Suite.Scoring
+    local profile = scoring:Profile()
     local kind = scoring.WeaponKind(info.equipLoc)
     local slots = (kind == "ranged" or kind == "relic") and { 18 } or { 16, 17 }
     local current, baseline = {}, 0
     local function Score(value, slot)
         local stats = preference == "stats" and Read(C_Item.GetItemStats, value.link) or nil
-        return scoring.WeaponScore(value, stats, Suite.db.scorePreset, preference, slot)
+        return scoring.WeaponScore(value, stats, profile, preference, slot), stats
     end
     for _, slot in ipairs(slots) do
         local ok, link = pcall(GetInventoryItemLink, "player", slot)
@@ -85,9 +86,9 @@ function Items:WeaponUpgrade(info, preference)
             if slot == 16 and (equippedKind ~= "melee" or equipped.equipLoc == "INVTYPE_WEAPONOFFHAND") then return nil end
             if slot == 17 and (equippedKind ~= "offhand" and equippedKind ~= "melee"
                 or equipped.equipLoc == "INVTYPE_2HWEAPON" or equipped.equipLoc == "INVTYPE_WEAPONMAINHAND") then return nil end
-            local score = Score(equipped, slot)
+            local score, stats = Score(equipped, slot)
             if not Number(score) then return nil end
-            current[slot] = { info = equipped, score = score }
+            current[slot] = { info = equipped, score = score, stats = stats }
             baseline = baseline + score
         end
     end
@@ -112,7 +113,7 @@ function Items:WeaponUpgrade(info, preference)
     end
     local best, detail
     for _, choice in ipairs(choices) do
-        local score = Score(info, choice.slot)
+        local score, stats = Score(info, choice.slot)
         if Number(score) then
             local delta = scoring.Compare(baseline - choice.remove + score, { baseline })
             local empty = choice.slot == 18 and not current[18]
@@ -123,14 +124,25 @@ function Items:WeaponUpgrade(info, preference)
             if not delta and empty then delta = 1 end
             if delta and (not best or delta > best) then
                 best, detail = delta, { weapon = true, preference = preference, slot = choice.label,
-                    paired = choice.slot ~= 18, emptySlot = empty or nil }
+                    paired = choice.slot ~= 18, emptySlot = empty or nil,
+                    profile = profile.label, candidateScore = baseline - choice.remove + score, baselineScore = baseline }
+                if explain and preference == "stats" and not empty then
+                    local removed = {}
+                    for _, slot in ipairs(slots) do
+                        local record = current[slot]
+                        if record and (slot == choice.slot or info.equipLoc == "INVTYPE_2HWEAPON") then
+                            removed[#removed + 1] = scoring:Terms(record.stats, profile, record.info, slot) or {}
+                        end
+                    end
+                    detail.breakdown = scoring:Breakdown(scoring:Terms(stats, profile, info, choice.slot), removed)
+                end
             end
         end
     end
     return best, detail
 end
 
-function Items:UpgradeDelta(item)
+function Items:UpgradeDelta(item, explain)
     local info = self:GetInfo(item)
     if not self:IsEquipment(info) or not Number(info.requiredLevel) or type(UnitLevel) ~= "function"
         or type(GetInventoryItemLink) ~= "function" then return nil end
@@ -140,10 +152,11 @@ function Items:UpgradeDelta(item)
     local preference = Suite.Scoring.Preference(Suite.db)
     if Suite.Scoring.WeaponKind(info.equipLoc) then
         if preference == "stats" and type(C_Item.GetItemStats) ~= "function" then return nil end
-        return self:WeaponUpgrade(info, preference)
+        return self:WeaponUpgrade(info, preference, explain)
     end
     local slots = Suite.Scoring.slots[info.equipLoc]
     if not slots then return nil end
+    local profile = Suite.Scoring:Profile()
     local equipped, links, emptySlot = {}, {}
     for _, slot in ipairs(slots) do
         local ok, link = pcall(GetInventoryItemLink, "player", slot)
@@ -154,24 +167,36 @@ function Items:UpgradeDelta(item)
     -- Filling a known empty armor/accessory slot is independent of stat data.
     -- GetItemStats may return nothing even after the item's identity is loaded.
     if emptySlot then return 1, { preference = preference, emptySlot = true } end
-    local score = preference == "ilevel" and info.level or Suite.Scoring.Score(Read(C_Item.GetItemStats, info.link), Suite.db.scorePreset)
+    local stats = preference == "stats" and Read(C_Item.GetItemStats, info.link) or nil
+    local score = preference == "ilevel" and info.level or Suite.Scoring.Score(stats, profile)
     if not Number(score) then return nil end
-    if score <= 0 then return nil end
+    local lowest, replacement
     for _, slot in ipairs(slots) do
         local link = links[slot]
         if link then
             local equippedInfo = self:GetInfo(link)
             if not equippedInfo then return nil end
+            local oldStats = preference == "stats" and Read(C_Item.GetItemStats, link) or nil
             local equippedScore = preference == "ilevel" and equippedInfo.level
-                or Suite.Scoring.Score(Read(C_Item.GetItemStats, link), Suite.db.scorePreset)
+                or Suite.Scoring.Score(oldStats, profile)
             if not equippedScore then return nil end
             equipped[#equipped + 1] = equippedScore
+            if not lowest or equippedScore < lowest then
+                lowest, replacement = equippedScore, { slot = slot, link = link, stats = oldStats }
+            end
         else
             equipped[#equipped + 1] = 0
         end
     end
     local delta = Suite.Scoring.Compare(score, equipped)
-    return delta, delta and { preference = preference }
+    if not delta then return nil end
+    local detail = { preference = preference, profile = profile.label, candidateScore = score, baselineScore = lowest,
+        replacementSlot = replacement.slot, replacementLink = replacement.link }
+    if explain and preference == "stats" then
+        detail.breakdown = Suite.Scoring:Breakdown(Suite.Scoring:Terms(stats, profile),
+            { Suite.Scoring:Terms(replacement.stats, profile) or {} })
+    end
+    return delta, detail
 end
 
 function Items:Resolve(button, record)

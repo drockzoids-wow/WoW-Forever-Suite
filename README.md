@@ -1,6 +1,66 @@
 # Forever Suite
 
-A modular addon for WoW Forever with optional quality of life tools and an original slate-and-teal control panel. Version **0.2.69** waits for quest data before automatic pickup, following the readiness approach used by Retail ZoidsTools. Most features start off. The installed client was read as 1.60.1.70450; the change needs the [focused native test](docs/testing.md#quest-pickup-readiness--0269).
+A modular addon for WoW Forever with optional quality of life tools and an original slate-and-teal control panel. Version **0.2.85** adds deliberate group-chat requests when clicking teammate-buff reminders. Your existing setup becomes Default automatically. Most features start off. See the [request test guide](docs/testing.md#clicked-group-buff-requests--0285).
+
+## Settings and layout profiles
+
+Open **/wfs profiles** or the **Profiles** sidebar section. Your existing choices are preserved as **Default**; you can keep using the Suite without creating or editing anything. The header shows which profile you are changing.
+
+To save another setup, enter a new **Profile name**, choose **Current setup** or a recorded character in the source picker, and click **Save as new profile**. Copies are independent and stay inactive until you review a switch. Up to twelve profiles, including Default, are available. Character sources appear after logging into those characters with this update and use their last saved settings.
+
+Changes normally apply to every character using the shared profile. Choose **Only this character** for personal differences; unchanged settings still inherit the shared setup. **Use shared settings** suspends private differences and keeps them available for later. Switching a profile or scope shows a review followed by **Use & reload**. Your outgoing setup saves first. Profile actions are unavailable in combat.
+
+Profiles include Suite feature choices, appearance and supported window/meter/bar layouts. Gear weights, macros, inventory/bank records, saved searches, mail contacts, item protection rules, training and the character leveling tracker retain their own settings/data. Native Edit Mode layouts and keybindings remain in the game. Unused profiles can be renamed or deleted with confirmation; Default and profiles still assigned to a character are protected.
+
+## Class macro recipes
+
+Open **/wfs macros** or **Everyday → Macros**. Your class gets its own section with two recipes; the shared supply and item recipes remain available. Preview a recipe, click **Create macro**, then drag it from Blizzard's **General** macro tab onto your action bar. Nothing is created automatically just by browsing. Spell names come from the client; no name, rank or equipment editing is required.
+
+| Class | Recipes |
+| --- | --- |
+| Druid | Innervate; Rebirth |
+| Mage | Counterspell; Polymorph |
+| Paladin | Hammer of Justice; Blessing of Freedom |
+| Priest | Power Word: Shield; Dispel Magic |
+| Rogue | Kick; Blind |
+| Shaman | Earth Shock; Chain Heal |
+| Warlock | Pet recall; Drain Life |
+| Warrior | Heroic Strike & attack; Taunt |
+| Hunter | Existing Misdirection and Pet care retained |
+
+Spells must be learned and obey their usual range, resource, reagent, form/stance and target rules. Mouseover choices fall back as explained in the preview. Emergency Counterspell, Hammer of Justice and Earth Shock interrupt your current cast. Pet recall leaves the pet Passive. Existing manual edits and conflicting macro names remain protected. [Research and adaptations](docs/sources.json) and [native test cases](docs/testing.md#classic-class-macro-recipes--0280) record the limits.
+
+## Suite workspace
+
+Open **/wfs** for six workspaces: **Home**, **Bags & Gear**, **Combat**, **Interface**, **Everyday**, and **Profiles**. The selected workspace expands its own pages in the sidebar; Setup Guide stays available at the bottom. Search remains at the top and jumps directly to the matching control. Existing slash shortcuts still work.
+
+The rectangular panel fits itself to your screen without manual sizing. Related settings use two columns where useful, with room for their descriptions. Home offers six shortcuts instead of duplicate switches. Character/inventory and macro panes use the wider space; gear profiles and weights use three columns. Each optional feature retains its previous setting. The scrolling behavior confirmed in 0.2.78 is retained.
+
+## Characters and inventory
+
+Open **/wfs inventory**, or choose **Characters → Inventory**. The default view shows all recorded items in your region; no search setup or manual editing is required. Select a character in the roster and choose **Browse inventory**, or click an item result to focus its owner. Cycle **All locations / Bags / Personal bank / Shared bank** to narrow the view. Shared contents count once.
+
+Search by item name, type, subtype or exact item ID. **Save view** keeps the search, owner and location together; up to eight views save account-wide. Item rows show quantities and the age of their source records. Amber dates flag records at least a day old; unknown locations stay distinct from recorded empty ones. Modified item clicks use the client's normal link/dressing-room behavior.
+
+**Open this character's bank** opens that owner's recorded slot layout when available. This view cannot move items. Refresh records by enabling the existing character/bank recording options, logging into your alts and visiting their banks. Existing records remain readable when recording is off. Ordinary scrolling moves the page; Shift+wheel changes result pages. Native bank artwork may require visiting a bank once after login.
+
+## Gear comparisons
+
+Open **/wfs gear** → Gear Details and enable **Possible upgrades**. Choose **Comparison profile** for Automatic, Balanced, Physical, Caster, Healer or Tank. They work without editing. New characters start with Automatic and Stats; existing characters retain their previous role and Stats/Item level preference. These choices now save per character.
+
+Automatic supplies a class-aware leveling starter: Caster for Mage/Warlock/Priest, Physical with ranged weapon emphasis for Hunter, Physical with melee weapon emphasis for Rogue/Warrior, and Balanced for other classes. Choose a ready-made role for a different build or activity; no manual weights are required. Automatic does not infer your talents or current combat role.
+
+Each teal **+** has a tooltip explanation: equipped and candidate scores plus the largest signed stat changes. **Details & custom weights → Tooltip: full breakdown** shows every weighted change and multiplier, with the replaced armor/accessory item. Weapons compare the complete hand set, with the disclosed 50% off-hand base-DPS factor. Known empty slots get an explicit reason instead of an invented score gain. Item level remains an independent comparison choice.
+
+Customization is optional. Open **Details & custom weights**, then **Create custom copy**. Name it, enter weights and choose **Save & use profile**. Up to eight custom profiles save per character. Built-ins stay intact; typing changes nothing until Save. Cancel, closing settings or leaving the page discards edits. Removal needs a second confirmation click. Zero ignores a stat; positive weights assign points per stat. Values range from 0 to 1000 with up to three decimals.
+
+Scores express the selected preferences. Unweighted stats, special effects, set bonuses, talents, weapon speed and hit penalties still need your judgment; these are not definitive best-in-slot decisions. Native appearance, real item data, persistence and combat behavior need the [gear checklist](docs/testing.md#character-upgrade-profiles-and-explained-scores--0275).
+
+## Training Planner
+
+Open `/wfs training` for **Class** and **Weapons**. Level-up reminders use only saved class training. Weapon visits keep their own records and actual prices; the Weapons tab also lists your faction's four reference capital-city masters, their locations, skills and base prices before discounts. Both the reference and recorded visits show only your faction. Reference stock does not imply your class can learn every skill.
+
+After updating, visit your class trainer once to refresh the Class list. Older mixed history is kept separately and excluded from level-up reminders. Recording and automatic openings remain optional under **Bags & Gear → Professions**. See the [trainer smoke test](docs/testing.md#separate-class-and-weapon-training--0273) and [reference sources](docs/sources.json).
 
 ## Leveling tracker
 
@@ -116,22 +176,26 @@ The guide uses original Suite code, wording and presentation. ElvUI 15.26 was re
 
 ## Missing buffs
 
-After /reload, open /wfs buffs and enable **Missing buff bar**. It starts off. Your learned buffs, group buffs you can supply, and compatible carried coating items appear in the window. Buffs only a teammate may provide and missing weapon supplies appear in **your local chat**, without Ask placeholders or outgoing group requests. Notices stay quiet while the same deficit remains; a newly missing buff can notify again with a 60-second minimum per family/hand. Existing self, outgoing, incoming and class-upkeep switches remain independent. Unknown data never proves a buff or supply is missing.
+After /reload, open **/wfs buffs** or **Combat → Missing Buffs** and enable **Missing buff bar**. It starts off. Teal icons use your learned self/group buffs or carried supplies. Persistent gold **Group** icons identify relevant missing buffs a nearby teammate may provide, with provider names on hover. **Left-click requests that buff in party, raid or instance chat**; right-click hides its family. Requests use a 30-second per-buff and 3-second global cooldown. They cannot cast another player's spell. Browsing and automatic updates never announce requests; native restrictions produce local feedback. Existing local notices remain throttled; missing weapon supplies still have no fake action icon. Unknown data never proves a buff is missing.
 
-Self/group spell buttons retain native casting, targeting and click-time checks. Right-click cycles learned alternatives, then hides a family. Group entries list affected members and cast for the first eligible member; an active toggle aura remains a passive coverage reminder so clicking cannot switch it off. Group class/level suggestions do not reveal another player's learned spells or talents.
+Intellect and Mana recovery recognize all seven Forever Mana classes, including **Hunters** and shifted **Druids**. Physical choices use broad class-appropriate targets, and universal buffs retain broad coverage. The same model drives your outgoing targets and learned alternatives, such as Might/Wisdom; a useful existing alternative satisfies its family. Defaults do not claim a spec-optimal or multi-Paladin assignment. Divine Spirit/Fear Ward reflect Forever's baseline class notes; unseen teammate talents are not inferred. Class/level means a teammate may provide the buff, not that the addon has read their spellbook.
 
-**Weapon coating reminders** reuse the main/off-hand choices from Macros and ordinary automatic stone matching. Selected carried supplies get an item action. A compatible carried alternative remains visible as a choice; click it to open that hand's Macros selection, then choose deliberately. Creating a macro is unnecessary. Rogue poison choices remain deliberate through right-click. Items, selection and equipped weapon are rechecked before applying; no item is applied automatically. Missing supplies have no question-mark action icon. A known compatible weapon spell suppresses redundant missing-item notices. Native item restrictions and replacement confirmations still apply.
+**Manage buff reminders** opens a searchable, paged **Buff list** with All/Hidden/My class views. Restore or hide one family and choose learned alternatives. **Custom learned buff spells** opens a name/icon picker: select a learned spell, choose Self or Party/raid, and keep up to eight custom families without editing IDs or ranks. Built-ins link to their existing controls; higher ranks do not become duplicate custom entries. Existing custom records and hidden choices remain saved.
 
-The default position is **top center**, near breath/fatigue bars. Existing dragged positions are preserved; use **Reset bar position** or Ctrl-right-click the header to apply the new default. Drag the header outside combat or use **Preview position** when nothing is missing. The title stays centered, grows with the number of usable actions, wraps after eight icons and shrinks again. The ordinary bar remains hidden while rested, dead or in combat.
+**Buff bar appearance** controls bar scale, icon size, movement lock, rested-area behavior and class-aware targeting. Defaults are 100% scale, 34-unit icons, unlocked movement and class-aware targets on. Enabled reminders now appear in rested areas by default; pause them there if preferred. The bar starts top-center near breath/fatigue bars, preserves saved positions, wraps after eight icons and shrinks again. Preview and settings resets remain available. Display/reminder preferences work with named/shared/personal settings profiles.
 
-**Warn before buffs expire** uses 15 seconds for short spells and selectable **30 / 60 / 120 seconds** for spells lasting at least 30 minutes and coatings. Unknown timing and permanent/equivalent coverage do not imply expiry. **Custom learned buff spells** supports up to eight learned IDs with self or explicit party/raid scope. Optional **Combat buff reminders** show prepared useful class buffs and carried coatings in a separate passive panel; inventory changes suppress stale coating availability without combat bag scans. These additions start off. See the [native smoke test](docs/testing.md#actionable-buff-bar-and-local-reminders--0268) before treating rendering, casting or taint as verified.
+The ordinary secure bar hides while dead or in combat. Optional **Combat buff reminders** retain a separate passive panel for prepared permitted effects/coatings, without hidden-data recovery or incoming-combat guarantees. **Warn before buffs expire** uses 15 seconds for short spells and selectable 30/60/120 seconds for long spells/coatings; unknown timing and permanent/equivalent coverage do not imply expiry. Self/group actions retain native casting, range, targeting, reagent and click-time checks; active toggles cannot be clicked off accidentally.
+
+**Weapon coating reminders** still reuse Macros' main/off-hand choices. Selected carried supplies get deliberate item actions; carried alternatives open that hand's selection. No macro creation is required and no item is applied automatically. Rogue poison choices stay deliberate. Known weapon spells suppress redundant missing-item notices; unavailable supplies use local chat. Native item restrictions and replacement confirmations remain.
+
+See the [native smoke test](docs/testing.md#class-aware-buff-reminders-and-controls--0284) before treating class coverage, rendering, casting, persistence or taint as verified.
 
 ## First version
 
 | Area | Included |
 | --- | --- |
 | Setup guide | Five pages of staged choices, current/suggested options, a final review and one-time account welcome; `/wfs setup` reruns it |
-| Missing buffs | Usable self/group spells and carried item choices on a top-center bar; unavailable buffs use local chat notices |
+| Missing buffs | Usable spells/items plus persistent teammate-buff icons, class-aware targets, searchable controls and optional custom reminders |
 | Minimap | Square mask and border; optional FPS, home/world latency, coordinates and local clock strip; addon-button drawer |
 | World map | Reveal unexplored terrain over a translucent slate cover with a 0–100% terrain opacity slider; prepared maps refresh in combat |
 | Windows | Dragging from empty native header space, including bags and Calendar; saved positions, proportional resizing, Ctrl-right-click reset and reset all |

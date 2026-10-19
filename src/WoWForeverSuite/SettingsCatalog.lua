@@ -1,14 +1,13 @@
 local _, Suite = ...
 local Catalog = { groups = {
-    { key = "overview", label = "Overview", pages = { { "overview", "Overview" }, { "characters", "Characters" } } },
-    { key = "layout", label = "Maps & Layout", pages = { { "minimap", "Minimap" }, { "worldmap", "World Map" }, { "windows", "Windows" } } },
+    { key = "overview", label = "Home", pages = { { "overview", "Overview" }, { "characters", "Characters" }, { "leveling", "Leveling" } } },
     { key = "inventory", label = "Bags & Gear", pages = { { "bags", "Bags & Bank" }, { "items", "Gear Details" }, { "tooltips", "Tooltips" }, { "professions", "Professions" } } },
-    { key = "combat", label = "Combat & Bars", pages = { { "actionbars", "Action Bars" }, { "bars", "Other Bars" },
-        { "unitframes", "Unit Frames" }, { "buffs", "Missing Buffs" }, { "meters", "Meters" }, { "castbars", "Castbars" } } },
-    { key = "everyday", label = "Everyday Tools", pages = { { "quests", "Quests & Loot" }, { "vendor", "Vendor" }, { "leveling", "Leveling" }, { "camping", "Camping" }, { "audio", "Audio" } } },
-    { key = "social", label = "Mail & Chat", pages = { { "mail", "Mail" }, { "chat", "Chat" } } },
-    { key = "macros", label = "Macros", pages = { { "macros", "Macros" } } },
-    { key = "setup", label = "Setup Guide", pages = { { "setup", "Setup Guide" } } },
+    { key = "combat", label = "Combat", pages = { { "actionbars", "Action Bars" }, { "unitframes", "Unit Frames" },
+        { "buffs", "Missing Buffs" }, { "meters", "Damage Meters" }, { "castbars", "Castbars" } } },
+    { key = "layout", label = "Interface", pages = { { "minimap", "Minimap" }, { "worldmap", "World Map" }, { "windows", "Windows" }, { "bars", "Bars & Buttons" }, { "chat", "Chat" }, { "audio", "Audio" } } },
+    { key = "everyday", label = "Everyday", pages = { { "quests", "Quests & Loot" }, { "vendor", "Vendor" }, { "mail", "Mail" }, { "camping", "Camping" }, { "macros", "Macros" } } },
+    { key = "profiles", label = "Profiles", pages = { { "profiles", "Profiles" } } },
+    { key = "setup", label = "Setup Guide", utility = true, pages = { { "setup", "Setup Guide" } } },
 } }
 Suite.SettingsCatalog = Catalog
 Catalog.sections = {
@@ -29,6 +28,8 @@ Catalog.sections = {
     professions = { [1] = "Disenchant", [3] = "Training Planner" },
 }
 local extras = {
+    { page = "profiles", key = "settingsProfiles", label = "Settings and layout profiles", target = "profilePanel", words = "default shared personal character overrides copy rename switch setup" },
+    { page = "characters", key = "inventoryBrowser", label = "Browse recorded inventory", target = "characterPanel", words = "items owners bags bank shared snapshots dates favorites saved searches" },
     { page = "castbars", key = "castbarSizes", label = "Castbar sizes and preview", target = "castbarPanel", words = "player target focus casting width height resize preview" },
     { page = "professions", key = "disenchantModifier", label = "Disenchant modifier key", words = "alt ctrl shift enchanting profession" },
     { page = "actionbars", key = "shortKeybinds", label = "Short keybind labels", target = "keybindControls.shortKeybinds", words = "bindings shortcuts abbreviations" },
@@ -48,7 +49,7 @@ local extras = {
     { page = "chat", key = "chatFontSize", label = "Chat text size", target = "chatFields.chatFontSize.slider", words = "font" },
     { page = "chat", key = "chatOpacity", label = "Chat background opacity", target = "chatFields.chatOpacity.slider", words = "transparency" },
     { page = "macros", key = "macroUpdates", label = "Automatic macro updates", target = "macroUpdates", words = "supplies food drink bandage poison coatings" },
-    { page = "macros", key = "macroCreate", label = "Create or edit macros", target = "macroSave", words = "food health drink mana bandage poison weapon oil stone class hunter misdirection mend feed revive pet" },
+    { page = "macros", key = "macroCreate", label = "Create or edit macros", target = "macroSave", words = "food health drink mana bandage poison weapon oil stone class hunter misdirection mend feed revive pet druid innervate rebirth mage counterspell polymorph paladin freedom justice priest shield dispel rogue kick blind shaman earth shock chain heal warlock recall drain life warrior heroic strike taunt" },
     { page = "setup", key = "setupGuide", label = "Run the setup guide", words = "welcome installer auto loot first login" },
 }
 for _, item in ipairs({ { "width", "Meter width" }, { "height", "Meter height" }, { "rowHeight", "Meter bar height" },
@@ -77,19 +78,20 @@ local synonyms = { characterDashboard = "recorded characters dashboard alts mone
     upgradePreference = "upgrade comparison prefer higher ilevel item level stats weapon dps hands",
     audioSync = "audio sound windows default playback output device speakers headset headphones sync",
     audioRefresh = "sync audio sound windows playback device refresh",
-    trainingPlanner = "trainer skills spells learn cost budget savings future level snapshot",
-    trainingOpen = "trainer training planner saved costs offerings",
-    trainingLevelUp = "trainer training planner level up available skills reminder",
-    buffCustom = "custom learned spell id group raid party", missingBuffExpiry = "expiry expiring duration refresh timer",
+    trainingPlanner = "class weapon trainer skills spells learn cost budget savings future level snapshot",
+    trainingOpen = "class weapon weapons master trainers locations directory faction alliance horde training planner saved costs offerings",
+    trainingLevelUp = "class trainer training planner level up available skills reminder",
+    buffCustom = "custom learned spell name icon search id group raid party", buffManage = "hidden buffs families show restore intellect spirit priest mage hunter",
+    buffAppearance = "scale icon size header lock movement rested cities class mana intellect", missingBuffExpiry = "expiry expiring duration refresh timer",
     missingBuffCombat = "combat shout thorns lightning shield righteous fury reminders",
     missingBuffWeapons = "weapon coating oil stone poison mainhand offhand",
-    bagSpaceReset = "blacklist protect trash items", scorePreset = "weights upgrades role", missingBuffClass = "poison imbue aspect upkeep" }
+    bagSpaceReset = "blacklist protect trash items", preset = "weights upgrades role automatic class character profile custom", weights = "editable custom stat weights score breakdown tooltip details", scorePreset = "weights upgrades role", missingBuffClass = "poison imbue aspect upkeep" }
 
 function Catalog:Configure(pages)
     self.pages, self.pageGroup, self.labels, self.entries = pages, {}, {}, {}
-    pages.characters = { title = "Recorded characters", description = "Your characters, gold and professions at a glance.", rows = {
+    pages.characters = { title = "Recorded characters", description = "Your characters, possessions and saved banks, together.", rows = {
         { key = "characterDashboard", label = "Record character dashboard", help = "Save level, gold, professions and inventory dates when you play each character.\nTurn recording off without deleting existing records." },
-    }, note = "Log into alts with recording enabled to update them. Gold totals cover recorded characters in this region; unknown values are omitted." }
+    }, note = "Browse saved records even with recording off. Log into alts and visit banks to refresh them. Unknown locations stay unknown; shared contents count once." }
     local old = pages.windows.rows
     pages.windows.rows = { old[1], old[2] }
     pages.windows.description = "Move supported windows, save their layout and restore it when needed."
@@ -114,6 +116,9 @@ function Catalog:Configure(pages)
         end
     end
     pages.overview.description = "Choose a section on the left or search for a setting above.\nYour existing choices are kept; each tool remains optional."
+    pages.overview.rows = {}
+    pages.overview.description = "Your tools, organized around the way you play."
+    pages.overview.note = "Every tool is optional. Your existing settings are kept; changes save automatically."
     local seen = {}
     -- Prefer dedicated pages over duplicated Overview shortcuts when finding a setting.
     local order = { "characters", "bags", "items", "tooltips", "minimap", "worldmap", "windows", "actionbars", "bars", "unitframes",

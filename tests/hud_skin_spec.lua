@@ -121,8 +121,10 @@ local function Geometry(object, width, height)
     return object
 end
 local function Button(micro)
-    local button = Widget()
-    button.icon, button.SlotHighlightTexture, button.FreeSlots = Widget(), Widget(), Widget()
+    local button = Geometry(Widget(), 45, 45)
+    button.icon, button.SlotHighlightTexture, button.FreeSlots = Geometry(Widget(), 32, 32), Widget(), Widget()
+    button.icon.parent = button
+    button.icon.centerX, button.icon.centerY = 499, 401
     button.normal, button.pushed, button.highlight = Widget(), Widget(), Widget()
     button.normal.texture, button.pushed.texture, button.highlight.texture = "normal-icon", "pushed-icon", "hover-icon"
     button.GetNormalTexture = function(self) return self.normal end
@@ -282,6 +284,21 @@ for index = 5, #names do
     equal(PanelShown(button), true, "native bag button is skinned: " .. names[index])
     equal(button.normal.vertex[4], 0, "native bag frame art is suppressed")
     equal(button.icon.vertex[4], 0.6, "native bag icon and mask are preserved")
+    local panel = skin.panels[button]
+    -- Resolve the plate from its actual two-point anchors. Native icon bounds are
+    -- smaller and off-center relative to the 45-unit clickable button.
+    local top, bottom = panel.background.points[1], panel.background.points[2]
+    local left, low, width, height = top[2]:GetRect()
+    local right, base = bottom[2]:GetRect()
+    right = right + bottom[2]:GetWidth() + (bottom[4] or 0)
+    base = base + (bottom[5] or 0)
+    left = left + (top[4] or 0)
+    low = low + height + (top[5] or 0)
+    local iconLeft, iconBottom, iconWidth, iconHeight = button.icon:GetRect()
+    equal(left, iconLeft, "bag plate starts at the visible icon rather than the click target")
+    equal(low, iconBottom + iconHeight, "bag plate follows the native icon's vertical offset")
+    equal(right - left, iconWidth, "bag plate fits the narrower native icon")
+    equal(low - base, iconHeight, "bag plate fits the native icon height")
 end
 equal(MainMenuBarBackpackButton.FreeSlots.shown, true, "native free-slot count is untouched")
 equal(CharacterBag0Slot.SlotHighlightTexture.vertex[4], 0.6, "native open/slot-match highlight is retained")
@@ -413,7 +430,7 @@ equal(TimerCount(), 0, "disable cancels its timer")
 Suite.Set = function(key, value) Suite.db[key] = value; skin:Apply() end
 SlashCmdList.WOWFOREVERSUITE("bars")
 equal(Suite.GUI.page, "bars", "bars slash command opens the new page")
-equal(Suite.GUI.tabs.bars.label.text, "Other Bars", "new page has a clear sidebar label")
+equal(Suite.GUI.tabs.bars.label.text, "Bars & Buttons", "new page has a clear sidebar label")
 equal(Suite.GUI.rows[1].label.text, "XP, honor and reputation bars", "progress skin has a settings toggle")
 equal(Suite.GUI.rows[2].label.text, "Suite bag bar skin", "bag skin has a settings toggle")
 equal(Suite.GUI.rows[3].label.text, "Suite micro menu skin", "micro skin has a settings toggle")
@@ -751,7 +768,7 @@ backpack.scale = 0.7; skin.events:OnEvent("UI_SCALE_CHANGED"); Flush()
 PixelBorders("bag-only UI scale change updates thickness", backpack, skin.panels[backpack])
 backpack.centerX, backpack.centerY = 500.4, 400.75
 BagsBar:Layout(); Flush()
-equal(skin.panels[backpack].edges[1].points[1][2], backpack, "bag borders follow fractional native movement")
+equal(skin.panels[backpack].edges[1].points[1][2], backpack.icon, "bag borders follow the native icon during fractional movement")
 equal(#skin.panels[backpack].edges[1].points, 2, "bag movement preserves original owned anchors")
 backpack:OnClick(); backpack:OnEnter(); backpack:SetButtonState("PUSHED")
 equal(backpack.clicksReceived, 1, "bag native click survives the pixel fix")
@@ -772,6 +789,40 @@ Native(function() BagsBar:SetScale(0.9); backpack:SetScale(1) end)
 equal(TimerCount(), 0, "disabled bag scale hooks cannot schedule progress-only work")
 equal(PanelShown(backpack), false, "bag disable hides pixel artwork independently")
 Enabled(false, false, false)
+-- Native icons may be replaced or temporarily lack readable layout.
+Enabled(false, true, false)
+local oldBagIcon = backpack.icon
+local replacementIcon = Geometry(Widget(), 30, 28)
+replacementIcon.parent, replacementIcon.centerX, replacementIcon.centerY = backpack, 502, 399
+backpack.icon = replacementIcon; backpack:UpdateTextures(); Flush()
+local fittedPanel = skin.panels[backpack]
+equal(fittedPanel.background.points[1][2], replacementIcon, "replacement native icon becomes the plate anchor")
+equal(fittedPanel.edges[1].points[1][2], replacementIcon, "replacement native icon becomes the border anchor")
+equal(#fittedPanel.background.points, 2, "replacement icon does not accumulate plate anchors")
+local nativeIconWidth = replacementIcon.GetWidth
+replacementIcon.GetWidth = function() return secret end
+backpack:UpdateTextures(); Flush()
+equal(PanelShown(backpack), false, "restricted icon layout cannot leave an oversized Suite plate")
+equal(backpack.normal.vertex[4], 0.6, "restricted icon layout restores readable native frame art")
+replacementIcon.GetWidth = function() return 0 end
+backpack:UpdateTextures(); Flush()
+equal(PanelShown(backpack), false, "unlaid-out icon keeps its native frame")
+replacementIcon.GetWidth = nativeIconWidth; replacementIcon.restricted = true
+backpack:UpdateTextures(); Flush()
+equal(PanelShown(backpack), false, "restricted icon anchors keep the native frame")
+replacementIcon.restricted = false; backpack:UpdateTextures(); Flush()
+equal(PanelShown(backpack), true, "readable native icon layout resumes fitted styling")
+local countBeforeCombat = #fittedPanel.background.points
+Combat(true); backpack:UpdateTextures()
+equal(#fittedPanel.background.points, countBeforeCombat, "combat icon refresh changes no owned anchors")
+LeaveCombat()
+Enabled(false, false, false)
+equal(PanelShown(backpack), false, "disabling the fitted skin hides its plate")
+equal(backpack.normal.vertex[4], 0.6, "disabling the fitted skin restores native frame tint")
+equal(replacementIcon.width, 30, "fitted skin never resizes the native icon width")
+equal(replacementIcon.height, 28, "fitted skin never resizes the native icon height")
+equal(replacementIcon.vertex[4], 0.6, "fitted skin preserves native dimming and color")
+backpack.icon = oldBagIcon
 -- Blizzard's native visibility rule must keep text on when addon frame writes are unavailable.
 -- All progress counters stay native; this fixture never exposes the underlying values.
 local nativeText, cvarWrites, secureCVar, readOnlyCVar, lockedCVar, failCVar = "0", 0, false, false, false, false

@@ -1,4 +1,1068 @@
 {
+  "clickedBuffRequests": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.85",
+    "installedExecutable": "1.60.1.70450",
+    "request": "User expects clicking incoming Arcane Intellect to announce the needed buff.",
+    "implementation": "Incoming PostClick left-button release only; live incoming-family/spell/absence/provider recheck; native localized name; instance-first then home raid/party; 30-second family and 3-second global cooldowns recorded before native attempt. No auto send, fallback, retry or foreign casting attributes.",
+    "nativeSourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "referenceFiles": [
+      {
+        "cachePath": ".cache/buff-requests-0285/ChatInfoDocumentation.lua",
+        "sha256": "996cf3c4956d7d79716c082fa7bccf06e008fd191f108c85546f9fdec66e1a73"
+      },
+      {
+        "cachePath": ".cache/buff-requests-0285/ChatFrameEditBox.lua",
+        "sha256": "6adeda4037329a0afa710277d3a7048499ec4636d80886ea0077889b02e3a494"
+      }
+    ],
+    "restrictions": "Require readable false InChatMessagingLockdown. SendChatMessage is restricted and has no documented delivery result; pcall is not server confirmation. No macro/legacy/public-channel workaround.",
+    "validation": {
+      "luaFiles": 60,
+      "behaviorChecks": 14071,
+      "tocVariants": "Identical 0.2.85",
+      "native": "Pending delivery, chat restrictions and taint smoke tests.",
+      "liveMessagesSentByDevelopmentTools": 0
+    },
+    "delivery": {
+      "package": "dist/WoWForeverSuite-0.2.85.zip",
+      "byteIdenticalSourceFiles": 68,
+      "sha256": "ad95a5f0de283269ad3231982c6fd88fcfd4b6cd61cd21d5acb5a61cb88220e2",
+      "deployment": "No deployment or junction modification."
+    }
+  },
+  "classAwareBuffReminders": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.84",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Unreported. Native 0.2.84 validation pending.",
+    "request": "Recommendation #8 and reported Hunter/Mage missing Intellect. Preserve useful defaults while improving class relevance and configuration.",
+    "diagnosis": "Old Route deliberately hid incoming candidates from the icon bar; positive-only level validation rejected zero; Context hid reminders in rested areas. No native trace determines which suppression path affected the reported encounter.",
+    "behavior": "Persistent gold Group icons carry no secure cast/item/target attributes. Provider class/level is a suggestion, not proof of learned abilities. Existing local-only throttled notices remain; no group messages or automatic actions.",
+    "relevance": "Explicit Forever Mana/physical class capabilities, not temporary displayed power. Per-recipient localized roots/aura equivalents and learned alternatives. Broad hybrid defaults are configurable; no spec-optimal or multi-provider assignment claim.",
+    "defaults": {
+      "masterFeature": false,
+      "scale": 1,
+      "iconSize": 34,
+      "movementLocked": false,
+      "restedAreas": true,
+      "classAwareTargets": true,
+      "existingIndependentFlags": "Preserved"
+    },
+    "officialSources": [
+      {
+        "url": "https://worldofwarcraft.blizzard.com/en-gb/news/24301514",
+        "finding": "Forever Priest baseline Divine Spirit at 30 and Fear Ward at 20 replace the old Classic talent assumption."
+      },
+      {
+        "url": "https://worldofwarcraft.blizzard.com/en-gb/news/24301515",
+        "finding": "Hunter notes describe Mana/Spirit regeneration and Intellect-linked attack power. Trueshot remains a talent; do not infer it for teammates."
+      },
+      {
+        "url": "https://worldofwarcraft.blizzard.com/en-us/news/24302099",
+        "finding": "Resistance auras cover the raid; retain party scope for ordinary auras. Salvation change is explicitly not yet live and is not implemented here."
+      }
+    ],
+    "nativeSourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "referenceFiles": [
+      {
+        "cachePath": ".cache/training-types-0273/Blizzard_APIDocumentationGenerated__SpellDocumentation.lua",
+        "sha256": "86583940d9a2c4594092eb248a1396a93a285084872af1f3f4875169796e7d2b",
+        "finding": "GetSpellInfo and GetSpellLevelLearned; level is a non-nil number, may be level-link-adjusted. Zero must not be treated as an invalid spell ID."
+      },
+      {
+        "cachePath": ".cache/training-buffs-0262/Blizzard_APIDocumentationGenerated__SpellBookDocumentation.lua",
+        "sha256": "509fabe6d33de10f7166dc71bfb853dc969803d86536acac0833d30b1d0f9179",
+        "finding": "SpellBookItemInfo requires boolean isPassive/isOffSpec. Preserve strict validation; use the existing known/highest-rank learned-book reader."
+      }
+    ],
+    "sourceQualification": "Reused exact installed-executable-matching narrow API/UI references; official Forever notes guide class defaults. Neither proves ordinary-addon access, native casting, running build behavior or taint safety.",
+    "ui": "Three inline 780-unit forms, learned-name/native-icon picker, single-family hide/restore/alternative controls, paged/filtered lists, compact empty states and display controls. Existing custom IDs, positions and profile state preserved.",
+    "lifecycle": "No idle worker; one visible coalesced 0.1-second metadata callback, cancelled on dismissal/combat. Main secure bar retains combat state-driver hiding. Protected scale/size/anchors only outside combat.",
+    "validation": {
+      "luaFiles": 60,
+      "behaviorChecks": 14004,
+      "additionalChecks": 264,
+      "tocVariants": "Identical 0.2.84",
+      "native": "Pending class, rendering, casting, persistence and taint smoke tests.",
+      "layout": "Approximate model contact sheet inspected; model display/short/empty forms have zero control overlaps, no native rendering claim."
+    },
+    "implementationFiles": [
+      {
+        "path": "src/WoWForeverSuite/Core.lua",
+        "sha256": "b0b16dddd3ad87b9a9f8293aa38adbd9366984045a8d20aaf4f9c8c19bcb0d16"
+      },
+      {
+        "path": "src/WoWForeverSuite/BuffCatalog.lua",
+        "sha256": "a46793ad4c0263a9c1349a207ad6fbf6f8d60bf6fb37a13e9108baf78a12626e"
+      },
+      {
+        "path": "src/WoWForeverSuite/MissingBuffs.lua",
+        "sha256": "0d83537fb715e003d57ec794c8d40a6b1994800b95498f4191a39bd3a409970e"
+      },
+      {
+        "path": "src/WoWForeverSuite/BuffReminders.lua",
+        "sha256": "bff9cde6b949e9b5b1b8b5334465e9186e406800d5e3d191d7a4337b1be7711b"
+      },
+      {
+        "path": "src/WoWForeverSuite/BuffSettings.lua",
+        "sha256": "0924e17d0ef723c6e6e7d199f337d6fbc403fb19090866a0659c412caedf2f32"
+      },
+      {
+        "path": "src/WoWForeverSuite/GUI.lua",
+        "sha256": "ae8ad8900b2ba8a61f4d5683cbd00e1873193118dcfc71eadd47a9a1c9f11100"
+      },
+      {
+        "path": "src/WoWForeverSuite/SettingsCatalog.lua",
+        "sha256": "9ffe0aaeeadc0213da68225c6fb4419f5e9fd628d9f8022fd58417b984a5292a"
+      }
+    ],
+    "delivery": {
+      "package": "dist/WoWForeverSuite-0.2.84.zip",
+      "byteIdenticalSourceFiles": 68,
+      "sha256": "ef1bff46d69e457ec007bdc8d7dd65bf46403dfa48e15a3dbe3587576b73e6ea",
+      "deployment": "No deployment or junction modification."
+    },
+    "nativeFollowup": {
+      "date": "2026-10-19",
+      "userReport": "When I clicked Arcane Intellect, it didn't announce in chat that I needed it",
+      "qualification": "Requests explicit click-to-chat behavior; native delivery of 0.2.85 remains pending."
+    }
+  },
+  "standaloneProfilesNavigation": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.83",
+    "request": "Make Profiles a standalone primary section alongside Home, Bags & Gear and Combat.",
+    "change": "Move the existing page from Home to a sixth primary workspace before Setup. Single-page groups use the primary button directly, without a duplicate child. Primary styling remains controlled by the workspace controller.",
+    "preserved": "All 25 routes, profile state/behavior, search, slash shortcuts and scrollbar controller.",
+    "sourceQualification": "Local navigation-only change; no new API or native source assumption.",
+    "validation": {
+      "luaFiles": 59,
+      "behaviorChecks": 13740,
+      "tocVariants": "Identical 0.2.83",
+      "native": "Pending sidebar selection, overlap and scale smoke check."
+    },
+    "delivery": {
+      "package": "dist/WoWForeverSuite-0.2.83.zip",
+      "byteIdenticalSourceFiles": 67,
+      "sha256": "a02df0d0b672023f0ebaccb036f7caba438ca332d42fb6e5360201de1abb07d2",
+      "deployment": "No deployment or junction modification."
+    },
+    "nativeFollowup": {
+      "date": "2026-10-19",
+      "userReport": "Perfect, that looks good.",
+      "qualification": "Positive standalone sidebar presentation feedback; full profile persistence/taint audit remains unreported."
+    }
+  },
+  "settingsLayoutProfiles": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.82",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Not reported; native profile validation pending.",
+    "request": "Implement recommendation #3: named settings/layout profiles, character copying and personal overrides with useful automatic defaults.",
+    "migration": "Existing effective preferences become shared Default. Character assignment/overrides preserved across macro-owned root reconstruction; no optional tool auto-enables.",
+    "scope": "Suite defaults except schema, setupGuide, inventory, inventoryBrowser, mailContacts, macroOwnership, bagSpaceBlacklist, scorePreset and upgradePreference. Native restoration keys absent from defaults remain outside profiles. Character gear/training/leveling/macro state untouched.",
+    "switching": "Reviewed user click saves outgoing runtime identity, persists next character assignment and requests ReloadUI. No hot module/layout apply. Combat and pending reload block further mutations. Missing/failed reload retains selection with /reload instruction.",
+    "inheritance": "Personal differences per named profile at top-level setting granularity; changed nested layout/choice tables are independent units. Returning to shared keeps private differences without publishing them.",
+    "limits": {
+      "profilesIncludingDefault": 12,
+      "retainedCharacterSourceSnapshotsOnLoad": 80,
+      "snapshotDepth": 8,
+      "entriesPerTableSetting": 4096,
+      "nameBytes": 40
+    },
+    "nativeSource": {
+      "commit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+      "path": "Interface/AddOns/Blizzard_ChatFrameBase/Shared/SlashCommands.lua",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63/Interface/AddOns/Blizzard_ChatFrameBase/Shared/SlashCommands.lua",
+      "cachePath": ".cache/settings-profiles-0282/SlashCommands.lua",
+      "sha256": "8c59b81deb2d8ccf9cb9687dfacd7ff7e82d1a8a83f8414843a23b8d58819072",
+      "finding": "Native /reload and addon enable/disable slash commands call ReloadUI directly. This is entry-point evidence, not proof of successful ordinary-addon invocation or taint safety."
+    },
+    "existingAPIs": "Reuse existing UnitGUID, UnitName, GetNormalizedRealmName, Frame/EditBox/font and combat APIs. No hidden combat information, native hook or idle worker.",
+    "validation": {
+      "luaFiles": 59,
+      "behaviorChecks": 13805,
+      "additionalChecks": 287,
+      "tocVariants": "Identical 0.2.82",
+      "native": "Pending; see docs/testing.md."
+    },
+    "implementationFiles": [
+      {
+        "path": "src/WoWForeverSuite/Profiles.lua",
+        "sha256": "5f04f91e591744614c975973b988961a10b876168a21b36dd729fccc24e1090e"
+      },
+      {
+        "path": "src/WoWForeverSuite/ProfileSettings.lua",
+        "sha256": "a606f54710a6be8eebf9e6f89e275dc8f92284bdbdbc73e0c748209d2f1be9b9"
+      },
+      {
+        "path": "src/WoWForeverSuite/Core.lua",
+        "sha256": "04567c2b2fec3db8c0718e625ac0235a7abe4ce971812c5b76078d6c508827d6"
+      },
+      {
+        "path": "src/WoWForeverSuite/GUI.lua",
+        "sha256": "0ef93349795a6f812e7eca44b967fd6ee272e1908592c953fc8241b9d8b9b142"
+      },
+      {
+        "path": "src/WoWForeverSuite/SettingsCatalog.lua",
+        "sha256": "93f5c81113794dd219b405ccd207aaf8c4b6b6bd71f1b5a19846ec2f99a9668c"
+      },
+      {
+        "path": "src/WoWForeverSuite/Setup.lua",
+        "sha256": "57351ca237a37c74ca44bf1ff224c7a4135c9bf8cc83d807b593016821c3ae33"
+      }
+    ],
+    "delivery": {
+      "package": "dist/WoWForeverSuite-0.2.82.zip",
+      "byteIdenticalSourceFiles": 67,
+      "sha256": "cc42b0a051681cd94d91c15ac48645258c41cd08ef6d2c4e75da6a02c9e039d7",
+      "deployment": "No deployment or junction modification."
+    }
+  },
+  "upgradeTooltipGlyphs": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.81",
+    "userEvidence": {
+      "screenshot": "C:/Users/DROCKZ~1/AppData/Local/Temp/codex-clipboard-ba58cdf9-b564-4653-b8a2-083ecdb811ec.png",
+      "observation": "Boxes coincide with U+2192 in score label and values; supported middle dots remain visible."
+    },
+    "change": "Use ASCII -> and x in owned upgrade comparison text. Preserve scores, names, localized strings, native fonts and tooltip APIs.",
+    "sourceQualification": "Native user screenshot and local text inspection; no new API research or external source required.",
+    "implementationFiles": [
+      {
+        "path": "src/WoWForeverSuite/Tooltips.lua",
+        "sha256": "dabd7e672c3efff80305006a7d6ef0b12123beaf95bc44aa3e3ef60d02461f2c"
+      },
+      {
+        "path": "tests/gear_profiles_spec.lua",
+        "sha256": "a373ceca53259a82d315c4c35900d0563da0c2caa3b39f945698a98c1b766584"
+      }
+    ],
+    "validation": {
+      "luaFiles": 57,
+      "behaviorChecks": 13518,
+      "additionalChecks": 1,
+      "tocsIdentical": true,
+      "nativeResults": "Pending game-font retest."
+    },
+    "delivery": {
+      "archive": "dist/WoWForeverSuite-0.2.81.zip",
+      "sourceFiles": 65,
+      "byteIdentical": true,
+      "sha256": "d34c2c8befcadd9977ef3d8c0c834a742cf45f6e1c4f6d314f2ef436bcbf99c8"
+    },
+    "nativeFollowup": {
+      "date": "2026-10-19",
+      "userReport": "That worked.",
+      "qualification": "Positive native confirmation of the reported glyph fix; build/Interface, full-breakdown/localization and formal taint checks unreported."
+    }
+  },
+  "classicClassMacroRecipes": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.80",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Unreported; installed executable read only.",
+    "request": "Research common Classic macros online and add one or two per class, similar to existing Hunter entries; skip unsupported ideas.",
+    "research": [
+      {
+        "class": "Druid",
+        "recipes": [
+          "Innervate",
+          "Rebirth"
+        ],
+        "urls": [
+          "https://us.forums.blizzard.com/en/wow/t/macro-help/395490",
+          "https://eu.forums.blizzard.com/en/wow/t/battle-res-rebirth-mouseover-macro/128725"
+        ],
+        "notes": "Mouseover utility; add explicit living/dead guards, friendly-target fallback, self fallback only for Innervate. Omit chat announcements and form cancellation."
+      },
+      {
+        "class": "Mage",
+        "recipes": [
+          "Counterspell",
+          "Polymorph"
+        ],
+        "urls": [
+          "https://www.icy-veins.com/wow-classic/classic-guide-to-mages-best-macros"
+        ],
+        "notes": "Interrupt cancels current cast; harmful mouseover/current-target variants for both. No talents, ranks or named focus required."
+      },
+      {
+        "class": "Paladin",
+        "recipes": [
+          "Hammer of Justice",
+          "Blessing of Freedom"
+        ],
+        "urls": [
+          "https://www.icy-veins.com/wow-classic/classic-guide-to-paladins-best-macros"
+        ],
+        "notes": "Emergency stun stops current cast; Freedom targets living friendly mouseover/target/self."
+      },
+      {
+        "class": "Priest",
+        "recipes": [
+          "Power Word: Shield",
+          "Dispel Magic"
+        ],
+        "urls": [
+          "https://www.icy-veins.com/wow-classic/classic-guide-to-priests-best-addons-and-macros",
+          "https://www.wowhead.com/classic/guide/classes/priest/healer-macros"
+        ],
+        "notes": "Friendly shield; dispel prioritizes a living ally/enemy mouseover, then target, then self. No automatic debuff detection or Shadowform cancellation."
+      },
+      {
+        "class": "Rogue",
+        "recipes": [
+          "Kick",
+          "Blind"
+        ],
+        "urls": [
+          "https://www.icy-veins.com/wow-classic/classic-guide-to-rogues-best-macros",
+          "https://us.forums.blizzard.com/en/wow/t/combining-mouseover-and-focus-macro/78855"
+        ],
+        "notes": "Harmful mouseover/current-target versions. No targeting commands, combo-point preservation claim, focus requirement or aura cancellation."
+      },
+      {
+        "class": "Shaman",
+        "recipes": [
+          "Earth Shock",
+          "Chain Heal"
+        ],
+        "urls": [
+          "https://www.icy-veins.com/wow-classic/classic-guide-to-shamans-best-macros"
+        ],
+        "notes": "Stopcasting interrupt with normal highest learned rank; friendly mouseover/target/self healing. No rank-one text requiring localization edits."
+      },
+      {
+        "class": "Warlock",
+        "recipes": [
+          "Pet recall",
+          "Drain Life"
+        ],
+        "urls": [
+          "https://www.icy-veins.com/wow-classic/classic-guide-to-warlocks-best-macros"
+        ],
+        "notes": "Passive then Follow, leaving pet Passive; broader nochanneling guard protects any existing channel. No pet family names or multi-pet spell branches."
+      },
+      {
+        "class": "Warrior",
+        "recipes": [
+          "Heroic Strike & attack",
+          "Taunt"
+        ],
+        "urls": [
+          "https://www.icy-veins.com/wow-classic/classic-guide-to-warriors-best-macros",
+          "https://eu.forums.blizzard.com/en/wow/t/classic-anni-macro-list/563874",
+          "https://www.wowhead.com/classic/guide/classes/warrior/fury/dps-macros"
+        ],
+        "notes": "Current-enemy Heroic Strike with non-toggle marker followed by startattack; harmful mouseover/target Taunt. No stance or equipment-name assumptions."
+      }
+    ],
+    "hunter": "Existing Misdirection and Pet care retained without body/selection changes.",
+    "selectionQualification": "Authored Classic guides plus firsthand community examples establish common patterns. Adapted conditional guards/localization instead of copying rank/equipment/chat/form/stance assumptions. Forum failure reports are not proof of working posted examples. Source recommendations are not native Forever compatibility validation.",
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "referenceFiles": [
+      {
+        "cachePath": ".cache/training-types-0273/Blizzard_APIDocumentationGenerated__SpellDocumentation.lua",
+        "sha256": "86583940d9a2c4594092eb248a1396a93a285084872af1f3f4875169796e7d2b"
+      }
+    ],
+    "apiQualification": "Existing C_Spell.GetSpellInfo may return nothing; guard info and names. Spell metadata does not prove the spell is learned. Complete templates require learned abilities and obey native range/resource/reagent/form/stance/target rules.",
+    "implementation": "Sixteen new recipes; two per supported class including retained Hunter pair. Trusted condition strings, optional stopcasting/startattack/non-toggle marker, validated static pet recall. New utilities ignore incomplete bag data. All names/bodies pass existing byte limits and ownership-safe writer checks. No new native casting API, combat data, hook, event or timer.",
+    "ui": "Current-class section only, localized preview and explicit Create, unrelated item controls hidden, class spell search terms. Pool remains bounded to 17 rows/3 headings. Inactive records retained; no auto-creation from navigation.",
+    "adaptations": "Friendly living mouseover/target/self; dead-only Rebirth; hostile living mouseover/target; no explicit form/stance/gear changes or messages. Channel guard preserves all active channels. Pet recall leaves Passive. Heroic Strike uses ! and current-target autoattack.",
+    "implementationFiles": [
+      {
+        "path": "src/WoWForeverSuite/Macros.lua",
+        "sha256": "106a8fcb8a83af78da72b3657f298a2f32dd48290fd2b6f2184006f535f77fdc"
+      },
+      {
+        "path": "src/WoWForeverSuite/GUI.lua",
+        "sha256": "b39db8fc9291713958e4d8c5acce6194f622c9765cf0459fce6f47eca7053627"
+      },
+      {
+        "path": "src/WoWForeverSuite/SettingsCatalog.lua",
+        "sha256": "920e5049bde7b2467e7761467eb0946faf08b01fd78060fdc1bf4119b9661038"
+      },
+      {
+        "path": "tests/class_macros_spec.lua",
+        "sha256": "668eadd4292628c4a4f5c64783c78a6831e2d649394624796314682f59271038"
+      }
+    ],
+    "validation": {
+      "command": "node scripts/check-addon.cjs",
+      "luaFiles": 57,
+      "behaviorChecks": 13517,
+      "baselineChecks": 12943,
+      "additionalChecks": 574,
+      "tocsIdentical": true,
+      "nativeResults": "Pending; substitutes do not verify live spell metadata/learned state, secure macro parser/execution/targeting, localization, persistence or taint."
+    },
+    "delivery": {
+      "archive": "dist/WoWForeverSuite-0.2.80.zip",
+      "sourceFiles": 65,
+      "byteIdentical": true,
+      "sha256": "662b5944c33fdfe277a15f880f924b40b05a8358909743cab9e47ff6d62abe8c",
+      "deployment": "Existing game junction unchanged; no remote publication."
+    }
+  },
+  "guiWorkspaceRedesign": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.79",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Unreported; installed file read only.",
+    "request": "Professional overall redesign with less crowding, fewer categories and a rectangular layout that fits more content.",
+    "nativePriorResult": "User confirms 0.2.78 scrollbar feel; preserve controller. Redesigned layout itself untested in game.",
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "sourceQualification": "Reuse exact cached 70450 owned-frame/Slider references. No new game-data APIs, external implementation/assets or native frame hooks. UIParent dimensions and Suite-owned geometry drive fit; no combat-data inference.",
+    "referenceFiles": [
+      {
+        "cachePath": ".cache/window-layers-0270/SimpleFrameAPIDocumentation.lua",
+        "sha256": "c00bc77ee27f8fd81ba8b8d1bfd85fbd0ad817b22457adbe5adca6876a1d604a"
+      }
+    ],
+    "layout": {
+      "window": [
+        1120,
+        760
+      ],
+      "sidebar": 208,
+      "content": 816,
+      "viewport": 500,
+      "priorCommonViewport": 368,
+      "workspaces": [
+        "Home",
+        "Bags & Gear",
+        "Combat",
+        "Interface",
+        "Everyday"
+      ],
+      "separateUtility": "Setup Guide",
+      "routesRetained": 24,
+      "detailWidth": 780,
+      "settingColumns": 2,
+      "gearColumns": 3,
+      "gearEditorHeight": 586,
+      "priorGearEditorHeight": 730
+    },
+    "compatibility": "Original route keys, slash/search destinations, optional switches, defaults, snapshots and per-character gear profiles retained. Home now navigates instead of duplicating switches. Existing saved window position retained; no new sizing preference.",
+    "lifecycle": "Fit to valid UIParent dimensions with 48 units of allowance and no enlargement past scale 1. Coalesce fit during combat; refit on opening/display/UI-scale changes. Existing gesture-only OnUpdate retained without idle workers.",
+    "implementationFiles": [
+      {
+        "path": "src/WoWForeverSuite/GUI.lua",
+        "sha256": "9c66a826d9661b965b1b01b0a667a569c86f248b02e997f1526d688d1722b72f"
+      },
+      {
+        "path": "src/WoWForeverSuite/SettingsCatalog.lua",
+        "sha256": "9a5bce6be0bd61c5158f1fec700eeceeb1f9cc2f50257ebfbd09bf023fcea9e6"
+      },
+      {
+        "path": "src/WoWForeverSuite/GearSettings.lua",
+        "sha256": "c85aee04dd081d176deac6a13b07c9b9a889c8110184666e254c7d41cace19d7"
+      },
+      {
+        "path": "src/WoWForeverSuite/CharacterDashboard.lua",
+        "sha256": "3502a5caddc1d01be67899c53447653d37d3783ec6f48cdefc3de4b49340bab2"
+      },
+      {
+        "path": "src/WoWForeverSuite/InventoryBrowser.lua",
+        "sha256": "e404db0dcbd452ce8a339881876dd9d04a57e527d033a35fcf1c0ba2f3cd2e2e"
+      },
+      {
+        "path": "tests/workspace_layout_spec.lua",
+        "sha256": "725312aa5773c8699462929bac2633160c830bb095a094516ef822c5f155d0b2"
+      }
+    ],
+    "validation": {
+      "command": "node scripts/check-addon.cjs --workspace-preview",
+      "luaFiles": 57,
+      "behaviorChecks": 12943,
+      "baselineChecks": 10866,
+      "netAdditionalChecks": 2077,
+      "tocsIdentical": true,
+      "modelPreview": "Home, Minimap and Bags rendered from geometry JSON and visually inspected; approximate fonts, not native screenshots.",
+      "nativeResults": "Pending redesigned-layout smoke test; substitutes/model renders do not verify native fonts, scale/layering/input, persistence or taint."
+    },
+    "delivery": {
+      "archive": "dist/WoWForeverSuite-0.2.79.zip",
+      "sourceFiles": 65,
+      "byteIdentical": true,
+      "sha256": "26ffb30a00c978578cf3e5f419ae868a51a162937fcbe9a3ccdf472d6e881e4c",
+      "deployment": "Existing game junction unchanged; no remote publication."
+    },
+    "nativeFollowup": "October 19: user says redesigned GUI looks incredible and supplies a Hunter macro-section screenshot. Positive layout feedback; running build/Interface and full smoke results remain unreported."
+  },
+  "guiScrollbarGestures": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.78",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Unreported; video shows addon 0.2.77.",
+    "request": "Inspect native recording and fix remaining scrollbar jump behavior while preserving improved Gear Details direction.",
+    "userEvidence": {
+      "video": "C:/Users/Drockzoids/Videos/2026-10-19 12-54-39.mp4",
+      "durationSeconds": 26.97,
+      "videoSize": "1920x1080 at 60 fps",
+      "observation": "Long thumbs on Action Bars and Other Bars repeatedly jump during small cursor gestures, especially around 15–23 seconds. User reports Gear Details improved."
+    },
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "sourceQualification": "Reuse exact 70450 frame API and prior scrollbar reference cache. Native Slider engine internals are not inferred from declarations. Video confirms jumping but not its engine-internal cause; replace that gesture path with explicit owned thumb geometry.",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleSliderAPIDocumentation.lua",
+        "cachePath": ".cache/scroll-direction-0266/Interface__AddOns__Blizzard_APIDocumentationGenerated__SimpleSliderAPIDocumentation.lua",
+        "sha256": "f988b61cf0b1c777fb6c755e49faf20827a06613649d6f7ae1ec6e99f60fa24b"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_SharedXML/Shared/Scroll/MinimalScrollBar.lua",
+        "cachePath": ".cache/scroll-direction-0266/Interface__AddOns__Blizzard_SharedXML__Shared__Scroll__MinimalScrollBar.lua",
+        "sha256": "922d270366c375b9ab4903c8a7e97c4cb021cc6f2204d013631affd5c159da48"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_SharedXML/Shared/Scroll/ScrollBar.lua",
+        "cachePath": ".cache/scroll-direction-0266/Interface__AddOns__Blizzard_SharedXML__Shared__Scroll__ScrollBar.lua",
+        "sha256": "496ac3b9ff889aea10be4cdde1edd0e7c198ae6a02f02268bac45b85189d33fb"
+      },
+      {
+        "cachePath": ".cache/window-layers-0270/SimpleFrameAPIDocumentation.lua",
+        "sha256": "c00bc77ee27f8fd81ba8b8d1bfd85fbd0ad817b22457adbe5adca6876a1d604a"
+      }
+    ],
+    "implementation": "One shared Frame track and Button thumb. Preserve initial grab; map cursor delta divided by effective scale across track height minus thumb height to content range. Page track clicks by 90% viewport; wheel 40 units. Native horizontal preference sliders untouched.",
+    "lifecycle": "Register drag-release/combat events and OnUpdate only during gestures. Cancel on release, hide, close/navigation, range/viewport changes, restricted cursor/scale or combat. Defer thumb anchors/size in combat, clear coalesced geometry callback after settlement. No new persisted state or native UI hooks.",
+    "implementationFiles": [
+      {
+        "path": "src/WoWForeverSuite/GUI.lua",
+        "sha256": "4f13a11a039e79f3a0302150020b0fb4582ed48a9140b7e0581bd77d5c42a8e1"
+      },
+      {
+        "path": "tests/gui_spec.lua",
+        "sha256": "32cf52d4f3a6dc7281e2b065c1f7f1c7137eda66fb4cb0605aa7c62e42e7b767"
+      },
+      {
+        "path": "tests/macros_spec.lua",
+        "sha256": "04501403f9a0bc0878354315aaaaff6e1ba5e6569abea41e1e88656373062dad"
+      },
+      {
+        "path": "tests/scrollbars_spec.lua",
+        "sha256": "840827b32431d62231583ad69a7c66ab1e6a5b649f83b7b71e9b032b104db870"
+      }
+    ],
+    "validation": {
+      "command": "node scripts/check-addon.cjs",
+      "luaFiles": 57,
+      "behaviorChecks": 10866,
+      "baselineChecks": 10566,
+      "netAdditionalChecks": 300,
+      "tocsIdentical": true,
+      "coverage": "Cursor-driven actual handlers, bidirectional travel, long-thumb grab edges/center, three scales, one-unit correspondence, no press jump, synchronization, paging, wheel, range changes, lifecycle, secret input and all 24 settings pages.",
+      "nativeResults": "Pending; substitute cursor fixtures cannot establish native pointer capture, rendering, API behavior or taint safety."
+    },
+    "delivery": {
+      "archive": "dist/WoWForeverSuite-0.2.78.zip",
+      "sourceFiles": 65,
+      "byteIdentical": true,
+      "sha256": "5953f85fdf3528b1a5df1a4dfdbdb075336e8ac5b7e36ec4f4c4b17892baa52c",
+      "deployment": "Existing game junction unchanged; no remote publication."
+    },
+    "nativeFollowup": "October 19: user says 0.2.78 is perfect and feels exactly as intended. Native gesture feel confirmed; running build and formal taint results remain unreported. Controller retained in 0.2.79."
+  },
+  "guiScrollbarConsistency": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.77",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Not supplied; corrected native retest pending.",
+    "request": "Review GUI scrollbar accuracy after native Gear Details report shows thumb opposite content and reversed dragging.",
+    "userEvidence": {
+      "screenshot": "C:/Users/DROCKZ~1/AppData/Local/Temp/codex-clipboard-94dfc8b9-2205-446a-86c0-f0521700e7c1.png",
+      "observation": "Content at bottom with thumb at top; user reports downward dragging scrolls back to top."
+    },
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "sourceQualification": "Reused cached exact-build Slider API and native ScrollBar references. API signatures do not declare raw Slider endpoint direction; native ScrollBar uses a separate controller. Current direction evidence is the supplied native screenshot/report, which disproves the 0.2.66 inversion. No new source fetch.",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleSliderAPIDocumentation.lua",
+        "cachePath": ".cache/scroll-direction-0266/Interface__AddOns__Blizzard_APIDocumentationGenerated__SimpleSliderAPIDocumentation.lua",
+        "sha256": "f988b61cf0b1c777fb6c755e49faf20827a06613649d6f7ae1ec6e99f60fa24b"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_SharedXML/Shared/Scroll/MinimalScrollBar.lua",
+        "cachePath": ".cache/scroll-direction-0266/Interface__AddOns__Blizzard_SharedXML__Shared__Scroll__MinimalScrollBar.lua",
+        "sha256": "922d270366c375b9ab4903c8a7e97c4cb021cc6f2204d013631affd5c159da48"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_SharedXML/Shared/Scroll/ScrollBar.lua",
+        "cachePath": ".cache/scroll-direction-0266/Interface__AddOns__Blizzard_SharedXML__Shared__Scroll__ScrollBar.lua",
+        "sha256": "496ac3b9ff889aea10be4cdde1edd0e7c198ae6a02f02268bac45b85189d33fb"
+      }
+    ],
+    "scope": [
+      "Main GUI viewport across all 24 settings pages",
+      "Macro recipe list",
+      "Macro preview",
+      "Setup review"
+    ],
+    "change": "Use direct offset/range fraction in both directions. Explicit nested state update on range changes without relying on a follow-up callback. Preserve wheel steps, thumb sizing, input guards, combat geometry deferral, saved preferences and horizontal numeric sliders.",
+    "implementationFiles": [
+      {
+        "path": "src/WoWForeverSuite/GUI.lua",
+        "sha256": "455770e3f4aeef704fc3d9ff6204175a82006a8027a8ba3f0a1497d5cf36cd61"
+      },
+      {
+        "path": "tests/gui_spec.lua",
+        "sha256": "d306e06405d97f8246dd3ad6b2a5ab90afe62a2275b675d4c1c7960d09ca72ea"
+      },
+      {
+        "path": "tests/macros_spec.lua",
+        "sha256": "43a3a2aa6a1695ce0f389be2cefbd96c70f784ad5e39a2523ab9e28a09861d5a"
+      },
+      {
+        "path": "tests/scrollbars_spec.lua",
+        "sha256": "82e2f1cd856c4006d03ec03f7fd8478b7e42f1dd0550b50ebd67fbebd3f649a2"
+      }
+    ],
+    "validation": {
+      "command": "node scripts/check-addon.cjs",
+      "luaFiles": 57,
+      "behaviorChecks": 10566,
+      "baselineChecks": 10207,
+      "additionalChecks": 359,
+      "tocsIdentical": true,
+      "regression": "New physical-position fixture fails on previous code: top input 0 yields content offset 800. Passes after correction.",
+      "nativeResults": "Pending; substitute tests do not establish actual drag/track gestures, visual accuracy or taint safety."
+    },
+    "delivery": {
+      "archive": "dist/WoWForeverSuite-0.2.77.zip",
+      "sourceFiles": 65,
+      "byteIdentical": true,
+      "sha256": "b86cfae7ab9b345022e06624da1106f3280f6a0af2c96064287e5c0018340066",
+      "deployment": "No junction changes or remote publication."
+    },
+    "nativeFollowup": "October 19 video shows 0.2.77 still jumps on long thumbs; user reports Gear Details improved. Gesture implementation replaced in 0.2.78."
+  },
+  "characterInventoryWorkspace": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.76",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Not supplied; native testing postponed by user.",
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "request": "Professional unified character, recorded-inventory and saved-bank browsing with useful defaults and optional refinements.",
+    "sourceQualification": "Reuse exact cached 70450 item/unit/frame declarations and existing native tooltip and bank-view patterns. No new remote source fetch or community-export assumption.",
+    "defaults": "All same-region recorded items, all locations, blank query; recording flags remain unchanged and independently default off. Eight account-wide saved views are optional.",
+    "dataAndSecurity": "Validate restricted/nil values; same-region owner scopes; captured-empty distinct from unknown; shared stock once; partial and stale records disclosed. Explicit saved-bank context never changes capture context or invokes a native transaction. No live scans introduced.",
+    "interface": "Nested Characters/Inventory tabs, item rows with quantities and source age, search and owner/location filters, eight saved views, explicit owner bank action, standard modified clicks. Ordinary scrolling and Shift-wheel paging. Item variants aggregate by ID; native equipment comparisons concern the logged-in character.",
+    "lifecycle": "Lazy owned widgets; visibility-bound events; finite 32-ID metadata request batches; cancellable coalesced refreshes; no idle OnUpdate; combat defers presentation and dismissal cancels it.",
+    "referenceFiles": [
+      {
+        "cachePath": ".cache/training-buffs-0262/Blizzard_APIDocumentationGenerated__ItemDocumentation.lua",
+        "sha256": "59c5dd2f70757cdb9bc4511cb0fafe6287bbfb51d58a7389097dcbb485785af0"
+      },
+      {
+        "cachePath": ".cache/training-dock-0264/Interface__AddOns__Blizzard_APIDocumentationGenerated__UnitDocumentation.lua",
+        "sha256": "a823e84f90fabe58d9ffe547ea17eae83708d451e593b4052bce002cc02ce5c1"
+      },
+      {
+        "cachePath": ".cache/window-layers-0270/SimpleFrameAPIDocumentation.lua",
+        "sha256": "c00bc77ee27f8fd81ba8b8d1bfd85fbd0ad817b22457adbe5adca6876a1d604a"
+      }
+    ],
+    "implementationFiles": [
+      {
+        "path": "src/WoWForeverSuite/InventoryBrowser.lua",
+        "sha256": "87baaa767ae30175a5d118b2a366a214a059cc2c3de032b346b412ea7837f14f"
+      },
+      {
+        "path": "src/WoWForeverSuite/InventorySearch.lua",
+        "sha256": "a05d8d1117dac75111c8cc1ef32d89daeedba181134a97042566f08bd04d9ef3"
+      },
+      {
+        "path": "src/WoWForeverSuite/CharacterDashboard.lua",
+        "sha256": "2c67060a12c86d65426866c1a27dd56368826b537f873525db41e9bde23ffbde"
+      },
+      {
+        "path": "src/WoWForeverSuite/OfflineBank.lua",
+        "sha256": "3c9f73d8588b49ecee69a7e356b40bada7bee3449c0c58bf522b2f8a69217529"
+      },
+      {
+        "path": "src/WoWForeverSuite/Core.lua",
+        "sha256": "8eb3c20c50dadfe6d0413fdc8868a018791bc0bd0a491b7f3a812a733640b9bb"
+      },
+      {
+        "path": "src/WoWForeverSuite/GUI.lua",
+        "sha256": "f9a604fccb601071ecb8dacaee89908cab67447b8a7357843f790f322a764048"
+      },
+      {
+        "path": "src/WoWForeverSuite/SettingsCatalog.lua",
+        "sha256": "daa44a470b0b1b2b622303d170778fca229b0439da0a32088782a78a9fc2bba7"
+      }
+    ],
+    "validation": {
+      "luaFiles": 57,
+      "behaviorChecks": 10207,
+      "baselineChecks": 10086,
+      "additionalChecks": 121,
+      "tocs": "Identical version 0.2.76",
+      "nativeResults": "Pending; substitute tests do not verify native visuals, real API data, persistence, performance or taint safety."
+    },
+    "delivery": {
+      "archive": "dist/WoWForeverSuite-0.2.76.zip",
+      "sourceFiles": 65,
+      "byteIdentical": true,
+      "sha256": "2ed0ec3b45b003186438ee2a0362723b97d43bf65a68e35c870aed623ea2891f",
+      "deployment": "No junction changes or remote publication."
+    }
+  },
+  "gearComparisonProfiles": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.75",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Not supplied; this turn performs source/substitute checks only.",
+    "request": "Improve gear comparisons with character-local editable weights and explanations; built-in useful defaults must not require editing.",
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "sourceQualification": "Reused exact cached 70450 ItemDocumentation, UnitDocumentation and frame API references. GetItemStats may return nothing; UnitClass may return nothing and has identity restrictions. No new source fetch or whole-cache refresh. Source signatures do not validate numerical gameplay weights.",
+    "defaults": "New characters: Automatic/Stats. Existing characters: one-time legacy role/mode migration. Class leveling starters are disclosed heuristic preferences, not talent/spec inference or calibrated simulations. Upgrade enable state remains independent and default off.",
+    "dataAndSecurity": "Eight custom profiles per character; sanitize IDs/names/weights before use, immutable built-ins, no combat-data serialization. Only existing item/eligibility APIs and ordinary player class are used. Existing complete-hand model and hidden-data boundaries retained. No native actions, new hooks, timers or idle worker.",
+    "interface": "Explicit original slate/teal profile chooser, lazy optional editor, transactional Save/Cancel, two-click removal, Tab/Shift+Tab, per-character Summary/Full breakdown and /wfs gear/items. Cancel queued presentation on dismissal.",
+    "modelLimits": "Unweighted stats, unique equipment restrictions, special effects/procs, set bonuses, talents, weapon speed, hit penalties and missing item data are not simulated. No definitive best-in-slot claim. Built-in coefficient calibration and native usefulness remain unverified.",
+    "referenceFiles": [
+      {
+        "cachePath": ".cache/training-buffs-0262/Blizzard_APIDocumentationGenerated__ItemDocumentation.lua",
+        "sha256": "59c5dd2f70757cdb9bc4511cb0fafe6287bbfb51d58a7389097dcbb485785af0"
+      },
+      {
+        "cachePath": ".cache/training-dock-0264/Interface__AddOns__Blizzard_APIDocumentationGenerated__UnitDocumentation.lua",
+        "sha256": "a823e84f90fabe58d9ffe547ea17eae83708d451e593b4052bce002cc02ce5c1"
+      },
+      {
+        "cachePath": ".cache/window-layers-0270/SimpleFrameAPIDocumentation.lua",
+        "sha256": "c00bc77ee27f8fd81ba8b8d1bfd85fbd0ad817b22457adbe5adca6876a1d604a"
+      }
+    ],
+    "implementationFiles": [
+      {
+        "path": "src/WoWForeverSuite/Scoring.lua",
+        "sha256": "94e90e7413c0c84d5907b077d8728f4e49d600d232b6273a42a2fc987a7799d7"
+      },
+      {
+        "path": "src/WoWForeverSuite/GearSettings.lua",
+        "sha256": "96be53bb4bd03c7f8c149f0766e47642335b5ac7108cce7165a844c125ebe21a"
+      },
+      {
+        "path": "src/WoWForeverSuite/Items.lua",
+        "sha256": "407d3bd8d382177dc63d929e05f0b352e885f09f361ba867f9ed1f81d819b33e"
+      },
+      {
+        "path": "src/WoWForeverSuite/Tooltips.lua",
+        "sha256": "964f830eeecd9674c55337400b22f553f1688ff3cf548d2ea4f8ec86f9f7d81d"
+      },
+      {
+        "path": "src/WoWForeverSuite/Core.lua",
+        "sha256": "a7c9835ffda88e20f155ffe62cc290d074e677aa349c7ab9accb09c2a9156f8c"
+      },
+      {
+        "path": "src/WoWForeverSuite/GUI.lua",
+        "sha256": "f9288ffbe919ed5af2816a0093179d7e547e18e0af961220cecb7c0bb2e3f7c8"
+      },
+      {
+        "path": "src/WoWForeverSuite/SettingsCatalog.lua",
+        "sha256": "cf93ba186647d2af1d9a6250ad96c69e254aa8fe9fa57fbfea676f21ac278f73"
+      },
+      {
+        "path": "tests/gear_profiles_spec.lua",
+        "sha256": "c7414c2624e2c896773ec813d41e9a96453fcb14e202861f702e79ab7ab6ba70"
+      }
+    ],
+    "offlineValidation": {
+      "command": "node scripts/check-addon.cjs",
+      "lua51Files": 56,
+      "identicalTOCs": true,
+      "behaviorChecks": 10086,
+      "baselineBehaviorChecks": 9947,
+      "additionalAssertions": 139,
+      "result": "All pass. Startup regression found and corrected account normalization reading live character mode. Native permissions, rendering, useful class coefficient accuracy and taint are not established."
+    },
+    "nativeResults": "Pending focused game checklist; no native result claimed and no SavedVariables files or junction modified.",
+    "packageValidation": {
+      "path": "dist/WoWForeverSuite-0.2.75.zip",
+      "files": 64,
+      "byteIdenticalToSource": true,
+      "sha256": "ae18d2917e3a4f259b7fe3e01fb7297a82172e288d723f139e26559f9a81417a",
+      "excludedDevelopmentFiles": true,
+      "junction": "Existing P-drive source junction unchanged; no deployment operation or remote publish."
+    }
+  },
+  "weaponTrainerFactions": {
+    "reviewedOn": "2026-10-18",
+    "version": "0.2.74",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Unreported; native faction delivery, visuals, persistence and taint results pending.",
+    "request": "Keep weapon lists separate by the player faction; Alliance characters should not be directed to Horde cities and vice versa.",
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua",
+        "cachePath": ".cache/training-dock-0264/Interface__AddOns__Blizzard_APIDocumentationGenerated__UnitDocumentation.lua",
+        "sha256": "a823e84f90fabe58d9ffe547ea17eae83708d451e593b4052bce002cc02ce5c1",
+        "scope": "Previously cached exact 70450 declaration of UnitFactionGroup and its factionGroupTag/localized return order."
+      }
+    ],
+    "apiFindings": "Call UnitFactionGroup with literal player via guarded pcall; use only the first stable tag, never the localized label. Accept only readable Alliance or Horde. Declaration marks SecretArguments AllowedWhenUntainted; no attempt is made to recover restricted values. API declaration is not proof of native permissions.",
+    "implementation": "Keep the full eight-master data source, expose only four own-faction references plus matching recorded visits. New visits carry a sanitized faction from the known master or readable player tag. Old untagged records require an exact known-master name; unknown old records remain saved but hidden until revisited. Missing/restricted/Neutral faction produces an empty explanatory page. Preserve history, separate replacement by effective faction, and map automatic opening to the filtered visible page index. Class data and class-only level reminders are unchanged.",
+    "directorySources": "Reuse the reviewed directory sources and qualification under trainerTypeSeparation; no additional roster/price claims.",
+    "offlineValidation": {
+      "command": "node scripts/check-addon.cjs",
+      "lua51Files": 55,
+      "behaviorChecks": 9947,
+      "addedAssertions": 25,
+      "identicalTOCs": "0.2.74",
+      "regressionBeforeFix": "observed weapon visit records its faction: expected Alliance, got nil",
+      "result": "Pass with API substitutes; native faction delivery, visuals, persistence, directory data and taint remain pending."
+    },
+    "nativeResults": "Pending Alliance and Horde character page checks, recorded-visit reload, native faction lookup, class-only level-up regression and combat/taint.",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.74.zip",
+      "files": 63,
+      "byteIdenticalToSource": true,
+      "sha256": "38a7567685de455ed7eb1c146345ba1a588e09af08a55b647f4841d7656b427a"
+    }
+  },
+  "trainerTypeSeparation": {
+    "reviewedOn": "2026-10-18",
+    "version": "0.2.73",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Unreported; native classification, reference stock, visuals, persistence and taint results pending.",
+    "request": "Distinguish class and weapon trainers, never overwrite class training with weapons, and show only class training on level-up. User explicitly selects a full researched Weapons directory.",
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/TrainerConstantsDocumentation.lua",
+        "cachePath": ".cache/training-types-0273/Blizzard_APIDocumentationGenerated__TrainerConstantsDocumentation.lua",
+        "sha256": "c837c30251e33128e1ccf36a3219c8904b4dec5891fd8eba4c75bbe77db93061"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/TrainerDocumentation.lua",
+        "cachePath": ".cache/training-types-0273/Blizzard_APIDocumentationGenerated__TrainerDocumentation.lua",
+        "sha256": "8428e3ce0247031621cf029041f00a605895e991e96479b949c0fe3d5082eee2"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SpellDocumentation.lua",
+        "cachePath": ".cache/training-types-0273/Blizzard_APIDocumentationGenerated__SpellDocumentation.lua",
+        "sha256": "86583940d9a2c4594092eb248a1396a93a285084872af1f3f4875169796e7d2b"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_TrainerUI/Mainline/Blizzard_TrainerUI.lua",
+        "cachePath": ".cache/training-buffs-0262/Blizzard_TrainerUI__Mainline__Blizzard_TrainerUI.lua",
+        "sha256": "399648fb2ef9a1ddc03fec341cff92b49135c38a5569cee822a2d635a4e30471",
+        "scope": "Previously fetched exact 70450 trainer source; service type/name/level/rank and cost shape retained."
+      }
+    ],
+    "apiFindings": "Enum.TrainerType has General=0, TalentsObsolete=1, Tradeskills=2, Pet=3; it has no separate Class/Weapon discriminator. C_Spell.GetSpellName accepts a public SpellIdentifier, permits tainted arguments and may return nothing. Resolve public proficiency IDs through the current client; do not compare secret/unavailable names. API capability does not establish native addon permissions or actual localized service-name matching.",
+    "classifier": "Allow only native General gold trainers after explicit pet/non-General exclusion. Inspect all readable visible service names, including used services, against 17 client-localized weapon/automatic-proficiency names. Recognized weapon-only lists become weapons; ordinary non-proficiency General lists become class only after the full name dictionary resolves. Mixed, incomplete, capped, unreadable or unknown lists retain prior records. Native General is broader than an explicit class discriminator; new unrecognized General trainer categories require a future classification update rather than a claim of universal trainer support.",
+    "directorySources": [
+      {
+        "title": "Blizzard Watch weapon trainers, updated October 6, 2026",
+        "url": "https://blizzardwatch.com/2026/10/06/weapon-trainers-wow-classic-forever/",
+        "scope": "Eight capital-city weapon masters, stock and base costs; community gameplay reference, not exact-build server data."
+      },
+      {
+        "title": "ForeverWisp weapon skill guide, reviewed October 10, 2026",
+        "url": "https://www.foreverwisp.com/guides/wow-forever-weapon-skills-weapon-masters",
+        "scope": "Corroborates names/cities/buildings/stock, 10 silver base price, Polearms level 20 and 1 gold, and reputation discounts; itself attributes the trainer table to Warcraft Tavern."
+      },
+      {
+        "title": "Stay Juicy weapon skills",
+        "url": "https://stay-juicy.com/weapons",
+        "scope": "Earlier beta 69893 reference for automatic Wands/Unarmed/Defense and class-trainer Dual Wield, plus stock/cost corroboration. Not exact 70450 proof."
+      }
+    ],
+    "directoryQualification": "Full eight-master capital directory covers fourteen trainer-taught weapon families for both factions. No class/race eligibility or current trainability is inferred. Base prices are reference values; observed visits stay separately labeled with actual reported prices. City/district/building locations are supplied; conflicting online numeric coordinates are deliberately omitted. Beta roster/stock/price changes and class restrictions require native confirmation. English fallback labels and location names are reference text; classification uses only client-localized spell names. No page prose, artwork or layouts are copied.",
+    "implementation": "Typed per-character class snapshot plus a separate bounded array of up to 32 weapon-trainer visits. Preserve old untyped snapshot in legacy, never use it for level-up. Class/Weapons tabs in the owned 500x528 planner; eight reference pages plus observed weapon pages use existing six-row scrolling and Previous/Next. Weapon used rows are labeled and excluded from purchase budgets. Level notices select Class and suppress pending trainer auto-open; tokens cancel stale tab/level choices. Native trainer parents, filters, selection/purchases and docking remain unchanged. One SPELL_DATA_LOAD_RESULT event joins the existing active coalescer; no idle worker, native mutation or automatic purchases.",
+    "migration": "Revisit a class trainer once to establish trusted typed class history. Earlier weapon visits may already have overwritten the old class list; that information cannot be recovered from the single old snapshot. Untyped data is retained separately, not silently promoted.",
+    "offlineValidation": {
+      "command": "node scripts/check-addon.cjs",
+      "lua51Files": 55,
+      "behaviorChecks": 9922,
+      "addedAssertions": 38,
+      "identicalTOCs": "0.2.73",
+      "regressionBeforeFix": "weapon trainer cannot overwrite recorded class training: expected saved table identity, got new weapon table",
+      "result": "Pass with substitutes. Real localized proficiency matching, API availability, class/trainability, UI fit/docking, stored state serialization and combat/taint remain pending."
+    },
+    "nativeResults": "Pending focused class -> weapon -> level-up -> reload test, eight reference pages/base-price labels, discount comparison and late/combat events.",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.73.zip",
+      "files": 63,
+      "byteIdenticalToSource": true,
+      "sha256": "804ccec35f38c03e8ab729c8c6efa8799b0890df92cc5db3f061238c541c163f"
+    }
+  },
+  "questTimerBackdropLayer": {
+    "reviewedOn": "2026-10-18",
+    "version": "0.2.72",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Unreported; corrected native appearance/taint remains pending.",
+    "request": "Keep the native Quest Timers panel and countdown above the Suite tracker background.",
+    "screenshot": {
+      "path": "C:/Users/DROCKZ~1/AppData/Local/Temp/codex-clipboard-0af1346d-b145-4da6-88f7-83a92b91f7d9.png",
+      "sha256": "06f558dc3c831f8398ed91a3f1f56d51bb76b2f646e49fbfdaa42336dafcbfd1",
+      "observation": "Native Quest Timers header and 19 Min countdown appear heavily dimmed behind the teal-bordered Suite tracker fill."
+    },
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_QuestTimer/Blizzard_QuestTimer.toc",
+        "cachePath": ".cache/quest-timer-layer-0272/Blizzard_QuestTimer__Blizzard_QuestTimer.toc",
+        "sha256": "0398cf7f8e0bef66382369bff4450d221437c27368e630daf10ca9e1af546d26"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_QuestTimer/Mainline/Blizzard_QuestTimer.xml",
+        "cachePath": ".cache/quest-timer-layer-0272/Blizzard_QuestTimer__Mainline__Blizzard_QuestTimer.xml",
+        "sha256": "f3e40e9616bb022787db8a7d950ebaf3c4c50dcfb386b2d8647a750fc6e54e23"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_QuestTimer/Blizzard_QuestTimer.lua",
+        "cachePath": ".cache/quest-timer-layer-0272/Blizzard_QuestTimer__Blizzard_QuestTimer.lua",
+        "sha256": "0f255a27d534c82398781cc85fdd4e470b35bb856514a25ba013175fe7581a28"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_ObjectiveTracker/Blizzard_ObjectiveTracker.xml",
+        "cachePath": ".cache/quest-timer-layer-0272/Blizzard_ObjectiveTracker__Blizzard_ObjectiveTracker.xml",
+        "sha256": "bbff33d7934233de6b515005be8b35c31b1475fec779d47d1d7f20a02fea68f9"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_QuestTimer/Classic/Blizzard_QuestTimer.xml",
+        "cachePath": ".cache/quest-timer-layer-0272/Blizzard_QuestTimer__Classic__Blizzard_QuestTimer.xml",
+        "sha256": "52cce3acaa3c097de3ce5a2bce05dda4736177bc3d1241c5d24f5d3e34ae585f"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleFrameAPIDocumentation.lua",
+        "cachePath": ".cache/window-layers-0270/SimpleFrameAPIDocumentation.lua",
+        "sha256": "c00bc77ee27f8fd81ba8b8d1bfd85fbd0ad817b22457adbe5adca6876a1d604a",
+        "scope": "Exact 70450 source already cached; SetFrameStrata/SetFrameLevel protected. Only owned frame configured outside combat."
+      }
+    ],
+    "sourceQualification": "Exact native ObjectiveTrackerFrame XML uses LOW strata. Both timer-family XML variants use BACKGROUND strata: Mainline is a child of the tracker, Classic is managed under UIParent. The screenshot does not supply runtime widget properties. Texture BACKGROUND sublevel on the higher-strata Suite owner still draws above the lower-strata timer. This is a source-supported Suite overlay diagnosis, not proof of the corrected native render or all other-addon interactions.",
+    "implementation": "Create one anonymous mouse-disabled BACKGROUND level-zero child frame per owned body panel; move only Suite fill texture into it. Keep the same fill bounds/color/alpha, root-owned outline and native timer/tracker parents, strata, levels, layout, scripts, values, pools and events. Parent inherits tracker hide/fade; existing texture lifecycle handles collapse, disable and restoration. Construction/geometry/layer setters use existing combat-deferred refresh. No timer discovery/data getter, native raising/reparenting, new hook/event or recurring worker.",
+    "offlineValidation": {
+      "command": "node scripts/check-addon.cjs",
+      "lua51Files": 54,
+      "behaviorChecks": 9884,
+      "addedAssertions": 8,
+      "identicalTOCs": "0.2.72",
+      "regressionBeforeFix": "tracker backdrop stays below the native quest timer caption: expected false, got true",
+      "result": "Pass with render-order substitutes and strict native setter guards. No hardware input, actual timer completion, rendered pixels or taint verification."
+    },
+    "nativeResults": "Pending focused timed-quest readability/click/countdown, tracker collapse/resize/scale, toggles, combat and taint smoke test.",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.72.zip",
+      "files": 62,
+      "byteIdenticalToSource": true,
+      "sha256": "3ba7725fc78c70b7a1b2694e4c998d77b52a3a65dfccc27ce65d508e6a830143"
+    }
+  },
+  "bagSkinIconBounds": {
+    "reviewedOn": "2026-10-18",
+    "version": "0.2.71",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Unreported; user screenshots show enabled/disabled appearance, not corrected native results.",
+    "request": "Correct the bag bar skin mismatch after comparing enabled and native appearances.",
+    "screenshots": [
+      {
+        "path": "C:/Users/DROCKZ~1/AppData/Local/Temp/codex-clipboard-23550ccd-a26b-4efd-afb3-d6ae2969b1c4.png",
+        "sha256": "e62e5c7396a11c164e24714bd0cd0ac15dd10a1eb96d1493e031216f9148c5ba",
+        "observation": "Suite bag skin enabled; replacement rectangles surround the full buttons with inset native icons."
+      },
+      {
+        "path": "C:/Users/DROCKZ~1/AppData/Local/Temp/codex-clipboard-3895310c-f3fb-4b38-965a-03e2c19bf92b.png",
+        "sha256": "350596e946299a9cd0f7a4420d5d49d161068a0f6fba8a156f90d99227b2957f",
+        "observation": "Suite bag skin disabled; native gold bag frames restored."
+      }
+    ],
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_MainMenuBarBagButtons/Camelot/MainMenuBarBagButtons.lua",
+        "cachePath": ".cache/bag-skin-0271/Blizzard_MainMenuBarBagButtons__Camelot__MainMenuBarBagButtons.lua",
+        "sha256": "0f621e0ea5de2ab1071c56571e715e247a3e073b608f1f32275ee836908e084d"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_MainMenuBarBagButtons/Camelot/MainMenuBarBagButtons.xml",
+        "cachePath": ".cache/bag-skin-0271/Blizzard_MainMenuBarBagButtons__Camelot__MainMenuBarBagButtons.xml",
+        "sha256": "3b7bd35401634c5de33b85e47077d2c9a17680b665a937015d7e58be8ec5795c"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_MainMenuBarBagButtons/Shared/MainMenuBarBagButtons.lua",
+        "cachePath": ".cache/bag-skin-0271/Blizzard_MainMenuBarBagButtons__Shared__MainMenuBarBagButtons.lua",
+        "sha256": "3d0121a5d40085a31695c7d3ac7706543169a275caf4e9f121b2c3722b75eff2"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_ItemButton/Shared/ItemButtonTemplate.xml",
+        "cachePath": ".cache/bag-skin-0271/Blizzard_ItemButton__Shared__ItemButtonTemplate.xml",
+        "sha256": "f75d8cc8793397647e41a297786570f8ad5210119f3d6a7e597ed863cb5c59ce"
+      }
+    ],
+    "sourceQualification": "Exact 70450 Camelot bag code updates icon assets separately from normal/pushed/highlight frame art; bag XML declares 45-unit buttons and a 33-by-45 keyring with a native icon mask. Intrinsic ItemButton declares icon on BORDER, below counts/overlays. Actual runtime icon bounds and screenshot rendering remain a native check; fixture dimensions are representative, not measured from the client.",
+    "implementation": "Preflight a readable positive native icon extent and unrestricted anchor target before suppressing bag button chrome. Anchor only Suite-owned background and edges directly to the icon region, preserving native button hit bounds, icons/assets/masks/tints, counts, search/slot highlights and input. Reanchor reused art when the native icon object is replaced; relative geometry follows ordinary layout automatically. Unsupported icon layout restores readable native chrome and hides the owned panel. Existing pixel thickness, micro/status layouts, coalescing, disabled cleanup and combat deferral remain.",
+    "offlineValidation": {
+      "command": "node scripts/check-addon.cjs",
+      "lua51Files": 54,
+      "behaviorChecks": 9876,
+      "addedAssertions": 42,
+      "identicalTOCs": "0.2.71",
+      "regressionBeforeFix": "bag plate starts at the visible icon rather than the click target: expected 483.0, got 477.5",
+      "result": "Pass with API substitutes. No native rendering, protected input, or taint verification."
+    },
+    "nativeResults": "Pending /reload and focused bag skin sizing, native highlight/count/input, Edit Mode scale, disable restoration and combat checks.",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.71.zip",
+      "files": 62,
+      "byteIdenticalToSource": true,
+      "sha256": "6d335b07cb3b08bf97df76a558cb160325a31f9c3e05fd43eba5e09fcddd3862"
+    }
+  },
+  "trainingWindowLayers": {
+    "reviewedOn": "2026-10-18",
+    "version": "0.2.70",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Unreported; screenshot shows addon 0.2.69. Corrected native visuals/input/taint remain pending.",
+    "userEvidence": {
+      "path": "C:/Users/DROCKZ~1/AppData/Local/Temp/codex-clipboard-bfed79cc-d452-4c50-85c0-4f60e716f4d5.png",
+      "sha256": "50d7dbf938fd58f871b480c7243b2b70bdd7ea493f584f39f429755e386f2882",
+      "observation": "Training Planner border, prices and Settings control draw across foreground Suite settings. This is native evidence of incorrect interleaving, not a corrected render."
+    },
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleFrameAPIDocumentation.lua",
+        "cachePath": ".cache/window-layers-0270/SimpleFrameAPIDocumentation.lua",
+        "sha256": "c00bc77ee27f8fd81ba8b8d1bfd85fbd0ad817b22457adbe5adca6876a1d604a",
+        "url": "https://raw.githubusercontent.com/Gethe/wow-ui-source/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleFrameAPIDocumentation.lua"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_TrainerUI/Mainline/Blizzard_TrainerUI.xml",
+        "cachePath": ".cache/training-dock-0264/Interface__AddOns__Blizzard_TrainerUI__Mainline__Blizzard_TrainerUI.xml",
+        "sha256": "63d205c72b78ef0b0878a618611e296450868b342cdd17256f45921490cb88fa",
+        "scope": "Previously fetched exact matching source; native ClassTrainerFrame declares toplevel=true."
+      }
+    ],
+    "sourceQualification": "Exact frame contracts declare SetToplevel(bool) and Raise() protected. Configure top-level roots during existing out-of-combat construction; explicit Raise only follows guarded/deferred open paths. The XML supplies a native top-level usage example, not proof of native engine ordering or addon taint safety.",
+    "implementation": "Mark only Suite settings and Training Planner roots top-level. Explicitly raise the complete root on opening, including already-shown page/meter/planner requests and settings toggle-on. Native top-level focus handles subsequent clicks without addon mouse hooks or polling. Planner root background alpha becomes 1. Keep trainer-relative anchors, native frames, child offsets, saved state and combat deferral unchanged.",
+    "offlineValidation": {
+      "command": "node scripts/check-addon.cjs",
+      "lua51Files": 54,
+      "behaviorChecks": 9834,
+      "addedAssertions": 15,
+      "tocVariants": "Identical 0.2.70",
+      "regressionBeforeFix": "Failed: opening settings covers the entire planner hierarchy",
+      "result": "Pass with scoped frame-level/automatic-focus model; no actual client rendering or taint verification."
+    },
+    "nativeResults": "Pending focused overlap, child focus, drag/docking, search popup, UI scale, combat and coexistence smoke test.",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.70.zip",
+      "files": 62,
+      "byteIdenticalToSource": true,
+      "sha256": "35f182a3e2c5c028531bc0f8a11f226d22934b34d5873222f9c82ce9a96e72be"
+    }
+  },
   "questPickupReadiness": {
     "reviewedOn": "2026-10-18",
     "version": "0.2.69",
@@ -169,7 +1233,8 @@
       "files": 62,
       "byteIdenticalToSource": true,
       "sha256": "2fe92015e98f00d518fb9b4e99d2292104722b0265e78d9defa5493de1fd02ba"
-    }
+    },
+    "supersededBy": "0.2.77: October 19 native report disproves the inverted raw-Slider mapping; retain this entry only as historical evidence."
   },
   "meterLayoutReadiness": {
     "reviewedOn": "2026-10-18",

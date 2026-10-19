@@ -1,11 +1,13 @@
 local Suite, equal, Frame, SetCombat = ...
 local training = Suite.Training
 local oldDB, oldPending, oldTrainingDB = Suite.db, Suite.pending, training.db
-local names = { "CreateFrame", "C_Timer", "C_Trainer", "Enum", "GetNumTrainerServices", "GetTrainerServiceInfo", "GetTrainerServiceCost", "GetMoney", "GetServerTime", "UnitName", "UnitLevel", "BuyTrainerService", "SelectTrainerService", "SetTrainerServiceTypeFilter", "ExpandTrainerSkillLine", "ClassTrainerFrame", "GetTrainerServiceSkillReq", "GetTrainerServiceNumAbilityReq", "GetTrainerServiceAbilityReq" }
+local names = { "CreateFrame", "C_Timer", "C_Trainer", "Enum", "GetNumTrainerServices", "GetTrainerServiceInfo", "GetTrainerServiceCost", "GetMoney", "GetServerTime", "UnitName", "UnitLevel", "BuyTrainerService", "SelectTrainerService", "SetTrainerServiceTypeFilter", "ExpandTrainerSkillLine", "ClassTrainerFrame", "GetTrainerServiceSkillReq", "GetTrainerServiceNumAbilityReq", "GetTrainerServiceAbilityReq", "C_Spell", "GetRealZoneText", "GetSubZoneText", "UnitFactionGroup" }
 local old = {}; for _, name in ipairs(names) do old[name] = _G[name] end
 SetCombat(false); Suite.db = Suite.InitializeDB(nil); Suite.pending = {}
 local secret = setmetatable({ secret = true }, { __lt = function() error("compared trainer secret") end, __le = function() error("compared trainer secret") end, __concat = function() error("formatted trainer secret") end })
-local created, scans, money, petType = 0, 0, 600, 1
+local created, scans, money, petType = 0, 0, 600, 0
+local trainerName = "Test trainer"
+local factionTag = "Alliance"
 local timers = {}
 C_Timer = { NewTimer = function(delay, callback)
     local timer = { delay = delay, callback = callback, Cancel = function(self) self.cancelled = true end }
@@ -20,6 +22,10 @@ CreateFrame = function(kind, name, parent)
     assert(not InCombatLockdown(), "trainer creates no frames in combat")
     created = created + 1
     local f = Frame(name); f.parent, f.objectType, f.registered = parent, kind, {}
+    if parent then
+        parent.children[#parent.children + 1] = f
+        f.frameLevel = parent:GetFrameLevel() + 1
+    end
     f.RegisterEvent = function(self, event) self.registered[event] = true end
     f.UnregisterAllEvents = function(self) self.registered = {} end
     f.Show = function(self) self.shown = true end
@@ -29,10 +35,16 @@ CreateFrame = function(kind, name, parent)
     return f
 end
 for _, name in ipairs({ "BuyTrainerService", "SelectTrainerService", "SetTrainerServiceTypeFilter", "ExpandTrainerSkillLine" }) do _G[name] = function() error("planner must not mutate native trainer state") end end
-Enum = { TrainerType = { Pet = 2 } }; C_Trainer = { GetTrainerType = function() return petType end }
+Enum = { TrainerType = { General = 0, Tradeskills = 2, Pet = 3 } }; C_Trainer = { GetTrainerType = function() return petType end }
+local weaponNames = { [15590] = "Fist Weapons", [2567] = "Thrown", [201] = "Swords" }
+local function SpellName(id) return weaponNames[id] or "Weapon proficiency " .. id end
+C_Spell = { GetSpellName = SpellName }
+UnitFactionGroup = function() return factionTag, "Localized faction" end
+GetRealZoneText = function() return "Stormwind City" end
+GetSubZoneText = function() return "Trade District" end
 GetMoney = function() return money end; GetServerTime = function() return 1800000000 end
 local playerLevel = 6
-UnitLevel = function() return playerLevel end; UnitName = function() return "Test trainer" end
+UnitLevel = function() return playerLevel end; UnitName = function() return trainerName end
 local offers = {
     { name = "Group", state = "header" }, { name = "Skill A", state = "available", cost = 400, rank = "Rank 2", level = 6 },
     { name = "Skill B", state = "available", cost = 400, level = 6 }, { name = "Next skill", state = "unavailable", cost = 600, level = 8 },
@@ -85,12 +97,136 @@ equal(training.frame:IsShown(), false, "manual dismissal persists for the curren
 Event("TRAINER_CLOSED"); equal(training.live, nil, "closing trainer clears live state")
 training:Open(); equal(training.frame.context.text:find("Saved offerings",1,true) ~= nil, true, "away view labels saved data")
 local saved = training.db.snapshot
-petType = 2; Event("TRAINER_SHOW")
+local classOffers = offers
+Event("TRAINER_CLOSED")
+trainerName = "Test weapon master"
+offers = { { name = "Fist Weapons", state = "available", cost = 1000, level = 1 }, { name = "Thrown", state = "used", cost = 1000, level = 1 } }
+Event("TRAINER_SHOW")
+equal(training.db.snapshot, saved, "weapon trainer cannot overwrite recorded class training")
+equal(training.db.snapshot.kind, "class", "class snapshots retain an explicit trainer kind")
+equal(training.db.weapons[1].kind, "weapons", "weapon visits use a separate typed record")
+equal(training.db.weapons[1].faction, "Alliance", "observed weapon visit records its faction")
+equal(training.db.weapons[1].place, "Stormwind City · Trade District", "weapon records retain the observed trainer location")
+equal(training.db.weapons[1].rows[2].state, "used", "weapon directory can retain visible already-trained proficiencies")
+equal(training.view, "weapons", "weapon trainer auto-open selects the separate Weapons tab")
+Event("PLAYER_LEVEL_UP", 7)
+equal(training.view, "class", "level up always selects class training from a weapon visit")
+equal(training.frame.rows[1].name.text, "Skill A · Rank 2", "level-up view cannot show the weapon trainer list")
+equal(training.frame.context.text:find("Current visit", 1, true), nil, "class view cannot claim live weapon data as current class offerings")
+equal(training.db.snapshot, saved, "level-up refresh at a weapon trainer still preserves class training")
+training:SelectView("weapons")
+equal(training.frame.rows[1].name.text, "Fist Weapons", "Weapons tab shows its own recorded offerings")
+equal(training.frame.rows[2].state.text, "Already trained", "known weapon skills are labeled separately")
+equal(training.frame.total.text, "Group total: 0g 10s 0c", "weapon budget excludes already-trained skills")
+Event("TRAINER_UPDATE")
+equal(#training.db.weapons, 1, "repeated weapon updates replace only the same trainer record")
+trainerName = "Second weapon master"; Event("TRAINER_CLOSED"); Event("TRAINER_SHOW")
+equal(#training.db.weapons, 2, "different weapon trainers retain separate location and cost lists")
+local weaponGroups = training:WeaponGroups()
+equal(#weaponGroups, 6, "Alliance sees its four reference weapon masters alongside both own visits")
+local wooPing = weaponGroups[3]
+equal(wooPing.title, "Woo Ping", "full reference directory starts with the Stormwind weapon master")
+equal(wooPing.snapshot.place:find("Weller's Arsenal", 1, true) ~= nil, true, "directory gives the trainer's building and district")
+equal(wooPing.rows[6].cost, 10000, "Polearms reference cost is one gold before discounts")
+equal(wooPing.rows[6].level, 20, "Polearms reference identifies the level twenty requirement")
+equal(wooPing.rows[6].state, "reference", "reference stock never claims present class trainability")
+for _, group in ipairs(weaponGroups) do
+    equal(group.title == "Archibald" or group.title == "Sayoc" or group.title == "Hanashi" or group.title == "Ansekhwa", false, "Alliance weapon list never recommends Horde cities")
+end
+factionTag = "Horde"
+local hordeGroups = training:WeaponGroups()
+equal(#hordeGroups, 4, "Horde list excludes saved Alliance visits and Alliance references")
+equal(hordeGroups[1].title, "Sayoc", "Horde reference starts with Orgrimmar")
+equal(hordeGroups[4].title, "Archibald", "Horde list includes its Undercity trainer")
+for _, group in ipairs(hordeGroups) do equal(group.snapshot.faction, "Horde", "every Horde group belongs to Horde") end
+factionTag = secret
+local unknownGroups = training:WeaponGroups()
+equal(#unknownGroups[1].rows, 0, "restricted player faction never exposes either trainer list")
+factionTag = "Neutral"
+equal(#training:WeaponGroups()[1].rows, 0, "unselected faction has no cross-faction recommendations")
+factionTag = "Alliance"
+training.view, training.page = "weapons", 3; training:Refresh()
+equal(training.frame.context.text:find("Reference", 1, true) ~= nil, true, "directory view labels reference information")
+equal(training.frame.total.text, "Reference base prices", "reference list does not present every weapon as a character budget")
+equal(training.frame.funds.text:find("Your class", 1, true) ~= nil, true, "reference view discloses class eligibility instead of inventing availability")
+
+equal(training.db.snapshot, saved, "a second weapon trainer cannot replace class data")
+local typedDB = training.db
+local reloaded = training:InitializeCharacter(typedDB)
+equal(reloaded.snapshot.kind, "class", "class identity survives reload validation")
+equal(#reloaded.weapons, 2, "weapon directory survives reload validation")
+-- Old weapon records require a known master or an explicit captured faction.
+local oldWeapons = {
+    { kind = "weapons", trainer = "Sayoc", rows = { { name = "Fist Weapons", state = "available", cost = 1000 } } },
+    { kind = "weapons", trainer = "Woo Ping", rows = { { name = "Daggers", state = "available", cost = 1000 } } },
+    { kind = "weapons", trainer = "Unidentified old master", rows = { { name = "Thrown", state = "available", cost = 1000 } } },
+}
+training:InitializeCharacter({ snapshot = saved, weapons = oldWeapons })
+local oldAlliance = training:WeaponGroups()
+equal(#oldAlliance, 5, "old known Alliance visit appears alongside four Alliance references")
+equal(oldAlliance[1].title, "Woo Ping", "old Horde and unidentified visits cannot enter the Alliance list")
+equal(#training.db.weapons, 3, "filtering preserves all stored weapon history")
+factionTag = "Horde"
+local oldHorde = training:WeaponGroups()
+equal(#oldHorde, 5, "old known Horde visit appears alongside four Horde references")
+equal(oldHorde[1].title, "Sayoc", "old Alliance and unidentified visits cannot enter the Horde list")
+factionTag = "Alliance"
+Event("TRAINER_CLOSED"); trainerName = "Fresh weapon master"; Event("TRAINER_SHOW")
+equal(training.page, 2, "weapon auto-open uses its visible page after opposite-faction history is filtered")
+equal(training.frame.group.text, "Fresh weapon master", "filtered auto-open displays the just-recorded weapon trainer")
+equal(training.db.weapons[4].faction, "Alliance", "new unknown master captures the current player's faction")
+local factionAPI = UnitFactionGroup; UnitFactionGroup = nil
+training:SelectView("weapons")
+equal(training.frame.status.text:find("faction is unavailable", 1, true) ~= nil, true, "missing faction API renders an empty explanatory view")
+equal(training.frame.rows[1]:IsShown(), false, "missing faction API never displays a weapon trainer row")
+UnitFactionGroup = factionAPI
+training.db = typedDB
+local legacyWeapon = { rows = { { name = "Fist Weapons", state = "available", cost = 1000 } } }
+local migrated = training:InitializeCharacter({ snapshot = legacyWeapon })
+equal(migrated.snapshot, nil, "untyped pre-update offerings cannot enter class level-up data")
+equal(migrated.legacy.rows[1].name, "Fist Weapons", "old untyped data is retained separately instead of guessed as class training")
+training.db = typedDB
+local spellLookup = C_Spell.GetSpellName
+C_Spell.GetSpellName = function(id) if id == 201 then return secret end; return SpellName(id) end
+trainerName, offers = "Test trainer", classOffers
+Event("TRAINER_CLOSED"); Event("TRAINER_SHOW")
+equal(training.db.snapshot, saved, "incomplete proficiency names cannot authorize a new class snapshot")
+C_Spell.GetSpellName = spellLookup; Event("TRAINER_UPDATE")
+equal(training.db.snapshot.kind, "class", "complete readable names recover class recording")
+saved = training.db.snapshot
+petType = 2; Event("TRAINER_CLOSED"); Event("TRAINER_SHOW")
+equal(training.db.snapshot, saved, "profession trainer cannot overwrite class training")
+petType = 0; offers = { classOffers[2], { name = "Fist Weapons", state = "available", cost = 1000 } }
+Event("TRAINER_CLOSED"); Event("TRAINER_SHOW")
+equal(training.db.snapshot, saved, "mixed class and proficiency offerings do not overwrite the class list")
+-- Delayed weapon metadata and deferred tab clicks cannot replace a later level notice.
+Event("TRAINER_CLOSED"); offers = { { name = "Fist Weapons", state = "available", cost = 900 } }
+training:OnEvent("TRAINER_SHOW")
+Event("PLAYER_LEVEL_UP", 7)
+equal(training.view, "class", "late weapon offerings cannot auto-open over a level-up class view")
+equal(training.db.snapshot, saved, "late weapon metadata still cannot overwrite the class snapshot")
+SetCombat(true); training:SelectView("weapons")
+local oldViewWork = Suite.pending.trainingView
+Event("PLAYER_LEVEL_UP", 7)
+local classNotice = Suite.pending.trainingLevelUp
+SetCombat(false); classNotice(); oldViewWork()
+equal(training.view, "class", "stale deferred Weapons tab cannot replace a newer class level-up notice")
+SetCombat(true); Event("PLAYER_LEVEL_UP", 7)
+local cancelledNotice = Suite.pending.trainingLevelUp
+training:SelectView("weapons")
+local chosenView = Suite.pending.trainingView
+SetCombat(false); chosenView(); cancelledNotice()
+equal(training.view, "weapons", "a later deliberate tab choice supersedes an older automatic notice")
+trainerName, offers = "Test trainer", classOffers
+training.level, training.levelNotice = nil, nil
+Event("TRAINER_CLOSED"); Event("TRAINER_SHOW")
+saved = training.db.snapshot
+petType = 3; Event("TRAINER_SHOW")
 equal(training.db.snapshot, saved, "pet training points never overwrite gold snapshots")
 equal(training.message:find("points",1,true) ~= nil, true, "pet exclusion is explained")
 Event("TRAINER_CLOSED"); petType = secret; Event("TRAINER_SHOW")
 equal(training.db.snapshot, saved, "restricted trainer type cannot authorize gold budgeting")
-Event("TRAINER_CLOSED"); petType = 1
+Event("TRAINER_CLOSED"); petType = 0
 local originalOffers = offers; offers = {}; training.frame:Hide(); Event("TRAINER_SHOW")
 equal(training.frame:IsShown(), false, "initial empty list never opens a stale planner")
 equal(training.db.snapshot, saved, "delayed initial data retains saved snapshot")
@@ -265,7 +401,7 @@ training.db.snapshot = nil; Event("PLAYER_LEVEL_UP", 15)
 equal(training.frame:IsShown(), true, "each level opens a clear view even before a trainer is recorded")
 equal(training.frame.group.text, "Available now", "empty history still starts at Available now")
 equal(training.frame.rows[1]:IsShown(), false, "empty history never invents trainable skills")
-equal(training.frame.status.text:find("Visit a trainer", 1, true) ~= nil, true, "empty history explains how to populate the planner")
+equal(training.frame.status.text:find("Visit your class trainer", 1, true) ~= nil, true, "empty history explains how to populate the planner")
 training.frame:Hide(); SetCombat(true); Event("PLAYER_LEVEL_UP", 16)
 local worldLevelOpen = Suite.pending.trainingLevelUp
 Event("PLAYER_ENTERING_WORLD"); SetCombat(false); worldLevelOpen()

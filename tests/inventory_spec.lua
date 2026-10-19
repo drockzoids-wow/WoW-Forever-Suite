@@ -160,7 +160,9 @@ Suite.db.itemTooltipLevels, Suite.db.upgradeHints = true, true
 local gear = Hover({ id = 100 })
 equal(gear.lines[1][1], "Item Level 20", "equipment annotations precede inventory footer")
 equal(gear.lines[2][1]:find("Possible stat upgrade", 1, true) ~= nil, true, "inventory preserves independent upgrade hints")
-equal(gear.lines[4][1], "Inventory", "inventory footer follows existing item information")
+local inventoryIndex
+for index, line in ipairs(gear.lines) do if line[1] == "Inventory" then inventoryIndex = index end end
+equal(inventoryIndex ~= nil and inventoryIndex > 2, true, "inventory footer follows the complete comparison explanation")
 Suite.Items.GetInfo, Suite.Items.UpgradeDelta = getInfo, upgradeDelta
 Suite.db.itemTooltipLevels, Suite.db.upgradeHints = false, false
 local initialized = tips.initialized

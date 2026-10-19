@@ -25,10 +25,34 @@ C_Timer = { NewTimer = function(_, callback)
     local timer = { callback = callback, Cancel = function(self) self.cancelled = true end }
     timers[#timers + 1] = timer; return timer
 end }
+local function OwnedTexture(self, name, layer, template, level)
+    assert(not combat, "tracker textures are never created in combat")
+    equal(name, nil, "owned tracker art is anonymous")
+    equal(layer == "BACKGROUND" or layer == "OVERLAY" or layer == "ARTWORK" or layer == "BORDER", true, "owned tracker art uses native draw layers")
+    equal(level == -7 or level == 7, true, "owned tracker art uses valid sublevels")
+    created = created + 1
+    local texture = Frame()
+    texture.parent, texture.points, texture.drawLayer, texture.drawSublevel = self, {}, layer, level
+    texture.SetColorTexture = function(region, ...) assert(not combat, "owned art colors defer combat"); region.fill = { ... } end
+    texture.ClearAllPoints = function(region) assert(not combat, "owned anchors defer combat"); region.points = {} end
+    texture.SetPoint = function(region, ...)
+        assert(not combat, "owned tracker anchors wait for combat")
+        region.points[#region.points + 1] = { ... }
+    end
+    texture.Show = function(region) assert(not combat, "Suite art shows outside combat"); region.shown = true end
+    texture.Hide = function(region) assert(not combat, "Suite art hides outside combat"); region.shown = false end
+    return texture
+end
 CreateFrame = function(...)
     assert(not combat, "tracker controller construction waits for combat")
     created = created + 1
     local frame = saved.create(...)
+    frame.CreateTexture = OwnedTexture
+    frame.SetAllPoints = function(self, target) assert(not combat, "owned backdrop anchors defer combat"); self.allPoints = target end
+    frame.SetFrameStrata = function(self, strata) assert(not combat, "owned backdrop strata defer combat"); self.strata = strata end
+    frame.SetFrameLevel = function(self, level) assert(not combat, "owned backdrop levels defer combat"); self.frameLevel = level end
+    frame.GetFrameStrata = function(self) return self.strata or (self.parent and self.parent:GetFrameStrata()) or "MEDIUM" end
+    frame.EnableMouse = function(self, enabled) assert(not combat, "owned backdrop input defers combat"); self.mouseEnabled = enabled end
     frame.registered = {}
     frame.RegisterEvent = function(self, event) self.registered[event] = true end
     frame.UnregisterAllEvents = function(self) self.registered = {} end
@@ -71,24 +95,7 @@ local function Widget()
         for _, value in ipairs(self.color) do assert(native or Suite.IsReadable(value), "Suite never replays secret text color") end
     end
     frame.SetFontObject = function(self) self.color = { 0.7, 0.6, 0.5, 0.4 } end
-    frame.CreateTexture = function(self, name, layer, template, level)
-        assert(not combat, "tracker textures are never created in combat")
-        equal(name, nil, "owned tracker art is anonymous")
-        equal(layer == "BACKGROUND" or layer == "OVERLAY" or layer == "ARTWORK" or layer == "BORDER", true, "owned tracker art uses native draw layers")
-        equal(level == -7 or level == 7, true, "owned tracker art uses valid sublevels")
-        created = created + 1
-        local texture = Frame()
-        texture.parent, texture.points, texture.drawLayer, texture.drawSublevel = self, {}, layer, level
-        texture.SetColorTexture = function(region, ...) assert(not combat, "owned art colors defer combat"); region.fill = { ... } end
-        texture.ClearAllPoints = function(region) assert(not combat, "owned anchors defer combat"); region.points = {} end
-        texture.SetPoint = function(region, ...)
-            assert(not combat, "owned tracker anchors wait for combat")
-            region.points[#region.points + 1] = { ... }
-        end
-        texture.Show = function(region) assert(not combat, "Suite art shows outside combat"); region.shown = true end
-        texture.Hide = function(region) assert(not combat, "Suite art hides outside combat"); region.shown = false end
-        return texture
-    end
+    frame.CreateTexture = OwnedTexture
     for _, method in ipairs({ "SetParent", "SetPoint", "ClearAllPoints", "SetSize", "SetWidth", "SetHeight", "SetScale",
         "EnableMouse", "RegisterForClicks", "SetAttribute", "SetTexture", "SetAtlas", "SetFont", "SetText" }) do
         frame[method] = function() error("tracker skin must retain native layout, input, assets, fonts and text: " .. method) end
@@ -129,6 +136,7 @@ local function Module()
 end
 local function Tracker()
     local tracker = Widget()
+    tracker.GetFrameStrata = function() return "LOW" end
     tracker.Header, tracker.NineSlice, tracker.modules = Header(), Widget(), { Module(), Module() }
     tracker.IsCollapsed = function(self) if self.collapseValue ~= nil then return self.collapseValue end; return self.collapsed == true end
     tracker.Update = function() updates = updates + 1; return "native result", 17 end
@@ -157,6 +165,40 @@ equal(skin.panels[tracker].textures[1].points[1][2], tracker.NineSlice, "body fo
 equal(skin.panels[first.Header].textures[1].parent, first.Header, "section panel follows native header visibility and parent")
 equal(#skin.panels[first.Header].textures, 1, "section header has only one underline")
 equal(skin.panels[first.Header].background, nil, "section header has no separate boxed background")
+-- Exact native XML puts the standalone timer in BACKGROUND while the tracker is LOW.
+-- Texture sublevels cannot put a LOW-frame texture behind a BACKGROUND-frame timer.
+local strataOrder = { BACKGROUND = 1, LOW = 2, MEDIUM = 3, HIGH = 4, DIALOG = 5 }
+local function DrawsAbove(texture, other)
+    local owner, otherOwner = texture.parent, other.parent
+    local strata, otherStrata = strataOrder[owner:GetFrameStrata()], strataOrder[otherOwner:GetFrameStrata()]
+    if strata ~= otherStrata then return strata > otherStrata end
+    if owner:GetFrameLevel() ~= otherOwner:GetFrameLevel() then return owner:GetFrameLevel() > otherOwner:GetFrameLevel() end
+    local layers = { BACKGROUND = 1, BORDER = 2, ARTWORK = 3, OVERLAY = 4 }
+    if texture.drawLayer ~= other.drawLayer then return layers[texture.drawLayer] > layers[other.drawLayer] end
+    return texture.drawSublevel > other.drawSublevel
+end
+local questTimer = Widget()
+questTimer.parent, questTimer.frameLevel = tracker, tracker:GetFrameLevel() + 1
+questTimer.GetFrameStrata = function() return "BACKGROUND" end
+questTimer.SetFrameStrata, questTimer.SetFrameLevel = function() error("skin must not raise native quest timers") end, function() error("skin must not raise native quest timers") end
+questTimer.activeElements = setmetatable({}, { __index = function() error("skin must not inspect timer values or pooled rows") end })
+local timerCaption = { parent = questTimer, drawLayer = "ARTWORK", drawSublevel = 0 }
+local timerCountdown = { parent = questTimer, drawLayer = "OVERLAY", drawSublevel = 1 }
+local originalTimerShow = questTimer.Show
+tracker.QuestTimerFrame = questTimer
+local bodyPanel = skin.panels[tracker]
+equal(DrawsAbove(bodyPanel.background, timerCaption), false, "tracker backdrop stays below the native quest timer caption")
+equal(DrawsAbove(bodyPanel.background, timerCountdown), false, "tracker backdrop stays below the native countdown")
+equal(bodyPanel.background.parent.parent, tracker, "lower backdrop inherits native tracker visibility and alpha")
+equal(bodyPanel.background.parent.mouseEnabled, false, "lower backdrop cannot cover timer clicks")
+equal(questTimer.Show, originalTimerShow, "native timer visibility script is untouched")
+local layerCount, priorUpdates = created, updates
+tracker:Update(); Flush()
+equal(created, layerCount, "lower tracker backdrop reuses its prepared frame and art")
+equal(DrawsAbove(bodyPanel.background, timerCountdown), false, "native tracker refresh preserves timer foreground order")
+tracker.QuestTimerFrame = nil
+updates = priorUpdates
+equal(DrawsAbove(bodyPanel.background, timerCaption), false, "backdrop ordering works even if timer discovery is unavailable")
 equal(skin.panels[first.Header].edges.TOP, nil, "section header has no top border")
 equal(skin.panels[tracker.Header].edges.LEFT, nil, "main header has no side border")
 equal(skin.panels[tracker].edges.RIGHT.drawLayer, "OVERLAY", "whole tracker outline draws above its fill")

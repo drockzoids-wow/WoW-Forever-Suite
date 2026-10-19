@@ -308,13 +308,14 @@ function Skin:Paint(record)
         pressed and 0.21 or highlighted and 0.15 or 0.065, 0.95)
     for _, edge in ipairs(record.edges) do edge:SetColorTexture(0.41, 0.84, 0.75, highlighted and 1 or 0.55) end
 end
-function Skin:Panel(parent, key, pass, button, backgroundParent)
+function Skin:Panel(parent, key, pass, button, backgroundParent, bounds)
     if not Anchorable(parent) or type(parent.CreateTexture) ~= "function" then return end
     local record = self.panels[parent]
+    bounds = bounds or parent
+    local inset = key == "microBarSkin" and 3 or 0
     if not record then
         record = { parent = parent, key = key, edges = {}, textures = {} }
         self.panels[parent] = record
-        local inset = key == "microBarSkin" and 3 or 0
         local function Texture(layer, level, owner)
             local texture = (owner or parent):CreateTexture(nil, layer, nil, level)
             if button then
@@ -329,22 +330,10 @@ function Skin:Panel(parent, key, pass, button, backgroundParent)
         -- XP prediction belongs to the bar wrapper. A backdrop on its higher-level
         -- StatusBar child covers that native texture even on the BACKGROUND layer.
         record.background = Texture("BACKGROUND", -7, backgroundParent)
-        record.background:SetPoint("TOPLEFT", parent, "TOPLEFT", inset, -inset)
-        record.background:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -inset, inset)
         record.background:SetColorTexture(0.035, 0.05, 0.065, 0.95)
         for _, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
             local edge = Texture("OVERLAY", 7)
-            if side == "TOP" or side == "BOTTOM" then
-                local y = side == "TOP" and -inset or inset
-                edge:SetHeight(1)
-                edge:SetPoint(side .. "LEFT", parent, side .. "LEFT", inset, y)
-                edge:SetPoint(side .. "RIGHT", parent, side .. "RIGHT", -inset, y)
-            else
-                local x = side == "LEFT" and inset or -inset
-                edge:SetWidth(1)
-                edge:SetPoint("TOP" .. side, parent, "TOP" .. side, x, -inset)
-                edge:SetPoint("BOTTOM" .. side, parent, "BOTTOM" .. side, x, inset)
-            end
+            if side == "TOP" or side == "BOTTOM" then edge:SetHeight(1) else edge:SetWidth(1) end
             edge:SetColorTexture(0.41, 0.84, 0.75, 0.55)
             record.edges[#record.edges + 1] = edge
         end
@@ -359,6 +348,26 @@ function Skin:Panel(parent, key, pass, button, backgroundParent)
             parent:HookScript("OnHide", function() record.hovered, record.pressed = nil, nil end)
             if type(parent.SetButtonState) == "function" then hooksecurefunc(parent, "SetButtonState", Paint) end
         end
+    end
+    if record.bounds ~= bounds then
+        -- Bag artwork follows the inset native icon, while the button keeps its full hit area.
+        record.background:ClearAllPoints()
+        record.background:SetPoint("TOPLEFT", bounds, "TOPLEFT", inset, -inset)
+        record.background:SetPoint("BOTTOMRIGHT", bounds, "BOTTOMRIGHT", -inset, inset)
+        for index, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
+            local edge = record.edges[index]
+            edge:ClearAllPoints()
+            if side == "TOP" or side == "BOTTOM" then
+                local y = side == "TOP" and -inset or inset
+                edge:SetPoint(side .. "LEFT", bounds, side .. "LEFT", inset, y)
+                edge:SetPoint(side .. "RIGHT", bounds, side .. "RIGHT", -inset, y)
+            else
+                local x = side == "LEFT" and inset or -inset
+                edge:SetPoint("TOP" .. side, bounds, "TOP" .. side, x, -inset)
+                edge:SetPoint("BOTTOM" .. side, bounds, "BOTTOM" .. side, x, inset)
+            end
+        end
+        record.bounds = bounds
     end
     if button then
         local pixel = ButtonPixel(parent)
@@ -436,12 +445,15 @@ end
 function Skin:Button(button, key, pass)
     if not Anchorable(button) or type(button.CreateTexture) ~= "function" or type(button.HookScript) ~= "function" then return end
     self:Watch(button, key, { "UpdateTextures", "SetScale" })
-    local artwork = {}
+    local artwork, bounds = {}
     if key == "microBarSkin" then
         artwork = { button.Background, button.PushedBackground }
         if #artwork ~= 2 then return end
     else
-        if not Usable(button.icon) then return end
+        local icon = button.icon
+        if not Anchorable(icon) or type(icon.GetWidth) ~= "function" or type(icon.GetHeight) ~= "function"
+            or not Positive(icon:GetWidth()) or not Positive(icon:GetHeight()) then return end
+        bounds = icon
         for _, kind in ipairs({ "Normal", "Pushed", "Highlight" }) do
             local get = button["Get" .. kind .. "Texture"]
             if type(get) ~= "function" then return end
@@ -468,7 +480,7 @@ function Skin:Button(button, key, pass)
             return
         end
     end
-    self:Panel(button, key, pass, true)
+    self:Panel(button, key, pass, true, nil, bounds)
 end
 function Skin:BagBar(pass)
     if not Anchorable(BagsBar) then return end

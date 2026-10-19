@@ -715,7 +715,7 @@ equal(gui.macroRows[7]:GetParent(), gui.macroListContent, "recipe rows belong to
 equal(gui.macroListHeadings[1].label.text, "− General", "ordinary recipes have their own heading")
 equal(gui.macroListHeadings[2].label.text, "− Hunter Macros", "hunter recipes have a separate heading")
 local outerOffset = gui.scrollOffset
-gui.macroListScroll.suiteScrollBar.OnValueChanged(gui.macroListScroll.suiteScrollBar, 0)
+gui.macroListScroll.suiteScrollBar.OnMouseWheel(gui.macroListScroll.suiteScrollBar, -1000)
 equal(gui.macroListScroll.suiteOffset, gui.macroListScroll.suiteMaximum, "list thumb reaches the last hunter recipe")
 equal(gui.scrollOffset, outerOffset, "list thumb scrolling leaves the surrounding page unchanged")
 gui.macroRows[7].OnClick()
@@ -814,10 +814,10 @@ equal(macros:Save(redirect), false, "missing spell metadata does not replace a s
 equal(native[redirectIndex].body, savedRedirect, "missing spell lookup preserves old misdirection text")
 spells[34477] = "Misdirection"
 playerClass = "MAGE"; macros:Refresh(); gui:RefreshMacros()
-equal(#macros:Entries(), 5, "other classes hide hunter recipes even when retained in saved choices")
-equal(gui.macroListScroll.suiteScrollBar:IsShown(), false, "short class-filtered lists hide their scrollbar")
-equal(gui.macroListScroll.suiteOffset, 0, "shrinking the list clamps an obsolete scroll position")
-equal(gui.macroListHeadings[2]:IsShown(), false, "class-filtered lists hide unused group headings")
+equal(#macros:Entries(), 7, "Mage shows its own two recipes while hiding retained Hunter recipes")
+equal(gui.macroListScroll.suiteScrollBar:IsShown(), true, "Mage class recipes extend its list beyond the viewport")
+equal(gui.macroListScroll.suiteOffset <= gui.macroListScroll.suiteMaximum, true, "class changes clamp the position to the new visible list")
+equal(gui.macroListHeadings[2].label.text, "− Mage Macros", "class-filtered heading follows the current class")
 equal(gui.macroSelected, alt.entries[1], "GUI selection cannot stay on an excluded class recipe")
 equal(macros:Save(pet), false, "another class cannot explicitly rewrite a hunter macro")
 equal(macros:Write(redirect, "/say changed", true), false, "write boundary rejects hidden class recipes")
@@ -843,7 +843,7 @@ equal(gui.macroListHeadings[3].label.text, "− Item Macros", "custom item choic
 local selectedAtBottom = gui.macroSelected
 gui:RefreshMacros()
 equal(gui.macroSelected, selectedAtBottom, "ordinary refresh preserves the selected custom entry")
-equal(gui.macroListScroll.suiteScrollBar.value, 0, "ordinary refresh preserves the list bottom position")
+equal(gui.macroListScroll.suiteScrollBar.thumbTop, gui.macroListScroll.suiteScrollBar.travel, "ordinary refresh preserves the list bottom position")
 local listHeight = gui.macroListContent.height
 SetCombat(true); gui:RefreshMacros()
 equal(gui.macroListContent.height, listHeight, "combat does not relayout list geometry")
@@ -883,6 +883,7 @@ gui:Select("overview"); gui:Select("macros")
 equal(gui.macroRows[6]:IsShown(), false, "category choices survive navigation within the login session")
 gui.macroListHeadings[2].OnClick(); gui.macroListHeadings[3].OnClick()
 equal(gui.macroListContent.height, fullListHeight, "expanding every category restores the full list range")
+assert(loadfile("tests/class_macros_spec.lua"))(Suite, equal, SetCombat, function(value) playerClass = value end, spells, native)
 UnitClass, C_Spell, C_PetInfo, UnitExists, bags = oldUnitClass, oldSpellAPI, oldPetAPI, oldUnitExists, originalBags
 native, Suite.db, Suite.macroDB = previousNative, previousDB, previousCharacter
 macros.events.RegisterEvent, macros.events.UnregisterAllEvents = eventRegister, eventUnregister

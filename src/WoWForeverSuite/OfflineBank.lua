@@ -244,8 +244,25 @@ function Bank:PlaceView()
     self.frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
 end
 
-function Bank:GetSnapshot(bankType)
-    local character, accounts, region = self:Context()
+function Bank:ViewContext(guid)
+    local ok, region = pcall(function() return GetCurrentRegion and GetCurrentRegion() end)
+    if not ok or not Integer(region, 1, 1000000) then return end
+    if not Suite.IsReadable(guid) or type(guid) ~= "string" or #guid == 0 or #guid > 128 or guid:find("[%c|]") then return end
+    local db = Suite.Inventory:Database()
+    local accounts = Suite.IsReadable(db.accountBankViews) and type(db.accountBankViews) == "table" and db.accountBankViews or {}
+    if guid == "account" then return { name = "Shared bank", region = region }, accounts, region end
+    local character = db.characters[guid]
+    if not Suite.IsReadable(character) or type(character) ~= "table" or not Integer(character.region, 1, 1000000)
+        or character.region ~= region or not Text(character.name) or #character.name > 128 or character.name:find("[%c|]") then return end
+    return character, accounts, region
+end
+
+function Bank:GetSnapshot(bankType, guid)
+    if not Suite.IsReadable(guid) or not Suite.IsReadable(bankType) or (bankType ~= 0 and bankType ~= 2) then return end
+    local character, accounts, region
+    if guid ~= nil then character, accounts, region = self:ViewContext(guid)
+    elseif self.viewGUID then character, accounts, region = self:ViewContext(self.viewGUID)
+    else character, accounts, region = self:Context() end
     if not character then return end
     local snapshot
     if bankType == 2 then snapshot = accounts[region] else snapshot = character.bankView end
@@ -321,7 +338,7 @@ function Bank:CreateView()
     frame:SetTitle(BANK or "Bank")
     frame:SetPortraitToAsset("Interface\\Icons\\INV_Misc_Bag_10")
     frame.CloseButton:SetScript("OnClick", function() frame:Hide() end)
-    frame:SetScript("OnHide", function() self:HideTooltip() end)
+    frame:SetScript("OnHide", function() self:HideTooltip(); self.viewGUID = nil end)
     if UISpecialFrames then table.insert(UISpecialFrames, FRAME_NAME) end
     local background = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
     background:SetAtlas("bank-frame-background")
@@ -379,7 +396,7 @@ function Bank:Refresh()
     local hovered = self.hovered
     local hoverLink = hovered and hovered.bankItem and hovered.bankItem.link
     self:HideTooltip()
-    if self.bankType == 2 then
+    if self.bankType == 2 and self.viewGUID ~= "account" then
         local account = self:GetSnapshot(2)
         if not account or account.totalSlots == 0 then self.bankType, self.page = 0, 1 end
     end
@@ -389,7 +406,12 @@ function Bank:Refresh()
     local slots = snapshot and self:Slots(snapshot, self.page) or {}
     local height = 460 + math.max(0, math.ceil(#slots / COLUMNS) - 6) * 47
     self.frame:SetHeight(height)
-    self.frame:SetTitle(self.bankType == 2 and (ACCOUNT_BANK_PANEL_TITLE or "Account Bank") or (BANK or "Bank"))
+    local title = self.bankType == 2 and (ACCOUNT_BANK_PANEL_TITLE or "Account Bank") or (BANK or "Bank")
+    if self.viewGUID and self.bankType ~= 2 then
+        local owner = self:ViewContext(self.viewGUID)
+        if owner then title = (Text(owner.fullName) and #owner.fullName <= 128 and not owner.fullName:find("[%c|]") and owner.fullName or owner.name) .. " · Saved bank" end
+    end
+    self.frame:SetTitle(title)
     local search = self.search:GetText()
     search = Text(search) and search:lower() or ""
     for index, button in ipairs(self.buttons) do
@@ -427,7 +449,7 @@ end
 
 function Bank:RefreshTabs()
     local choices = {}
-    for _, bankType in ipairs({ 0, 2 }) do
+    for _, bankType in ipairs(self.viewGUID == "account" and { 2 } or { 0, 2 }) do
         local snapshot = self:GetSnapshot(bankType)
         local pages = snapshot and math.ceil(snapshot.totalSlots / PAGE_SIZE) or 0
         if bankType == 0 then pages = math.max(1, pages) end
@@ -488,6 +510,20 @@ function Bank:RefreshBags(snapshot)
     for index, button in pairs(self.bagButtons) do if index > #tabs then button:Hide() end end
 end
 
+function Bank:OpenFor(guid, bankType)
+    if not Suite.IsReadable(bankType) or not Suite.IsReadable(guid) then return false end
+    bankType = bankType == nil and 0 or bankType
+    if bankType ~= 0 and bankType ~= 2 then return false end
+    if InCombatLockdown() then Suite.Print("Open a saved bank outside combat."); return false end
+    if Visible(BankFrame) then Suite.Print("Close the live bank before opening a saved view."); return false end
+    if not self:GetSnapshot(bankType, guid) then Suite.Print("No bank slot view is recorded for this selection."); return false end
+    if not self:CreateView() then Suite.Print("Visit a bank once before opening its saved slot view."); return false end
+    self.viewGUID, self.bankType, self.page = guid, bankType, 1
+    if Suite.GUI and Suite.GUI.frame then Suite.GUI.frame:Hide() end
+    self:Refresh(); self:PlaceView(); self.frame:Show(); self.frame:Raise()
+    return true
+end
+
 function Bank:Toggle()
     if not Suite.db or not Suite.db.offlineBank then
         Suite.Print("Enable Bank snapshots in /wfs → Windows first."); return
@@ -506,6 +542,7 @@ function Bank:Toggle()
         return
     end
     if Visible(self.frame) then self.frame:Hide(); return end
+    self.viewGUID = nil
     if not self:CreateView() then Suite.Print("The bank view is unavailable on this client."); return end
     if Suite.GUI and Suite.GUI.frame then Suite.GUI.frame:Hide() end
     self:Refresh(); self:PlaceView(); self.frame:Show()

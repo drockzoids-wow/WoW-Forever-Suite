@@ -47,7 +47,7 @@ luaEntries.forEach((entry, index) => {
   lua.lua_rawseti(state, -2, index + 1);
 });
 lua.lua_setglobal(state, to_luastring('WFS_TEST_FILES'));
-if (process.argv.includes('--gui-preview') || process.argv.includes('--dashboard-preview')) {
+if (process.argv.includes('--gui-preview') || process.argv.includes('--dashboard-preview') || process.argv.includes('--workspace-preview')) {
   const previewDirectory = path.join(root, '.cache/gui-cleanup-ui-source-70338');
   fs.mkdirSync(previewDirectory, { recursive: true });
   function readValue(index) {
@@ -65,6 +65,17 @@ if (process.argv.includes('--gui-preview') || process.argv.includes('--dashboard
       return entries.sort((a, b) => a[0] - b[0]).map(([, value]) => value);
     }
     return Object.fromEntries(entries);
+  }
+  if (process.argv.includes('--workspace-preview')) {
+    const directory = path.join(root, '.cache/gui-workspace-0279');
+    fs.mkdirSync(directory, { recursive: true });
+    lua.lua_pushcfunction(state, () => {
+      const model = readValue(1);
+      if (!/^[a-z]+$/.test(model.page)) throw new Error('Invalid preview name');
+      fs.writeFileSync(path.join(directory, model.page + '.json'), JSON.stringify(model, null, 2));
+      return 0;
+    });
+    lua.lua_setglobal(state, to_luastring('WFS_WORKSPACE_PREVIEW'));
   }
   if (process.argv.includes('--gui-preview')) {
   lua.lua_pushcfunction(state, () => {

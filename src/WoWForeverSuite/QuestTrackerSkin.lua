@@ -122,7 +122,15 @@ function Skin:Panel(parent, target, header, pass)
     if not panel then
         panel = { textures = {}, edges = {} }
         if not header then
-            panel.background = Texture(parent, { 0.035, 0.05, 0.065, 0.88 })
+            -- Native quest timers use BACKGROUND strata below the LOW tracker.
+            -- Keep only our fill below them; the native timer and tracker stay untouched.
+            local layer = CreateFrame("Frame", nil, parent)
+            layer:SetAllPoints(parent)
+            layer:SetFrameStrata("BACKGROUND")
+            layer:SetFrameLevel(0)
+            layer:EnableMouse(false)
+            panel.backgroundLayer = layer
+            panel.background = Texture(layer, { 0.035, 0.05, 0.065, 0.88 })
             panel.textures[1] = panel.background
         end
         for _, side in ipairs(header and { "BOTTOM" } or { "TOP", "BOTTOM", "LEFT", "RIGHT" }) do

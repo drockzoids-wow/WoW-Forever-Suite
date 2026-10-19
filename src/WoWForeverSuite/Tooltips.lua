@@ -99,6 +99,34 @@ function Tips:PrepareItem(tooltip, data)
     self:Record(tooltip).itemLevelPrepared = true
 end
 
+function Tips:ComparisonDetails(tooltip, comparison)
+    if comparison.emptySlot then return end
+    local scoring = Suite.Scoring
+    local function Pair(label, value, positive)
+        local color = positive == false and { 1, 0.48, 0.38 } or { 0.41, 0.84, 0.75 }
+        if type(tooltip.AddDoubleLine) == "function" then tooltip:AddDoubleLine(label, value, 0.7, 0.77, 0.8, unpack(color))
+        else tooltip:AddLine(label .. ": " .. value, unpack(color)) end
+    end
+    Pair(comparison.preference == "ilevel" and "Item level · equipped -> candidate" or "Score · equipped -> candidate",
+        scoring.Format(comparison.baselineScore) .. " -> " .. scoring.Format(comparison.candidateScore))
+    local state = scoring:State()
+    local full = state and state.details
+    if comparison.replacementLink and full then Pair("Replaces", comparison.replacementLink) end
+    local rows = comparison.breakdown or {}
+    local limit = full and #rows or math.min(3, #rows)
+    for index = 1, limit do
+        local row = rows[index]
+        local label = row.label .. " " .. scoring.Format(row.value, true)
+        if full then label = label .. " x " .. tostring(row.weight) end
+        Pair(label, scoring.Format(row.points, true) .. " pts", row.points > 0)
+    end
+    if #rows > limit then tooltip:AddLine((#rows - limit) .. " more weighted changes · full breakdown in Gear Details", 0.55, 0.65, 0.7) end
+    if comparison.weapon and comparison.preference == "stats" then
+        tooltip:AddLine("Compares the complete hand set; off-hand weapon DPS counts at 50%.", 0.55, 0.65, 0.7, true)
+    end
+    tooltip:AddLine("Weighted estimate. Unweighted stats, effects and set bonuses need your judgment.", 0.55, 0.65, 0.7, true)
+end
+
 function Tips:Item(tooltip, data)
     if not Suite.db or (not Suite.db.itemTooltipLevels and not Suite.db.upgradeHints and not Suite.db.itemInventory) then return end
     if tooltip.IsForbidden and tooltip:IsForbidden() then return end
@@ -113,9 +141,9 @@ function Tips:Item(tooltip, data)
                 tooltip:AddLine(string.format("Item Level %d", info.level), 1, 0.82, 0)
             end
             if Suite.db.upgradeHints then
-                local delta, comparison = Suite.Items:UpgradeDelta(item)
+                local delta, comparison = Suite.Items:UpgradeDelta(item, true)
                 if delta then
-                    local preset = Suite.Scoring.presets[Suite.db.scorePreset]
+                    local preset = Suite.Scoring:Profile()
                     local text
                     if comparison.emptySlot then
                         text = comparison.weapon and ("Fills an empty equipment slot · " .. comparison.slot) or "Fills an empty equipment slot"
@@ -124,9 +152,10 @@ function Tips:Item(tooltip, data)
                         elseif comparison.weapon then text = string.format("Higher item level · +%.1f (%s)", delta, comparison.slot)
                         else text = string.format("Higher item level · +%.1f", delta) end
                     elseif comparison.weapon then
-                        text = string.format("Possible weapon upgrade · +%.1f (%s; %s)", delta, preset.label, comparison.slot)
-                    else text = string.format("Possible stat upgrade · +%.1f (%s)", delta, preset.label) end
+                        text = "Possible weapon upgrade · " .. Suite.Scoring.Format(delta, true) .. " (" .. preset.label .. "; " .. comparison.slot .. ")"
+                    else text = "Possible stat upgrade · " .. Suite.Scoring.Format(delta, true) .. " (" .. preset.label .. ")" end
                     tooltip:AddLine(text, 0.41, 0.84, 0.75)
+                    self:ComparisonDetails(tooltip, comparison)
                 end
             end
         end

@@ -94,6 +94,8 @@ local function Frame(name)
         SetBackdropBorderColor = function(self, ...) self.borderColor = { ... } end, SetColorTexture = function() end,
         SetTexture = function(self, texture) self.texture = texture end,
         AddMaskTexture = function(self, mask) self.maskTexture = mask end,
+        SetToplevel = function(self, enabled) assert(not InCombatLockdown(), "top-level setup defers in combat"); self.topLevel = enabled end,
+        Raise = function(self) assert(not InCombatLockdown(), "window raising defers in combat"); self.raises = (self.raises or 0) + 1 end,
         SetFrameStrata = function(self, strata) self.strata = strata end,
         SetFrameLevel = function(self, level) self.frameLevel = level end,
         SetClampedToScreen = function(self, clamped) self.clamped = clamped end,
@@ -610,15 +612,17 @@ do
     Suite.GUI:Select("overview"); Suite.GUI.frame:Hide()
 end
 Suite.GUI:Initialize()
-equal(Suite.GUI.frame.height, 680, "configuration panel has room for six two-line helpers and its footer")
-equal(#Suite.GUI.rows, 6, "overview exposes the requested feature groups")
-equal(Suite.GUI.rows[3].help.text:find("Ctrl+right-click", 1, true) ~= nil, true, "Overview teaches per-window reset")
-equal(Suite.GUI.rows[3].help.text:find("Ctrl+scroll", 1, true) ~= nil, true, "Overview teaches header resizing")
+equal(Suite.GUI.frame.height, 760, "rectangular workspace adds room for content and its footer")
+equal(#Suite.GUI.homeCards, 6, "home exposes six navigation shortcuts without duplicate switches")
+equal(Suite.GUI.homeCards[1].page, "characters", "home provides direct recorded inventory access")
+equal(Suite.GUI.homeCards[6].page, "setup", "home keeps guided setup easy to find")
 Suite.GUI:Select("items")
 local frameCount = #frames
-equal(Suite.GUI.rows[6].value.text, "Balanced", "stat preset appears in its control")
+equal(Suite.GUI.rows[6].value.text, "Automatic", "fresh character has a ready-to-use automatic profile")
 Suite.GUI:Action("preset")
-equal(Suite.db.scorePreset, "physical", "preset control changes its saved preference")
+Suite.GearSettings:Choose("physical")
+equal(Suite.Scoring:ActiveID(), "physical", "profile picker changes this character's chosen preset")
+frameCount = #frames
 Suite.GUI:Select("overview")
 equal(#frames, frameCount, "navigation reuses its controls")
 Suite.GUI:Toggle()
@@ -826,7 +830,8 @@ do
     recycled:SetItemButtonQuality(2, "secretQuality")
     equal(record.level.text, 20, "readable gear level does not require indexing a restricted quality")
     C_Item.GetItemInfo = originalInfo
-    Suite.db.upgradeHints, Suite.db.itemLevels, Suite.db.scorePreset = true, false, "caster"
+    Suite.db.upgradeHints, Suite.db.itemLevels = true, false
+    Suite.Scoring:SetProfile("caster")
     equipment[1] = "old"
     recycled:SetItemButtonQuality(2, "better")
     equal(record.level.text, "", "icon levels remain independently optional")
@@ -995,7 +1000,8 @@ do
     equal(Suite.Items.buttons[bankButton].level.text, "", "bank tab refresh clears emptied slots")
 
     link, currentLevel = "better", { secret = true }
-    Suite.db.itemLevels, Suite.db.upgradeHints, Suite.db.scorePreset = false, true, "caster"
+    Suite.db.itemLevels, Suite.db.upgradeHints = false, true
+    Suite.Scoring:SetProfile("caster")
     equipment[1] = "old"
     ContainerFrameCombinedBags:UpdateItems()
     equal(record.arrow.text, "+", "stat hints do not read current item levels when icon levels are off")
@@ -1538,6 +1544,7 @@ assert(loadfile("tests/mail_spec.lua"))(Suite, equal, Frame, function(value) com
 assert(loadfile("tests/chat_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/items_spec.lua"))(Suite, equal)
 assert(loadfile("tests/upgrade_spec.lua"))(Suite, equal, Frame)
+assert(loadfile("tests/gear_profiles_spec.lua"))(Suite, equal, Frame, function(value) combat = value end, frames[1])
 assert(loadfile("tests/quests_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/loot_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/bagsort_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
@@ -1551,10 +1558,15 @@ assert(loadfile("tests/setup_spec.lua"))(Suite, equal, Frame, function(value) co
 assert(loadfile("tests/missing_buffs_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/inventorysearch_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/dashboard_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/inventory_browser_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/scrollbars_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/gui_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/workspace_layout_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/qol_trio_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/audio_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/autoopen_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/leveling_spec.lua"))(Suite, equal, Frame, function(value) combat = value end, frames[1])
 assert(loadfile("tests/training_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/window_layers_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/settings_profiles_spec.lua"))(Suite, equal, Frame, function(value) combat = value end, frames[1])
 print("Behavior checks passed: " .. checks)

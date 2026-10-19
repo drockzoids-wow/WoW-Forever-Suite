@@ -19,6 +19,11 @@ local function Number(value)
     return Suite.IsReadable(value) and type(value) == "number" and value == value
         and value > -math.huge and value < math.huge
 end
+local function Call(callback, ...)
+    if not Suite.IsReadable(callback) or type(callback) ~= "function" then return end
+    local ok, value = pcall(callback, ...)
+    if ok and Suite.IsReadable(value) then return value end
+end
 local function Read(object, method, ...)
     if not Suite.IsReadable(object) or not object or not Suite.IsReadable(object[method])
         or type(object[method]) ~= "function" then return end
@@ -73,18 +78,24 @@ end
 
 function Search:BuildIndex()
     self.index, self.ids, self.limited = {}, {}, false
-    local region = GetCurrentRegion and GetCurrentRegion()
-    local guid = UnitGUID and UnitGUID("player")
+    self.coverage, self.owners = {}, {}
+    local region = Call(GetCurrentRegion)
+    local guid = Call(UnitGUID, "player")
     self.currentGUID, self.region = Text(guid) and guid or nil, nil
     if not Integer(region, 1, 1000000) then return end
     self.region = region
     local db, rowCount, itemCount = Suite.Inventory:Database(), 0, 0
     local function Add(snapshot, owner, location)
+        self.owners[owner.guid] = owner
+        self.coverage[owner.guid] = self.coverage[owner.guid] or {}
+        local status = { recorded = false }; self.coverage[owner.guid][location] = status
         if not Table(snapshot) or not Table(snapshot.items) then return end
+        status.recorded = true
         local at = Integer(snapshot.at, 1, 10000000000) and snapshot.at or nil
+        status.at = at
         for id, count in pairs(snapshot.items) do
             if Integer(id, 1, 2147483647) and Integer(count, 1, 1000000000) then
-                if rowCount >= MAX_ROWS or (not self.index[id] and itemCount >= MAX_ITEMS) then self.limited = true; return end
+                if rowCount >= MAX_ROWS or (not self.index[id] and itemCount >= MAX_ITEMS) then self.limited, status.partial = true, true; return end
                 if not self.index[id] then
                     self.index[id] = {}; self.ids[#self.ids + 1] = id; itemCount = itemCount + 1
                 end
@@ -93,7 +104,7 @@ function Search:BuildIndex()
                     row = { id = id, owner = owner }; self.index[id][owner.guid] = row; rowCount = rowCount + 1
                 end
                 row[location], row[location .. "At"] = count, at
-            end
+            elseif not (Integer(id, 1, 2147483647) and Integer(count, 0, 0)) then status.partial = true end
         end
     end
     if Table(db.characters) then
@@ -127,39 +138,64 @@ function Search:Item(id)
     return item
 end
 
-function Search:Query(query)
-    if InCombatLockdown() or not Text(query, 100) then return {}, 0, false end
+function Search:Query(query, options)
+    local browsing = Table(options) and Suite.IsReadable(options.browse) and options.browse == true
+    if InCombatLockdown() or not Suite.IsReadable(query) or type(query) ~= "string" or #query > 100
+        or query:find("[%c|]") then return {}, 0, false end
     query = query:match("^%s*(.-)%s*$"):lower()
-    if query == "" then return {}, 0, false end
-    local region = GetCurrentRegion and GetCurrentRegion()
-    local guid = UnitGUID and UnitGUID("player")
-    if not Integer(region, 1, 1000000) then self.index = nil; return {}, 0, false end
+    if query == "" and not browsing then return {}, 0, false end
+    local owner, location
+    if not Suite.IsReadable(options) then return {}, 0, false end
+    if options ~= nil then
+        if not Table(options) or not Suite.IsReadable(options.owner) or not Suite.IsReadable(options.location) then return {}, 0, false end
+        owner, location = options.owner, options.location
+        if owner ~= nil and not Text(owner) then return {}, 0, false end
+        if location ~= nil and (not Text(location) or not ({ all = true, bags = true, bank = true, account = true })[location]) then return {}, 0, false end
+    end
+    location = location or "all"
+    local region, guid = Call(GetCurrentRegion), Call(UnitGUID, "player")
+    if not Integer(region, 1, 1000000) then self.index, self.region = nil, nil; return {}, 0, false end
     guid = Text(guid) and guid or nil
     if not self.index or region ~= self.region or guid ~= self.currentGUID then self:BuildIndex() end
     local rows, pending, loads, more, tokens = {}, 0, 0, false, {}
     for token in query:gmatch("%S+") do tokens[#tokens + 1] = token end
+    local function Counts(saved)
+        local shared = saved.owner.guid == "account"
+        if owner ~= nil and saved.owner.guid ~= owner and not (location == "account" and shared) then return end
+        return (location == "all" or location == "bags") and saved.bags or nil,
+            (location == "all" or location == "bank") and saved.bank or nil,
+            (location == "all" or location == "account") and saved.account or nil
+    end
     for _, id in ipairs(self.ids) do
-        local item = self:Item(id)
-        if not item then
-            pending = pending + 1
-            if not self.requested[id] and C_Item and type(C_Item.RequestLoadItemDataByID) == "function" then
-                if loads < LOAD_BATCH then
-                    self.requested[id] = true; loads = loads + 1; pcall(C_Item.RequestLoadItemDataByID, id)
-                else more = true end
-            end
+        local eligible = false
+        for _, saved in pairs(self.index[id]) do
+            local bags, bank, account = Counts(saved)
+            if bags or bank or account then eligible = true; break end
         end
-        local matches = tostring(id) == query
-        if item and not matches then
-            matches = true
-            for _, token in ipairs(tokens) do if not item.words:find(token, 1, true) then matches = false; break end end
-        end
-        if matches then
-            for _, saved in pairs(self.index[id]) do
-                rows[#rows + 1] = { id = id, owner = saved.owner, bags = saved.bags, bank = saved.bank, account = saved.account,
-                    bagsAt = saved.bagsAt, bankAt = saved.bankAt, accountAt = saved.accountAt,
-                    name = item and item.name or ("Item " .. id), icon = item and item.icon or "Interface\\Icons\\INV_Misc_QuestionMark",
-                    link = item and item.link, quality = item and item.quality }
+        if eligible then
+            local item = self:Item(id)
+            if not item then
+                pending = pending + 1
+                if not self.requested[id] and C_Item and type(C_Item.RequestLoadItemDataByID) == "function" then
+                    if loads < LOAD_BATCH then
+                        self.requested[id] = true; loads = loads + 1; pcall(C_Item.RequestLoadItemDataByID, id)
+                    else more = true end
+                end
             end
+            local matches = query == "" or tostring(id) == query
+            if item and not matches then
+                matches = true
+                for _, token in ipairs(tokens) do if not item.words:find(token, 1, true) then matches = false; break end end
+            end
+            if matches then for _, saved in pairs(self.index[id]) do
+                local bags, bank, account = Counts(saved)
+                if bags or bank or account then
+                    rows[#rows + 1] = { id = id, owner = saved.owner, bags = bags, bank = bank, account = account,
+                        bagsAt = bags and saved.bagsAt, bankAt = bank and saved.bankAt, accountAt = account and saved.accountAt,
+                        name = item and item.name or ("Item " .. id), icon = item and item.icon or "Interface\\Icons\\INV_Misc_QuestionMark",
+                        link = item and item.link, quality = item and item.quality }
+                end
+            end end
         end
     end
     table.sort(rows, function(a, b)
@@ -172,6 +208,7 @@ function Search:Query(query)
     end)
     return rows, pending, more
 end
+
 
 function Search:Counts(row)
     local parts = {}
@@ -350,7 +387,11 @@ function Search:Schedule()
         or not C_Timer or not C_Timer.NewTimer then return end
     self.timer = C_Timer.NewTimer(0.12, function() self.timer = nil; self:Refresh() end)
 end
-function Search:InventoryChanged() self.index = nil; if self.owner then self:Schedule() end end
+function Search:InventoryChanged()
+    self.index = nil
+    if self.owner then self:Schedule() end
+    if Suite.CharacterBrowser then Suite.CharacterBrowser:Changed() end
+end
 function Search:FromBox(box, takeFocus)
     if not self:Enabled() or InCombatLockdown() then return end
     if takeFocus or Read(box, "HasFocus") == true then

@@ -144,6 +144,8 @@ local function Find(kind, key)
         end
     end
 end
+equal(Suite.db.missingBuffRested,true,"enabled reminders work in rested areas by default")
+Suite.db.missingBuffRested=false
 Suite.db.missingBuffs = true; resting = true; buffs:Apply()
 equal(reads, 0, "rested areas perform no missing-buff aura scans")
 equal(buffs.bar, nil, "rested areas create no action bar")
@@ -177,7 +179,7 @@ equal(intellect.spell.id, 1461, "highest learned rank is selected through native
 equal(intellectButton.attributes.spell1, 1461, "self action uses the actual learned spell ID")
 equal(intellectButton.attributes.unit, "player", "self buff does not change the player's target")
 local outgoing, outgoingButton = Find("group", "intellect")
-equal(#outgoing.names, 3, "outgoing family aggregates every missing eligible party member")
+equal(#outgoing.names, 2, "outgoing intellect aggregates missing mana-using party members")
 equal(outgoingButton.attributes.unit, "party1", "outgoing action targets the first missing member")
 local incoming, incomingButton = Find("incoming", "fortitude")
 local function NoticeCount(text)
@@ -188,10 +190,11 @@ local function NoticeCount(text)
     return count
 end
 equal(incoming.names[1], units.party1.name, "incoming suggestion retains its eligible provider")
-equal(incomingButton, nil, "buffs we cannot provide have no Ask placeholder in the action bar")
+equal(incomingButton.attributes.type1,nil,"teammate buff icon never receives a cast action")
+equal(incomingButton.caption.text,"Group","incoming buffs have a distinct Group caption")
 equal(NoticeCount("Fortitude"), 1, "unavailable own buff is reported in local chat")
 equal(#messages, 0, "local reminders never broadcast to party or raid")
-equal(Find("incoming", "spirit"), nil, "unknown teammate talents are not inferred")
+equal(Find("incoming", "spirit") ~= nil,true,"Forever Divine Spirit is baseline at level thirty")
 local unchangedNotices = NoticeCount()
 buffs:Refresh(); clock = clock + 61; buffs:Refresh()
 equal(NoticeCount(), unchangedNotices, "unchanged missing buffs do not repeat after cooldown or aura refreshes")
@@ -237,7 +240,7 @@ auras.player = { { name = "Arkane Intelligenz", spellId = 1460 }, { name = "Fros
 auras.party1 = { { name = "Arkane Intelligenz", spellId = 1459 } }; buffs:Refresh()
 equal(Find("self", "intellect"), nil, "localized aura names match lower ranks")
 equal(Find("self", "armor"), nil, "an alternative armor satisfies the whole family")
-equal(#Find("group", "intellect").names, 2, "already buffed members leave the outgoing queue")
+equal(#Find("group", "intellect").names, 1, "already buffed and non-mana members leave the outgoing queue")
 outgoing, outgoingButton = Find("group", "intellect")
 local originalGUID = units.party2.guid; units.party2.guid = "replacement"
 outgoingButton:PreClick("LeftButton")
@@ -299,6 +302,7 @@ equal(Find("incoming", "aura") ~= nil, true, "a party paladin can supply a missi
 units.raid4.party = false; buffs:Refresh()
 equal(Find("incoming", "aura"), nil, "incoming party auras do not infer coverage from another raid subgroup")
 units.raid4.class, units.raid4.party = "PRIEST", true
+units.raid2.class,units.raid4.class="HUNTER","ROGUE"
 units.player.class, learned = "WARRIOR", { 6673 }; buffs.bookDirty = true; buffs:Refresh()
 equal(#Find("group", "shout").names, 2, "party-wide casts exclude other raid subgroups")
 auras.player = { { name = "Battle Shout", spellId = 6673 } }; buffs:Refresh()
@@ -429,14 +433,15 @@ do
     equal(extra:AddCustom("9005", true), false, "custom duplicates are rejected")
     equal(extra:AddCustom("not a spell", false), false, "invalid custom input is rejected")
     extra:OpenOptions()
-    equal(extra.options:IsShown(), true, "custom editor opens from its settings action")
-    equal(extra.options.rows[1].label.text:find("9005", 1, true) ~= nil, true, "custom editor shows the saved spell")
-    extra.options.rows[1].scope:OnClick()
+    local manager=Suite.BuffSettings
+    equal(manager.panel:IsShown(), true, "custom learned-name controls open from settings")
+    equal(manager.saved[1].label.text:find("Custom Guard", 1, true) ~= nil, true, "custom editor shows the saved spell")
+    manager.saved[1].scope:OnClick()
     equal(Suite.db.missingBuffCustom[1].group, true, "scope control enables group watching")
-    extra.options.rows[1].scope:OnClick()
+    manager.saved[1].scope:OnClick()
     equal(Suite.db.missingBuffCustom[1].group, false, "scope control restores self watching")
-    extra.options.input:OnEscapePressed()
-    equal(extra.options:IsShown(), false, "Escape from the edit field closes the custom editor")
+    manager.search:OnEscapePressed()
+    equal(manager.panel:IsShown(), false, "Escape from the edit field closes the custom editor")
     buffs:Refresh(); local custom, customButton = Find("self", "CUSTOM:9005")
     equal(custom.spell.id, 9005, "learned custom spell gets its own reminder")
     equal(customButton.attributes.spell1, 9005, "custom click binds the learned spell")
@@ -604,6 +609,308 @@ do
     Suite.MacroItems.Scan = function() itemReads = itemReads + 1; return { list = carried } end
     Suite.db.missingBuffSelf, Suite.db.missingBuffOutgoing, Suite.db.missingBuffIncoming, Suite.db.missingBuffClass = unpack(settings)
     buffs.bookDirty, buffs.itemsDirty = true, true; buffs:Apply(); extra:Apply()
+end
+
+-- Recipient relevance, visible incoming buffs and the name-based manager.
+do
+    local saved={db=Suite.db,units=units,auras=auras,learned=learned,raid=raid,resting=resting,
+        secrets=C_Secrets,level=C_Spell.GetSpellLevelLearned,skill=C_SpellBook.GetNumSpellBookSkillLines,
+        power=UnitPowerType}
+    Suite.db=Suite.InitializeDB(nil);Suite.db.missingBuffs=true
+    units,auras,learned,raid,resting={},{},{},false,false
+    C_Secrets={ShouldUnitIdentityBeSecret=function() return false end,ShouldUnitAuraIndexBeSecret=function() return false end}
+    Unit("player","HUNTER");Unit("party1","MAGE")
+    spells[1459].level=0
+    local powerReads=0;UnitPowerType=function() powerReads=powerReads+1;return 3,"ENERGY" end
+    for _,class in ipairs({"HUNTER","MAGE","PRIEST","WARLOCK","PALADIN","SHAMAN","DRUID"}) do
+        units.player.class=class;buffs.bookDirty=true;buffs:Refresh()
+        local entry,button=Find("incoming","intellect")
+        equal(entry~=nil,true,class.." receives a mana-based Intellect suggestion")
+        equal(button~=nil,true,class.." incoming Intellect remains visible on the bar")
+        equal(button.attributes.type1,nil,"incoming icon cannot cast a teammate's spell")
+        equal(button.caption.text,"Group","incoming icon is labelled Group")
+    end
+    equal(powerReads,0,"temporary power/form never masks a class's Mana capability")
+    for _,class in ipairs({"WARRIOR","ROGUE"}) do
+        units.player.class=class;buffs.bookDirty=true;buffs:Refresh()
+        equal(Find("incoming","intellect"),nil,"non-mana class does not get default Intellect requests")
+    end
+    units.player.class="HUNTER";buffs.bookDirty=true
+    C_SpellBook.GetNumSpellBookSkillLines=function() return secret end
+    buffs:Refresh();local entry,button=Find("incoming","intellect")
+    equal(button~=nil,true,"Hunter's incomplete own spellbook cannot suppress a Mage's incoming icon")
+    equal(button.attributes.spell1,nil,"unavailable own book never binds a foreign spell")
+    C_SpellBook.GetNumSpellBookSkillLines=saved.skill;buffs.bookDirty=true
+    resting=true;buffs:Refresh()
+    equal(Find("incoming","intellect")~=nil,true,"default reminders include rested areas")
+    Suite.db.missingBuffRested=false;buffs:Refresh()
+    equal(#buffs.entries,0,"rested-area suppression remains an optional preference")
+    Suite.db.missingBuffRested=true;resting=false
+    auras.player={{name="Arkane Intelligenz",spellId=1460}};buffs:Refresh()
+    equal(Find("incoming","intellect"),nil,"localized lower-rank Intellect satisfies incoming family")
+    auras.player={{name="Arcane Brilliance",spellId=23028}};buffs:Refresh()
+    equal(Find("incoming","intellect"),nil,"group variant satisfies incoming family")
+    auras.player={};units.party1.connected=false;buffs:Refresh()
+    equal(Find("incoming","intellect"),nil,"disconnected Mage is not a provider")
+    units.party1.connected=true;units.party1.visible=false;buffs:Refresh()
+    equal(Find("incoming","intellect"),nil,"unseen Mage is not a provider")
+    units.party1.visible=true;auras.player={secret};buffs:Refresh()
+    equal(Find("incoming","intellect"),nil,"restricted aura data cannot prove a buff is missing")
+    auras.player={};C_Spell.GetSpellLevelLearned=function() return secret end;buffs:Refresh()
+    equal(Find("incoming","intellect"),nil,"restricted level metadata is never compared")
+    C_Spell.GetSpellLevelLearned=saved.level
+    units.party1.class="PRIEST";units.party1.level=29
+    Spell(6346,"Fear Ward",20);buffs:Refresh()
+    equal(Find("incoming","spirit"),nil,"Divine Spirit requires a level-thirty provider")
+    units.party1.level=30;buffs:Refresh()
+    equal(Find("incoming","spirit")~=nil,true,"baseline Divine Spirit is suggested without talent inference")
+    equal(Find("incoming","fortitude")~=nil,true,"Fortitude is included")
+    equal(Find("incoming","shadow")~=nil,true,"Shadow Protection is included")
+    equal(Find("incoming","ward")~=nil,true,"baseline Fear Ward is included at the correct level")
+    units.player.class="WARRIOR";buffs.bookDirty=true;buffs:Refresh()
+    equal(Find("incoming","spirit")~=nil,true,"Spirit's health recovery remains useful to non-mana classes")
+    Spell(19888,"Frost Resistance Aura",32)
+    raid=true;units.raid1=units.player;auras.raid1=auras.player
+    Unit("raid2","PALADIN",40);units.raid2.party=false
+    buffs:Refresh()
+    equal(Find("incoming","aura").spell.id,19888,"Forever resistance aura can be supplied across raid subgroups")
+    equal(buffs:PartyOnly({party=true,partyRoots={[465]=true}},465),true,"ordinary Paladin aura remains party-only")
+    raid=false;units.raid1,units.raid2=nil,nil
+    -- Paladin alternatives are relevant per recipient, without demanding every blessing.
+    Spell(19740,"Blessing of Might",4);Spell(19742,"Blessing of Wisdom",14);Spell(20217,"Blessing of Kings",20)
+    units.party1.class,units.party1.level="PALADIN",40
+    units.player.class="MAGE";auras.player={{name="Blessing of Might",spellId=19740}};buffs.bookDirty=true;buffs:Refresh()
+    entry=Find("incoming","blessing")
+    equal(entry.spell.id,19742,"caster receives Wisdom rather than physical Might")
+    units.player.class="ROGUE";auras.player={{name="Blessing of Wisdom",spellId=19742}};buffs.bookDirty=true;buffs:Refresh()
+    equal(Find("incoming","blessing").spell.id,19740,"Rogue does not accept Mana recovery as physical upkeep")
+    auras.player={{name="Blessing of Kings",spellId=20217}};buffs:Refresh()
+    equal(Find("incoming","blessing"),nil,"a relevant alternative satisfies the blessing family")
+    units.player.class="PALADIN";units.party1.class="MAGE";Unit("party2","ROGUE")
+    learned={19740,19742};auras.player={};auras.party1={};buffs.bookDirty=true;buffs:Refresh()
+    local might,wisdom
+    for _,item in ipairs(buffs.entries) do if item.kind=="group" and item.family.catalog.key=="blessing" then
+        if item.spell.id==19740 then might=item elseif item.spell.id==19742 then wisdom=item end
+    end end
+    equal(wisdom.names[1],units.party1.name,"automatic outgoing blessing chooses learned Wisdom for a Mage")
+    equal(might.names[1],units.party2.name,"automatic outgoing blessing chooses learned Might for a Rogue")
+    Suite.db.missingBuffChoices["PALADIN:blessing"]=19740;buffs:Refresh()
+    local wrong=false;for _,item in ipairs(buffs.entries) do if item.kind=="group" and item.spell.id==19742 then wrong=true end end
+    equal(wrong,false,"explicit alternative is respected rather than silently changed")
+    -- Outgoing Intellect uses the same recipient model as incoming reminders.
+    Suite.db.missingBuffChoices={};units.player.class="MAGE";units.party1.class="ROGUE";units.party2.class="HUNTER"
+    Unit("party3","DRUID");learned={1459};buffs.bookDirty=true;buffs:Refresh()
+    equal(#Find("group","intellect").names,2,"outgoing Intellect includes Hunter and Druid, excluding Rogue")
+    Suite.db.missingBuffSmart=false;buffs:Refresh()
+    equal(#Find("group","intellect").names,3,"class-aware defaults can be disabled deliberately")
+    Suite.db.missingBuffSmart=true
+    -- A visible hidden-family list restores exactly one family and retains unrelated choices.
+    units.player.class="HUNTER";units.party1.class="MAGE";units.party2=nil;units.party3=nil;learned={};buffs.bookDirty=true
+    Suite.db.missingBuffChoices={ ["MAGE:intellect"]=0,["PRIEST:shadow"]=0 };buffs:Refresh()
+    equal(Find("incoming","intellect"),nil,"a deliberately hidden family stays hidden")
+    local manager=Suite.BuffSettings;manager:Open("choices")
+    manager.choiceQuery="intellect";manager.page=1;manager:Refresh()
+    equal(manager.choiceRows[1].record.key,"MAGE:intellect","English family search finds a localized Intellect spell")
+    equal(manager.choiceRows[1].visible.label.text,"Show reminder","hidden state has a clear restore action")
+    manager.choiceRows[1].visible:OnClick();Flush()
+    equal(Suite.db.missingBuffChoices["MAGE:intellect"],nil,"individual restore removes the hidden flag")
+    equal(Suite.db.missingBuffChoices["PRIEST:shadow"],0,"individual restore preserves unrelated hidden choices")
+    equal(Find("incoming","intellect")~=nil,true,"restored Intellect appears on Hunter without manual spell edits")
+    manager.choiceQuery="";manager:Refresh();manager.choiceNext:OnClick()
+    equal(manager.page,2,"buff family list is paged")
+    manager.filter="hidden";manager:Refresh()
+    equal(manager.choiceRows[1].record.key,"PRIEST:shadow","hidden filter exposes saved hidden families")
+    -- Real learned-name picker: choose icon/name, scope and removal; built-ins link to management.
+    Spell(9015,"Hunter Ward");learned={9015};buffs.bookDirty=true
+    manager:Open("spells");manager.query="hunter ward";manager.spellPage=1;manager:Refresh()
+    equal(manager.results[1].spell.id,9015,"name search selects actual learned spell ID")
+    equal(manager.results[1].icon.texture,9115,"learned choice shows the native spell icon")
+    local beforeAdd=#Suite.db.missingBuffCustom;manager.results[1].add:OnClick();Flush()
+    equal(#Suite.db.missingBuffCustom,beforeAdd+1,"clicking learned result adds a self reminder without casting")
+    equal(Suite.db.missingBuffCustom[1].group,false,"new custom reminders default to Self")
+    manager.saved[1].scope:OnClick()
+    equal(Suite.db.missingBuffCustom[1].group,true,"custom scope can be changed without IDs")
+    manager.saved[1].remove:OnClick();Flush()
+    equal(#Suite.db.missingBuffCustom,0,"custom reminder can be removed without touching built-ins")
+    units.player.class="MAGE";learned={1459};manager.cachedLearned=nil;manager.query="arkane";manager:Refresh()
+    equal(manager.results[1].add.label.text,"Manage built-in","built-in learned buffs link to their existing family")
+    manager.results[1].add:OnClick()
+    equal(manager.mode,"choices","built-in selection opens family management")
+    equal(#Suite.db.missingBuffCustom,0,"built-in selection cannot waste a custom slot")
+    manager:Open("spells");learned={9015};manager.cachedLearned=nil;manager.query="hunter ward";manager:Refresh()
+    manager.results[1].add:OnClick()
+    Spell(9016,"Hunter Ward",50);learned={9016};manager.cachedLearned=nil;manager:Refresh()
+    equal(manager.results[1].add.enabled,false,"learning a higher rank does not offer a duplicate custom family")
+    equal(Suite.BuffReminders:AddCustom("9016",false),false,"custom API also rejects duplicate localized spell families")
+    Suite.db.missingBuffCustom={};manager.cachedLearned=nil
+    -- Display choices update only owned UI outside combat and keep useful defaults.
+    units.player.class="HUNTER";learned={};manager:Open("display");buffs.bookDirty=true;buffs:Refresh()
+    equal(Suite.db.missingBuffScale,1,"bar starts at normal scale")
+    equal(Suite.db.missingBuffIconSize,34,"bar preserves readable original icon size")
+    manager.scale:OnClick();manager.size:OnClick();Flush()
+    equal(buffs.bar:GetScale(),1.2,"scale control applies to the owned bar")
+    entry,button=Find("incoming","intellect")
+    equal(button:GetWidth(),40,"icon-size control updates actual buttons")
+    manager.lock:OnClick();Flush()
+    equal(Suite.db.missingBuffLocked,true,"movement lock saves")
+    buffs.bar.moving=nil;buffs.header:OnDragStart()
+    equal(buffs.bar.moving,nil,"locked header cannot move the bar")
+    manager.lock:OnClick();Flush();buffs.header:OnDragStart()
+    equal(buffs.bar.moving,true,"unlocked header retains dragging")
+    buffs.header:OnDragStop()
+    SetCombat(true);buffs.controller:RunState("combat")
+    manager.panel:OnEvent("PLAYER_REGEN_DISABLED")
+    equal(manager.scale.enabled,false,"display controls disable in combat")
+    manager:Display("missingBuffScale",1.4)
+    equal(Suite.db.missingBuffScale,1.2,"combat cannot change protected scale")
+    equal(buffs.bar:IsShown(),false,"secure controller hides actionable and incoming icons in combat")
+    SetCombat(false);buffs.controller:RunState("peaceful");manager.panel:OnEvent("PLAYER_REGEN_ENABLED")
+    equal(manager.scale.enabled,true,"controls recover without an automatic action after combat")
+    for i,control in ipairs(manager.controls) do
+        local parent=control.parent
+        if parent and parent.GetWidth then equal(control.point[2]>=0 and control.point[2]+control:GetWidth()<=parent:GetWidth(),true,"manager control stays inside its panel") end
+    end
+    for _,row in ipairs(manager.saved) do
+        equal(row.point[2]+row:GetWidth()<=780,true,"two-column custom cards fit horizontally")
+        equal(-row.point[3]+row:GetHeight()<=650,true,"all eight custom cards fit their form")
+    end
+    manager:Open("spells");manager.query="not an available spell";manager:Refresh()
+    equal(manager.spellEmpty:IsShown(),true,"empty learned search gives a visible explanation")
+    equal(manager.savedEmpty:IsShown(),true,"empty custom list explains that built-ins need no configuration")
+    equal(manager.panel:GetHeight()<500,true,"empty custom search compacts into one viewport")
+    manager:Open("choices");manager.choiceQuery="no matching family";manager:Refresh()
+    equal(manager.choiceEmpty:IsShown(),true,"empty family search has explicit feedback")
+    equal(manager.panel:GetHeight()<500,true,"short family view avoids unnecessary empty scrolling")
+    manager.panel:OnEvent("SPELLS_CHANGED")
+    local queued=manager.timer
+    manager.panel:OnEvent("SPELL_DATA_LOAD_RESULT")
+    equal(manager.timer,queued,"spellbook and metadata events coalesce into one visible refresh")
+    manager:Dismiss()
+    equal(queued.cancelled,true,"closing manager cancels metadata work")
+    equal(manager.timer,nil,"closed manager retains no worker")
+    manager:Dismiss();equal(Suite.pending.buffManager,nil,"dismissal cancels deferred manager work")
+    equal(#messages,0,"new class reminders and management never broadcast group messages")
+    if WFS_WORKSPACE_PREVIEW then
+        for _,mode in ipairs({"display","choices","spells"}) do
+            manager:Open(mode)
+            local model={page="buff"..mode,width=780,height=manager.panel:GetHeight(),mode=mode,controls={},labels={}}
+            local parent=mode=="display" and manager.display or mode=="choices" and manager.choices or manager.spells
+            local function Record(control,x,y)
+                model.controls[#model.controls+1]={x=x,y=y,width=control:GetWidth(),height=control:GetHeight(),label=control.label and control.label.text or control.text or "",enabled=control.enabled}
+            end
+            for _,control in ipairs(manager.controls) do if control.parent==parent then Record(control,control.point[2],80-control.point[3]) end end
+            if mode=="spells" then
+                Record(manager.search,0,140)
+                for _,row in ipairs(manager.results) do if row:IsShown() then
+                    local x,y=row.point[2],80-row.point[3];Record(row.add,x+row.add.point[2],y-row.add.point[3])
+                    model.labels[#model.labels+1]={x=x+36,y=y+7,text=row.label.text}
+                end end
+            elseif mode=="choices" then
+                Record(manager.choiceSearch,0,114)
+                for _,row in ipairs(manager.choiceRows) do if row:IsShown() then
+                    local x,y=row.point[2],80-row.point[3];Record(row.visible,x+row.visible.point[2],y-row.visible.point[3]);Record(row.alternative,x+row.alternative.point[2],y-row.alternative.point[3])
+                    model.labels[#model.labels+1]={x=x+36,y=y+2,text=row.label.text}
+                end end
+            end
+            WFS_WORKSPACE_PREVIEW(model)
+        end
+        manager:Dismiss()
+    end
+    UnitPowerType=saved.power;C_Secrets=saved.secrets;C_Spell.GetSpellLevelLearned=saved.level
+    C_SpellBook.GetNumSpellBookSkillLines=saved.skill;spells[1459].level=1
+    Suite.db,units,auras,learned,raid,resting=saved.db,saved.units,saved.auras,saved.learned,saved.raid,saved.resting
+    buffs.bookDirty=true;buffs:Refresh()
+end
+
+-- Explicit incoming-icon click requests; all senders below are substitutes, never live chat.
+do
+    local saved={db=Suite.db,units=units,auras=auras,learned=learned,messages=messages,clock=clock,raid=raid,
+        resting=resting,home=homeGroup,instance=instanceGroup,lock=chatLock,sender=C_ChatInfo.SendChatMessage,
+        group=IsInGroup,isRaid=IsInRaid,requestTimes=buffs.requestTimes,last=buffs.lastRequestAt,name=spells[1459].name}
+    Suite.db=Suite.InitializeDB(nil);Suite.db.missingBuffs=true
+    units,auras,learned,messages,clock,raid,resting,homeGroup,instanceGroup,chatLock={},{},{},{},1000,false,false,true,false,false
+    buffs.requestTimes,buffs.lastRequestAt={},nil;spells[1459].name="Arcane Intellect"
+    Unit("player","HUNTER");Unit("party1","MAGE");buffs.bookDirty=true;buffs:Refresh()
+    local incoming,button=Find("incoming","intellect")
+    buffs:Refresh();Flush()
+    equal(#messages,0,"refreshing and timers cannot announce a buff request")
+    incoming,button=Find("incoming","intellect")
+    button:PostClick("LeftButton",true)
+    equal(#messages,0,"mouse press cannot duplicate release request")
+    button:PostClick("LeftButton",false)
+    equal(#messages,1,"deliberate incoming-icon release announces exactly once")
+    equal(messages[1].message,"Could I get Arcane Intellect, please?","request uses the native localized buff name")
+    equal(messages[1].channel,"PARTY","ordinary group request uses party chat")
+    equal(button.attributes.type1,nil,"chat request never binds a spell or macro action")
+    button:PostClick("LeftButton",false)
+    equal(#messages,1,"repeated click respects per-family cooldown")
+    Unit("party2","PRIEST");buffs:Refresh()
+    local _,fort=Find("incoming","fortitude")
+    fort:PostClick("LeftButton",false)
+    equal(#messages,1,"different buffs respect global click cooldown")
+    clock=clock+3;fort:PostClick("LeftButton",false)
+    equal(#messages,2,"another buff may be requested after global cooldown")
+    clock=clock+27;incoming,button=Find("incoming","intellect");button:PostClick("LeftButton",false)
+    equal(#messages,3,"same family may be requested again after thirty seconds")
+    clock=clock+31
+    auras.player={{name="Arcane Intellect",spellId=1459}}
+    button:PostClick("LeftButton",false)
+    equal(#messages,3,"a newly applied buff cancels a stale visible request")
+    auras.player={};buffs:Refresh();incoming,button=Find("incoming","intellect")
+    units.party1.connected=false;button:PostClick("LeftButton",false)
+    equal(#messages,3,"departed provider cancels a stale request")
+    units.party1.connected=true;buffs:Refresh();incoming,button=Find("incoming","intellect")
+    chatLock=true;button:PostClick("LeftButton",false)
+    equal(#messages,3,"native chat lockdown prevents sending")
+    equal(feedback[#feedback]:find("restricted",1,true)~=nil,true,"blocked chat gives local actionable feedback")
+    chatLock=secret;button:PostClick("LeftButton",false)
+    equal(#messages,3,"unknown chat restriction is not treated as permission")
+    chatLock=false;homeGroup=false;button:PostClick("LeftButton",false)
+    equal(#messages,3,"no group cannot fall back to public chat")
+    homeGroup=true;IsInGroup=function() return secret end;button:PostClick("LeftButton",false)
+    equal(#messages,3,"restricted group state is never branched on")
+    IsInGroup=saved.group
+    C_ChatInfo.SendChatMessage=nil;button:PostClick("LeftButton",false)
+    equal(#messages,3,"missing sender fails safely without alternate API")
+    C_ChatInfo.SendChatMessage=function() error("native restriction") end
+    button:PostClick("LeftButton",false)
+    equal(#messages,3,"native rejection is contained without another channel attempt")
+    equal(buffs.requestTimes["MAGE:intellect"],clock,"failed attempt still receives a spam cooldown")
+    C_ChatInfo.SendChatMessage=saved.sender;clock=clock+31
+    instanceGroup=true;homeGroup=false;button:PostClick("LeftButton",false)
+    equal(messages[#messages].channel,"INSTANCE_CHAT","instance grouping takes the native instance channel")
+    instanceGroup=false;homeGroup=true;raid=true;units.raid1=units.player;auras.raid1=auras.player
+    Unit("raid2","MAGE");clock=clock+31;buffs:Refresh();incoming,button=Find("incoming","intellect")
+    button:PostClick("LeftButton",false)
+    equal(messages[#messages].channel,"RAID","home raid request uses raid chat")
+    instanceGroup=true;clock=clock+31;button:PostClick("LeftButton",false)
+    equal(messages[#messages].channel,"INSTANCE_CHAT","instance channel wins when home raid also exists")
+    local count=#messages
+    instanceGroup=false;clock=clock+31
+    SetCombat(true);buffs.controller:RunState("combat");button:PostClick("LeftButton",false)
+    equal(#messages,count,"combat input cannot send or queue a request")
+    SetCombat(false);buffs.controller:RunState("peaceful")
+    Suite.db.missingBuffIncoming=false;button:PostClick("LeftButton",false)
+    equal(#messages,count,"disabled incoming reminders cannot request from stale icons")
+    Suite.db.missingBuffIncoming=true;auras.player={secret};button:PostClick("LeftButton",false)
+    equal(#messages,count,"unknown aura coverage cannot authorize a missing-buff message")
+    auras.player={};buffs:Refresh();incoming,button=Find("incoming","intellect")
+    local beforeHide=#messages;button:PostClick("RightButton",false)
+    equal(#messages,beforeHide,"right click still hides without sending")
+    equal(Suite.db.missingBuffChoices["MAGE:intellect"],0,"right-click family preference is preserved")
+    Suite.db.missingBuffChoices["MAGE:intellect"]=nil;Suite.db.missingBuffExpiry=true
+    auras.player={{name="Arcane Intellect",spellId=1459,duration=3600,expirationTime=clock+10}}
+    buffs:Refresh();incoming,button=Find("incoming","intellect");button:PostClick("LeftButton",false)
+    equal(messages[#messages].message,"Could I get Arcane Intellect refreshed, please?","expiring buff requests accurately ask for refresh")
+    local beforeTimer=#messages;Flush()
+    equal(#messages,beforeTimer,"request never retries automatically")
+    equal(buffs:Request({kind=secret,family={},spell={}}),false,"restricted entry kind rejected before comparison")
+    equal(buffs:Request({kind="self",family={},spell={}}),false,"own-spell actions cannot become requests")
+    Suite.db,units,auras,learned,messages,clock,raid,resting=saved.db,saved.units,saved.auras,saved.learned,saved.messages,saved.clock,saved.raid,saved.resting
+    homeGroup,instanceGroup,chatLock=saved.home,saved.instance,saved.lock
+    C_ChatInfo.SendChatMessage,IsInGroup,IsInRaid=saved.sender,saved.group,saved.isRaid
+    buffs.requestTimes,buffs.lastRequestAt=saved.requestTimes,saved.last;spells[1459].name=saved.name
+    buffs.bookDirty=true;buffs:Refresh()
 end
 
 SlashCmdList.WOWFOREVERSUITE("buffs")

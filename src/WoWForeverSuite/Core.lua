@@ -1,6 +1,6 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "0.2.69"
+Suite.version = "0.2.85"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {
@@ -27,11 +27,13 @@ Suite.defaults = {
     chatStyle = false, chatFontSize = 14, chatOpacity = 0.5, audioSync = false,
     itemLevels = false, itemTooltipLevels = false, characterItemLevel = false, upgradeHints = false,
     itemInventory = false, inventorySearch = false, characterDashboard = false, inventory = { schema = 1, characters = {}, accountBanks = {} },
+    inventoryBrowser = { schema = 1, favorites = {} },
     scorePreset = "balanced", upgradePreference = "stats", playerItemLevel = false, classNames = false,
     macroUpdates = false, macroOwnership = {},
     campingBar = false, campingPose = "sit", campingPosition = {},
     levelingBar = false, trainingPlanner = false, trainingAuto = true, trainingLevelUp = true,
     missingBuffExpiry = false, missingBuffCombat = false, missingBuffWeapons = false, missingBuffWarning = 60, missingBuffCustom = {},
+    missingBuffScale = 1, missingBuffIconSize = 34, missingBuffLocked = false, missingBuffRested = true, missingBuffSmart = true,
     missingBuffs = false, missingBuffSelf = true, missingBuffOutgoing = true, missingBuffIncoming = true, missingBuffClass = true,
     missingBuffPosition = {}, missingBuffChoices = {},
     damageMeters = false, meterSnap = true, meterGap = 4, meterLocked = false,
@@ -69,7 +71,8 @@ function Suite.InitializeDB(saved)
         if not Suite.IsReadable(db[key]) or type(db[key]) ~= type(value) then db[key] = Suite.Copy(value) end
     end
     if not Suite.Scoring.presets[db.scorePreset] then db.scorePreset = "balanced" end
-    db.upgradePreference = Suite.Scoring.Preference(db)
+    db.upgradePreference = Suite.Scoring.Preference(db, true)
+    db.inventoryBrowser = Suite.CharacterBrowser:InitializeOptions(db.inventoryBrowser)
     db.chatFontSize, db.chatOpacity = Suite.Chat:Options(db)
     db.keybindFont, db.keybindSize, db.keybindOutline, db.keybindBold = Suite.Keybinds:Options(db)
     db.progressBarWidth, db.progressBarHeight = Suite.HUDSkin:Options(db)
@@ -87,6 +90,7 @@ function Suite.InitializeDB(saved)
     db.bagSpacePosition = Suite.BagSpace:InitializePosition(db.bagSpacePosition)
     db.questItemPosition = Suite.BagSpace:InitializePosition(db.questItemPosition)
     if db.missingBuffWarning ~= 30 and db.missingBuffWarning ~= 60 and db.missingBuffWarning ~= 120 then db.missingBuffWarning = 60 end
+    db.missingBuffScale, db.missingBuffIconSize = Suite.MissingBuffs:DisplayOptions(db)
     db.missingBuffCustom = Suite.BuffReminders:Custom(db.missingBuffCustom)
     return db
 end
@@ -136,12 +140,18 @@ events:SetScript("OnEvent", function(_, event, name, second)
         WoWForeverSuiteDB = Suite.InitializeDB(WoWForeverSuiteDB)
         Suite.db = WoWForeverSuiteDB
         local character = Suite.IsReadable(WoWForeverSuiteCharDB) and type(WoWForeverSuiteCharDB) == "table" and WoWForeverSuiteCharDB or {}
+        local scoring = Suite.Scoring:InitializeCharacter(character.scoring,
+            Suite.IsReadable(WoWForeverSuiteCharDB) and type(WoWForeverSuiteCharDB) == "table" and Suite.db or nil)
         local leveling = Suite.Leveling:InitializeCharacter(character.leveling)
         local training = Suite.Training:InitializeCharacter(character.training)
         WoWForeverSuiteCharDB = Suite.Macros:Initialize(character)
         WoWForeverSuiteCharDB.leveling = leveling
         WoWForeverSuiteCharDB.training = training
+        WoWForeverSuiteCharDB.scoring = scoring
+        WoWForeverSuiteCharDB.suiteProfile = Suite.Profiles:Initialize(Suite.db, character.suiteProfile)
+        Suite.InitializeDB(Suite.db)
     elseif event == "PLAYER_LOGIN" then
+        Suite.Profiles:RegisterCharacter()
         Suite.GUI:RegisterSettings()
         Suite.Apply()
         Suite.Setup:OnLogin()
@@ -150,6 +160,7 @@ events:SetScript("OnEvent", function(_, event, name, second)
     elseif event == "PLAYER_ENTERING_WORLD" then
         Suite.Leveling:OnWorld(name, second)
     elseif event == "PLAYER_LOGOUT" then
+        Suite.Profiles:SaveActive()
         Suite.Leveling:SaveSession()
     elseif event == "PLAYER_REGEN_ENABLED" then
         local pending = Suite.pending
@@ -164,7 +175,7 @@ end)
 SLASH_WOWFOREVERSUITE1 = "/wfs"
 SLASH_WOWFOREVERSUITE2 = "/foreversuite"
 local commandPages = {
-    characters = "characters", dashboard = "characters",
+    profiles = "profiles", profile = "profiles", characters = "characters", dashboard = "characters", gear = "items", items = "items",
     bags = "bags", macros = "macros", camping = "camping", campfire = "camping",
     actionbars = "actionbars", unitframes = "unitframes", vendor = "vendor", buffs = "buffs", missingbuffs = "buffs",
     bars = "bars", map = "worldmap", worldmap = "worldmap",
@@ -183,6 +194,7 @@ SlashCmdList.WOWFOREVERSUITE = function(message)
     elseif command == "windows" then Suite.Windows:Status()
     elseif command == "resetwindows" then Suite.Windows:ResetAll()
     elseif command == "training" or command == "trainer" then Suite.Training:Open()
+    elseif command == "inventory" then Suite.CharacterBrowser:Open()
     elseif command == "bank" then Suite.OfflineBank:Toggle()
     elseif command == "macrostatus" then Suite.Macros:Status()
     elseif command == "meters" or command == "damage" then Suite.GUI:OpenMeters()

@@ -54,7 +54,9 @@ end
 
 function Buffs:Context()
     if InCombatLockdown() then return false end
-    return Call(IsResting) == false and Call(UnitIsDeadOrGhost, "player") == false
+    local resting = Call(IsResting)
+    return (resting == false or resting == true and Suite.db.missingBuffRested == true)
+        and Call(UnitIsDeadOrGhost, "player") == false
 end
 
 function Buffs:Unit(unit)
@@ -187,6 +189,55 @@ function Buffs:Families(class, learned)
     return families
 end
 
+-- Class capabilities stay stable while a Druid changes form. Forever Hunters use Mana.
+local manaClasses = {MAGE=true,PRIEST=true,WARLOCK=true,HUNTER=true,PALADIN=true,SHAMAN=true,DRUID=true}
+local physicalClasses = {WARRIOR=true,ROGUE=true,HUNTER=true,PALADIN=true,SHAMAN=true,DRUID=true}
+function Buffs:Relevant(catalog, class, root)
+    if not Text(class) or not Read(catalog,"table") then return false end
+    if Suite.db.missingBuffSmart == false then return true end
+    if catalog.mana or catalog.manaRoots and catalog.manaRoots[root] then return manaClasses[class] == true end
+    if catalog.physical or catalog.physicalRoots and catalog.physicalRoots[root] then return physicalClasses[class] == true end
+    return true
+end
+function Buffs:PartyOnly(catalog,root)
+    if catalog.partyRoots then return catalog.partyRoots[root] == true end
+    return catalog.party == true
+end
+function Buffs:Recipient(family,class)
+    family.recipients = family.recipients or {}
+    if family.recipients[class] then return family.recipients[class] end
+    local result={key=family.key,catalog=family.catalog,names={},ids={},choices={}}
+    if family.catalog.custom then return family end
+    for index,root in ipairs(family.catalog.roots) do
+        if self:Relevant(family.catalog,class,root) then
+            result.ids[root]=true
+            local spell=self:Spell(root)
+            if spell then result.names[spell.name]=true end
+            local auraID=family.catalog.auras and family.catalog.auras[index]
+            if auraID then
+                result.ids[auraID]=true
+                local aura=self:Spell(auraID);if aura then result.names[aura.name]=true end
+            end
+        end
+    end
+    local chosen=Suite.db.missingBuffChoices[family.key]
+    for _,spell in ipairs(family.choices) do
+        if self:Relevant(family.catalog,class,spell.root or spell.id) then
+            result.choices[#result.choices+1]=spell
+            if chosen == nil and not result.spell or chosen == spell.id or chosen == spell.root then result.spell=spell end
+        end
+    end
+    family.recipients[class]=result
+    return result
+end
+function Buffs:DisplayOptions(db)
+    db=db or Suite.db or {}
+    local scale,size=db.missingBuffScale,db.missingBuffIconSize
+    if not Number(scale) or scale < 0.7 or scale > 1.5 then scale=1 end
+    if not Number(size) or size < 24 or size > 48 then size=34 end
+    return scale,math.floor(size)
+end
+
 function Buffs:Present(family, auras, expiry)
     if not auras then return nil end
     if expiry and Suite.db.missingBuffExpiry and auras.records then return Suite.BuffReminders:Presence(family, auras) end
@@ -247,37 +298,44 @@ function Buffs:Collect()
     for _, family in ipairs(families) do if family.spell and family.catalog.group and Suite.db.missingBuffOutgoing then scanGroup = true end end
     if scanGroup then for index = 2, #roster do auras[roster[index].unit] = self:Auras(roster[index].unit) end end
     for _, family in ipairs(families) do
-        local spell, catalog = family.spell, family.catalog
+        local personalFamily = self:Recipient(family,player.class)
+        local spell, catalog = personalFamily.spell, family.catalog
         if spell then
             local personal = not catalog.group or catalog.upkeep
-            local present, remaining = self:Present(family, auras.player, true)
+            local present, remaining = self:Present(personalFamily, auras.player, true)
             if catalog.weapon then
                 if Suite.BuffReminders:HasCoating(16) then present = true
                 else present = self:Weapon(16, Enum and Enum.WeaponSlot and Enum.WeaponSlot.MainHand, true) end
             end
             if (personal and Suite.db.missingBuffClass or not personal and Suite.db.missingBuffSelf) and present == false then
-                entries[#entries + 1] = { kind = "self", family = family, spell = spell, unit = "player", guid = player.guid, names = { player.name }, remaining = remaining }
+                entries[#entries + 1] = { kind = "self", family = personalFamily, spell = spell, unit = "player", guid = player.guid, names = { player.name }, remaining = remaining }
             end
-            if catalog.group and Suite.db.missingBuffOutgoing then
-                local missing = {}
-                for index = 2, #roster do
-                    local member = roster[index]
-                    local covered, seconds = self:Present(family, auras[member.unit], true)
-                    if (not catalog.party or member.party) and covered == false then
-                        member.remaining = seconds
-                        local range = C_Spell and Call(C_Spell.IsSpellInRange, spell.id, member.unit)
-                        if range ~= false then missing[#missing + 1] = member end
+        end
+        if catalog.group and Suite.db.missingBuffOutgoing and #family.choices > 0 then
+            local buckets,ordered={},{}
+            for index=2,#roster do
+                local member=roster[index]
+                local recipient=self:Recipient(family,member.class)
+                local action=recipient.spell
+                local covered,seconds=self:Present(recipient,auras[member.unit],true)
+                if action and (not self:PartyOnly(catalog,action.root or action.id) or member.party) and covered == false then
+                    local range=C_Spell and Call(C_Spell.IsSpellInRange,action.id,member.unit)
+                    if range ~= false then
+                        local bucket=buckets[action.id]
+                        if not bucket then bucket={spell=action,family=recipient,members={}};buckets[action.id]=bucket;ordered[#ordered+1]=bucket end
+                        bucket.members[#bucket.members+1]={member=member,remaining=seconds}
                     end
                 end
-                if #missing > 0 then
-                    local names, soon = {}, nil
-                    for _, member in ipairs(missing) do names[#names + 1] = member.name; if member.remaining then soon = math.max(soon or 0, member.remaining) end end
-                    local target = catalog.party and player or missing[1]
-                    local passive = catalog.toggle and present ~= false
-                    entries[#entries + 1] = { kind = "group", family = family, spell = spell, unit = not passive and target.unit or nil,
-                        guid = target.guid, names = names, passive = passive,
-                        checkUnit = missing[1].unit, checkGUID = missing[1].guid, remaining = soon }
-                end
+            end
+            for _,bucket in ipairs(ordered) do
+                local names,soon={},nil
+                for _,item in ipairs(bucket.members) do names[#names+1]=item.member.name;if item.remaining then soon=math.max(soon or 0,item.remaining) end end
+                local missing=bucket.members[1].member
+                local target=catalog.party and player or missing
+                local present=self:Present(personalFamily,auras.player,true)
+                local passive=catalog.toggle and present ~= false
+                entries[#entries+1]={kind="group",family=bucket.family,spell=bucket.spell,unit=not passive and target.unit or nil,
+                    guid=target.guid,names=names,passive=passive,checkUnit=missing.unit,checkGUID=missing.guid,remaining=soon}
             end
         end
     end
@@ -292,13 +350,23 @@ function Buffs:Collect()
             if not incomingFamilies[provider.class] then incomingFamilies[provider.class] = self:Families(provider.class, {}) end
             for _, family in ipairs(incomingFamilies[provider.class]) do
                 local catalog = family.catalog
-                if catalog.incoming and Suite.db.missingBuffChoices[family.key] ~= 0 and (not catalog.party or provider.party) and not seen[family.key]
-                    and self:Present(family, auras.player) == false then
-                    local spell = self:Spell(catalog.roots[1])
-                    local level = spell and C_Spell and Call(C_Spell.GetSpellLevelLearned, spell.id)
-                    if spell and ID(level) and provider.level >= level then
-                        entries[#entries + 1] = { kind = "incoming", spell = spell, names = { provider.name }, family = family }
-                        seen[family.key] = true
+                local recipient=self:Recipient(family,player.class)
+                local present,remaining=self:Present(recipient,auras.player,true)
+                if catalog.incoming and Suite.db.missingBuffChoices[family.key] ~= 0
+                    and not seen[family.key] and (provider.class ~= player.class or self.learnedComplete == true)
+                    and present == false then
+                    local spell
+                    for _,root in ipairs(catalog.roots) do
+                        if self:Relevant(catalog,player.class,root) and (not self:PartyOnly(catalog,root) or provider.party) then
+                            local candidate=self:Spell(root)
+                            local level=candidate and C_Spell and Call(C_Spell.GetSpellLevelLearned,candidate.id)
+                            if Number(level) and level >= 0 and level % 1 == 0
+                                and provider.level >= math.max(level,catalog.minimum or 1) then spell=candidate;break end
+                        end
+                    end
+                    if spell then
+                        entries[#entries+1]={kind="incoming",spell=spell,names={provider.name},family=recipient,passive=true,remaining=remaining}
+                        seen[family.key]=true
                     end
                 end
             end
@@ -332,6 +400,7 @@ function Buffs:Route(entries)
     local display, notices = {}, {}
     for _, entry in ipairs(entries) do
         if entry.kind == "incoming" then
+            display[#display + 1] = entry
             if self.learnedComplete == true then notices[#notices + 1] = entry end
         elseif entry.kind == "coating" or entry.kind == "poison" then
             local choices = entry.choices
@@ -370,6 +439,8 @@ end
 function Buffs:Place(frame)
     if InCombatLockdown() then return end
     local saved = Suite.db.missingBuffPosition
+    local scale = self:DisplayOptions()
+    frame:SetScale(scale)
     frame:ClearAllPoints()
     if Read(saved, "table") and Number(saved.x) and Number(saved.y) and math.abs(saved.x) <= 0.5 and math.abs(saved.y) <= 0.5 then
         frame:SetPoint("CENTER", UIParent, "CENTER", saved.x * UIParent:GetWidth(), saved.y * UIParent:GetHeight())
@@ -398,13 +469,13 @@ function Buffs:Header(frame, title)
     header:SetPoint("TOPLEFT", 1, -1); header:SetPoint("TOPRIGHT", -1, -1); header:SetHeight(21)
     header:EnableMouse(true); header:RegisterForDrag("LeftButton")
     header:SetScript("OnDragStart", function()
-        if InCombatLockdown() then return end
+        if InCombatLockdown() or Suite.db.missingBuffLocked then return end
         frame.moving = true; frame:StartMoving()
     end)
     header:SetScript("OnDragStop", function() self:StopMoving(frame) end)
     header:SetScript("OnHide", function() self:StopMoving(frame) end)
     header:SetScript("OnMouseUp", function(_, button)
-        if button == "RightButton" and IsControlKeyDown() then self:ResetPosition() end
+        if button == "RightButton" and not Suite.db.missingBuffLocked and IsControlKeyDown() then self:ResetPosition() end
     end)
     local caption = Label(header, 10); caption:SetPoint("CENTER"); caption:SetJustifyH("CENTER"); caption:SetText(title)
     header.caption = caption
@@ -454,7 +525,10 @@ function Buffs:Tooltip(button)
     if entry.kind == "coating" then Suite.BuffReminders:Tooltip(button, false); return end
     GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
     GameTooltip:AddLine(entry.spell.name, 0.41, 0.84, 0.75)
-    if entry.kind == "poison" then
+    if entry.kind == "incoming" then
+        GameTooltip:AddLine((entry.remaining and "Expiring soon on you. " or "Missing on you. ") .. "A nearby group member may provide it: " .. Suite.BuffReminders:Names(entry), 1, 1, 1, true)
+        GameTooltip:AddLine("Left-click requests this buff in party, raid or instance chat. It cannot cast another player's spell. Right-click hides this family; restore it in settings. Requests have a 30-second cooldown per buff.", 0.66, 0.77, 0.77, true)
+    elseif entry.kind == "poison" then
         GameTooltip:AddLine(entry.hand .. " poison missing. Right-click to choose a carried poison.", 1, 1, 1, true)
         GameTooltip:AddLine(entry.item and "Left-click to apply to this weapon." or "Right-click to choose from carried poisons before applying. Permanent enchants and oils do not satisfy poison upkeep.", 0.66, 0.77, 0.77, true)
     else
@@ -467,6 +541,58 @@ function Buffs:Tooltip(button)
         GameTooltip:AddLine("Right-click cycles learned alternatives, then hides this family. Restore buff choices in settings to show it again.", 0.66, 0.77, 0.77, true)
     end
     GameTooltip:Show()
+end
+
+-- This sender is called only by an incoming icon's deliberate left-button release.
+-- API restrictions remain authoritative; never retry or fall back to another channel/sender.
+function Buffs:RequestChannel()
+    if not ID(LE_PARTY_CATEGORY_INSTANCE) or not ID(LE_PARTY_CATEGORY_HOME) then return end
+    local instance=Call(IsInGroup,LE_PARTY_CATEGORY_INSTANCE)
+    if instance==true then return "INSTANCE_CHAT" end
+    if instance~=false or Call(IsInGroup,LE_PARTY_CATEGORY_HOME)~=true then return end
+    local raid=Call(IsInRaid,LE_PARTY_CATEGORY_HOME)
+    if raid==true then return "RAID" elseif raid==false then return "PARTY" end
+end
+function Buffs:Request(entry)
+    local function Reject(message)
+        Suite.Print(message);return false
+    end
+    if not Read(entry,"table") or not Read(entry.kind,"string") or entry.kind~="incoming" or not Read(entry.family,"table")
+        or not Text(entry.family.key) or not Read(entry.spell,"table") or not ID(entry.spell.id) then return false end
+    if not Enabled() or not Read(Suite.db.missingBuffIncoming,"boolean") or Suite.db.missingBuffIncoming~=true or not self:Context() then
+        return Reject("Buff requests are available while reminders are enabled and you are alive, outside combat.")
+    end
+    local chat=C_ChatInfo
+    if not chat or type(chat.SendChatMessage)~="function" or Call(chat.InChatMessagingLockdown)~=false then
+        return Reject("Chat requests are restricted or unavailable right now. Please ask in group chat.")
+    end
+    local channel=self:RequestChannel()
+    if not channel then return Reject("No available party, raid or instance chat. Please ask your group directly.") end
+    local now=Call(GetTime)
+    if not Number(now) or now<0 then return Reject("Unable to check the request cooldown. Please ask in group chat.") end
+    self.requestTimes=self.requestTimes or {}
+    local last=self.requestTimes[entry.family.key]
+    local wait=Number(last) and math.max(0,30-(now-last)) or 0
+    if Number(self.lastRequestAt) then wait=math.max(wait,3-(now-self.lastRequestAt)) end
+    if wait>0 then return Reject("Please wait "..math.ceil(wait).." seconds before another buff request.") end
+    -- Recheck the live family/provider and known absence/expiry at the click, not the old icon.
+    self.bookDirty=true
+    local current
+    for _,candidate in ipairs(self:Collect()) do
+        if candidate.kind=="incoming" and candidate.family.key==entry.family.key and candidate.spell.id==entry.spell.id then current=candidate;break end
+    end
+    if not current or not Text(current.spell.name) or #current.spell.name>200 then
+        self:Queue();return Reject("That reminder changed or the buff is already present. Refreshing the bar.")
+    end
+    if InCombatLockdown() or Call(chat.InChatMessagingLockdown)~=false then
+        return Reject("Chat requests are restricted right now. Please ask in group chat.")
+    end
+    local message="Could I get "..current.spell.name..(current.remaining and " refreshed, please?" or ", please?")
+    self.requestTimes[entry.family.key],self.lastRequestAt=now,now
+    local ok=pcall(chat.SendChatMessage,message,channel)
+    if not ok then return Reject("The game could not send the buff request. Please ask in group chat.") end
+    -- The native API has no delivery result. Success here means an attempt, not server confirmation.
+    return true
 end
 
 function Buffs:Button(index)
@@ -492,7 +618,7 @@ function Buffs:Button(index)
             if not entry.family.catalog.weapon then present = check and self:Present(entry.family, self:Auras(check.unit), true) end
             local toggleReady = not entry.family.catalog.toggle or self:Present(entry.family, self:Auras("player")) == false
             if not target or target.guid ~= entry.guid or not check or entry.checkGUID and check.guid ~= entry.checkGUID
-                or entry.kind == "group" and entry.family.catalog.party and not check.party or present ~= false or not toggleReady then
+                or entry.kind == "group" and self:PartyOnly(entry.family.catalog,entry.spell.root or entry.spell.id) and not check.party or present ~= false or not toggleReady then
                 button:SetAttribute("type1", nil); self:Queue()
             end
         elseif entry.kind == "coating" then
@@ -511,7 +637,9 @@ function Buffs:Button(index)
         if mouseButton == "RightButton" then
             if button.entry and button.entry.kind ~= "coating" then self:Cycle(button.entry) end
         else
-            if mouseButton == "LeftButton" and button.entry and button.entry.kind == "coating" and not button.entry.item then
+            if mouseButton == "LeftButton" and button.entry and button.entry.kind == "incoming" then
+                self:Request(button.entry)
+            elseif mouseButton == "LeftButton" and button.entry and button.entry.kind == "coating" and not button.entry.item then
                 Suite.BuffReminders:ChooseCoating(button.entry)
             end
             self:Queue()
@@ -545,19 +673,24 @@ function Buffs:Refresh()
         Suite.BuffReminders:PlaceCombat(); Suite.BuffReminders:Schedule(); return
     end
     if not self:Build() then return end
+    local scale,size = self:DisplayOptions()
+    if not self.bar.moving then self:Place(self.bar) end
+    local stride,rowStride = size + 9,size + 14
+    self.header.caption:SetText(Suite.db.missingBuffLocked and "MISSING BUFFS / LOCKED" or "MISSING BUFFS")
     local columns = math.min(8, #entries)
     local titleWidth = Call(self.header.caption.GetUnboundedStringWidth, self.header.caption)
     if not Number(titleWidth) or titleWidth <= 0 or titleWidth > 4096 then titleWidth = 96 end
     -- Small lists fit the title, with a little growth for each additional buff.
-    local width = math.ceil(math.max(titleWidth + 14 + (columns - 1) * 9, columns * 43 + 5))
-    self.bar:SetSize(width, 28 + math.ceil(#entries / 8) * 48)
+    local width = math.ceil(math.max(titleWidth + 14 + (columns - 1) * 9, columns * stride + 5))
+    self.bar:SetSize(width, 28 + math.ceil(#entries / 8) * rowStride)
     for index, entry in ipairs(entries) do
         local button = self:Button(index)
         button.entry = entry
         local row = math.floor((index - 1) / 8)
         local rowCount = math.min(8, #entries - row * 8)
-        local rowWidth = rowCount * 43 - 9
-        button:ClearAllPoints(); button:SetPoint("TOPLEFT", (width - rowWidth) / 2 + (index - 1) % 8 * 43, -25 - row * 48)
+        local rowWidth = rowCount * stride - 9
+        button:SetSize(size,size)
+        button:ClearAllPoints(); button:SetPoint("TOPLEFT", (width - rowWidth) / 2 + (index - 1) % 8 * stride, -25 - row * rowStride)
         for _, attribute in ipairs({ "type1", "spell1", "unit", "macrotext1" }) do button:SetAttribute(attribute, nil) end
         if entry.unit then
             button:SetAttribute("type1", "spell"); button:SetAttribute("spell1", entry.spell.id); button:SetAttribute("unit", entry.unit)
@@ -565,8 +698,9 @@ function Buffs:Refresh()
             button:SetAttribute("type1", "macro"); button:SetAttribute("macrotext1", "/use item:" .. entry.item.id .. "\n/use " .. entry.slot)
         end
         button.icon:SetTexture(entry.spell.icon)
-        button.caption:SetText((entry.kind == "poison" or entry.kind == "coating") and entry.hand or entry.kind == "group" and tostring(#entry.names) or "Self")
-        button:SetBackdropBorderColor(0.41, 0.84, 0.75, 0.8)
+        button.caption:SetText((entry.kind == "poison" or entry.kind == "coating") and entry.hand or entry.kind == "incoming" and "Group" or entry.kind == "group" and tostring(#entry.names) or "Self")
+        if entry.kind == "incoming" then button:SetBackdropBorderColor(0.9,0.72,0.4,0.9)
+        else button:SetBackdropBorderColor(0.41, 0.84, 0.75, 0.8) end
         button:Show()
     end
     for index = #entries + 1, #self.buttons do

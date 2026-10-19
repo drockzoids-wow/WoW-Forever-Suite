@@ -1,5 +1,154 @@
 # Forever Suite feature plan
 
+## Clicked group buff requests — 0.2.85
+
+October 19: user reports clicking Arcane Intellect did not announce the missing buff. This authorizes deliberate incoming-icon chat requests, replacing the reminder-only left-click behavior from 0.2.84. No automatic announcements or live messages are sent by development tools.
+
+Left-button release on a gold incoming icon requests the current missing buff in instance chat, home raid or home party, in that order. Use a bounded native localized spell name: “Could I get Arcane Intellect, please?”; a due expiry asks for a refresh. Right-click still hides the family. Casting own spells, browsing, timers and aura updates do not send requests. No new setting or editing is required.
+
+Recheck enabled/context state, readable native chat permission, group channel and live incoming-family/provider/absence before sending. Keep 30 seconds per family and 3 seconds globally, including rejected send attempts. Native rejection/unavailability produces local feedback without retries, whispers, public-channel or alternate-API fallback. Native API success has no documented delivery result. Combat remains blocked; no protected cast attributes are added.
+
+## Class-aware buff reminders and controls — 0.2.84
+
+October 19: user requests recommendation #8 and reports missing Arcane Intellect never appeared on a Hunter grouped with a Mage. Previous routing deliberately sent incoming families only to local chat; a positive-only spell-level predicate also rejected legal zero values, and resting suppressed the whole ordinary bar. These are identified suppression paths; no native trace establishes which affected the reported encounter.
+
+Make incoming buffs persist as gold **Group** icons, with provider names and a reminder-only tooltip. Keep secure left-click attributes empty; right-click hides the family. Preserve existing local notice throttling and never send a party message. Unknown aura/identity/spell information stays quiet; a group class/level indicates a possible provider, not proof of its learned spellbook.
+
+Use automatic class-aware recipients: Intellect and Mana recovery include Hunter, Druid, Mage, Priest, Warlock, Paladin and Shaman regardless of temporary form/power. Physical-only choices target broadly physical-capable classes; universal buffs retain broad coverage. Filter equivalence by relevant roots so Wisdom on a Rogue or Might on a Mage cannot hide a useful missing blessing. Automatic outgoing alternatives choose actual learned spells per recipient; explicit choices stay explicit. A relevant alternative satisfies a family, rather than demanding conflicting blessings/totems. Hybrid defaults are broad, not role-optimal assignments. Optional Class-aware targets off restores all-class targeting.
+
+Update Forever baseline coverage: Divine Spirit at 30 and Fear Ward at 20; resistance auras may cover other raid subgroups while ordinary Paladin auras remain party-scoped. Keep unknown talent abilities un-inferred and do not implement the announced but explicitly not-yet-live Salvation change. Retain native learned/range/reagent and click-time checks.
+
+Add a three-tab inline manager: **Bar appearance**, **Buff list**, **Custom spells**. Search localized learned names/icons, page results, add up to eight self/group custom families, manage existing built-ins instead of duplicating them, and prevent duplicate ranks. Search all/hidden/my-class family views, restore a single hidden family and choose learned alternatives without a right-click guessing cycle. Preserve existing custom IDs and hidden choices.
+
+Default bar scale 100%, icons 34, movement unlocked, class-aware targeting on. Show enabled reminders in rested areas by default to avoid an invisible in-town state; this can be paused. Expose scale/icon-size cycles, a header movement lock, position preview and appearance reset. Master feature remains off by default; existing independent self/outgoing/incoming/upkeep/expiry/combat/coating choices are preserved. New preferences participate in settings profiles without manual editing or a new SavedVariables declaration.
+
+Combat continues to hide the ordinary secure bar, including incoming icons. Optional passive combat reminders retain their separate predicates and cannot read hidden information. No automatic casting, messages, item actions, third-party code or idle polling. Native class/raid coverage, casting, rendering, persistence and taint checks remain pending.
+
+## Standalone Profiles navigation — 0.2.83
+
+October 19: user requests Profiles as a standalone sidebar section. Move the existing page from Home into a sixth primary workspace, before Setup Guide. A single-page workspace uses its primary button directly; do not build or expand a duplicate child. Keep all 25 page routes, profile storage/behavior and /wfs profiles. No new API, feature enablement, layout migration or profile switch.
+
+## Settings and layout profiles — 0.2.82
+
+Implement recommendation #3. Existing choices migrate automatically to a shared **Default** profile; no setup, editing or feature enablement is required. Add Home → Profiles and /wfs profiles, with an active profile/scope caption on every page. Preserve the approved wider workspace and cursor-driven scrollbars.
+
+Provide up to twelve named profiles including Default, explicit rename and confirmed removal of unused profiles, current-setup copies, and paged copy-from-character selection. Character sources are their last saved effective settings after this update, independent of inventory recording. New copies do not activate automatically. Default, the active profile and profiles assigned to recorded characters cannot be removed.
+
+Shared settings save to the named profile. Optional personal scope stores differences per character and per named profile, inheriting untouched top-level settings; a changed nested layout/choice table is overridden as a unit. Returning to shared settings preserves the private overrides for reuse. It does not publish private choices to the shared profile. Switching profiles or scope requires a review and an explicit UI reload, with automatic saving of the outgoing setup. Review discloses all changed settings and newly enabled optional features; long reviews expand within the existing scroll system. Block mutations/reloads in combat and while a switch awaits reload; never queue a switch for later combat completion.
+
+Include Suite feature switches, appearance, reminder choices, supported native-window positions/sizes and Suite-owned meter/bar positions. Preserve separately: inventory/character/bank records, saved searches, contacts, item protection blacklist, macro ownership/recipes, character gear weights and preferences, training records, leveling session/position/lock, guide completion and native restoration markers. Native Edit Mode layouts, keybindings, arbitrary CVars and third-party layouts are outside scope.
+
+Use bounded, readable-only snapshots with finite numeric values and cycle/depth/entry guards. Validate names, IDs, duplicate names, missing assignments and Default recovery. Keep all current SavedVariables declarations; character assignment/overrides survive the macro-owned character-root reconstruction. Save direct setting/layout edits on logout, before copying/switching and when refreshing the profile page. No import/export, automatic role switching or idle worker is added. Native reload/layout/persistence and taint checks remain pending.
+
+## Upgrade tooltip glyphs — 0.2.81
+
+User screenshot shows missing-character boxes exactly where equipped/candidate arrows are emitted. Replace the owned comparison arrow with ASCII -> in both label and values, and replace the full-breakdown multiplication sign with ASCII x. Preserve supported middle-dot separators, localized item/profile names and scoring behavior. No blanket Unicode filtering or font changes.
+
+## Classic class macro recipes — 0.2.80
+
+User approves the redesigned GUI and requests one or two commonly used Classic macros per class, researched on the internet rather than invented to fill slots. Review authored Classic guides and firsthand macro examples; select two for each remaining class and retain Hunter's existing pair.
+
+| Class | Recipes |
+| --- | --- |
+| Druid | Innervate; Rebirth |
+| Mage | Counterspell; Polymorph |
+| Paladin | Hammer of Justice; Blessing of Freedom |
+| Priest | Power Word: Shield; Dispel Magic |
+| Rogue | Kick; Blind |
+| Shaman | Earth Shock; Chain Heal |
+| Warlock | Pet recall; Drain Life |
+| Warrior | Heroic Strike & attack; Taunt |
+| Hunter | Existing Misdirection and Pet care retained |
+
+Adapt the patterns into compact templates with explicit living/dead and friendly/hostile targeting, localized C_Spell names and native rank selection. Preserve exact Hunter behavior. New spell/static utilities generate before bag-data checks and never require an item override. No name/rank/equipment configuration is needed; no automatic casting, target changes, messages, rotation logic or stance/form changes are added.
+
+Reuse explicit creation, current-class visibility, account-wide confirmed ownership, foreign/manual-conflict protection and combat deferral. Retain inactive-class records. Keep the GUI at five shared + two current-class + ten item rows and three headings, rather than allocating every class's widgets. Add recipe names to settings-search keywords.
+
+**57 Lua 5.1 files, identical 0.2.80 TOCs and 13,517 substitute checks pass** (574 above 0.2.79). Native spell availability, secure macro execution/targeting, localization, persistence and taint remain pending in-game tests.
+
+## Workspace redesign — 0.2.79
+
+User confirms 0.2.78 scrollbars feel exactly right, then requests an overall professional layout review: less crowding, fewer categories and a wider rectangle that shows more content. Preserve the gesture controller and existing feature behavior.
+
+Implement 1120×760 with automatic shrink-to-fit using UIParent dimensions and 48 units of screen allowance. Do not enlarge beyond native design scale. Coalesce screen-fit geometry during combat and react to display/UI-scale changes and opening. No manual size setting is required.
+
+Use five primary workspaces (Home, Bags & Gear, Combat, Interface, Everyday), showing only the active workspace's child pages in the sidebar. Setup Guide is a separate bottom utility. Keep all 24 route keys, search targets, feature flags, character records and shortcuts. Move bars/buttons into Interface and keep Macros in Everyday. Replace duplicate Home switches with six navigation cards; dedicated settings retain the switches.
+
+Remove top page tabs to provide a 500-unit content viewport, previously 368 on most pages. Related settings form paired 400-unit cards with 16-unit gutters, matched heights, measured titles/descriptions and full-width odd rows. Sections remain collapsible and search-revealable. Widen character/inventory tables and macro/setup panes to 780; three-column gear profiles/weights reduce the editor from 730 to 586 units. Center the remaining compact forms at a readable width.
+
+**57 Lua 5.1 files, identical 0.2.79 TOCs and 12,943 substitute checks pass** (2,077 above 0.2.78). Native fonts, scale fitting, input layering, persistence and taint remain pending the redesigned-layout smoke test.
+
+## Scrollbar gesture control — 0.2.78
+
+User supplies a 27-second recording of 0.2.77: Action Bars/Other Bars show large thumbs jumping between positions during cursor gestures; Gear Details is reported improved. Preserve the corrected top-to-bottom content direction, but replace the raw Slider thumb gesture entirely. The video establishes visible jumping, not its precise engine-internal cause.
+
+Use one shared Frame track and owned Button thumb for the main viewport, macro list, macro preview and setup review. Store initial cursor position and content offset on press; map cursor delta in effective-scale UI units across height minus thumb height. Preserve the grab point at either edge or center. Track clicks page 90% of the viewport; wheel remains 40 units. Keep proportional thumb size and hide nonoverflowing tracks.
+
+Track only during a held gesture and cancel on release, hide, page/range/size change, invalid cursor or combat. Combat defers thumb anchor/size changes; wheel can move content and deferred geometry catches up afterward. No idle worker, persistence schema or native UI modification is added.
+
+**57 Lua 5.1 files, identical 0.2.78 TOCs and 10,866 substitute checks pass** (net 300 assertions above 0.2.77 after replacing the slider-value fixtures). Native cursor capture, track input, rendering and taint still require an in-game retest.
+
+## GUI scrollbar consistency — 0.2.77
+
+User supplies Gear Details screenshot: content is at the bottom while thumb is at the top, and dragging down returns content to the top. Audit all Suite-owned GUI scrolling: the main viewport, macro recipe list, macro preview and setup review share one factory. Horizontal numeric sliders are separate controls.
+
+Remove the erroneous 0.2.66 inversion. Map zero to top and one to bottom consistently in both directions, retaining proportional thumb sizing, 40-unit wheel steps, finite/readable guards, hidden zero-range bars and combat-deferred geometry. Explicitly update nested offsets on range shrink instead of relying on a native follow-up callback. Preserve content positions during same-page refresh and nested scrolling; page changes still begin at top.
+
+**57 Lua 5.1 files, identical 0.2.77 TOCs and 10,566 substitute checks pass** (359 additional assertions over 0.2.76). Corrected native drag/track behavior, rendering and taint remain pending an in-game retest.
+
+## Character inventory workspace — 0.2.76
+
+Implement recommendation #2 as Characters/Inventory tabs within the existing Characters page. Default browsing immediately shows same-region saved items without configuring a query. Preserve independently optional recording switches and all existing records; viewing does not enable recording. Owner/location filters and eight account-wide saved views are optional refinements.
+
+Unify inventory counts and snapshot access through the existing index and bank renderer. Count shared stock once; retain the saved owner when opening an alt's slot layout. Display per-source capture ages, known-empty versus unknown locations, partial-record warnings and pending item metadata. No live scan, bank transaction or cross-region fallback is introduced. Native comparison tooltips still concern the logged-in character, with that limit disclosed.
+
+Use paged slate/teal item rows, scoped empty states, lazy owned widgets, visibility-bound events, coalesced cancellable refreshes and finite 32-ID metadata batches. Ordinary wheel scrolls the page; Shift-wheel pages results. Combat defers presentation and cancellation prevents hidden work from reopening.
+
+**57 Lua 5.1 files, identical 0.2.76 TOCs and 10,207 substitute checks pass** (121 above the 0.2.75 baseline). Native rendering, persistence, API behavior and combat/taint safety remain pending.
+
+## Character upgrade profiles and explained scores — 0.2.75
+
+Implement the user's selected gear-comparison upgrade with editing entirely optional. New characters get Automatic/Stats; existing characters keep their previous role and comparison mode on first migration. Automatic selects a conservative class leveling starter, with Hunter ranged-DPS versus Rogue/Warrior melee-DPS handling. Five immutable role presets remain ready to use. Class starters do not infer talents, combat roles or definitive best gear.
+
+Add eight character-local custom profiles, an explicit chooser, optional draft-based weight editor, Save/Cancel, guarded deletion and Summary/Full breakdown tooltip choices. Keep built-in weights independent, reject unusable custom inputs, preserve stable IDs and restore Automatic if an active custom profile is unavailable or removed. No new feature enablement is required beyond the existing independently optional Possible upgrades. Add /wfs gear and /wfs items.
+
+Explain each positive hint using the exact icon-scoring model: equipped/candidate totals, largest signed stat changes in Summary, all weighted changes/multipliers in Full breakdown, actual paired-accessory replacement and complete hand-set accounting. Empty-slot hints do not invent numerical gains. State unmodeled effects and preserve strict unknown/restricted-data handling. Picker/editor construction is lazy; no idle worker or native equipment action is added.
+
+**56 Lua 5.1 files, identical 0.2.75 TOCs and 10,086 substitute checks pass**. Native preset usefulness, tooltip/GUI layout, persistence, API data and combat/taint await the focused checklist. Canonical P-drive changes only; the game junction is unchanged.
+
+## Faction-specific weapon trainers — 0.2.74
+
+Restrict the Weapons tab to the current character's faction. Alliance sees its four capital-city reference masters; Horde sees its four. Apply the same rule to captured visits and their actual prices. Preserve all stored history, but hide old unidentified records until revisited. A known old master name can establish its faction. Unknown/restricted player faction produces an empty explanation rather than mixed recommendations. Automatically opened visits use the filtered page index. Class recording and level-up reminders remain separate.
+
+**55 Lua 5.1 files, identical 0.2.74 TOCs and 9,947 substitute checks pass**. Native faction delivery, both characters' rendered lists, persistence, trainer stock/prices and combat/taint remain pending the focused test.
+
+
+## Separate class and weapon training — 0.2.73
+
+Level-up reminders must show only the class record; weapon visits must never replace it. Store typed class and weapon histories separately. Exclude pet/profession contexts, distinguish General trainer offers with client-localized proficiency names, and keep incomplete/mixed data from replacing class history. Quarantine old untyped snapshots; the user must revisit a class trainer once because earlier overwritten data cannot be reconstructed. Preserve existing trainer docking and independent recording/auto-open preferences.
+
+User selects the full Weapons directory. Add Class/Weapons tabs to the owned planner, listing eight capital-city weapon masters with named locations, stock and clearly labeled reference base prices. Keep actual visit prices separately recorded; no class eligibility or live availability is inferred from the reference. Automatic Wands/Unarmed/Defense and class-trainer Dual Wield are explained. Beta prices/stock need native confirmation.
+
+**55 Lua 5.1 files, matching 0.2.73 TOCs and 9,922 substitute checks pass**. Native localized classifier behavior, directory accuracy, UI fit, persistence and combat/taint remain pending the focused test.
+
+## Quest timer backdrop order — 0.2.72
+
+Keep Blizzard's quest timer above the Suite tracker skin by lowering only the Suite fill onto a mouse-disabled BACKGROUND layer. Preserve the existing fill opacity/bounds and teal outline. Keep native timer ownership, layout, countdown, clicks and scripts, and all existing tracker collapse/disable/combat behavior. Source review shows the fill's higher frame strata can cover the timer; no native timer modification is needed.
+
+**54 Lua 5.1 files, matching 0.2.72 TOCs and 9,884 substitute checks pass**. The new frame-order regression fails before the change. Actual timer readability, input, countdown/completion and taint remain pending the focused in-game test.
+
+## Bag skin icon bounds — 0.2.71
+
+Correct the user's enabled/native comparison by fitting the Suite bag skin's background and teal outline to each native icon instead of the entire button. Keep the native button size/hit area, icon/mask/tint, counts, highlights and clicks. Replacement icon regions retarget existing artwork; unreadable, restricted or unlaid-out icons retain native chrome until usable. Preserve one-physical-pixel borders and existing combat deferral. This replaces the earlier full-button bag plate choice; no new preference or native geometry change.
+
+**54 Lua 5.1 files, identical 0.2.71 TOCs and 9,876 substitute checks pass**. The new representative inset-icon regression fails the previous implementation. Actual corrected appearance, native input, restoration and taint remain pending the focused test.
+
+## Training Planner window layers — 0.2.70
+
+Fix the October 18 screenshot's mixed layering between the Training Planner and Suite settings. Give both owned roots native top-level focus and explicitly raise the whole window when opened or reopened, including the planner Settings button. Use an opaque planner background. Keep trainer docking, standalone movement and saved positions as documented; level changes remain behind the existing combat deferral. No new option, worker or native-window mutation.
+
+**54 Lua 5.1 files, matching 0.2.70 TOCs and 9,834 substitute checks pass**. The new overlap model fails before the fix and passes afterward. Actual window focus, overlapping visuals, docking and combat/taint remain pending the focused native test.
+
 ## Quest pickup waits for loaded data — 0.2.69
 
 October 18: user reports roughly one failed pickup in five, requiring leaving and returning to an NPC, and asks to compare Retail ZoidsTools. Read its QuestAutomation.lua and MIT license without changing that repository. ZoidsTools requests C_QuestLog.RequestLoadQuestByID on QUEST_DETAIL and accepts from QUEST_DATA_LOAD_RESULT; Suite previously submitted on the next frame with once-per-visit deduplication. There is no comparable data-ready wait in the prior Suite implementation. Early submission is a plausible cause, not a confirmed native diagnosis.

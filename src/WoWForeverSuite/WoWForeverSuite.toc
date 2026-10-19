@@ -3,13 +3,14 @@
 ## Notes: A personal collection of optional tools for WoW Forever.
 ## Author: Drockzoids
 ## IconTexture: Interface\AddOns\WoWForeverSuite\Media\ForeverSuiteIcon.tga
-## Version: 0.2.69
+## Version: 0.2.85
 ## Bindings: Bindings.xml
 ## SavedVariables: WoWForeverSuiteDB
 ## SavedVariablesPerCharacter: WoWForeverSuiteCharDB
 ## Category: Quality of Life
 
 Core.lua
+Profiles.lua
 Bindings.lua
 Scoring.lua
 Minimap.lua
@@ -33,6 +34,7 @@ Vendor.lua
 Quests.lua
 QuestItem.lua
 ProfessionHelper.lua
+TrainingWeapons.lua
 Training.lua
 Castbars.lua
 ZoneReputation.lua
@@ -46,6 +48,7 @@ Character.lua
 Inventory.lua
 CharacterDashboard.lua
 InventorySearch.lua
+InventoryBrowser.lua
 OfflineBank.xml
 OfflineBank.lua
 Tooltips.lua
@@ -64,3 +67,6 @@ DamageMeterDetails.lua
 Setup.lua
 SettingsCatalog.lua
 GUI.lua
+GearSettings.lua
+ProfileSettings.lua
+BuffSettings.lua

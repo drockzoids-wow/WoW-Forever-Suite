@@ -375,8 +375,8 @@ equal(Suite.GUI.rows[5].help.text:find("need no confirmation", 1, true) ~= nil, 
 equal(Suite.GUI.rows[5].OnClick, nil, "recovery explanation has no misleading action")
 Suite.GUI:Action("repairSource")
 equal(Suite.GUI.rows[2].value.text, "Guild gold", "funding control flips to guild")
-Suite.GUI:Select("overview")
-equal(type(Suite.GUI.rows[5].OnClick), "function", "reused passive row regains its normal action on another page")
+Suite.GUI:Select("minimap")
+equal(type(Suite.GUI.rows[5].OnClick), "function", "reused passive row regains its normal action on another settings page")
 
 vendor:EndVisit()
 for name, value in pairs(old) do _G[name] = value end

@@ -1,5 +1,26 @@
 local Suite, equal, Frame, SetCombat = ...
 local gui, catalog = Suite.GUI, Suite.SettingsCatalog
+local exactEqual = equal
+equal = function(actual, expected, label)
+    if type(actual) == "number" and type(expected) == "number" then
+        exactEqual(math.abs(actual - expected) < 0.00001, true, label)
+    else exactEqual(actual, expected, label) end
+end
+local function ThumbFraction(bar)
+    return bar.travel > 0 and bar.thumbTop / bar.travel or 0
+end
+local function DragTo(bar, fraction)
+    local oldCursor = GetCursorPosition
+    local y = 1000
+    GetCursorPosition = function() return 0, y end
+    local scroll = bar:GetParent()
+    bar.thumb.OnMouseDown(bar.thumb, "LeftButton")
+    local target = fraction * scroll.suiteMaximum
+    y = y - (target - scroll.suiteOffset) / scroll.suiteMaximum * bar.travel * bar:GetEffectiveScale()
+    bar.OnUpdate()
+    bar.thumb.OnMouseUp(bar.thumb, "LeftButton")
+    GetCursorPosition = oldCursor
+end
 local oldDB, oldApply, oldPage, oldShown, oldPending = Suite.db, Suite.Apply, gui.page, gui.frame:IsShown(), Suite.pending
 local originalSeen = Suite.db.setupGuide.seen
 local changes = 0
@@ -14,7 +35,7 @@ local function Serialize(value)
     return "{" .. table.concat(parts, ";") .. "}"
 end
 local baseline = Serialize(Suite.db)
-equal(#catalog.groups, 8, "task navigation replaces eighteen independent sidebar links with eight groups")
+equal(#catalog.groups, 7, "six workspaces and a setup utility retain all destinations")
 local leafCount, seen = 0, {}
 for _, group in ipairs(catalog.groups) do
     equal(gui.groupTabs[group.key] ~= nil, true, "each category has a visible sidebar destination")
@@ -30,9 +51,16 @@ for _, group in ipairs(catalog.groups) do
         equal(gui.scrollFrame:GetParent(), gui.body, "the viewport sits inside the content area")
         equal(gui.content:GetParent(), gui.scrollFrame, "setting controls belong to the clipped scroll child")
         equal(gui.contentHeight >= gui.viewportHeight, true, "short pages fill the viewport without a negative scroll range")
+        local range = gui.scrollFrame.suiteMaximum
+        for _, fraction in ipairs({ 0, 0.5, 1 }) do
+            gui:ScrollTo(range * fraction)
+            equal(gui.scrollFrame.verticalScroll, range * fraction, leaf[1] .. " scroll reaches the requested content position")
+            equal(ThumbFraction(gui.scrollFrame.suiteScrollBar), range > 0 and fraction or 0,
+                leaf[1] .. " thumb tracks top, middle and bottom across every settings page")
+        end
     end
 end
-equal(leafCount, 24, "existing destinations plus leveling remain present")
+equal(leafCount, 25, "existing destinations plus leveling remain present")
 equal(gui.scrollFrame.suiteScrollBar ~= nil, true, "the owned viewport uses a Suite scrollbar")
 gui:Select("overview")
 equal(changes, 0, "browsing every settings page applies no feature change")
@@ -66,24 +94,24 @@ equal(gui.scrollOffset, maximum, "scrolling clamps to the last reachable setting
 equal(gui.content.verticalScroll, nil, "scroll is applied to the viewport rather than moving row anchors")
 equal(gui.scrollFrame.verticalScroll, maximum, "the native scroll widget receives the clamped position")
 local bar = gui.scrollFrame.suiteScrollBar
-equal(bar.value, 0, "bottom scroll places the native vertical thumb at its bottom endpoint")
+equal(ThumbFraction(bar), 1, "bottom scroll places the native vertical thumb at its bottom endpoint")
 equal(bar:IsShown(), true, "overflow pages show the custom scrollbar")
 equal(bar.thumb.height > 24, true, "the thumb represents the visible portion rather than a fixed tiny knob")
-bar:SetValue(1)
+DragTo(bar, 0)
 equal(gui.scrollOffset, 0, "dragging the native vertical slider to its top returns to the first control")
-bar:SetValue(0.5)
+DragTo(bar, 0.5)
 equal(gui.scrollOffset, maximum / 2, "the slider and content share one continuous range")
 equal(gui.scrollFrame.verticalScroll, maximum / 2, "thumb dragging moves actual viewport content")
 bar.OnMouseWheel(bar, -1)
 equal(gui.scrollOffset, math.min(maximum, maximum / 2 + 40), "wheel over the scrollbar uses the existing scroll step")
 gui:ScrollTo(maximum)
 for _, invalid in ipairs({ { secret = true }, math.huge, 0 / 0 }) do
-    bar.OnValueChanged(bar, invalid)
-    equal(gui.scrollOffset, maximum, "restricted or invalid slider values do not move content")
+    bar.OnMouseWheel(bar, invalid)
+    equal(gui.scrollOffset, maximum, "restricted or invalid wheel values do not move content")
 end
 gui.scrollFrame.OnScrollRangeChanged(gui.scrollFrame, 0, maximum / 2)
 equal(gui.scrollOffset, maximum / 2, "native range changes clamp an obsolete lower offset")
-equal(bar.value, 0, "the thumb reaches the bottom of the actual new range")
+equal(ThumbFraction(bar), 1, "the thumb reaches the bottom of the actual new range")
 gui.scrollFrame.OnScrollRangeChanged(gui.scrollFrame, 0, { secret = true })
 equal(gui.scrollOffset, maximum / 2, "unreadable native range changes preserve the known position")
 gui:Select("buffs"); gui:ScrollTo(maximum)
@@ -96,7 +124,7 @@ gui:Select("buffs"); equal(gui.scrollOffset, maximum, "toggling a setting on the
 gui:Select("bags"); equal(gui.scrollOffset, 0, "changing pages begins at the top")
 gui:Select("windows")
 equal(bar:IsShown(), false, "short pages hide the scrollbar entirely")
-equal(bar.value, 1, "short pages reset the thumb to the top without recursive scroll callbacks")
+equal(ThumbFraction(bar), 0, "short pages reset the thumb to the top without recursive scroll callbacks")
 gui:Select("bags")
 
 local function Find(key)
@@ -143,7 +171,7 @@ equal(gui.settingHighlight:GetParent(), gui.meterButtons.lock, "an advanced resu
 equal(gui.scrollOffset > 0, true, "lower controls scroll into view when revealed")
 gui:RevealSetting(Find("macroUpdates"))
 equal(gui.settingHighlight:GetParent(), gui.macroUpdates, "macro preferences share the same search navigation")
-equal(gui.scrollOffset > 0, true, "the last macro control clears the fixed footer after a search jump")
+equal(gui.controlsOffset + 393 + gui.macroUpdates:GetHeight() - gui.scrollOffset <= gui.viewportHeight, true, "the last macro control clears the fixed footer after a search jump")
 equal(changes, 0, "searching an action or macro preference never executes it")
 Query("not a real setting")
 equal(gui.searchEmpty:IsShown(), true, "no-match searches explain the empty result")
@@ -257,6 +285,19 @@ if WFS_GUI_PREVIEW then
     gui.collapsedSections = oldCollapsed
 end
 gui:ClearSearch(); gui:ClearSettingHighlight()
+gui:Select("buffs")
+local dragBar, cursorBefore = gui.scrollFrame.suiteScrollBar, GetCursorPosition
+GetCursorPosition = function() return 0, 1000 end
+dragBar.thumb.OnMouseDown(dragBar.thumb, "LeftButton")
+equal(dragBar.drag ~= nil, true, "long settings page starts a real thumb gesture")
+gui:Select("actionbars")
+equal(dragBar.drag, nil, "navigation cancels pointer tracking before relayout")
+equal(dragBar.OnUpdate, nil, "page changes leave no gesture worker")
+gui:Select("buffs")
+dragBar.thumb.OnMouseDown(dragBar.thumb, "LeftButton")
+gui.frame.OnHide()
+equal(dragBar.OnUpdate, nil, "closing the GUI cancels all scrollbar gestures")
+GetCursorPosition = cursorBefore
 Suite.db, Suite.Apply, Suite.pending = oldDB, oldApply, oldPending
 gui:Select(oldPage or "overview"); gui.frame:SetShown(oldShown)
 SetCombat(false)
