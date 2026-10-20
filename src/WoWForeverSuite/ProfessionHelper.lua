@@ -105,7 +105,7 @@ function Helper:Build()
     button:Hide(); button:RegisterForClicks("AnyDown", "AnyUp"); button:SetAttribute("useOnKeyDown", false)
     if type(button.SetPassThroughButtons) == "function" then button:SetPassThroughButtons("RightButton", "MiddleButton", "Button4", "Button5") end
     button:SetFrameStrata("TOOLTIP"); button:SetFrameLevel(600)
-    button:SetBackdrop({ edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 2 }); button:SetBackdropBorderColor(0.41, 0.84, 0.75, 1)
+    button:SetBackdrop({ edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 2 }); Suite.Theme:Backdrop(button, 1)
     self.controller:SetFrameRef("button", button)
     self.controller:SetAttribute("_onstate-activation", [[
         if newstate == "blocked" then

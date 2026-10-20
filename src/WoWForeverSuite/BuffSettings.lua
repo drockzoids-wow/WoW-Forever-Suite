@@ -15,7 +15,7 @@ local function Button(parent,text,x,y,width,callback)
     local b=CreateFrame("Button",nil,parent,"BackdropTemplate")
     b:SetPoint("TOPLEFT",x,y);b:SetSize(width,28)
     b:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
-    b:SetBackdropColor(0.07,0.095,0.11,1);b:SetBackdropBorderColor(0.17,0.25,0.29)
+    b:SetBackdropColor(0.07,0.095,0.11,1);Suite.Theme:Backdrop(b, 1)
     b.label=Label(b,text,9,-8,width-18,11,colors.teal);b.label:SetWordWrap(false)
     local enable=b.SetEnabled
     b.SetEnabled=function(self,enabled) enable(self,enabled);self.label:SetTextColor(unpack(enabled and colors.teal or colors.muted)) end
@@ -29,7 +29,7 @@ local function Input(parent,x,y,width,callback)
     f:SetPoint("TOPLEFT",x,y);f:SetSize(width,28);f:SetAutoFocus(false);f:SetMaxLetters(80)
     f:SetFont("Fonts\\FRIZQT__.TTF",12,"");f:SetTextInsets(8,8,0,0)
     f:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
-    f:SetBackdropColor(0.035,0.05,0.065,1);f:SetBackdropBorderColor(0.17,0.25,0.29)
+    f:SetBackdropColor(0.035,0.05,0.065,1);Suite.Theme:Backdrop(f, 1)
     f:SetScript("OnTextChanged",function()
         if f.hint then f.hint:SetShown(f:GetText()=="") end
         if not InCombatLockdown() then callback(f:GetText()) end
@@ -238,7 +238,7 @@ function View:Refresh()
     self.status:SetText(not ready and "Controls are available after combat." or self.message or "")
     if not ready then return end
     for mode,tab in pairs(self.tabs) do
-        tab:SetBackdropBorderColor(unpack(mode==self.mode and colors.teal or colors.muted))
+        Suite.Theme:Backdrop(tab, mode == self.mode and 1 or 0.35)
     end
     self.search.hint:SetShown(not self.query or self.query=="")
     self.choiceSearch.hint:SetShown(not self.choiceQuery or self.choiceQuery=="")

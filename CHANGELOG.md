@@ -1,5 +1,55 @@
 # Forever Suite
 
+## 0.2.93
+
+- Add Interface → Appearance: default teal, your current class color, or a custom color wheel.
+- Apply the choice across Suite-styled borders, including skins, minimap, chat, Training Planner and profile controls.
+- Preserve hover feedback and transparency; preview custom colors live and restore the previous choice on Cancel.
+- Save colors with your active settings profile and defer combat recoloring until combat ends.
+
+## 0.2.92
+
+- Add native ability icons to Class training, including saved and future-level offerings.
+- Use gold ability names, teal level headings/numbers, green availability and amber requirements/confirmation text.
+- Save validated trainer icons and resolve older entries by native name where possible; retain placeholders when data is unavailable.
+
+## 0.2.91
+
+- Apply the compact, color-coded trainer/city header to every weapon page, including saved visits and all Alliance/Horde masters.
+- Show the full district/building for known masters; keep recorded locations as a fallback for other trainers.
+- Identify historical weapon costs as Saved total in the footer while preserving the common window size and controls.
+
+## 0.2.90
+
+- Keep Training Planner at the same size across Class, weapon references and recorded visits.
+- Keep totals and footer buttons in fixed positions while preserving the compact weapon reference header.
+
+## 0.2.89
+
+- Compact weapon reference headers into a teal trainer name and gold city, with the district/building in a muted line below.
+- Remove the separate Reference/faction/trainer row and the header's base-price explanation; show the city only once.
+- Move the list and footer up and shorten reference windows by 36 units; preserve full detail for saved and current trainer visits.
+
+## 0.2.88
+
+- Add native weapon proficiency icons beside names in Training Planner reference lists and recorded weapon-trainer visits.
+- Separate weapon names from muted requirement text while keeping prices aligned.
+- Refresh missing icon data asynchronously with bounded requests and cancellable work; preserve the Class tab's full text width.
+
+## 0.2.87
+
+- Add Home → Training Planner with an Open button, trainer recording and all automatic-opening choices together.
+- Show saved class training beside the spellbook when recording is enabled; turn this off independently with Show with spellbook.
+- Close only an automatically opened companion with the spellbook, retain manual dismissal for that opening, and cancel stale combat popups.
+- Make every planner control searchable and point the planner's Settings button to its dedicated page.
+
+## 0.2.86
+
+- Add optional per-character main-chat history: remember up to 250 lines and restore automatically after reload or login.
+- Keep saved messages before current-session chat, preserve links and mute old colors with a session divider.
+- Add enable/disable and clear-history controls under Interface → Chat; no appearance changes or manual tuning required.
+- Bound saved data, exclude inaccessible text, and prevent duplicate replays or recording of replayed messages.
+
 ## 0.2.85
 
 - Left-click a gold incoming-buff reminder to ask for that buff in party, raid or instance chat.

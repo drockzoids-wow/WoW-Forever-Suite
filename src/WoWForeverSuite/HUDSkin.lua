@@ -278,7 +278,7 @@ function Skin:Progress(bar, pass, customSize)
             panel.segments = {}
             for index = 1, 9 do
                 local line = bar.StatusBar:CreateTexture(nil, "OVERLAY", nil, 6)
-                line:SetWidth(1); line:SetColorTexture(0.41, 0.84, 0.75, 0.35)
+                line:SetWidth(1); Suite.Theme:Texture(line, 0.35)
                 panel.segments[index] = line
             end
         end
@@ -306,7 +306,7 @@ function Skin:Paint(record)
     record.background:SetColorTexture(pressed and 0.10 or highlighted and 0.07 or 0.035,
         pressed and 0.23 or highlighted and 0.15 or 0.05,
         pressed and 0.21 or highlighted and 0.15 or 0.065, 0.95)
-    for _, edge in ipairs(record.edges) do edge:SetColorTexture(0.41, 0.84, 0.75, highlighted and 1 or 0.55) end
+    for _, edge in ipairs(record.edges) do Suite.Theme:Texture(edge, highlighted and 1 or 0.55) end
 end
 function Skin:Panel(parent, key, pass, button, backgroundParent, bounds)
     if not Anchorable(parent) or type(parent.CreateTexture) ~= "function" then return end
@@ -334,7 +334,7 @@ function Skin:Panel(parent, key, pass, button, backgroundParent, bounds)
         for _, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
             local edge = Texture("OVERLAY", 7)
             if side == "TOP" or side == "BOTTOM" then edge:SetHeight(1) else edge:SetWidth(1) end
-            edge:SetColorTexture(0.41, 0.84, 0.75, 0.55)
+            Suite.Theme:Texture(edge, 0.55)
             record.edges[#record.edges + 1] = edge
         end
         if button then

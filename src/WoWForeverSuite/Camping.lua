@@ -15,7 +15,7 @@ Camping.poses = {
 local function Surface(frame)
     frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
     frame:SetBackdropColor(0.035, 0.05, 0.065, 0.9)
-    frame:SetBackdropBorderColor(0.2, 0.37, 0.38, 0.8)
+    Suite.Theme:Backdrop(frame, 0.8)
 end
 local function Label(parent, size, r, g, b)
     local label = parent:CreateFontString(nil, "OVERLAY")

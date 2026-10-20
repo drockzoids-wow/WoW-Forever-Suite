@@ -60,8 +60,23 @@ for _, group in ipairs(catalog.groups) do
         end
     end
 end
-equal(leafCount, 25, "existing destinations plus leveling remain present")
+equal(leafCount, 27, "existing destinations plus Appearance remain present")
 equal(gui.scrollFrame.suiteScrollBar ~= nil, true, "the owned viewport uses a Suite scrollbar")
+equal(catalog.pageGroup.training.key, "overview", "Training Planner is discoverable under Home")
+equal(catalog.labels.training, "Training Planner", "planner has an explicit sidebar label")
+for _, key in ipairs({ "trainingOpen", "trainingPlanner", "trainingAuto", "trainingLevelUp", "trainingSpellbook" }) do
+    local found
+    for _, entry in ipairs(catalog.entries) do if entry.key == key then found = entry; break end end
+    equal(found and found.page, "training", "every planner action and preference is searchable on its dedicated page")
+end
+equal(catalog:Search("spellbook")[1].key, "trainingSpellbook", "spellbook search finds automatic planner opening")
+gui:Select("training")
+equal(gui.rows[1].label.text, "Open Training Planner", "manual opening leads the planner page")
+local plannerOpen, plannerOpens = Suite.Training.Open, 0
+Suite.Training.Open = function() plannerOpens = plannerOpens + 1 end
+gui.rows[1].OnClick()
+equal(plannerOpens, 1, "the visible GUI action opens the planner without a slash command")
+Suite.Training.Open = plannerOpen
 gui:Select("overview")
 equal(changes, 0, "browsing every settings page applies no feature change")
 -- Entering/leaving the guide keeps its established seen marker; all other saved choices are preserved.

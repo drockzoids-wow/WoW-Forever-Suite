@@ -207,7 +207,7 @@ equal(saved.checkpoint.gold, 1000, "core logout checkpoints net money")
 equal(CountTicks(), 0, "logout cancels all display work")
 local function Fresh(state)
     local env = { modules = {}, db = { levelingBar = true }, IsReadable = Suite.IsReadable, BagSpace = Suite.BagSpace,
-        AfterCombat = Suite.AfterCombat, pending = Suite.pending, GUI = Suite.GUI }
+        AfterCombat = Suite.AfterCombat, pending = Suite.pending, GUI = Suite.GUI, Theme = Suite.Theme }
     assert(loadfile("src/WoWForeverSuite/Leveling.lua"))("WoWForeverSuite", env)
     env.Leveling:InitializeCharacter(state); env.Leveling:Apply()
     return env.Leveling, env

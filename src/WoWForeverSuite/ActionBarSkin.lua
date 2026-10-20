@@ -127,7 +127,7 @@ end
 
 function Skin:Paint(record, hovered)
     if not Enabled() or not record.active or not Usable(record.button) then return end
-    for _, edge in ipairs(record.edges) do edge:SetColorTexture(0.41, 0.84, 0.75, hovered and 1 or 0.55) end
+    for _, edge in ipairs(record.edges) do Suite.Theme:Texture(edge, hovered and 1 or 0.55) end
 end
 
 function Skin:Style(record)

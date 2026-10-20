@@ -116,7 +116,7 @@ end
 local function Fill(frame, color)
     frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
     frame:SetBackdropColor(unpack(color or colors.row))
-    frame:SetBackdropBorderColor(0.17, 0.25, 0.29)
+    Suite.Theme:Backdrop(frame, 1)
 end
 
 local function Button(parent, width, label, callback)

@@ -1,6 +1,18 @@
 # Forever Suite
 
-A modular addon for WoW Forever with optional quality of life tools and an original slate-and-teal control panel. Version **0.2.85** adds deliberate group-chat requests when clicking teammate-buff reminders. Your existing setup becomes Default automatically. Most features start off. See the [request test guide](docs/testing.md#clicked-group-buff-requests--0285).
+## Border color
+
+Version **0.2.93** adds **Interface → Appearance**, also opened with `/wfs colors` or `/wfs appearance`. Choose **Default teal**, **My class**, or **Custom**. **Choose custom color** opens Blizzard’s color wheel with live border preview; Okay keeps your choice and Cancel restores the previous mode and custom color. The swatch and hex preview show the active color. Class mode follows the character you’re playing, and Custom remembers your last color. Both choices follow the active shared or personal settings profile.
+
+The selection updates all Suite-styled borders, including native skins, minimap, chat, Training Planner, and Suite windows/controls. Hover effects and transparency remain. Changes during combat apply afterward. Informational colors and native borders outside Suite styling retain their meanings. See the [border-color smoke test](docs/testing.md#shared-border-color--0293) for native verification.
+
+## Chat history
+
+Open **/wfs chat** or **Interface → Chat**, then click **Enable chat history** once. It remembers up to 250 recent lines shown in your main chat window, separately for each character. After reload or login, saved messages appear above the current session in muted colors, with links preserved. Recording begins when enabled; it cannot recover earlier unsaved messages.
+
+Works with Blizzard or Suite chat styling, with no tuning required. **Clear saved history** removes this character's saved copy while leaving live chat visible. Other tabs, the combat log and messages received while offline are not recorded. The enable preference follows your active settings profile; the saved messages remain character-owned.
+
+A modular addon for WoW Forever with optional quality of life tools and an original slate-and-teal control panel. Version **0.2.93** adds a shared border-color setting alongside optional chat history and the Training Planner. Your existing setup becomes Default automatically. Most features start off. See the [chat-history test guide](docs/testing.md#persistent-chat-history--0286).
 
 ## Settings and layout profiles
 
@@ -58,9 +70,9 @@ Scores express the selected preferences. Unweighted stats, special effects, set 
 
 ## Training Planner
 
-Open `/wfs training` for **Class** and **Weapons**. Level-up reminders use only saved class training. Weapon visits keep their own records and actual prices; the Weapons tab also lists your faction's four reference capital-city masters, their locations, skills and base prices before discounts. Both the reference and recorded visits show only your faction. Reference stock does not imply your class can learn every skill.
+Open **/wfs → Home → Training Planner → Open Training Planner**, or use `/wfs training`, for **Class** and **Weapons**. Class rows show native ability icons with gold names, teal levels and green/amber requirements. Weapon rows show their native proficiency icons beside the name, with muted requirements underneath. Every weapon page, including recorded visits and all Alliance/Horde masters, puts the teal trainer and gold city on one line, with district/building below. Level-up reminders use only saved class training. Weapon visits keep their own records and actual prices; the Weapons tab also lists your faction's four reference capital-city masters, their locations, skills and base prices before discounts. Both the reference and recorded visits show only your faction. Reference stock does not imply your class can learn every skill.
 
-After updating, visit your class trainer once to refresh the Class list. Older mixed history is kept separately and excluded from level-up reminders. Recording and automatic openings remain optional under **Bags & Gear → Professions**. See the [trainer smoke test](docs/testing.md#separate-class-and-weapon-training--0273) and [reference sources](docs/sources.json).
+After updating, visit your class trainer once with recording enabled to refresh the Class list and exact ability icons. Older entries try a native name lookup and show a question mark if the icon is unavailable. Older mixed history is kept separately and excluded from level-up reminders. Recording and automatic openings remain optional under **Home → Training Planner**. See the [trainer smoke test](docs/testing.md#separate-class-and-weapon-training--0273) and [reference sources](docs/sources.json).
 
 ## Leveling tracker
 
@@ -72,7 +84,9 @@ Rates appear after one minute and include idle time. Gold is net change, includi
 
 ## Training Planner
 
-Open **Bags & Gear → Professions** and enable **Record trainer offerings**. The planner opens beside the trainer after readable data arrives; its separate auto-open toggle can be turned off. The attachment follows the trainer and uses the left side when that fits better. **/wfs training** opens the latest saved view. Available now, future training levels and Other requirements show unlearned offers, ranks, costs, group totals, your gold and savings gaps. Scroll longer groups; totals include every listed offer. Training purchases remain manual.
+Open **Home → Training Planner** and enable **Record trainer offerings**. The planner opens beside the trainer after readable data arrives; its separate auto-open toggle can be turned off. The attachment follows the trainer and uses the left side when that fits better. **/wfs training** opens the latest saved view. Available now, future training levels and Other requirements show unlearned offers, ranks, costs, group totals, your gold and savings gaps. Scroll longer groups; totals include every listed offer. Training purchases remain manual.
+
+With recording enabled, **Show with spellbook** opens saved **Class → Available now** beside the spellbook. Closing the book dismisses its automatic companion; manually opened views stay independent. Closing only the companion keeps it dismissed until you reopen the spellbook. Turn this choice off independently. Automatic opening waits through combat and cancels if the book closes first. See the [spellbook smoke test](docs/testing.md#training-planner-gui-and-spellbook-companion--0287).
 
 With recording enabled, **Show Training Planner on level up** opens **Available now** after every level, independently of trainer auto-opening. Combat delays the popup until combat ends. Newly reached saved level requirements appear as **Level met · confirm at trainer** estimates; known unmet prerequisites remain separate. Visit a trainer to populate or refresh the saved list.
 
@@ -84,7 +98,7 @@ After `/reload`, the existing **Square minimap** choice uses a clear two-line lo
 
 ## Target threat indicator
 
-After `/reload`, open `/wfs unitframes` and enable **Target threat indicator**. On a living enemy NPC, a compact 60×24 percentage rectangle uses Blizzard tooltip-border art with warm trim and a translucent chat background. Its stronger translucent threat fill warms from grey through orange to red toward 100%, while the outlined percentage stays bright. It aligns with the visible left frame edge above the name strip normally, and below/outside the left edge when **Buffs on top** is selected. Native movement/scale and input stay in control. **--** means no readable percentage is available. The setting starts off independently; initial setup and layout changes wait through combat. Check the [threat alignment and contrast smoke test](docs/testing.md#threat-alignment-and-contrast--0258) for native appearance, clearance and combat results.
+After `/reload`, open `/wfs unitframes` and enable **Target threat indicator**. On a living enemy NPC, a compact 60×24 percentage rectangle uses Blizzard tooltip-border art with Suite trim and a translucent chat background. Its stronger translucent threat fill warms from grey through orange to red toward 100%, while the outlined percentage stays bright. It aligns with the visible left frame edge above the name strip normally, and below/outside the left edge when **Buffs on top** is selected. Native movement/scale and input stay in control. **--** means no readable percentage is available. The setting starts off independently; initial setup and layout changes wait through combat. Check the [threat alignment and contrast smoke test](docs/testing.md#threat-alignment-and-contrast--0258) for native appearance, clearance and combat results.
 
 ## Combined bag order
 
@@ -162,7 +176,7 @@ Search records inventory independently of **Item inventory** tooltip counts. Log
 
 The addon has its own slate and teal GUI, sidebar navigation and compact controls. The inventory tooltip presentation is adapted from the user's MIT-licensed ZoidsTools at their request; its license notice ships with the addon. Enhance QoL supplies feature inspiration only.
 
-The addon list and minimap settings button share an original gold-and-teal infinity icon. The minimap button now masks it into a circle and adds Blizzard's gold ring; `/reload` loads this presentation change. The PNG master and generation prompt are in `artwork/`; only the compact TGA ships with the addon. Check the [circular launcher smoke test](docs/testing.md#circular-suite-minimap-launcher--0164) for native fit and input.
+The addon list and minimap settings button share an original gold-and-teal infinity icon. The minimap button now masks it into a circle and adds Blizzard's ring tinted with your border color; `/reload` loads this presentation change. The PNG master and generation prompt are in `artwork/`; only the compact TGA ships with the addon. Check the [circular launcher smoke test](docs/testing.md#circular-suite-minimap-launcher--0164) for native fit and input.
 
 Version 0.1.28 centers the GUI emblem's gold-and-teal infinity through FOREVER, with WARCRAFT above and SUITE clear below. It remains in the top-left header beside the Forever Suite title and subtitle. The small icons keep just the infinity mark. The separate GUI artwork fits the existing header without changing navigation or controls.
 

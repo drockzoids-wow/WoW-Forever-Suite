@@ -27,6 +27,8 @@ local function Text(parent, size, color)
 end
 
 local pages = {
+    appearance = { title = "Appearance", description = "One border color across Forever Suite.", rows = {},
+        note = "Applies to borders added or styled by the Suite. Changes during combat apply when combat ends." },
     leveling = { title = "Leveling", description = "Your XP, gold and pace in one compact tracker.", rows = {
         { key = "levelingBar", label = "Leveling tracker", help = "Stack XP/hour, net gold/hour, level progress and time to level.\nStarts at the top left. Drag its unlocked header; position saves per character." },
         { action = "levelingLock", label = "Lock tracker", help = "Locked clicks pass through; hover details remain available.\nThe header lock and minimize buttons stay clickable." },
@@ -34,14 +36,17 @@ local pages = {
         { action = "levelingSession", label = "Start a new session", help = "Reset tracked XP, gold and elapsed time. Rates appear after one minute.\nReload keeps the session; a fresh login starts a new one. Idle time counts." },
         { action = "levelingPosition", label = "Reset tracker position", help = "Return this character's tracker to the top left.\nCtrl-right-clicking its unlocked header also resets its position." },
     }, note = "Gold/hour includes spending and transfers. Estimates use your session pace; incomplete XP tracking shows no estimate." },
-    professions = { title = "Professions", description = "Plan training costs and use deliberate profession shortcuts.", rows = {
+    professions = { title = "Professions", description = "Use deliberate profession shortcuts on eligible bag equipment.", rows = {
         { key = "modifierDisenchant", label = "Modifier-click Disenchant", help = "Hold the selected modifier and left-click highlighted bag equipment.\nDisenchant destroys the item; the character must know the spell." },
         { action = "disenchantModifier", label = "Choose modifier key", help = "Cycle Alt, Ctrl and Shift. Hold only that modifier.\nEquipped gear, bank items, locked slots and combat are excluded." },
+    }, note = "Only uncommon, rare or epic weapons and armor are offered.\nThe game makes the final skill and eligibility check. Nothing is disenchanted automatically." },
+    training = { title = "Training Planner", description = "Review class skills, future training costs and weapon trainers.", rows = {
+        { action = "trainingOpen", label = "Open Training Planner", help = "Review class training and your faction's weapon-trainer reference.\nWeapon visits save their own locations and prices." },
         { key = "trainingPlanner", label = "Record trainer offerings", help = "Save class skills separately from weapon trainer visits.\nStarts off. Training purchases remain manual." },
+        { key = "trainingSpellbook", label = "Show with spellbook", help = "Open saved class training when you open the spellbook.\nUses trainer recording; closing the spellbook dismisses its companion." },
         { key = "trainingAuto", label = "Show Training Planner at trainers", help = "Open Class or Weapons beside the trainer after offerings arrive.\nClosing the planner dismisses it for that visit." },
         { key = "trainingLevelUp", label = "Show Training Planner on level up", help = "Show saved class training after each level while recording is enabled.\nWeapon trainer visits keep their own list." },
-        { action = "trainingOpen", label = "Open Training Planner", help = "Review class training and your faction's weapon-trainer reference.\nWeapon visits save their own locations and prices." },
-    }, note = "Only uncommon, rare or epic weapons and armor are offered.\nThe game makes the final skill and eligibility check. Nothing is disenchanted automatically." },
+    }, note = "Enable trainer recording for automatic openings. Saved offerings and prices may be outdated; visit your trainer to refresh them. Purchases stay manual." },
     castbars = { title = "Castbars", description = "Adjust player, target and focus castbar sizes. Native positions are kept.", rows = {},
         note = "Each bar is optional. Turning custom size off restores its native dimensions.\nPreview ends on leaving this page or a real cast; combat cleanup waits until combat ends." },
     audio = { title = "Audio", description = "Keep game sound with the Windows playback device you choose.", rows = {
@@ -126,13 +131,13 @@ local pages = {
     }, note = "Teal icons cast your buffs; gold Group icons show buffs teammates may provide. Missing supplies use local chat. Right-click chooses alternatives or hides a family." },
     actionbars = { title = "Your buttons, Suite style.", description = "Slate and teal to match your meters and minimap.", rows = {
         { key = "fullButtonRange", label = "Full button range indicator", help = "Turn the whole action icon red when your target is out of range.\nButtons return to their normal colors when range clears." },
-        { key = "actionBarSkin", label = "Suite action bar skin", help = "Square icons, slate backgrounds and fine teal borders.\nIncludes pet and stance buttons; removes the main bar's ornamental art." },
+        { key = "actionBarSkin", label = "Suite action bar skin", help = "Square icons, slate backgrounds and fine Suite borders.\nIncludes pet and stance buttons; removes the main bar's ornamental art." },
     }, note = "Arrange Blizzard bars in Edit Mode. Bindings, cooldowns, glows and clicks stay native.\nSkin and font changes wait until combat ends; disabling them restores the native look." },
-    bars = { title = "The finishing touches.", description = "Slate surfaces and fine teal borders for your other bars.", rows = {
-        { key = "statusBarSkin", label = "XP, honor and reputation bars", help = "Give your progress bars a slate background and thin teal outline.\nKeep native fill colors, rested XP, text and tooltips." },
-        { key = "bagBarSkin", label = "Suite bag bar skin", help = "Frame native bag icons with fitted teal borders and hover feedback.\nKeep free-slot counts, highlights and clicks." },
-        { key = "microBarSkin", label = "Suite micro menu skin", help = "Slate menu buttons with teal borders and hover feedback.\nKeep native icons, alerts, tooltips and shortcuts." },
-        { key = "playerBuffBorders", label = "Player buff borders", help = "Square icons with fine teal borders in your top-right buff display.\nDebuffs, weapon enchants and unit-frame auras keep their native appearance." },
+    bars = { title = "The finishing touches.", description = "Slate surfaces and fine Suite borders for your other bars.", rows = {
+        { key = "statusBarSkin", label = "XP, honor and reputation bars", help = "Give your progress bars a slate background and thin Suite outline.\nKeep native fill colors, rested XP, text and tooltips." },
+        { key = "bagBarSkin", label = "Suite bag bar skin", help = "Frame native bag icons with fitted Suite borders and hover feedback.\nKeep free-slot counts, highlights and clicks." },
+        { key = "microBarSkin", label = "Suite micro menu skin", help = "Slate menu buttons with Suite borders and hover feedback.\nKeep native icons, alerts, tooltips and shortcuts." },
+        { key = "playerBuffBorders", label = "Player buff borders", help = "Square icons with fine Suite borders in your top-right buff display.\nDebuffs, weapon enchants and unit-frame auras keep their native appearance." },
     }, note = "Move these bars in Edit Mode. Progress options use the progress bar skin.\nValues stay visible in combat; layout and skin changes wait until it ends." },
     unitframes = { title = "Unit frame details", description = "Optional color and threat details on your existing unit frames.", rows = {
         { key = "classHealthBars", label = "Class colored health bars", help = "Softer class colors for player, target, target of target and focus.\nReplace the original fill so its color stays clear." },
@@ -287,6 +292,8 @@ function GUI:Select(key)
     if self.mapPanel then self.mapPanel:SetShown(key == "worldmap") end
     if self.castbarPanel then self.castbarPanel:SetShown(key == "castbars") end
     if self.setupPanel then self.setupPanel:SetShown(key == "setup") end
+    if self.appearancePanel then self.appearancePanel:SetShown(key == "appearance") end
+    if key == "appearance" then self:BuildAppearance(); self:RefreshAppearance() end
     if key == "setup" then Suite.Setup:Begin(); self:BuildSetup(); self:RefreshSetup() end
     if key == "macros" then self:BuildMacros() end
     if key == "meters" then self:BuildMeters(); self:RefreshMeters() end
@@ -441,7 +448,7 @@ function GUI:BuildHome()
         local card = CreateFrame("Button", nil, panel, "BackdropTemplate")
         card:SetSize(382, 100); card:SetPoint("TOPLEFT", ((index - 1) % 2) * 398, -66 - math.floor((index - 1) / 2) * 112)
         card:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-        card:SetBackdropColor(unpack(palette.row)); card:SetBackdropBorderColor(0.13, 0.2, 0.23)
+        card:SetBackdropColor(unpack(palette.row)); Suite.Theme:Backdrop(card, 0.35)
         card.label = Text(card, 14, palette.text); card.label:SetPoint("TOPLEFT", 18, -17)
         card.label:SetText(entry[2]); card.label:SetWidth(330)
         card.help = Text(card, 11, palette.muted); card.help:SetPoint("TOPLEFT", 18, -44)
@@ -449,10 +456,63 @@ function GUI:BuildHome()
         card.arrow = Text(card, 16, palette.accent); card.arrow:SetPoint("TOPRIGHT", -16, -16); card.arrow:SetText("›")
         local page = entry[1]; card.page = page
         card:SetScript("OnClick", function() if not InCombatLockdown() then self:Select(page) end end)
-        card:SetScript("OnEnter", function() card:SetBackdropBorderColor(unpack(palette.accent)) end)
-        card:SetScript("OnLeave", function() card:SetBackdropBorderColor(0.13, 0.2, 0.23) end)
+        card:SetScript("OnEnter", function() Suite.Theme:Backdrop(card, 1) end)
+        card:SetScript("OnLeave", function() Suite.Theme:Backdrop(card, 0.35) end)
         self.homeCards[index] = card
     end
+end
+
+function GUI:BuildAppearance()
+    if self.appearancePanel then return end
+    local panel = CreateFrame("Frame", nil, self.content)
+    panel:SetSize(CONTENT_WIDTH - 36, 236)
+    self.appearancePanel, self.borderModeControls = panel, {}
+    local title = Text(panel, 14, palette.text)
+    title:SetPoint("TOPLEFT", 0, -4); title:SetText("Border color")
+    local help = Text(panel, 11, palette.muted)
+    help:SetPoint("TOPLEFT", 0, -30); help:SetWidth(CONTENT_WIDTH - 40); help:SetHeight(34)
+    help:SetText("Choose the default teal, this character's class color, or your own color.\nYour choice follows the active settings profile; class color follows each character.")
+    local choiceWidth = (CONTENT_WIDTH - 36 - 24) / 3
+    for index, choice in ipairs({ { "default", "Default teal" }, { "class", "My class" }, { "custom", "Custom" } }) do
+        local mode = choice[1]
+        local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
+        button:SetSize(choiceWidth, 38); button:SetPoint("TOPLEFT", (index - 1) * (choiceWidth + 12), -76)
+        button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+        button.label = Text(button, 12, palette.text)
+        button.label:SetPoint("CENTER"); button.label:SetText(choice[2])
+        button:SetScript("OnClick", function() Suite.Theme:SetMode(mode) end)
+        button:SetScript("OnEnter", function() Suite.Theme:Backdrop(button, 1) end)
+        button:SetScript("OnLeave", function() self:RefreshAppearance() end)
+        self.borderModeControls[mode] = button
+    end
+    local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
+    self.borderColorButton = button
+    button:SetSize(206, 38); button:SetPoint("TOPLEFT", 0, -136)
+    button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+    button:SetBackdropColor(unpack(palette.row)); Suite.Theme:Backdrop(button, 0.65)
+    button.swatch = button:CreateTexture(nil, "ARTWORK")
+    button.swatch:SetSize(22, 22); button.swatch:SetPoint("LEFT", 8, 0)
+    button.label = Text(button, 12, palette.text)
+    button.label:SetPoint("LEFT", 40, 0); button.label:SetText("Choose custom color")
+    button:SetScript("OnClick", function() Suite.Theme:OpenPicker() end)
+    self.borderColorPreview = Text(panel, 12, palette.text)
+    self.borderColorPreview:SetPoint("TOPLEFT", 224, -148)
+    local hint = Text(panel, 11, palette.muted)
+    hint:SetPoint("TOPLEFT", 0, -194); hint:SetWidth(CONTENT_WIDTH - 40); hint:SetHeight(32)
+    hint:SetText("The color wheel previews changes as you choose. Cancel restores your previous choice.\nBorder hover effects and transparency are kept.")
+end
+
+function GUI:RefreshAppearance()
+    if not self.appearancePanel or not Suite.db then return end
+    for mode, button in pairs(self.borderModeControls) do
+        local selected = Suite.db.borderColorMode == mode
+        button:SetBackdropColor(unpack(selected and { 0.1, 0.2, 0.21 } or palette.row))
+        Suite.Theme:Backdrop(button, selected and 1 or 0.35)
+        button.label:SetText((selected and "• " or "") .. ({ default = "Default teal", class = "My class", custom = "Custom" })[mode])
+    end
+    local r, g, b = Suite.Theme:RGB()
+    self.borderColorButton.swatch:SetColorTexture(r, g, b, 1)
+    self.borderColorPreview:SetText(string.format("Current: #%02X%02X%02X", math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5)))
 end
 
 function GUI:BuildCharacterDashboard()
@@ -923,7 +983,7 @@ function GUI:BuildChat()
     if self.chatPanel then return end
     local panel = CreateFrame("Frame", nil, self.content)
     self.chatPanel, self.chatFields = panel, {}
-    panel:SetPoint("TOPLEFT", 0, -88); panel:SetSize(514, 350)
+    panel:SetPoint("TOPLEFT", 0, -88); panel:SetSize(514, 510)
     local function Field(key, label, y, low, high, percent)
         local caption = Text(panel, 13, palette.text)
         caption:SetPoint("TOPLEFT", 0, -y); caption:SetText(label)
@@ -969,6 +1029,25 @@ function GUI:BuildChat()
     end)
     self.chatStatus = Text(panel, 11, palette.muted)
     self.chatStatus:SetPoint("TOPLEFT", 0, -283); self.chatStatus:SetWidth(504); self.chatStatus:SetWordWrap(true)
+    local heading = Text(panel, 13, palette.text)
+    heading:SetPoint("TOPLEFT", 0, -350); heading:SetText("Keep the conversation")
+    local help = Text(panel, 11, palette.muted)
+    help:SetPoint("TOPLEFT", 0, -376); help:SetWidth(504); help:SetWordWrap(true)
+    help:SetText("Remember up to 250 recent main-chat lines for this character. Restore automatically after reload or login, with either chat style.")
+    local function HistoryButton(field, x, width, callback)
+        local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
+        self[field] = button
+        button:SetPoint("TOPLEFT", x, -426); button:SetSize(width, 34); Fill(button, palette.row)
+        button.label = Text(button, 12, palette.accent); button.label:SetPoint("CENTER")
+        button:SetScript("OnClick", function() callback(); self:RefreshChat() end)
+        return button
+    end
+    HistoryButton("chatHistoryToggle", 0, 320, function()
+        Suite.Set("chatHistory", not Suite.ChatHistory:Enabled())
+    end)
+    HistoryButton("chatHistoryClear", 330, 174, function() Suite.ChatHistory:Clear() end).label:SetText("Clear saved history")
+    self.chatHistoryStatus = Text(panel, 11, palette.muted)
+    self.chatHistoryStatus:SetPoint("TOPLEFT", 0, -474); self.chatHistoryStatus:SetWidth(504); self.chatHistoryStatus:SetWordWrap(true)
 end
 function GUI:RefreshChat()
     if not self.chatPanel then return end
@@ -981,6 +1060,11 @@ function GUI:RefreshChat()
     self.chatSyncing = false
     local enabled = Suite.Chat:Enabled()
     self.chatApply.label:SetText(enabled and "Restore Blizzard chat" or "Use Suite chat")
+    local remembering = Suite.ChatHistory:Enabled()
+    self.chatHistoryToggle.label:SetText(remembering and "Disable chat history" or "Enable chat history")
+    local store = Suite.ChatHistory:Store()
+    local count = store and #store.lines or 0
+    self.chatHistoryStatus:SetText((remembering and "Recording" or "Off") .. " - " .. count .. " saved lines. Clearing saved history keeps live chat visible.")
     self.chatStatus:SetText(enabled and "Active for this account, including new characters. Blizzard's scroll-to-current button stays available."
         or "Choose your defaults, then use Suite chat. Restoring Blizzard chat keeps these account defaults saved.")
 end
@@ -1199,7 +1283,7 @@ function GUI:LayoutNavigation(key)
 end
 
 function GUI:LayoutPage(key)
-    local panels = { buffs = Suite.BuffSettings.mode and self.buffPanel or nil, profiles = self.profilePanel, overview = self.homePanel, items = Suite.GearSettings.mode and self.gearPanel or nil, macros = self.macroPanel, meters = self.meterPanel, chat = self.chatPanel,
+    local panels = { appearance = self.appearancePanel, buffs = Suite.BuffSettings.mode and self.buffPanel or nil, profiles = self.profilePanel, overview = self.homePanel, items = Suite.GearSettings.mode and self.gearPanel or nil, macros = self.macroPanel, meters = self.meterPanel, chat = self.chatPanel,
         actionbars = self.keybindPanel, bars = self.progressPanel, worldmap = self.mapPanel, characters = self.characterPanel, castbars = self.castbarPanel }
     local panel, bottom = panels[key], self.controlsOffset or 0
     if panel then
@@ -1237,7 +1321,7 @@ function GUI:RevealSetting(entry)
             self.settingHighlight = CreateFrame("Frame", nil, self.frame, "BackdropTemplate")
             self.settingHighlight:EnableMouse(false)
             self.settingHighlight:SetBackdrop({ edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-            self.settingHighlight:SetBackdropBorderColor(unpack(palette.accent))
+            Suite.Theme:Backdrop(self.settingHighlight, 1)
         end
         local ring = self.settingHighlight
         ring:SetParent(target); ring:ClearAllPoints()
@@ -1294,7 +1378,7 @@ function GUI:BuildSettingsSearch(header)
     search:SetFont("Fonts\\FRIZQT__.TTF", 11, ""); search:SetTextColor(unpack(palette.text))
     search:SetAutoFocus(false); search:SetMaxLetters(100); search:SetTextInsets(11, 30, 0, 0)
     search:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-    search:SetBackdropColor(unpack(palette.row)); search:SetBackdropBorderColor(0.17, 0.25, 0.29)
+    search:SetBackdropColor(unpack(palette.row)); Suite.Theme:Backdrop(search, 1)
     search.placeholder = Text(search, 11, palette.muted)
     search.placeholder:SetPoint("LEFT", 11, 0); search.placeholder:SetText("Search settings…")
     local clear = CreateFrame("Button", nil, search)
@@ -1306,7 +1390,7 @@ function GUI:BuildSettingsSearch(header)
     popup:SetWidth(350); popup:SetPoint("TOPRIGHT", search, "BOTTOMRIGHT", 0, -5)
     popup:SetFrameLevel(header:GetFrameLevel() + 10); popup:EnableMouse(true); popup:EnableMouseWheel(true)
     popup:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-    popup:SetBackdropColor(0.035, 0.05, 0.065, 0.98); popup:SetBackdropBorderColor(0.17, 0.25, 0.29)
+    popup:SetBackdropColor(0.035, 0.05, 0.065, 0.98); Suite.Theme:Backdrop(popup, 1)
     self.searchCount = Text(popup, 10, palette.muted); self.searchCount:SetPoint("TOPLEFT", 12, -9)
     self.searchEmpty = Text(popup, 11, palette.muted)
     self.searchEmpty:SetPoint("TOPLEFT", 12, -34); self.searchEmpty:SetText("No matching settings. Try a shorter phrase.")
@@ -1358,7 +1442,7 @@ function GUI:Initialize()
     frame:EnableMouse(true)
     frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
     frame:SetBackdropColor(unpack(palette.background))
-    frame:SetBackdropBorderColor(0.17, 0.25, 0.29)
+    Suite.Theme:Backdrop(frame, 1)
     frame:Hide()
     table.insert(UISpecialFrames, frame:GetName())
 
@@ -1399,7 +1483,7 @@ function GUI:Initialize()
     close:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
     local function PaintClose(hovered)
         close:SetBackdropColor(unpack(hovered and { 0.09, 0.13, 0.145 } or palette.row))
-        close:SetBackdropBorderColor(unpack(hovered and palette.accent or { 0.17, 0.25, 0.29 }))
+        Suite.Theme:Backdrop(close, hovered and 1 or 0.45)
         closeText:SetTextColor(unpack(hovered and palette.accent or palette.muted))
     end
     PaintClose(false)
@@ -1412,7 +1496,7 @@ function GUI:Initialize()
     rule:SetHeight(1)
     rule:SetPoint("BOTTOMLEFT", 24, 0)
     rule:SetPoint("BOTTOMRIGHT", -24, 0)
-    rule:SetColorTexture(0.17, 0.25, 0.29)
+    Suite.Theme:Texture(rule, 0.35)
 
     local sidebar = CreateFrame("Frame", nil, frame, "BackdropTemplate")
     sidebar:SetPoint("TOPLEFT", 0, -77)
@@ -1433,7 +1517,7 @@ function GUI:Initialize()
         tab.indicator:SetWidth(2)
         tab.indicator:SetPoint("TOPLEFT", 0, -8)
         tab.indicator:SetPoint("BOTTOMLEFT", 0, 8)
-        tab.indicator:SetColorTexture(unpack(palette.accent))
+        Suite.Theme:Texture(tab.indicator, 1)
         tab:SetScript("OnClick", function() self:Select(self.groupLast and self.groupLast[key] or entry.pages[1][1]) end)
         self.groupTabs[key] = tab
         if #entry.pages == 1 then self.tabs[entry.pages[1][1]] = tab end
@@ -1460,7 +1544,7 @@ function GUI:Initialize()
                 tab.label:SetWidth(SIDEBAR_WIDTH - 62); tab.label:SetWordWrap(false); tab.label:SetText(entry[2])
                 tab.indicator = tab:CreateTexture(nil, "ARTWORK"); tab.indicator:SetWidth(2)
                 tab.indicator:SetPoint("TOPLEFT", 0, -5); tab.indicator:SetPoint("BOTTOMLEFT", 0, 5)
-                tab.indicator:SetColorTexture(unpack(palette.accent))
+                Suite.Theme:Texture(tab.indicator, 1)
                 tab:SetScript("OnClick", function() self:Select(key) end)
                 self.tabs[key] = tab
             end
@@ -1699,7 +1783,7 @@ function GUI:BuildMeters()
         input:SetFont("Fonts\\FRIZQT__.TTF", 11, ""); input:SetTextColor(unpack(palette.text))
         input:SetJustifyH("RIGHT"); input:SetAutoFocus(false); input:SetMaxLetters(8); input:SetTextInsets(6, 6, 0, 0)
         input:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-        input:SetBackdropColor(unpack(palette.background)); input:SetBackdropBorderColor(0.17, 0.25, 0.29)
+        input:SetBackdropColor(unpack(palette.background)); Suite.Theme:Backdrop(input, 1)
         local slider = CreateFrame("Slider", nil, panel)
         input.slider, input.caption = slider, caption
         slider:SetSize(248, 18); slider:SetPoint("TOPLEFT", x, -y - 32)

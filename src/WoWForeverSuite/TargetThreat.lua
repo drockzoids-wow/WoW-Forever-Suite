@@ -116,7 +116,7 @@ function Threat:CreateSquare()
             if name:find("Corner", 1, true) then piece:SetSize(10, 10)
             elseif name == "TopEdge" or name == "BottomEdge" then piece:SetHeight(10)
             else piece:SetWidth(10) end
-            piece:SetVertexColor(1, 0.82, 0.50, 0.95)
+            Suite.Theme:Vertex(piece, 0.95)
         end
     end
     square.background = square:CreateTexture(nil, "BACKGROUND", nil, 0)
@@ -131,7 +131,7 @@ function Threat:CreateSquare()
     square.link = square:CreateTexture(nil, "BORDER")
     square.link:SetAtlas("_Tooltip-NineSlice-EdgeTop")
     square.link:SetSize(7, 2)
-    square.link:SetVertexColor(1, 0.82, 0.50, 0.95)
+    Suite.Theme:Vertex(square.link, 0.95)
     square.text = square:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     square.text:SetPoint("CENTER", square, "CENTER", 0, 0)
     square.text:SetFont(STANDARD_TEXT_FONT, 11, "OUTLINE")

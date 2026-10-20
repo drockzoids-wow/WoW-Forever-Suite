@@ -252,7 +252,7 @@ function Search:CreatePopup()
     popup:Hide(); popup:SetSize(WIDTH, 28); popup:SetFrameStrata("DIALOG")
     popup:SetClampedToScreen(true); popup:EnableMouse(true); popup:EnableMouseWheel(true)
     popup:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-    popup:SetBackdropColor(0.035, 0.05, 0.065, 0.97); popup:SetBackdropBorderColor(0.2, 0.35, 0.36, 0.8)
+    popup:SetBackdropColor(0.035, 0.05, 0.065, 0.97); Suite.Theme:Backdrop(popup, 0.8)
     popup:SetScript("OnHide", function() self:HideTooltip() end)
     popup:SetScript("OnMouseWheel", function(_, delta)
         if not InCombatLockdown() and Integer(delta, -100, 100) and delta ~= 0 then self:Page(delta > 0 and -1 or 1) end

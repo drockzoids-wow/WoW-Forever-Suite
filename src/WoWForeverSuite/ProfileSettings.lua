@@ -13,7 +13,7 @@ local function Button(parent,text,x,y,width,callback)
     local b=CreateFrame("Button",nil,parent,"BackdropTemplate")
     b:SetPoint("TOPLEFT",x,y);b:SetSize(width,30)
     b:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
-    b:SetBackdropColor(0.07,0.095,0.11,1);b:SetBackdropBorderColor(0.17,0.25,0.29)
+    b:SetBackdropColor(0.07,0.095,0.11,1);Suite.Theme:Backdrop(b, 1)
     b.label=Label(b,text,10,-9,width-20,11,colors.teal);b.label:SetWordWrap(false)
     local nativeEnable=b.SetEnabled
     b.SetEnabled=function(self,enabled)
@@ -73,7 +73,7 @@ function View:Build()
     name:SetPoint("TOPLEFT",264,-278);name:SetSize(326,30);name:SetAutoFocus(false);name:SetMaxLetters(40)
     name:SetFont("Fonts\\FRIZQT__.TTF",12,"");name:SetTextInsets(8,8,0,0)
     name:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
-    name:SetBackdropColor(0.035,0.05,0.065,1);name:SetBackdropBorderColor(0.17,0.25,0.29)
+    name:SetBackdropColor(0.035,0.05,0.065,1);Suite.Theme:Backdrop(name, 1)
     name:SetScript("OnEnterPressed",function() name:ClearFocus() end)
     name:SetScript("OnEscapePressed",function() name:ClearFocus() end);self.name=name
     self.rename=Button(panel,"Rename",602,-278,178,function()
@@ -87,7 +87,7 @@ function View:Build()
     popup:SetPoint("TOPLEFT",264,-114);popup:SetSize(516,284)
     popup:SetFrameLevel(panel:GetFrameLevel()+10);popup:EnableMouse(true)
     popup:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
-    popup:SetBackdropColor(0.035,0.05,0.065,1);popup:SetBackdropBorderColor(0.41,0.84,0.75)
+    popup:SetBackdropColor(0.035,0.05,0.065,1);Suite.Theme:Backdrop(popup, 1)
     Label(popup,"COPY FROM",12,-12,492,11,colors.muted)
     self.sourcePopup,self.sourceRows=popup,{}
     for i=1,6 do
@@ -169,7 +169,7 @@ function View:Refresh(resetName)
         row:SetShown(item~=nil)
         if item then
             row.label:SetText((item.id==Profiles.activeID and "* " or "")..item.name)
-            row:SetBackdropBorderColor(unpack(item.id==entry.id and colors.teal or colors.muted))
+            Suite.Theme:Backdrop(row, item.id == entry.id and 1 or 0.35)
             row:SetEnabled(ready)
         end
     end

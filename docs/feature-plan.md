@@ -1,5 +1,60 @@
 # Forever Suite feature plan
 
+## Shared border color — 0.2.93
+
+October 19: implement profile-aware **Interface → Appearance** with **Default teal**, **My class**, **Custom**, and Blizzard's native color wheel. Include current swatch/hex preview, live border updates and Cancel restoring prior mode/custom RGB. `/wfs colors`, `/wfs appearance` and settings search reach these controls. Class mode follows each character, with teal fallback when unavailable. Switching modes remembers custom RGB; changing color enables no optional feature.
+
+Route all Suite-styled backdrop, flat-texture and native-art borders through Theme.lua, including settings, minimap/header/stats/drawer/launcher ring, native bar/buff skins, quest tracker, chat, Suite windows/buttons/controls/popups. Keep each border's alpha/hover behavior. Informational fills, text, tab background accents and logo artwork retain their meanings. Existing and later-created borders inherit the choice. Recolor coalesces until combat ends; supported combat texture hover uses the previously applied RGB. No layout, native input, asset replacement or idle worker is added.
+
+Installed executable is **1.60.1.70450**. Seven exact API/picker references are cached from matching commit 172a387e3ab85b26e6640d3058d5ec1e6ccd4c63. **62 Lua 5.1 files, identical TOCs and 15,822 substitute checks pass**. Native visuals, wheel input, persistence and taint remain pending the focused smoke test.
+
+
+## Class training icons and colors — 0.2.92
+
+October 19: user accepts the prior weapon presentation and requests class ability icons plus more distinct text, particularly levels matching the teal weapon trainer names. Capture each readable native trainer offering's exact icon and show it in the existing 30-unit icon area. Use the same 36-unit text inset in both tabs, preserving the fixed 500×528 window, footer and price column. Class names become soft gold; group headings and required-level numbers teal; availability green and other requirements or projected confirmation amber. Projected saved levels remain explicitly unconfirmed.
+
+Save an optional validated icon with each offering. Older lists first try the readable native spell-name texture lookup, then use a question mark if unresolved; a class-trainer visit with recording enabled refreshes exact icons. Matching public metadata events can refresh visible unresolved names through the existing cancellable coalescer. No guesses about learned spells, automatic purchases, new preference, shipped artwork or worker. All 14,416 substitute checks pass; native appearance remains pending.
+
+## Consistent headers for every weapon master — 0.2.91
+
+October 19: user supplies saved Bixi Wobblebonk and Buliwyf Stonehand pages with the old context/details/duplicate-name header, and requests the Woo Ping design for every trainer, including Horde. The previous compact condition covered reference pages only. Extend it to all usable Weapons pages, whether recorded, current or reference, for both factions. Keep Class and unavailable-faction explanations separate.
+
+Use teal trainer - gold city, then a muted district - building subtitle without repeating the city. Hide the former saved/current context row and recorded-price explanation. Match known master name plus faction to existing directory location details, covering all eight masters, so both Ironforge visits show Military Ward - Timberline Arms. Unknown or mismatched identities use their actual recorded location; do not rewrite snapshots. Keep captured stock/prices separate from references, and label historical totals Saved total. Preserve the common 500×528 root, fixed footer, icons and combat deferral. All 14,401 checks pass, including all sixteen recorded/reference master combinations. Native appearance remains pending.
+
+## Consistent Training Planner size — 0.2.90
+
+October 19: user supplies Class and Weapons screenshots and reports that the same window has two sizes. The 0.2.89 reference-only height reduction caused this. Use one fixed **500×528** owned root for all views. Keep the compact color-coded reference header and raised weapon rows, while totals, page controls and Settings stay in the same footer positions across views. This supersedes the 0.2.89 decision to shorten the reference window.
+
+Remove mode-specific root resizing and footer offsets; keep existing header/row combat deferral, class/weapon data, icons and saved placement. All 14,344 substitute checks pass. The screenshots show native weapon icons and the color-coded header in use, but the corrected fixed-size result still needs an in-game check.
+
+## Compact weapon reference header — 0.2.89
+
+October 19: user requests clearer color and less header space, then clarifies that the city must appear only in the main heading. Reference pages use a larger **Woo Ping - Stormwind** heading: teal trainer, muted separator and gold city. The smaller muted second line is **Trade District - Weller's Arsenal**, without repeating Stormwind. Apply the same city/district/building arrangement across the capital directory. Hide the separate Reference/faction/trainer row and remove the header's base-price explanation. Keep the footer's reference-price qualification and existing per-row labels.
+
+Move reference rows/footer up 36 units and reduce only the reference window height from 528 to 492. Class, recorded and current-visit headers retain their details and original geometry. Reuse existing owned labels and source place strings; no setting, saved data, asset or new game API. Geometry changes defer through combat and restore when switching views. All 14,344 substitute checks pass; native appearance remains pending.
+
+## Training Planner weapon icons — 0.2.88
+
+October 19: user supplies the Alliance/Woo Ping Weapons page and requests each weapon's default icon to the left of its name, explaining that the uniformly white text is hard to scan. Add 30-unit native proficiency icons in a 36-unit gutter on weapon rows, mute secondary requirements, retain the existing six-row spacing and right-aligned costs. Apply the same presentation to reference and recorded visits. Class rows retain their full text area and clear recycled weapon art.
+
+Use public catalog proficiency IDs for reference entries and exact readable client-localized names for recorded rows. Resolve icons with capability-checked C_Spell.GetSpellTexture; unavailable/restricted data uses a question mark for a known proficiency. Request missing public data at most once per catalog ID per Lua session; coalesce successful completion events, defer through combat and cancel work on hide. No new preference, asset, training record field or purchase behavior. All 14,344 substitute checks pass; actual native appearance remains pending.
+
+## Training Planner GUI and spellbook companion — 0.2.87
+
+October 19: user requests GUI discovery beyond /wfs training and automatic opening with the spellbook. Give the planner a dedicated **Home → Training Planner** destination with Open first, recording and all three automatic-opening choices. Move existing controls out of Professions without changing their saved keys; index both pages for search and route the planner Settings button to its own page. Opening settings does not enable recording.
+
+Add trainingSpellbook=true as a subordinate automatic-opening preference, like existing trainer/level choices; the independent trainingPlanner master remains false on a fresh setup. When enabled, show the saved Class / Available now view beside the actual visible spellbook. Do not open for the Talents tab alone, read live trainer offers, learn spells or alter native scripts/layout. Use the exact 70450 public spellbook Show/Hide callbacks rather than a function replacement or idle polling.
+
+Closing the spellbook hides only its automatically opened companion. Keep manually opened views and selections independent; dismissal lasts for that opening. Native trainer visits take over their existing lifecycle. Defer construction/show/placement in combat; closing the book, disabling either relevant choice, world entry or a later manual opening invalidates pending automatic work. Preserve standalone coordinates and existing class/weapon records. Offline checks pass; native visual/event/taint testing remains pending.
+
+## Persistent chat history — 0.2.86
+
+October 19: user requests seeing chat after reload/login, referencing their ZoidsTools retail and EverCore experience. Review ZoidsTools/Modules/ChatHistory.lua as the behavior reference; no history implementation was found in the current EverCore checkout. Implement a small independent Suite module, optional and off by default like other tools. A single enable action uses fixed useful bounds; no editing or tuning is required.
+
+Remember the latest 250 readable rendered main-chat messages, maximum 4096 bytes each, in character SavedVariables. Keep the preference in settings profiles, and records outside profile copies. Retain native filtering and exclude other tabs/combat log/temporary windows. Backfill older messages in reverse insertion order before current-login messages; preserve hyperlink markup, mute embedded colors, and show a session boundary. Replay once per Lua session, including across repeated world transitions and option applies. Clear saved records independently of live chat. No chat sends, clipboard extraction, native message getters or history-buffer inspection.
+
+Offline: 61 Lua files and 14,116 substitute checks pass; TOCs identical at 0.2.86. Native persistence, display, links and taint checks remain pending.
+
 ## Clicked group buff requests — 0.2.85
 
 October 19: user reports clicking Arcane Intellect did not announce the missing buff. This authorizes deliberate incoming-icon chat requests, replacing the reminder-only left-click behavior from 0.2.84. No automatic announcements or live messages are sent by development tools.

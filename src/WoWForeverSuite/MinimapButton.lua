@@ -119,6 +119,7 @@ function Launcher:Initialize()
     button.border:SetSize(38 * ringScale, 38 * ringScale)
     button.border:SetPoint("TOPLEFT", button, "TOPLEFT", -ringScale, 0)
     button.border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+    Suite.Theme:Vertex(button.border, 1)
     button:SetScript("OnMouseDown", function() self.suppressClick = false end)
     button:SetScript("OnClick", function()
         if self.suppressClick then self.suppressClick = false; return end

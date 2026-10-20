@@ -1,5 +1,104 @@
 # Forever Suite in game testing
 
+## Shared border color — 0.2.93
+
+October 19 installed executable: **1.60.1.70450**. Record `/wfs status` and actual running build/Interface with results. Offline checks pass for 62 Lua 5.1 files, identical TOCs and 15,822 substitute assertions. Native tests below remain pending.
+
+1. `/reload`, open **Interface → Appearance** or `/wfs colors`, and confirm all three choices and swatch/hex preview fit at normal/smaller UI scales. Search `border class color` and `wheel`: both must reach the right control. A fresh preference starts at Default teal; feature switches retain their choices.
+2. Deliberately enable representative features, then choose My class and Custom. Inspect minimap/header/stats/drawer/launcher ring; action/pet/stance/progress/bag/micro/player-buff outlines; quest tracker/headers/collapse buttons; chat/tab/selected underline/input/copy borders; meter windows/menus/details/selectors; camping preview, leveling controls, missing buffs, quest-item/discard/disenchant outlines, mail contacts, inventory popup/browser, Training Planner and buff/gear/profile controls. Open previously closed panels and enable another skin after choosing a color. All Suite-styled borders should follow. Native window/tooltip/item-quality borders and informational fills retain native behavior. Record any missing tint; native art can retain texture shading.
+3. Open Choose custom color. Check Blizzard's wheel/brightness/hex entry, live updates, black/white/saturated colors and current hex preview. Okay keeps the choice. From Default teal, My class and a remembered Custom, test Cancel/Escape/outside-click: each must restore prior mode and remembered custom RGB. No alpha slider is offered. Try with another addon's picker open: its owner must remain intact. Record errors/unavailable messages.
+4. Hover/press controls, open menus, select chat tabs and toggle leveling/meter locks. Borders retain selected RGB and existing opacity/feedback. Hidden/disabled features stay hidden. Disable skins to check native restoration; re-enable to check current color. Threat/range/quality/class fills and different chat-tab backgrounds retain their meanings.
+5. Select several modes in combat. Separately enter combat with the wheel already open, then adjust/cancel. Recolor waits until combat ends and applies final intent, including cancellation. Existing flat skin hover keeps the previous RGB. Initiating Choose custom color in combat must leave the picker closed. Check for protected creation/layout, blocked actions and Lua errors.
+6. Save a custom color, switch to My class, reload, relog to another class, and restart. Shared-profile class mode must follow each character; Custom must recall saved RGB. Copy a profile, choose personal overrides, reload, and confirm independent color choices. Default teal must restore all styled borders. Record screenshots and results before marking appearance, picker input, persistence or combat verified.
+
+
+## Class training icons and colors — 0.2.92
+
+October 19: prior weapon appearance accepted by the user; new class presentation is unverified. Installed executable **1.60.1.70450**. Load 0.2.92 and record /wfs status, actual running build/Interface, class/level, language, UI scale and active addons.
+
+1. Enable Record trainer offerings and visit a class trainer. Review Available now, several future Level groups and Other requirements: each ability should show the trainer's native spell icon on the left. Check ranks and long names; the icon/name must clear the price column. Names should be soft gold, level group headings and row numbers teal like weapon trainer names, availability green and unmet requirements amber. Compare a few icons to the native trainer, including unlearned/future ranks.
+2. Close the trainer, reload and reopen the planner: saved icons persist. Older lists may resolve by native spell name; a question mark means the icon is unavailable, so revisit the trainer with recording enabled to refresh it. If metadata arrives later, only a matching visible unresolved name should refresh. Missing/restricted metadata must not fabricate an icon, discard an otherwise valid skill or change totals.
+3. Level up away from a trainer: newly reached saved levels remain labeled Level N met · confirm at trainer. Check that colors do not imply confirmed trainability or bypass other prerequisites. Switch repeatedly between Class and weapon references/recorded visits: correct icons, colors and headers must follow the selected data, with fixed window/footer geometry. Recheck spellbook/trainer docking, changed UI scale, combat metadata completion, close/disable before completion and normal addon coexistence; record Lua/blocked-action/taint results.
+
+Offline: **61 Lua 5.1 files, identical 0.2.92 TOCs and 14,416 substitute checks pass**, 15 new assertions. They validate data and substituted behavior; native rendering, persistence and taint remain pending. No deployment or junction change.
+Delivery: dist/WoWForeverSuite-0.2.92.zip contains 69 byte-identical addon files; SHA-256 0812e8c0b4c6daea28e08f250e6b6953fe1db0361f14beb0021520431b67e959.
+
+
+## Consistent headers for every weapon master — 0.2.91
+
+October 19: user screenshots confirm recorded Bixi/Buliwyf pages still use the pre-compact header. Load 0.2.91 and record actual /wfs status build/Interface, language, UI scale and addons. Installed executable reference remains 1.60.1.70450; corrected native appearance is pending.
+
+1. Open the recorded Bixi Wobblebonk and Buliwyf Stonehand visits. Both should use a teal trainer - gold Ironforge heading and the smaller Military Ward - Timberline Arms subtitle, with no saved/date context row, duplicate trainer heading, city repetition or recorded-price explanation. Actual captured skills/prices stay unchanged. Historical totals read Saved total; reference base-price footers stay distinct. Compare their corresponding reference pages and the Woo Ping/Ilyenia pages.
+2. On Horde, test both reference and recorded/current visits for Sayoc and Hanashi in Orgrimmar (Valley of Honor - Arms of Legend), Ansekhwa in Thunder Bluff (Lower Rise - weapons tent) and Archibald in Undercity (War Quarter). All use the same header, icons, row spacing, fixed outer size and footer positions. A new/unknown master must use recorded place details without borrowing an unrelated master's building. Unknown player faction retains its unavailable explanation.
+3. Switch among saved/current/reference weapon pages and Class; check original Class details restore, actual saved data survives reload and no stale header/art appears. Recheck normal/changed UI scale, standalone/spellbook/trainer docking, and combat transitions/closing with pending layout work. Record Lua/blocked-action/taint and native appearance separately.
+
+Offline: **61 Lua 5.1 files, identical 0.2.91 TOCs and 14,401 substitute checks pass**. Includes all sixteen recorded/reference master combinations plus fallback and combat reuse; native corrected appearance remains pending. No deployment or junction change.
+Delivery: dist/WoWForeverSuite-0.2.91.zip contains 69 byte-identical addon files; SHA-256 d47efe95aeb590096c51f030996b59acfc13a52d08f3ab14bcf348a7aa39877e.
+
+
+## Consistent Training Planner size — 0.2.90
+
+October 19: user screenshots confirm the pre-fix height mismatch and show weapon icons/color-coded reference headings. Record actual /wfs status build/Interface, UI scale and addons after loading 0.2.90; the latest installed executable reference is 1.60.1.70450. Corrected native result is pending.
+
+1. Open Class, select a weapon reference, then visit recorded weapon pages and return to Class. All views must retain the same outer dimensions and position. Totals, page controls and Settings must stay at the same vertical positions. Reference pages retain the compact trainer/city heading, district/building subtitle and weapon icons, with room above the fixed footer. Class retains its full saved-visit details.
+2. Repeat after reload, at changed UI scale, and while standalone or docked beside the spellbook/trainer. Try reference/recorded paging in combat and close before combat ends. The existing internal layout deferral must remain safe; no Lua/blocked-action/taint errors or window-size jump.
+
+Offline: **61 Lua 5.1 files, identical 0.2.90 TOCs and 14,344 substitute checks pass**. Native corrected appearance remains pending. No deployment or junction change.
+Delivery: dist/WoWForeverSuite-0.2.90.zip contains 69 byte-identical addon files; SHA-256 852e5dd7bbf4897833b5e129122caf9ce4d301484425505d4126587e77d4495d.
+
+
+## Compact weapon reference header — 0.2.89
+
+October 19: requested presentation change; no native result yet. Load 0.2.89 and record actual /wfs status build/Interface, language, UI scale and active addons. Installed executable reference is 1.60.1.70450.
+
+1. Open Training Planner → Weapons → Woo Ping. Expect the larger **Woo Ping - Stormwind** line with teal trainer and gold city, followed by the smaller muted **Trade District - Weller's Arsenal** line. The city appears once. There is no separate Reference/Alliance/trainer row or header base-price explanation. The reference-price footer and weapon level/price labels remain.
+2. Page through both factions' reference masters. Check city/district/building text, longer names, icons, labels, price columns and footer at normal and changed UI scales. The weapon list/footer and window bottom should be 36 units higher without overlap or clipped controls. Check standalone placement and docking next to spellbook/trainer windows.
+3. Switch between references, recorded weapon visits and Class; each non-reference header must restore its original context/details, row positions and 528-unit height. Reference mode returns to 492. Try paging between recorded and reference pages during combat: layout changes should wait until combat ends and use the latest selection. Closing before combat ends must cancel the pending header update. Check Lua/blocked-action/taint behavior with usual addons.
+
+Offline: **61 Lua 5.1 files, identical 0.2.89 TOCs and 14,344 substitute checks pass**. Updated existing reference heading expectation; native visual/taint confirmation remains pending. No deployment or junction change.
+Delivery: dist/WoWForeverSuite-0.2.89.zip contains 69 byte-identical addon files; SHA-256 90ce8fab496d5f51950853d23fd226d27afbe71bf417194b565c8b27cf122df9.
+
+
+## Training Planner weapon icons — 0.2.88
+
+October 19: user screenshot confirms the pre-change Alliance / Woo Ping page has only text. Installed executable **1.60.1.70450**; record actual /wfs status build/Interface, language, UI scale and addon setup after loading 0.2.88. Native results for this update are pending.
+
+1. Open Home → Training Planner → Open Training Planner → Weapons. On Woo Ping, check distinct native Crossbows, Daggers, One-Handed Swords, Two-Handed Swords, Staves and Polearms icons to the left of their names. Check all weapon masters on Alliance and Horde, including longer localized labels. Icons must fit the row, requirements should look muted, and names must not overlap prices. Review normal and changed UI scales.
+2. Visit a weapon trainer with recording enabled. Recorded known and unlearned proficiencies should use the same native icons while retaining their actual states/prices. Switch pages and scroll a long visit: icons must follow the displayed weapon. Switch to Class: no stale weapon art or empty icon gutter, and names/ranks regain their full original width. Existing totals, class/weapon separation, trainer/spellbook docking, selection and buttons should behave normally.
+3. Open with uncached metadata if available: a known proficiency may briefly show a question mark and should update when its public data arrives. Close before completion, then reopen; no stale worker should reopen the panel. Test manual opening with recording off, then re-enable recording. In combat, prepared icons stay intact; completed data waits until combat ends. Repeat with combat beginning immediately after completion, closing/disabling the planner before combat ends, and the usual addons. Check Lua/blocked-action/taint errors and native texture rendering.
+
+Offline: **61 Lua 5.1 files, identical 0.2.88 TOCs and 14,344 substitute checks pass**, 36 additional assertions. The checks model icons and bounds; they do not render the native client or prove actual metadata delivery/taint safety. No deployment or junction change.
+Delivery: dist/WoWForeverSuite-0.2.88.zip contains 69 byte-identical addon files; SHA-256 f1ff8c1a6f324bc71bc8f9bf86d86d346596079d83982b921c9325c97664b8ba.
+
+
+## Training Planner GUI and spellbook companion — 0.2.87
+
+October 19: installed executable **1.60.1.70450**. Load the updated addon through the user's managed installation, then record /wfs status, actual running build/Interface, class/level, language, UI scale and active addons. This task changes only the canonical P-drive checkout; native results are pending.
+
+1. Open /wfs → Home → Training Planner. Confirm the sidebar label, Open Training Planner action, recording and spellbook/trainer/level-up options. Open should work without a command or enabling recording. Search for training planner, spellbook and trainer costs; each result should reveal the correct control. The planner Settings button returns here. Professions should retain its Disenchant controls. Existing choices/records remain intact.
+2. Enable Record trainer offerings and leave Show with spellbook on. Visit the class trainer once if no class snapshot exists, then leave. Open the spellbook using its native button and shortcut: the planner should appear beside it on Class / Available now with saved data and honest empty/partial explanations. Test entering the Spellbook tab from Talents and opening Talents alone; only the actual spellbook should trigger. No new purchases, trainer-data request or native layout changes should occur.
+3. Close the spellbook: its automatic companion closes. Reopen, close only the planner, change another Suite setting and remain in the spellbook: it stays dismissed until the next spellbook opening. Open the planner manually before opening the spellbook, select Weapons and close the spellbook: the manual planner and selection stay. Repeat an explicit GUI/command Open while its automatic companion is visible; that manual view should survive the spellbook closing.
+4. Move/scale/minimize/maximize the native Player Spells window and test normal and narrow displays. The companion follows its native anchor, remains clamped, and cannot drag away while attached. Native tabs, spell drag/cast controls, search, close and Escape retain behavior. Standalone planner movement and saved coordinates return after companion closure. Recheck trainer docking, level reminders, class/weapon separation and overlapping Suite settings focus.
+5. Open the spellbook in combat: no Suite frame creation, showing or anchor change until combat ends. Close it before combat ends: no delayed popup. Repeat while disabling Show with spellbook or recording, and during a world transition. Disable only Show with spellbook and confirm manual Open, trainer recording and other automatic choices still work. Reload/relog and switch shared/personal profiles to verify preference persistence without copying character training records. Check Lua errors, blocked actions and taint alongside the usual addons.
+
+Offline: **61 Lua 5.1 files, identical 0.2.87 TOCs and 14,308 substitute checks pass**, 192 above the 0.2.86 baseline. These validate substituted callbacks, layout bounds and cancellation; actual native rendering, event delivery, SavedVariables persistence and taint safety remain unverified. No deployment, junction change or publication.
+
+Delivery: dist/WoWForeverSuite-0.2.87.zip contains 69 byte-identical addon files; SHA-256 58ab7010c373caf73c2d34b2c42f9ac430ce17526967995f7ea2d81dbc788f37. Native installation is unchanged.
+
+## Persistent chat history — 0.2.86
+
+October 19: requested reload/login history. Record actual /wfs status build/Interface, language and active addons. Installed executable reference is 1.60.1.70450; native results remain pending.
+
+1. /reload into 0.2.86. Open /wfs chat → Enable chat history. With Suite styling off, receive/send ordinary main-window messages and an item/player link, then /reload. Expect a muted Saved chat block above Current session and current-login messages. Links should work normally; no old message should be sent to anyone. Earlier unsaved messages and offline messages cannot be recovered.
+2. Reload again, then log out/in: the saved conversation should persist once, without multiplying previous-history copies or session markers. Zone/instance/loading transitions should never replay it again. Repeat with Suite styling enabled and with your usual addons; record Lua/blocked-action/taint behavior and native copy/link/scroll behavior.
+3. Receive more than 250 main-window lines and reload: retain the most recent bounded history subject to the native chat window capacity. Other tabs, the combat log and temporary whisper windows should not add unrelated lines to main-chat history. Any inaccessible text must be skipped without errors.
+4. Disable history, receive a distinct line, then reload: no replay or recording while disabled. Re-enable and verify the disabled-session line was not saved. Clear saved history while enabled: live chat remains visible and the saved count becomes zero; new messages continue recording. Reload before any new message to confirm cleared text does not return.
+5. Compare two characters and switch named/shared/personal settings profiles: enable preference follows the active setup, while message records remain separate for each character. Check fresh-character defaults off, malformed saved data normalization and failed/unavailable frame behavior through offline fixtures; do not edit live SavedVariables for testing. Startup replay must defer during combat and cancel if disabled or cleared before combat ends.
+
+Offline: 61 Lua 5.1 files, identical 0.2.86 TOCs and 14,116 substitute checks pass (45 new). These validate substituted behavior, not native persistence, rendering, links or taint safety. No deployment, junction change or remote publication.
+
+Delivery: dist/WoWForeverSuite-0.2.86.zip contains 69 byte-identical source files. SHA-256 1efd61cb7771b182de46b45545258011b80a9e5525610b815a53ce5be8659dbb. No deployment, junction modification or remote publication.
+
 ## Clicked group buff requests — 0.2.85
 
 October 19: user reports clicking Arcane Intellect did not announce the missing buff. This authorizes deliberate incoming-icon chat requests, replacing the reminder-only left-click behavior from 0.2.84. No automatic announcements or live messages are sent by development tools.

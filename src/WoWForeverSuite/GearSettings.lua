@@ -16,7 +16,7 @@ local function Button(parent, text, x, y, width, callback)
     local button = CreateFrame("Button", nil, parent, "BackdropTemplate")
     button:SetPoint("TOPLEFT", x, y); button:SetSize(width, 28)
     button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-    button:SetBackdropColor(unpack(colors.row)); button:SetBackdropBorderColor(0.17, 0.25, 0.29)
+    button:SetBackdropColor(unpack(colors.row)); Suite.Theme:Backdrop(button, 1)
     button.label = Label(button, text, 9, -8, width - 18, 11, colors.teal)
     button.label:SetWordWrap(false)
     button:SetScript("OnClick", function() if not InCombatLockdown() then callback() end end)
@@ -30,7 +30,7 @@ local function Input(parent, x, y, width, maximum)
     input:SetAutoFocus(false); input:SetMaxLetters(maximum); input:SetTextInsets(7, 7, 0, 0)
     input:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
     input:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-    input:SetBackdropColor(0.035, 0.05, 0.065, 1); input:SetBackdropBorderColor(0.17, 0.25, 0.29)
+    input:SetBackdropColor(0.035, 0.05, 0.065, 1); Suite.Theme:Backdrop(input, 1)
     input:SetScript("OnEnterPressed", function() input:ClearFocus() end)
     return input
 end
@@ -251,7 +251,7 @@ function Gear:Refresh()
             if entry then
                 button.label:SetText((entry.id == active and "Selected · " or "") .. entry.label)
                 button.help:SetText(entry.help)
-                button:SetBackdropBorderColor(unpack(entry.id == active and colors.teal or colors.row))
+                Suite.Theme:Backdrop(button, entry.id == active and 1 or 0.35)
             end
         end
         self.panel:SetHeight(72 + math.ceil(#list / 3) * 58)

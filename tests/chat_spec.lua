@@ -310,9 +310,9 @@ equal(tab.Text:GetHeight(), 8, "native short label box remains intact")
 equal(tab.Text.point, labelPoint, "native label anchors remain intact")
 equal(tab.OnClick, tabClick, "tab switching and context-menu callback remains native")
 equal(tab.OnDragStart, tabDrag, "native tab docking and movement callback remains intact")
-equal(record.tabPane.borderColor[1] ~= chat.records[second].tabPane.borderColor[1], true,
-    "General and Combat Log have distinct stable accents")
-equal(record.indicator.color[1], record.tabPane.borderColor[1], "selected accent matches its tab color")
+equal(record.tabColor[1] ~= chat.records[second].tabColor[1], true,
+    "General and Combat Log retain distinct background accents")
+equal(record.indicator.color[1], record.tabPane.borderColor[1], "selected underline shares the chosen border color")
 local beforeRelease = nativeCalls
 first.OnMouseUp(first, "RightButton")
 equal(nativeCalls, beforeRelease + 1, "native release script still runs through the observer hook")

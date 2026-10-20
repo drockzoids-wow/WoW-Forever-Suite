@@ -135,6 +135,7 @@ function Skin:Panel(parent, target, header, pass)
         end
         for _, side in ipairs(header and { "BOTTOM" } or { "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
             local edge = Texture(parent, { 0.41, 0.84, 0.75, header and 0.45 or 0.65 }, "OVERLAY", 7)
+            Suite.Theme:Texture(edge, header and 0.45 or 0.65)
             panel.edges[side] = edge
             panel.textures[#panel.textures + 1] = edge
         end
@@ -168,7 +169,7 @@ function Skin:PaintButton(record)
     record.background:SetColorTexture(pressed and 0.10 or highlighted and 0.07 or 0.035,
         pressed and 0.23 or highlighted and 0.15 or 0.065,
         pressed and 0.21 or highlighted and 0.15 or 0.08, 0.95)
-    for _, edge in ipairs(record.edges) do edge:SetColorTexture(0.41, 0.84, 0.75, highlighted and 1 or 0.45) end
+    for _, edge in ipairs(record.edges) do Suite.Theme:Texture(edge, highlighted and 1 or 0.45) end
     for _, texture in ipairs(record.textures) do texture:Show() end
     if not record.collapsed then record.vertical:Hide() end
 end
@@ -198,6 +199,7 @@ function Skin:Minimize(header, owner, pass)
         record.textures[1] = record.background
         for _, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
             local edge = Texture(button, { 0.41, 0.84, 0.75, 0.45 }, "BORDER", 7)
+            Suite.Theme:Texture(edge, 0.45)
             AnchorEdge(edge, button, side, 0, 0)
             record.edges[#record.edges + 1] = edge
             record.textures[#record.textures + 1] = edge

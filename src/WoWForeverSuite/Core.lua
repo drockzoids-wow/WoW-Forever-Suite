@@ -1,10 +1,11 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "0.2.85"
+Suite.version = "0.2.93"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {
     schema = 1,
+    borderColorMode = "default", customBorderColor = { r = 0.41, g = 0.84, b = 0.75 },
     setupGuide = { version = 1, seen = false, completed = false },
     squareMinimap = false, minimapStats = false,
     revealWorldMap = false, mapRevealOpacity = 0.6,
@@ -24,14 +25,14 @@ Suite.defaults = {
     bagSpaceAlert = false, bagSpaceBlacklist = {}, bagSpacePosition = {},
     mailHelper = false, mailRememberRecipient = false,
     mailContacts = { schema = 2, entries = {}, removed = {} },
-    chatStyle = false, chatFontSize = 14, chatOpacity = 0.5, audioSync = false,
+    chatHistory = false, chatStyle = false, chatFontSize = 14, chatOpacity = 0.5, audioSync = false,
     itemLevels = false, itemTooltipLevels = false, characterItemLevel = false, upgradeHints = false,
     itemInventory = false, inventorySearch = false, characterDashboard = false, inventory = { schema = 1, characters = {}, accountBanks = {} },
     inventoryBrowser = { schema = 1, favorites = {} },
     scorePreset = "balanced", upgradePreference = "stats", playerItemLevel = false, classNames = false,
     macroUpdates = false, macroOwnership = {},
     campingBar = false, campingPose = "sit", campingPosition = {},
-    levelingBar = false, trainingPlanner = false, trainingAuto = true, trainingLevelUp = true,
+    levelingBar = false, trainingPlanner = false, trainingAuto = true, trainingLevelUp = true, trainingSpellbook = true,
     missingBuffExpiry = false, missingBuffCombat = false, missingBuffWeapons = false, missingBuffWarning = 60, missingBuffCustom = {},
     missingBuffScale = 1, missingBuffIconSize = 34, missingBuffLocked = false, missingBuffRested = true, missingBuffSmart = true,
     missingBuffs = false, missingBuffSelf = true, missingBuffOutgoing = true, missingBuffIncoming = true, missingBuffClass = true,
@@ -70,6 +71,7 @@ function Suite.InitializeDB(saved)
     for key, value in pairs(Suite.defaults) do
         if not Suite.IsReadable(db[key]) or type(db[key]) ~= type(value) then db[key] = Suite.Copy(value) end
     end
+    Suite.Theme:Initialize(db)
     if not Suite.Scoring.presets[db.scorePreset] then db.scorePreset = "balanced" end
     db.upgradePreference = Suite.Scoring.Preference(db, true)
     db.inventoryBrowser = Suite.CharacterBrowser:InitializeOptions(db.inventoryBrowser)
@@ -144,9 +146,11 @@ events:SetScript("OnEvent", function(_, event, name, second)
             Suite.IsReadable(WoWForeverSuiteCharDB) and type(WoWForeverSuiteCharDB) == "table" and Suite.db or nil)
         local leveling = Suite.Leveling:InitializeCharacter(character.leveling)
         local training = Suite.Training:InitializeCharacter(character.training)
+        local chatHistory = Suite.ChatHistory:InitializeCharacter(character.chatHistory)
         WoWForeverSuiteCharDB = Suite.Macros:Initialize(character)
         WoWForeverSuiteCharDB.leveling = leveling
         WoWForeverSuiteCharDB.training = training
+        WoWForeverSuiteCharDB.chatHistory = chatHistory
         WoWForeverSuiteCharDB.scoring = scoring
         WoWForeverSuiteCharDB.suiteProfile = Suite.Profiles:Initialize(Suite.db, character.suiteProfile)
         Suite.InitializeDB(Suite.db)
@@ -175,6 +179,7 @@ end)
 SLASH_WOWFOREVERSUITE1 = "/wfs"
 SLASH_WOWFOREVERSUITE2 = "/foreversuite"
 local commandPages = {
+    appearance = "appearance", colors = "appearance",
     profiles = "profiles", profile = "profiles", characters = "characters", dashboard = "characters", gear = "items", items = "items",
     bags = "bags", macros = "macros", camping = "camping", campfire = "camping",
     actionbars = "actionbars", unitframes = "unitframes", vendor = "vendor", buffs = "buffs", missingbuffs = "buffs",

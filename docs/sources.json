@@ -1,4 +1,344 @@
 {
+  "borderColors": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.93",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Not supplied; native visual/input/persistence/combat tests pending.",
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "sourceUrl": "https://github.com/Gethe/wow-ui-source/commit/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "request": "Shared default teal, current class color, or native custom color wheel for every Suite-styled border.",
+    "implementation": "Weak-key border registry for owned backdrop/flat/native-art borders, per-object alpha, validated account-wide mode/custom RGB, current-player class lookup with teal fallback, live native picker preview/cancel/ownership guards and final-intent combat deferral. No optional feature enable, native script changes or idle timers.",
+    "qualification": "Exact native SetupColorPickerAndShow/GetColorRGB/cancel source and class/unit result shapes; guarded ordinary values only. Source and substitutes do not establish native rendering, access, persistence or taint.",
+    "validation": {
+      "luaFiles": 62,
+      "substituteChecks": 15822,
+      "tocVersion": "0.2.93",
+      "native": "Pending"
+    },
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/ClassColorDocumentation.lua",
+        "cachePath": ".cache/border-colors-0293/Blizzard_APIDocumentationGenerated/ClassColorDocumentation.lua",
+        "sha256": "3cfeaf9430b38cf97f2895941d4b133524e1c1652aa968a4a1ef3040c5cb852b"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleColorSelectAPIDocumentation.lua",
+        "cachePath": ".cache/border-colors-0293/Blizzard_APIDocumentationGenerated/SimpleColorSelectAPIDocumentation.lua",
+        "sha256": "b4d4e2e946cdfb71c98d24dfff7347254ad46f33c385c151b6e5f5a39d40656e"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua",
+        "cachePath": ".cache/border-colors-0293/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua",
+        "sha256": "a823e84f90fabe58d9ffe547ea17eae83708d451e593b4052bce002cc02ce5c1"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_ColorPickerFrame/Blizzard_ColorPickerFrame.toc",
+        "cachePath": ".cache/border-colors-0293/Blizzard_ColorPickerFrame/Blizzard_ColorPickerFrame.toc",
+        "sha256": "1d8c1a005d0468892bd298f06820d61f36660c472ff35f2c5793ba0d054c1572"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_ColorPickerFrame/Classic/ColorPickerFrame.lua",
+        "cachePath": ".cache/border-colors-0293/Blizzard_ColorPickerFrame/Classic/ColorPickerFrame.lua",
+        "sha256": "47e74d77a02694a067bb3d54763d3dfebe8e0a87453d9e2345462f75b5c4a2a6"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_ColorPickerFrame/Mainline/ColorPickerFrame.lua",
+        "cachePath": ".cache/border-colors-0293/Blizzard_ColorPickerFrame/Mainline/ColorPickerFrame.lua",
+        "sha256": "d29b858ec1b56020358b15ea340a6a4b2d23ae832b2fea89778d1bf294949b47"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_ColorPickerFrame/Mainline/ColorPickerFrame.xml",
+        "cachePath": ".cache/border-colors-0293/Blizzard_ColorPickerFrame/Mainline/ColorPickerFrame.xml",
+        "sha256": "e803aada2cb47c0e15418a91d612e05e3b26a02fc766b9e62e0da26c7af8ced8"
+      }
+    ],
+    "canonicalCheckout": "P:/GitHub Repos/WoW Forever Suite",
+    "profileBehavior": "Both color keys follow existing shared/personal settings profiles. Class RGB is derived from the current player; custom RGB is validated and remembered.",
+    "delivery": {
+      "package": "dist/WoWForeverSuite-0.2.93.zip",
+      "files": 70,
+      "sha256": "e3412ece168b0870f68732fad48014b2e36b9900e556995ba1f16ac8b3a1dec0",
+      "comparison": "Every ZIP file is byte-identical to the current src/WoWForeverSuite file; no development references included.",
+      "gameAddonPath": "C:/Games/World of Warcraft/_classic_beta_/Interface/AddOns/WoWForeverSuite",
+      "gameTocVersion": "0.2.93",
+      "junctionChanged": false
+    }
+  },
+
+  "trainingPlannerClassIcons": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.92",
+    "installedExecutable": "1.60.1.70450",
+    "nativeSourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "request": "Add Class ability icons and clearer colors, especially teal levels matching weapon trainer names.",
+    "referenceFiles": [
+      {
+        "cachePath": ".cache/training-buffs-0262/Blizzard_TrainerUI__Mainline__Blizzard_TrainerUI.lua",
+        "sha256": "399648fb2ef9a1ddc03fec341cff92b49135c38a5569cee822a2d635a4e30471"
+      },
+      {
+        "cachePath": ".cache/training-types-0273/Blizzard_APIDocumentationGenerated__SpellDocumentation.lua",
+        "sha256": "86583940d9a2c4594092eb248a1396a93a285084872af1f3f4875169796e7d2b"
+      }
+    ],
+    "apiFindings": "Exact native trainer caller uses the third GetTrainerServiceInfo result as its icon texture. Use that public native result rather than inventing a generated declaration. GetSpellTexture may return nothing and accepts public SpellIdentifier; older-name lookup is cosmetic only. Guard icon data before comparisons, patterns, persistence and widget assignment.",
+    "implementation": "Capture optional validated native icon, retaining finite positive file IDs or bounded Interface/Icons paths only. Use six existing 30x30 textures and a shared 36-unit inset. Class gold names, teal group/row levels, green availability and amber requirements/explicit projected confirmation. Legacy native-name fallback and placeholder; matching visible pending names can refresh via existing cancellable metadata coalescer and combat deferral. No new worker/event/setting/asset, native mutation, purchase logic or saved-root schema. Fixed 500x528 window/footer retained.",
+    "offlineValidation": {
+      "command": "node scripts/check-addon.cjs",
+      "lua51Files": 61,
+      "identicalTOCs": true,
+      "behaviorChecks": 14416,
+      "additionalAssertions": 15
+    },
+    "nativeResults": "Prior weapon presentation accepted; new Class icons/colors, persistence and combat/taint pending. Running build/Interface unreported. Older unresolved icons need one recorded class-trainer visit. No deployment or junction change.",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.92.zip",
+      "files": 69,
+      "allEntriesMatchSource": true,
+      "sha256": "0812e8c0b4c6daea28e08f250e6b6953fe1db0361f14beb0021520431b67e959",
+      "deployed": false
+    }
+  },
+  "trainingPlannerAllMasterHeaders": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.91",
+    "request": "Apply Woo Ping header style to all other trainers, including Horde and recorded visits.",
+    "userEvidence": [
+      {
+        "path": "C:/Users/DROCKZ~1/AppData/Local/Temp/codex-clipboard-1bc6cb2e-bde3-46a9-a84a-8e8a56e663aa.png",
+        "width": 606,
+        "height": 644,
+        "sha256": "fe171201e40c349a6fd0cb01d3330a2b540cf708490f158202dd3af223f9c75b"
+      },
+      {
+        "path": "C:/Users/DROCKZ~1/AppData/Local/Temp/codex-clipboard-449eb6f2-839d-4628-9995-8a7a5a87d64e.png",
+        "width": 604,
+        "height": 635,
+        "sha256": "52410a0e910c24b4f75442b27ee669208b0a928dd587ab3710a70029a206a1e7"
+      }
+    ],
+    "diagnosis": "Compact layout was gated by snapshot.reference, excluding recorded/current weapon visits. Supplied Bixi/Buliwyf screenshots show those older headers.",
+    "implementation": "Shared compact Weapons header across references and recorded/current visits. Reuse existing eight-master directory location for exact name/faction matches; otherwise use readable recorded place. Keep city only in gold heading and district/building in muted subtitle, with teal trainer. Hide old context/explanation. Saved total identifies historical prices. No observed-data mutation or new APIs, assets, settings, saved schema, events or timers. Preserve common 500x528 root, footer, icons and combat deferral.",
+    "allianceMasters": [
+      "Woo Ping",
+      "Buliwyf Stonehand",
+      "Bixi Wobblebonk",
+      "Ilyenia Moonfire"
+    ],
+    "hordeMasters": [
+      "Sayoc",
+      "Hanashi",
+      "Ansekhwa",
+      "Archibald"
+    ],
+    "sourceScope": "Existing reviewed TrainingWeapons.lua catalog and existing Suite frame operations; no new external source required.",
+    "offlineValidation": {
+      "command": "node scripts/check-addon.cjs",
+      "lua51Files": 61,
+      "identicalTOCs": true,
+      "behaviorChecks": 14401,
+      "additionalAssertions": 57,
+      "recordedAndReferencePagesExercised": 16
+    },
+    "nativeResults": "Corrected saved/reference appearance, localization, persistence and combat/taint pending; running build/Interface unreported. No deployment or junction change.",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.91.zip",
+      "files": 69,
+      "allEntriesMatchSource": true,
+      "sha256": "d47efe95aeb590096c51f030996b59acfc13a52d08f3ab14bcf348a7aa39877e",
+      "deployed": false
+    }
+  },
+  "trainingPlannerConsistentSize": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.90",
+    "request": "Correct different sizes across views of the same Training Planner window.",
+    "userEvidence": [
+      {
+        "path": "C:/Users/DROCKZ~1/AppData/Local/Temp/codex-clipboard-628bc238-584a-43d4-ab71-e1f2f957e9fa.png",
+        "width": 616,
+        "height": 650,
+        "sha256": "58a88223ec044bab6d7012a4543bd65f9fee75a5aeb0f157226ef0b4fb40db59"
+      },
+      {
+        "path": "C:/Users/DROCKZ~1/AppData/Local/Temp/codex-clipboard-415401b6-79c5-492b-8c53-2b2555f70355.png",
+        "width": 607,
+        "height": 601,
+        "sha256": "62baca25be74ab5f65eb8ba86651ea6640865b69e73efd5b8e4bb78366d3bdb9"
+      }
+    ],
+    "diagnosis": "0.2.89 set reference root height to 492 versus normal 528 and shifted the complete footer. The supplied screenshots demonstrate this rendered height mismatch; crop widths do not establish a native width difference.",
+    "implementation": "Keep the owned root at its existing construction size 500x528 in every view. Remove per-mode root sizing and footer offsets. Retain compact reference heading/weapon rows, shift only the matching empty-state label, and preserve fixed footer controls. Existing internal layout combat deferral and saved placement remain. No new APIs, assets, settings or saved schema.",
+    "nativeResults": "Pre-fix mismatch and native weapon icons/header colors demonstrated in screenshots. Corrected fixed-size result, running build/Interface and broader taint testing pending.",
+    "offlineValidation": {
+      "command": "node scripts/check-addon.cjs",
+      "lua51Files": 61,
+      "identicalTOCs": true,
+      "behaviorChecks": 14344,
+      "newTests": 0
+    },
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.90.zip",
+      "files": 69,
+      "allEntriesMatchSource": true,
+      "sha256": "852e5dd7bbf4897833b5e129122caf9ce4d301484425505d4126587e77d4495d",
+      "deployed": false
+    }
+  },
+  "trainingPlannerReferenceHeader": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.89",
+    "installedExecutable": "1.60.1.70450",
+    "request": "Color-code and compact the reference header; show trainer - city on the main line and only district - building beneath it.",
+    "userClarification": "Do not repeat Stormwind in the smaller second row.",
+    "implementation": "Reuse the owned 14-unit group and 11-unit status labels. Teal trainer, muted separator and gold city; muted district/building subtitle. Hide context row and remove header base-price explanation. Reference-only 36-unit shift for rows/footer and root height 492, with original 528-unit geometry restored for other modes. Existing static directory strings, no new API/source/asset/setting/saved schema. Cache mode changes and defer rendering/geometry through combat; hide cancels pending work. Keep footer reference-price qualification.",
+    "sourceScope": "Presentation-only change using existing Suite label, anchor and color operations; existing source place strings in TrainingWeapons.lua. No new native API research required.",
+    "offlineValidation": {
+      "command": "node scripts/check-addon.cjs",
+      "lua51Files": 61,
+      "identicalTOCs": true,
+      "behaviorChecks": 14344,
+      "existingExpectationUpdated": true,
+      "newTests": 0
+    },
+    "nativeResults": "Pending visual fit, color, view restoration, docking and combat/taint checks. Running build/Interface unreported. No deployment or junction change.",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.89.zip",
+      "files": 69,
+      "allEntriesMatchSource": true,
+      "sha256": "90ce8fab496d5f51950853d23fd226d27afbe71bf417194b565c8b27cf122df9",
+      "deployed": false
+    }
+  },
+  "trainingPlannerWeaponIcons": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.88",
+    "installedExecutable": "1.60.1.70450",
+    "nativeSourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "request": "Add default weapon icons to the left of Training Planner weapon names and improve text readability.",
+    "userEvidence": {
+      "path": "C:/Users/DROCKZ~1/AppData/Local/Temp/codex-clipboard-f7be6cb1-9c89-427d-9ce4-133fc49881d3.png",
+      "width": 601,
+      "height": 640,
+      "sha256": "bcd8a2274037729878e9f3065983c4ff6fc021abecd7276f997e8a83468491cb",
+      "qualification": "Pre-change Weapons/reference Alliance/Woo Ping appearance. Does not establish current running build or corrected icon rendering."
+    },
+    "referenceFiles": [
+      {
+        "cachePath": ".cache/training-types-0273/Blizzard_APIDocumentationGenerated__SpellDocumentation.lua",
+        "sha256": "86583940d9a2c4594092eb248a1396a93a285084872af1f3f4875169796e7d2b"
+      }
+    ],
+    "apiFindings": "GetSpellTexture may return nothing and supplies numeric iconID, originalIconID and optional conditionalIconID. GetSpellName may return nil. RequestLoadSpellData completes via SPELL_DATA_LOAD_RESULT (numeric ID, boolean success); request only known public catalog IDs. Native permission/rendering still requires client verification.",
+    "implementation": "Six passive 30x30 textures, 36-unit Weapons gutter, muted secondary text and retained price column. Reference IDs remain runtime-only; recorded rows resolve exact localized native names. Validate ordinary texture IDs, use a native placeholder while loading, request each catalog ID at most once, coalesce matching successful events in one cancellable timer and recheck combat before refresh. Visible-only owned-frame subscription works for manual views with recording off. Hide cancels work; Class clears recycled art and restores original text width. No new saved schema, setting, shipped artwork, native frame mutation or purchase logic.",
+    "offlineValidation": {
+      "command": "node scripts/check-addon.cjs",
+      "lua51Files": 61,
+      "identicalTOCs": true,
+      "behaviorChecks": 14344,
+      "additionalAssertions": 36
+    },
+    "nativeResults": "Pending actual running build/Interface, icon rendering, localization/layout, asynchronous data, combat and taint checks. No deployment or junction change.",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.88.zip",
+      "files": 69,
+      "allEntriesMatchSource": true,
+      "sha256": "f1ff8c1a6f324bc71bc8f9bf86d86d346596079d83982b921c9325c97664b8ba",
+      "deployed": false
+    }
+  },
+  "trainingPlannerSpellbook": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.87",
+    "installedExecutable": "1.60.1.70450",
+    "nativeSourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "request": "Expose Training Planner in the GUI and open it with the spellbook.",
+    "referenceFiles": [
+      {
+        "cachePath": ".cache/training-spellbook-0287/Blizzard_PlayerSpells__Camelot__Blizzard_PlayerSpellsFrame.xml",
+        "sha256": "ff5aeeadde998f33a4ff1c6e3edde7f750776acbf3671939b85b375848d44699"
+      },
+      {
+        "cachePath": ".cache/training-spellbook-0287/Blizzard_PlayerSpells__Camelot__Blizzard_PlayerSpellsFrame.lua",
+        "sha256": "68d789a1fdfe1a3bbe7df034a0ba4e08e494956d2d37b694a45d19e6a11939ce"
+      },
+      {
+        "cachePath": ".cache/training-spellbook-0287/Blizzard_PlayerSpells__Blizzard_PlayerSpellsFrame.lua",
+        "sha256": "06ac2481084d96f40d19b3e661777e7477abe06f1d4d50f1ad935edf1f923cd3"
+      },
+      {
+        "cachePath": ".cache/training-spellbook-0287/Blizzard_PlayerSpells__SpellBook__Blizzard_SpellBookFrame.xml",
+        "sha256": "606536631aa23e0d9e15e3d6acde742e4fde616454181a806e053adf36cb3a21"
+      },
+      {
+        "cachePath": ".cache/training-spellbook-0287/Blizzard_PlayerSpells__SpellBook__Blizzard_SpellBookFrame.lua",
+        "sha256": "662d25eaeb45dca0cf0d36781c69e9ad678befa192030f952a02a03a27db53f3"
+      },
+      {
+        "cachePath": ".cache/training-spellbook-0287/Blizzard_PlayerSpells__Camelot__SpellBook__Blizzard_SpellBookFrame.lua",
+        "sha256": "dc9ca7b4c9ba788721ada91a8b241a639954d4fb0ad6b9bcb78008700e15ee14"
+      },
+      {
+        "cachePath": ".cache/container-sequence-0260/Interface/AddOns/Blizzard_SharedXMLBase/CallbackRegistry.lua",
+        "sha256": "95ba8fb6cf3fe38864296703e4334247da5cb6207827d6bc617a621ad25aad01",
+        "qualification": "Existing exact 70450 callback contract reused."
+      }
+    ],
+    "implementation": "Dedicated Home page and searchable controls. Subordinate default-on trainingSpellbook; master recording remains default off. Observe native child Show/Hide callbacks with readable effective visibility. Owned companion shows saved Class / Available now, preserves standalone placement and closes only when automatic ownership remains. No native script/layout mutation, forced load, trainer scan or purchase. Token-checked combat work cancels on close, opt-out, disable, world entry or manual intent.",
+    "offlineValidation": {
+      "command": "node scripts/check-addon.cjs",
+      "lua51Files": 61,
+      "identicalTOCs": true,
+      "behaviorChecks": 14308,
+      "additionalAssertions": 192
+    },
+    "nativeResults": "Pending actual running build/Interface, appearance, callback delivery, persistence, combat and taint testing. Installed addon is a separate directory; no deployment or junction change.",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.87.zip",
+      "files": 69,
+      "allEntriesMatchSource": true,
+      "sha256": "58ab7010c373caf73c2d34b2c42f9ac430ce17526967995f7ea2d81dbc788f37",
+      "deployed": false
+    }
+  },
+  "persistentChatHistory": {
+    "reviewedOn": "2026-10-19",
+    "version": "0.2.86",
+    "installedExecutable": "1.60.1.70450",
+    "nativeSourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "userOwnedBehaviorReference": "P:/GitHub Repos/ZoidsTools/Modules/ChatHistory.lua",
+    "referenceFiles": [
+      {
+        "cachePath": ".cache/chat-history-0286/ChatFrame.lua",
+        "sha256": "aa90c07f38d353f7a2c6bc90755e2e620814f87fdade7820b058aaa565a1b184"
+      },
+      {
+        "cachePath": ".cache/chat-history-0286/FloatingChatFrame.lua",
+        "sha256": "12a88a9a33936e5c8ecaf39415f69c4b1b1c19b2fb633827e1890d4316423760"
+      },
+      {
+        "cachePath": ".cache/chat-history-0286/ScrollingMessageFrame.lua",
+        "sha256": "8689319fdc78a7ccfcbde52a568840f0385c7ab1988c0ba0971960feadea7239"
+      },
+      {
+        "cachePath": ".cache/chat-history-0286/SimpleMessageFrameAPIDocumentation.lua",
+        "sha256": "b8cc74b9bb8c9b0b62b0be7f881540cb32e31dabd7c27814c312f9f415174939"
+      }
+    ],
+    "implementation": "Independent off-by-default feature; character-owned latest 250 main-chat rendered lines, 4096-byte per-line bound, readable-only AddMessage post-hook. One-time native backfill before current messages, links retained, muted saved lines, clear control, no chat send or native history getters.",
+    "validation": {
+      "luaFiles": 61,
+      "behaviorChecks": 14116,
+      "tocVariants": "Identical 0.2.86",
+      "native": "Pending reload/login persistence, display, links and taint smoke tests."
+    },
+    "delivery": {
+      "byteIdenticalSourceFiles": 69,
+      "sha256": "1efd61cb7771b182de46b45545258011b80a9e5525610b815a53ce5be8659dbb",
+      "deployment": "No deployment, junction modification or remote publication.",
+      "package": "dist/WoWForeverSuite-0.2.86.zip"
+    }
+  },
   "clickedBuffRequests": {
     "reviewedOn": "2026-10-19",
     "version": "0.2.85",

@@ -111,7 +111,7 @@ function Chat:PaintTab(record, opacity)
     local strength = record.selected and 0.22 or record.hovered and 0.18 or 0.10
     pane:SetBackdropColor(0.035 + color[1] * strength, 0.045 + color[2] * strength,
         0.055 + color[3] * strength, opacity)
-    pane:SetBackdropBorderColor(color[1], color[2], color[3], opacity * (record.selected and 0.7 or 0.25))
+    Suite.Theme:Backdrop(pane, opacity * (record.selected and 0.7 or 0.25))
     pane:Show()
     record.indicator:SetShown(record.selected)
 end
@@ -121,7 +121,7 @@ function Chat:Paint(record)
         if pane == record.tabPane then self:PaintTab(record, opacity)
         else
             pane:SetBackdropColor(0.025, 0.04, 0.05, opacity)
-            pane:SetBackdropBorderColor(0.28, 0.48, 0.45, 0.4 + opacity * 0.2)
+            Suite.Theme:Backdrop(pane, 0.4 + opacity * 0.2)
             pane:Show()
         end
     end
@@ -129,7 +129,7 @@ function Chat:Paint(record)
     if button then
         local active = self.copyRecord == record
         button:SetBackdropColor(active and 0.10 or 0.035, active and 0.23 or 0.065, active and 0.21 or 0.08, 0.95)
-        button:SetBackdropBorderColor(0.41, 0.84, 0.75, active and 1 or 0.45)
+        Suite.Theme:Backdrop(button, active and 1 or 0.45)
         button:Show()
     end
 end
@@ -387,7 +387,7 @@ function Chat:Remember(frame)
             record.panes[#record.panes + 1] = pane
             record.indicator = pane:CreateTexture(nil, "OVERLAY")
             record.indicator:SetPoint("BOTTOMLEFT", 5, 1); record.indicator:SetPoint("BOTTOMRIGHT", -5, 1)
-            record.indicator:SetHeight(1); record.indicator:SetColorTexture(unpack(record.tabColor))
+            record.indicator:SetHeight(1); Suite.Theme:Texture(record.indicator, 1)
             local function Hover(value)
                 record.hovered = value
                 if record.applied and self:Enabled() and not InCombatLockdown() and Writable(frame) then

@@ -28,7 +28,7 @@ CreateFrame = function(kind, name, parent)
     end
     f.RegisterEvent = function(self, event) self.registered[event] = true end
     f.UnregisterAllEvents = function(self) self.registered = {} end
-    f.Show = function(self) self.shown = true end
+    f.Show = function(self) self.shown = true; if self.OnShow then self:OnShow() end end
     f.Hide = function(self) self.shown = false; if self.OnHide then self:OnHide() end end
     f.SetPoint = function(self, ...) assert(not InCombatLockdown(), "trainer anchors defer in combat"); self.point = { ... } end
     f.StopMovingOrSizing = function(self) assert(not InCombatLockdown(), "trainer movement defers in combat"); self.stopped = true end
@@ -38,7 +38,15 @@ for _, name in ipairs({ "BuyTrainerService", "SelectTrainerService", "SetTrainer
 Enum = { TrainerType = { General = 0, Tradeskills = 2, Pet = 3 } }; C_Trainer = { GetTrainerType = function() return petType end }
 local weaponNames = { [15590] = "Fist Weapons", [2567] = "Thrown", [201] = "Swords" }
 local function SpellName(id) return weaponNames[id] or "Weapon proficiency " .. id end
-C_Spell = { GetSpellName = SpellName }
+local missingIcons, iconRequests = {}, {}
+local classSpellNames, classTextures = { [99001] = "Delayed class skill" }, { ["Legacy class skill"] = 135940 }
+C_Spell = { GetSpellName = function(id) return classSpellNames[id] or SpellName(id) end,
+    GetSpellTexture = function(id)
+        if type(id) == "string" then return classTextures[id] end
+        return not missingIcons[id] and 400000 + id or nil
+    end,
+    RequestLoadSpellData = function(id) iconRequests[id] = (iconRequests[id] or 0) + 1 end,
+}
 UnitFactionGroup = function() return factionTag, "Localized faction" end
 GetRealZoneText = function() return "Stormwind City" end
 GetSubZoneText = function() return "Trade District" end
@@ -46,13 +54,13 @@ GetMoney = function() return money end; GetServerTime = function() return 180000
 local playerLevel = 6
 UnitLevel = function() return playerLevel end; UnitName = function() return trainerName end
 local offers = {
-    { name = "Group", state = "header" }, { name = "Skill A", state = "available", cost = 400, rank = "Rank 2", level = 6 },
-    { name = "Skill B", state = "available", cost = 400, level = 6 }, { name = "Next skill", state = "unavailable", cost = 600, level = 8 },
+    { name = "Group", state = "header" }, { name = "Skill A", state = "available", cost = 400, rank = "Rank 2", level = 6, icon = 135940 },
+    { name = "Skill B", state = "available", cost = 400, level = 6, icon = "Interface\\Icons\\Spell_Holy_Heal" }, { name = "Next skill", state = "unavailable", cost = 600, level = 8 },
     { name = "Later skill", state = "unavailable", cost = 1000, level = 12 }, { name = "Requires quest", state = "unavailable", cost = 0, level = 4 },
     { name = "Learned", state = "used" },
 }
 GetNumTrainerServices = function() assert(not InCombatLockdown(), "no trainer scans in combat"); scans = scans + 1; return #offers end
-GetTrainerServiceInfo = function(index) local row = offers[index]; return row.name, row.state, 123, row.level, row.rank, "General" end
+GetTrainerServiceInfo = function(index) local row = offers[index]; return row.name, row.state, row.icon or 123, row.level, row.rank, "General" end
 GetTrainerServiceCost = function(index) return offers[index].cost end
 training:InitializeCharacter(nil); training:Apply()
 equal(Suite.db.trainingPlanner, false, "training recording defaults off")
@@ -75,6 +83,17 @@ Event("TRAINER_SHOW")
 equal(#training.db.snapshot.rows, 5, "snapshot excludes headers and learned services")
 equal(training.db.snapshot.rows[1].rank, "Rank 2", "Forever fifth return supplies the rank")
 equal(training.db.snapshot.rows[1].level, 6, "Forever fourth return supplies required level")
+
+equal(training.db.snapshot.rows[1].icon, 135940, "third native trainer result is saved as the exact ability icon")
+equal(training.frame.rows[1].icon.texture, 135940, "class ability renders its captured native icon")
+equal(training:Validate(training.db.snapshot).rows[2].icon, "Interface\\Icons\\Spell_Holy_Heal", "native icon paths survive saved-list validation")
+equal(training:ClassIcon({ name = "Legacy class skill" }), 135940, "older lists can resolve a readable native name icon")
+equal(training:ClassIcon({ name = "Unresolved class skill" }), 134400, "unknown older entries use a placeholder without guessing a spell")
+for _, invalid in ipairs({ secret, 0, -1, math.huge, "Interface\\AddOns\\Other\\icon", "Interface\\Icons\\..\\icon", "|cff123456icon|r" }) do
+    local checked = training:Validate({ kind = "class", rows = { { name = "Saved ability", state = "available", cost = 1, icon = invalid } } })
+    equal(checked.rows[1].icon, nil, "restricted or malformed saved texture metadata is omitted independently")
+end
+
 equal(training.frame.rows[1].name.text, "Skill A · Rank 2", "planner renders native name and rank")
 local groups = training:Groups(training.db.snapshot, 6)
 equal(#groups, 4, "groups include available, future levels and other requirements")
@@ -116,6 +135,8 @@ equal(training.frame.context.text:find("Current visit", 1, true), nil, "class vi
 equal(training.db.snapshot, saved, "level-up refresh at a weapon trainer still preserves class training")
 training:SelectView("weapons")
 equal(training.frame.rows[1].name.text, "Fist Weapons", "Weapons tab shows its own recorded offerings")
+equal(training.frame.rows[1].icon.texture, 415590, "recorded weapon names resolve to native proficiency icons")
+equal(training.db.weapons[1].rows[1].weaponID, nil, "presentation does not rewrite saved weapon records")
 equal(training.frame.rows[2].state.text, "Already trained", "known weapon skills are labeled separately")
 equal(training.frame.total.text, "Group total: 0g 10s 0c", "weapon budget excludes already-trained skills")
 Event("TRAINER_UPDATE")
@@ -146,9 +167,66 @@ factionTag = "Neutral"
 equal(#training:WeaponGroups()[1].rows, 0, "unselected faction has no cross-faction recommendations")
 factionTag = "Alliance"
 training.view, training.page = "weapons", 3; training:Refresh()
-equal(training.frame.context.text:find("Reference", 1, true) ~= nil, true, "directory view labels reference information")
+equal(training.frame.group.text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""), "Woo Ping - Stormwind", "reference heading combines the trainer and city")
 equal(training.frame.total.text, "Reference base prices", "reference list does not present every weapon as a character budget")
 equal(training.frame.funds.text:find("Your class", 1, true) ~= nil, true, "reference view discloses class eligibility instead of inventing availability")
+
+-- Weapon artwork comes from public proficiency IDs, including unlearned references.
+for index, id in ipairs(Suite.WeaponTraining.trainers[1].skills) do
+    equal(training.frame.rows[index].icon.texture, 400000 + id, "reference weapon has its distinct native skill icon")
+    equal(training.frame.rows[index].icon:IsShown(), true, "every reference weapon exposes its icon")
+end
+local firstRow = training.frame.rows[1]
+equal(firstRow.icon:GetWidth(), 30, "weapon icon fits inside the existing row height")
+equal(firstRow.name.point[2] >= firstRow.icon:GetWidth(), true, "weapon label clears the icon")
+equal(firstRow.name.point[2] + firstRow.name:GetWidth() <= firstRow.cost.point[2], true, "weapon name stays clear of prices")
+training:SelectView("class")
+equal(firstRow.icon:IsShown(), true, "class rows now expose their own ability icons")
+equal(firstRow.icon.texture, 135940, "switching to class replaces stale weapon artwork with its captured ability icon")
+equal(firstRow.name.point[2], 36, "class names use the same icon gutter as weapons")
+training.view, training.page = "weapons", 3; training:Refresh()
+missingIcons[5011] = true; training:Refresh(); training:Refresh()
+equal(firstRow.icon.texture, 134400, "uncached icon uses a native question-mark placeholder")
+equal(iconRequests[5011], 1, "uncached weapon metadata is requested once")
+equal(training.frame.registered.SPELL_DATA_LOAD_RESULT, true, "visible manual planner observes asynchronous spell data")
+training.frame:OnEvent("SPELL_DATA_LOAD_RESULT", 5011, false)
+equal(training.iconTimer, nil, "failed metadata completion cannot queue retries")
+missingIcons[5011] = nil
+training.frame:OnEvent("SPELL_DATA_LOAD_RESULT", 5011, true)
+local loadedTimer = training.iconTimer
+training.frame:OnEvent("SPELL_DATA_LOAD_RESULT", 5011, true)
+equal(training.iconTimer, loadedTimer, "repeated completion events coalesce into one refresh")
+SetCombat(true); Flush()
+equal(firstRow.icon.texture, 134400, "combat starting before the queued refresh preserves the prepared texture")
+equal(type(Suite.pending.trainingIcons), "function", "a queued icon refresh rechecks combat before applying")
+SetCombat(false); local delayedIcons = Suite.pending.trainingIcons; Suite.pending.trainingIcons = nil; delayedIcons(); Flush()
+equal(firstRow.icon.texture, 405011, "successful asynchronous metadata replaces the placeholder")
+local textureGetter = C_Spell.GetSpellTexture
+C_Spell.GetSpellTexture = function() return secret end
+training:Refresh()
+equal(firstRow.icon.texture, 134400, "restricted texture IDs never reach the texture widget")
+C_Spell.GetSpellTexture = textureGetter
+training.frame:OnEvent("SPELL_DATA_LOAD_RESULT", secret, true)
+training.frame:OnEvent("SPELL_DATA_LOAD_RESULT", 1180, secret)
+equal(training.iconTimer, nil, "restricted event payloads cannot index state or queue work")
+-- A deferred cosmetic refresh follows the existing combat rules and is cancellable.
+missingIcons[200] = true; training:Refresh(); missingIcons[200] = nil
+SetCombat(true); training.frame:OnEvent("SPELL_DATA_LOAD_RESULT", 200, true)
+local combatIcons = Suite.pending.trainingIcons
+equal(type(combatIcons), "function", "icon updates defer during combat")
+equal(training.iconTimer, nil, "combat completion starts no cosmetic timer")
+SetCombat(false); Suite.pending.trainingIcons = nil; combatIcons(); Flush()
+equal(training.frame.rows[6].icon.texture, 400200, "combat-deferred refresh uses the current native icon")
+missingIcons[227] = true; training:Refresh(); missingIcons[227] = nil
+training.frame:OnEvent("SPELL_DATA_LOAD_RESULT", 227, true)
+local hiddenTimer = training.iconTimer
+training.frame:Hide()
+equal(hiddenTimer.cancelled, true, "closing the planner cancels pending icon work")
+equal(next(training.frame.registered), nil, "hidden planner removes its metadata subscription")
+hiddenTimer.callback()
+equal(training.iconTimer, nil, "a stale metadata timer cannot revive hidden work")
+Flush(); training:Open(); training.view, training.page = "weapons", 3; training:Refresh()
+
 
 equal(training.db.snapshot, saved, "a second weapon trainer cannot replace class data")
 local typedDB = training.db
@@ -173,7 +251,7 @@ equal(oldHorde[1].title, "Sayoc", "old Alliance and unidentified visits cannot e
 factionTag = "Alliance"
 Event("TRAINER_CLOSED"); trainerName = "Fresh weapon master"; Event("TRAINER_SHOW")
 equal(training.page, 2, "weapon auto-open uses its visible page after opposite-faction history is filtered")
-equal(training.frame.group.text, "Fresh weapon master", "filtered auto-open displays the just-recorded weapon trainer")
+equal(training.frame.group.text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""), "Fresh weapon master - Stormwind City", "filtered auto-open displays the just-recorded trainer and observed city")
 equal(training.db.weapons[4].faction, "Alliance", "new unknown master captures the current player's faction")
 local factionAPI = UnitFactionGroup; UnitFactionGroup = nil
 training:SelectView("weapons")
@@ -351,7 +429,7 @@ equal(training.offset, 0, "level popup starts at the top of Available now")
 equal(training.frame.group.text, "Available now", "level popup keeps the requested group visible")
 equal(training.frame.context.text:find("Level 8", 1, true) ~= nil, true, "popup identifies the new event level")
 equal(training.frame.rows[3].name.text, "Next skill", "newly reached saved level appears in Available now")
-equal(training.frame.rows[3].state.text, "Level met · confirm at trainer", "saved estimate does not claim freshly confirmed eligibility")
+equal(training.frame.rows[3].state.text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""), "Level 8 met · confirm at trainer", "colored saved level estimate remains explicitly unconfirmed")
 equal(training.frame.total.text, "Group total: 0g 14s 0c", "available estimate includes newly unlocked saved cost")
 equal(training:CurrentLevel(), 8, "new event level works before UnitLevel catches up")
 equal(scans, scansBeforeLevels, "level popup never scans a closed trainer")
@@ -439,6 +517,63 @@ equal(Suite.pending.trainingLevelUp, nil, "later manual open replaces a queued a
 SetCombat(false); supersededNotice()
 equal(training.frame:IsShown(), false, "superseded automatic callback cannot override manual intent")
 Suite.pending.trainingOpen = nil
+-- Every named master uses the same header for both recorded and reference pages.
+local headerDB = training.db
+local expectedHeaders = {
+    ["Woo Ping"] = { "Stormwind", "Trade District - Weller's Arsenal" },
+    ["Buliwyf Stonehand"] = { "Ironforge", "Military Ward - Timberline Arms" },
+    ["Bixi Wobblebonk"] = { "Ironforge", "Military Ward - Timberline Arms" },
+    ["Ilyenia Moonfire"] = { "Darnassus", "Warrior's Terrace" },
+    ["Sayoc"] = { "Orgrimmar", "Valley of Honor - Arms of Legend" },
+    ["Hanashi"] = { "Orgrimmar", "Valley of Honor - Arms of Legend" },
+    ["Ansekhwa"] = { "Thunder Bluff", "Lower Rise - weapons tent" },
+    ["Archibald"] = { "Undercity", "War Quarter" },
+}
+local visits = {}
+for _, trainer in ipairs(Suite.WeaponTraining.trainers) do
+    visits[#visits + 1] = { kind = "weapons", trainer = trainer.name, faction = trainer.faction,
+        place = "Recorded city · Recorded district", rows = { { name = "Fist Weapons", state = "available", cost = 900 } } }
+end
+training:OnEvent("TRAINER_CLOSED")
+training:InitializeCharacter({ snapshot = headerDB.snapshot, weapons = visits }); training:Open()
+for _, faction in ipairs({ "Alliance", "Horde" }) do
+    factionTag = faction
+    local allGroups = training:WeaponGroups()
+    equal(#allGroups, 8, "each faction exposes four recorded and four reference masters")
+    for index, group in ipairs(allGroups) do
+        local expected = expectedHeaders[group.title]
+        assert(expected, "all masters must have an explicit header expectation")
+        training.view, training.page = "weapons", index; training:Refresh()
+        equal(training.frame.group.text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""),
+            group.title .. " - " .. expected[1], "every recorded/reference master shows the matching city")
+        equal(training.frame.status.text, expected[2], "every master shows its district/building without repeating the city")
+        equal(training.frame.context:IsShown(), false, "recorded and reference masters both omit the old context row")
+    end
+end
+equal(training.db.weapons[1].place, "Recorded city · Recorded district", "reference location presentation cannot overwrite observed locations")
+equal(training:WeaponLocation({ trainer = "Sayoc", faction = "Alliance", place = "Observed city · Observed district" }),
+    "Observed city · Observed district", "a mismatched faction cannot supply another master's reference location")
+equal(training:WeaponLocation({ trainer = "Unknown master", faction = "Horde", place = "Observed city · Observed district" }),
+    "Observed city · Observed district", "unknown masters retain their actual recorded location")
+equal(training:WeaponLocation({ trainer = secret, place = secret }), nil, "restricted location metadata is never formatted")
+training.page = 1; SetCombat(true); training:Refresh()
+equal(Suite.pending.trainingHeader, nil, "recorded/reference changes reuse the prepared compact layout in combat")
+equal(training.frame.total.text, "Saved total: 0g 9s 0c", "compact recorded header retains an honest saved-price label")
+SetCombat(false); training:SelectView("class")
+equal(training.frame.context:IsShown(), true, "class view restores its original context after all weapon master pages")
+training.frame:Hide(); training.db = headerDB; factionTag = "Alliance"
+
+-- Old class lists can refresh a name fallback when matching public spell data arrives.
+local classIconSnapshot = training.db.snapshot
+training.db.snapshot = training:Validate({ kind = "class", rows = { { name = "Delayed class skill", state = "available", cost = 10, level = 6 } } })
+training.view, training.page = "class", 1; training:Open()
+equal(training.frame.rows[1].icon.texture, 134400, "uncached old class data starts with an honest placeholder")
+training.frame:OnEvent("SPELL_DATA_LOAD_RESULT", 99002, true)
+equal(training.iconTimer, nil, "unrelated spell completion cannot refresh a class fallback")
+classTextures["Delayed class skill"] = 135060
+training.frame:OnEvent("SPELL_DATA_LOAD_RESULT", 99001, true); Flush()
+equal(training.frame.rows[1].icon.texture, 135060, "matching public name metadata replaces the old-list class placeholder")
+training.frame:Hide(); training.db.snapshot = classIconSnapshot
 Suite.db.trainingPlanner = false; training:Apply()
 training.level, training.levelNotice, training.levelWork, training.docked = nil, nil, nil, nil
 Suite.db, Suite.pending, training.db = oldDB, oldPending, oldTrainingDB

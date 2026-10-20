@@ -78,7 +78,7 @@ end
 local function Backdrop(frame, color, opacity)
     frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
     frame:SetBackdropColor(color[1], color[2], color[3], opacity or 1)
-    frame:SetBackdropBorderColor(0.17, 0.25, 0.29, 0.35)
+    Suite.Theme:Backdrop(frame, 0.35)
 end
 local function Screen()
     local width, height, scale = UIParent:GetWidth(), UIParent:GetHeight(), UIParent:GetEffectiveScale()
@@ -664,7 +664,7 @@ function Meters:DragUpdate()
     self:Clamp(rects, drag.grouped)
     self:Position(rects)
     drag.candidate = not drag.grouped and not drag.detached and self:SnapCandidate(drag.index, rects) or nil
-    self.windows[drag.index].frame:SetBackdropBorderColor(unpack(drag.candidate and palette.teal or { 0.17, 0.25, 0.29 }))
+    Suite.Theme:Backdrop(self.windows[drag.index].frame, drag.candidate and 1 or 0.35)
 end
 
 function Meters:EndDrag()
@@ -1003,14 +1003,14 @@ function Meters:CreateWindow(index)
                 button:SetBackdropColor(active and 0.10 or highlighted and 0.07 or 0.035,
                     active and 0.23 or highlighted and 0.15 or 0.065,
                     active and 0.21 or highlighted and 0.15 or 0.08, 0.95)
-                button:SetBackdropBorderColor(0.41, 0.84, 0.75, highlighted and 1 or 0.45)
+                Suite.Theme:Backdrop(button, highlighted and 1 or 0.45)
                 if type(button.arrow.SetVertexOffset) == "function" then
                     button.arrow:SetColorTexture(0.41, 0.84, 0.75, button.pressed and 0.75 or 1)
                 end
             else
                 Backdrop(button, button.pressed and palette.header or button.hovered and palette.hover or palette.control,
                     (button.pressed or button.hovered) and 1 or 0.35)
-                if button.pressed or button.hovered then button:SetBackdropBorderColor(unpack(palette.teal)) end
+                if button.pressed or button.hovered then Suite.Theme:Backdrop(button, 1) end
             end
         end
         if kind == "metric" then

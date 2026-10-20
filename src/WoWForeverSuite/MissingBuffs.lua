@@ -15,7 +15,7 @@ local function Enabled() return Suite.db and Read(Suite.db.missingBuffs, "boolea
 local function Surface(frame)
     frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
     frame:SetBackdropColor(0.035, 0.05, 0.065, 0.94)
-    frame:SetBackdropBorderColor(0.41, 0.84, 0.75, 0.65)
+    Suite.Theme:Backdrop(frame, 0.65)
 end
 local function Label(parent, size)
     local label = parent:CreateFontString(nil, "OVERLAY")
@@ -699,8 +699,8 @@ function Buffs:Refresh()
         end
         button.icon:SetTexture(entry.spell.icon)
         button.caption:SetText((entry.kind == "poison" or entry.kind == "coating") and entry.hand or entry.kind == "incoming" and "Group" or entry.kind == "group" and tostring(#entry.names) or "Self")
-        if entry.kind == "incoming" then button:SetBackdropBorderColor(0.9,0.72,0.4,0.9)
-        else button:SetBackdropBorderColor(0.41, 0.84, 0.75, 0.8) end
+        if entry.kind == "incoming" then Suite.Theme:Backdrop(button, 0.9)
+        else Suite.Theme:Backdrop(button, 0.8) end
         button:Show()
     end
     for index = #entries + 1, #self.buttons do

@@ -110,7 +110,7 @@ function Borders:Track(root, button)
         self.buttons[button] = record
         for _, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
             local edge = button:CreateTexture(nil, "OVERLAY", nil, 7)
-            edge:SetColorTexture(0.41, 0.84, 0.75, 0.7)
+            Suite.Theme:Texture(edge, 0.7)
             edge:Hide()
             record.edges[#record.edges + 1] = edge
         end

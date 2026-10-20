@@ -1,10 +1,10 @@
 local _, Suite = ...
 local Catalog = { groups = {
-    { key = "overview", label = "Home", pages = { { "overview", "Overview" }, { "characters", "Characters" }, { "leveling", "Leveling" } } },
+    { key = "overview", label = "Home", pages = { { "overview", "Overview" }, { "characters", "Characters" }, { "leveling", "Leveling" }, { "training", "Training Planner" } } },
     { key = "inventory", label = "Bags & Gear", pages = { { "bags", "Bags & Bank" }, { "items", "Gear Details" }, { "tooltips", "Tooltips" }, { "professions", "Professions" } } },
     { key = "combat", label = "Combat", pages = { { "actionbars", "Action Bars" }, { "unitframes", "Unit Frames" },
         { "buffs", "Missing Buffs" }, { "meters", "Damage Meters" }, { "castbars", "Castbars" } } },
-    { key = "layout", label = "Interface", pages = { { "minimap", "Minimap" }, { "worldmap", "World Map" }, { "windows", "Windows" }, { "bars", "Bars & Buttons" }, { "chat", "Chat" }, { "audio", "Audio" } } },
+    { key = "layout", label = "Interface", pages = { { "appearance", "Appearance" }, { "minimap", "Minimap" }, { "worldmap", "World Map" }, { "windows", "Windows" }, { "bars", "Bars & Buttons" }, { "chat", "Chat" }, { "audio", "Audio" } } },
     { key = "everyday", label = "Everyday", pages = { { "quests", "Quests & Loot" }, { "vendor", "Vendor" }, { "mail", "Mail" }, { "camping", "Camping" }, { "macros", "Macros" } } },
     { key = "profiles", label = "Profiles", pages = { { "profiles", "Profiles" } } },
     { key = "setup", label = "Setup Guide", utility = true, pages = { { "setup", "Setup Guide" } } },
@@ -25,9 +25,12 @@ Catalog.sections = {
     unitframes = { [1] = "Health Bars", [2] = "Target Threat" }, mail = { [1] = "Recipients" }, meters = { [1] = "Damage Meters" },
     audio = { [1] = "Output Device" },
     leveling = { [1] = "Leveling Tracker", [2] = "Header Controls", [4] = "Session & Position" },
-    professions = { [1] = "Disenchant", [3] = "Training Planner" },
+    professions = { [1] = "Disenchant" },
+    training = { [1] = "Training Planner", [3] = "Automatic Opening" },
 }
 local extras = {
+    { page = "appearance", key = "borderColorMode", label = "Border color", target = "borderModeControls.default", words = "appearance theme borders outline default teal class custom color colour" },
+    { page = "appearance", key = "customBorderColor", label = "Choose custom border color", target = "borderColorButton", words = "appearance theme wheel swatch picker rgb hex colour" },
     { page = "profiles", key = "settingsProfiles", label = "Settings and layout profiles", target = "profilePanel", words = "default shared personal character overrides copy rename switch setup" },
     { page = "characters", key = "inventoryBrowser", label = "Browse recorded inventory", target = "characterPanel", words = "items owners bags bank shared snapshots dates favorites saved searches" },
     { page = "castbars", key = "castbarSizes", label = "Castbar sizes and preview", target = "castbarPanel", words = "player target focus casting width height resize preview" },
@@ -45,6 +48,8 @@ local extras = {
     { page = "bars", key = "progressBarHeight", label = "Progress bar height", target = "progressFields.progressBarHeight.input" },
     { page = "bars", key = "progressReset", label = "Reset progress bar size", target = "progressControls.reset.button" },
     { page = "worldmap", key = "mapRevealOpacity", label = "Unexplored map opacity", target = "mapOpacitySlider", words = "reveal fog transparency terrain" },
+    { page = "chat", key = "chatHistory", label = "Remember chat history", target = "chatHistoryToggle", words = "reload login logout conversation saved messages persist" },
+    { page = "chat", key = "chatHistoryClear", label = "Clear saved chat history", target = "chatHistoryClear" },
     { page = "chat", key = "chatStyle", label = "Suite chat style", target = "chatApply", words = "enable disable restore copy text messages" },
     { page = "chat", key = "chatFontSize", label = "Chat text size", target = "chatFields.chatFontSize.slider", words = "font" },
     { page = "chat", key = "chatOpacity", label = "Chat background opacity", target = "chatFields.chatOpacity.slider", words = "transparency" },
@@ -81,6 +86,7 @@ local synonyms = { characterDashboard = "recorded characters dashboard alts mone
     trainingPlanner = "class weapon trainer skills spells learn cost budget savings future level snapshot",
     trainingOpen = "class weapon weapons master trainers locations directory faction alliance horde training planner saved costs offerings",
     trainingLevelUp = "class trainer training planner level up available skills reminder",
+    trainingSpellbook = "spellbook spell book player spells class training planner automatic popup",
     buffCustom = "custom learned spell name icon search id group raid party", buffManage = "hidden buffs families show restore intellect spirit priest mage hunter",
     buffAppearance = "scale icon size header lock movement rested cities class mana intellect", missingBuffExpiry = "expiry expiring duration refresh timer",
     missingBuffCombat = "combat shout thorns lightning shield righteous fury reminders",
@@ -121,7 +127,7 @@ function Catalog:Configure(pages)
     pages.overview.note = "Every tool is optional. Your existing settings are kept; changes save automatically."
     local seen = {}
     -- Prefer dedicated pages over duplicated Overview shortcuts when finding a setting.
-    local order = { "characters", "bags", "items", "tooltips", "minimap", "worldmap", "windows", "actionbars", "bars", "unitframes",
+    local order = { "characters", "training", "professions", "bags", "items", "tooltips", "minimap", "worldmap", "windows", "actionbars", "bars", "unitframes",
         "buffs", "meters", "quests", "vendor", "leveling", "camping", "audio", "mail", "chat", "macros" }
     local function Add(entry)
         if seen[entry.key] then return end
