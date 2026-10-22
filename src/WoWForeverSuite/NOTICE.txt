@@ -32,3 +32,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+Training catalog facts are adapted from fusionpit/WhatsTraining (MIT), Forever revision e0d52183bac0581464d91b3b859528d53afd4a0d. Its complete notice is included in TrainingCatalog-LICENSE.txt. Spell names/ranks are Blizzard game data. Suite journal and planner UI/runtime implementation are original.

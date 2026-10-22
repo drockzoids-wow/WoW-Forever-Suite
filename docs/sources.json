@@ -1,4 +1,345 @@
 {
+  "chatInputBorderBrightness": {
+    "reviewedOn": "2026-10-20",
+    "version": "0.2.100",
+    "request": "User clarifies brighter for the textbox border; preceding channel-color behavior works nicely.",
+    "userScreenshot": "C:/Users/DROCKZ~1/AppData/Local/Temp/codex-clipboard-39ddb900-dd40-4f7f-8a2a-38bd83c25ea6.png",
+    "change": "Only input-border alpha becomes 130% of message-border alpha, yielding 0.52-0.78 across normalized settings. Native RGB, dark fill, three-unit gap and existing behavior unchanged.",
+    "references": "Existing exact 70450 chat/color API references under chatInputChannelBorder; no new API or permission assumptions.",
+    "nativeResults": "Preceding appearance/channel behavior accepted by user; refined brightness and broader combat/taint pending. Actual running build/Interface not supplied.",
+    "deployment": "None; no game junction change.",
+    "validation": {
+      "version": "0.2.100",
+      "luaFiles": 62,
+      "substituteChecks": 16021,
+      "packageFiles": 70,
+      "packageSha256": "1ca882e5750313e2e2c664619dd76cbd9a18f42784296dd2f9e76a138e0daadc",
+      "nativeValidation": "Pending",
+      "junctionChanged": false
+    },
+    "userClarification": "User explicitly confirms brighter; their previous sentence omitted not."
+  },
+  "chatInputChannelBorder": {
+    "reviewedOn": "2026-10-20",
+    "version": "0.2.99",
+    "canonicalWorkspace": "P:\\GitHub Repos\\WoW Forever Suite",
+    "request": "Soften the typing border to the chat panel opacity and color it by the native outgoing chat channel, retaining the dark fill and visible gap.",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Not supplied; native appearance/input/taint remain pending.",
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "references": [
+      {
+        "path": "Interface/AddOns/Blizzard_ChatFrameBase/Shared/ChatFrameEditBox.lua",
+        "url": "https://github.com/Gethe/wow-ui-source/blob/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63/Interface/AddOns/Blizzard_ChatFrameBase/Shared/ChatFrameEditBox.lua",
+        "cachePath": ".cache/chat-input-channel-0299/ChatFrameEditBox.lua",
+        "sha256": "6adeda4037329a0afa710277d3a7048499ec4636d80886ea0077889b02e3a494"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleEditBoxAPIDocumentation.lua",
+        "url": "https://github.com/Gethe/wow-ui-source/blob/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleEditBoxAPIDocumentation.lua",
+        "cachePath": ".cache/chat-input-channel-0299/SimpleEditBoxAPIDocumentation.lua",
+        "sha256": "aa932f643f66a880c6191043f7597b59d0c9f45df86f229c0322013d533a1aa8"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleFontAPIDocumentation.lua",
+        "url": "https://github.com/Gethe/wow-ui-source/blob/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleFontAPIDocumentation.lua",
+        "cachePath": ".cache/chat-input-channel-0299/SimpleFontAPIDocumentation.lua",
+        "sha256": "8d1fa0dfe1fe7f114eacfeca960f922300312a09b2d559c04e1af41ea181deed"
+      }
+    ],
+    "implementation": "Guarded native EditBox RGB; secure SetTextColor post-hook and existing OnShow refresh. Shared theme registration stores a private validated semantic override. Border alpha matches message panel; input fill and geometry unchanged. Existing combat worker applies final native state; disabled hooks inert. No text/recipient reads, native writes, new settings, CVar, timer or idle loop.",
+    "validation": {
+      "luaFiles": 62,
+      "substituteChecks": 16021,
+      "additionalAssertions": 94,
+      "tocVersion": "Identical 0.2.99",
+      "native": "Pending docs/testing.md focused checklist."
+    },
+    "deployment": "None; no junction, third-party addon or external SavedVariables changes.",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.99.zip",
+      "files": 70,
+      "sha256": "61ff97042793d85225f88752a7e41143147c565fda13c6f5804599727c5e2ea1",
+      "sourceIdentical": true
+    }
+  },
+  "questGuidanceRemoval": {
+    "reviewedOn": "2026-10-20",
+    "version": "0.2.97",
+    "canonicalWorkspace": "P:/GitHub Repos/WoW Forever Suite",
+    "request": "Remove the rejected standalone quest guidance experiment; user will use Questie.",
+    "removed": [
+      "Standalone map pins and nameplate marks",
+      "Quest location catalog and learning/observations",
+      "Local catalog updater, import tools and dedicated tests",
+      "Quest Locations page/actions/search/aliases",
+      "Derived pfQuest data attribution, as no derived data ships"
+    ],
+    "preserved": "Earlier quest automation, gossip, tracker styling, nearby quest-item tools and vendor auto-talk.",
+    "migration": "InitializeDB clears the five experimental saved fields; existing settings/profile whitelists discard retired keys. No installed SavedVariables edited externally.",
+    "validation": {
+      "luaFiles": 62,
+      "behaviorChecks": 15927,
+      "tocs": "Identical 0.2.97",
+      "native": "Pending; focused removal/reload checklist in docs/testing.md."
+    },
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Not supplied.",
+    "deployment": "None; no game junction or other addon changes.",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.97.zip",
+      "files": 70,
+      "bytes": 477894,
+      "sha256": "b56283e8191f90cf89ca2ef86d1e993cf864b63289849eac1d6d516247a8a59e",
+      "audit": "Every ZIP entry matches its addon source file; removed quest modules, data and tools are absent."
+    }
+  },
+  "questZoneScope": {
+    "reviewedOn": "2026-10-20",
+    "version": "0.2.96",
+    "canonicalWorkspace": "P:/GitHub Repos/WoW Forever Suite",
+    "request": "Show quest locations on individual zone maps such as Ashenvale, with no Suite pins on continent or world maps.",
+    "userEvidence": {
+      "screenshots": [
+        "C:/Users/DROCKZ~1/AppData/Local/Temp/codex-clipboard-a9dab4dd-d6be-41a7-b486-3aaf5ffa885e.png",
+        "C:/Users/DROCKZ~1/AppData/Local/Temp/codex-clipboard-aa1fe87c-718b-40b4-aceb-16cec3e96ba5.png"
+      ],
+      "interpretation": "First shows unwanted Kalimdor pins; second specifies Ashenvale zone scope. Neither verifies the corrected code."
+    },
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Not supplied; corrected native behavior remains pending.",
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/MapConstantsDocumentation.lua",
+        "cachePath": ".cache/quest-zone-scope-0296/MapConstantsDocumentation.lua",
+        "sha256": "90b33376f977155e3f06f5a5e2431ed450c22236096de05b0cafe0a5bb31f859"
+      }
+    ],
+    "additionalReferences": "GetMapInfo/UiMapDetails and MapCanvas provider lifecycle references already cached and hashed under questGuidance.",
+    "implementation": "Readable native UIMapType.Zone gate precedes all catalog/observation/native quest work; remove child-map expansion. Immediately hide owned pins on map changes. Preserve zone coordinates, completion/hide filters and unrelated providers.",
+    "validation": {
+      "luaFiles": 66,
+      "behaviorChecks": 16257,
+      "tocs": "Identical 0.2.96",
+      "native": "Pending; docs/testing.md has focused zone/continent/world transition checks."
+    },
+    "deployment": "None; user manages the game addon junction.",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.96.zip",
+      "files": 74,
+      "bytes": 561021,
+      "sha256": "997eb7808d3076dc5ce0b11fcd4b52bdc2803555591cc040cc8d92d6beba24c7",
+      "audit": "Every ZIP entry is byte-identical to its corresponding addon source file; only the WoWForeverSuite addon folder is packaged."
+    },
+    "featureStatus": "Removed in 0.2.97 at user request; historical development/source record only."
+  },
+  "questGuidance": {
+    "reviewedOn": "2026-10-20",
+    "version": "0.2.95",
+    "canonicalWorkspace": "P:/GitHub Repos/WoW Forever Suite",
+    "request": "Standalone original map markers for all uncompleted quests, hide/show, left-nameplate yellow quest-mob markers, internal data with updates and a ZoidsTools LocalTools-style Wowhead path; neither Questie nor QuestieDB required.",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Not supplied; actual game behavior remains pending.",
+    "referenceReview": {
+      "questieVersion": "12.1.0",
+      "questieCommit": "91fb7e2a457e74fe05f02570e7e45f93794d9305",
+      "questieDBVersion": "1.0.6",
+      "questieDBCommit": "36ca1ca86f6c1838de479c7c7452eb0a57d5c135",
+      "questieFiles": [
+        {
+          "path": "Questie_Camelot.toc",
+          "sha256": "2bd4388a11fcb4f7165fc101393ebb080e489d2dfe5948cc6b3ea1a6fe86c964"
+        },
+        {
+          "path": "Modules/QuestieNameplate.lua",
+          "sha256": "686cb10fc3077823bf97182dbd6ecdc55cb046c817737f0fdf750b2c8bdb1517"
+        },
+        {
+          "path": "Modules/Map/QuestieMap.lua",
+          "sha256": "8c7a204f3b7ab2997ef34951bc365344e5b0cb84ac19f762e875625b24a91b8d"
+        },
+        {
+          "path": "Modules/Quest/QuestieQuest.lua",
+          "sha256": "2fcb011f3e73b72a0886bd1dd9f25c725d45627c5adcaf5c870373e2786bd051"
+        },
+        {
+          "path": "Database/QuestieDB.lua",
+          "sha256": "7c21b4b01ac24628ab16e60379777516f57865abb24069f50dd5770597fd1ccf"
+        }
+      ],
+      "licenseDiscussion": "https://github.com/Questie/Questie/issues/4447",
+      "reuse": "Behavior only. No Questie implementation, data, asset or dependency bundled. ZoidsTools-LocalTools README/updater reviewed read-only for collect/validate/publish workflow."
+    },
+    "data": {
+      "schema": 1,
+      "provider": "shagu/pfQuest Classic reference data",
+      "revision": "104f35678ca39ab1fb78b655f815cc7016f5e0c8",
+      "questCount": 4087,
+      "locationCount": 5736,
+      "areaCount": 47,
+      "missingFixedLocation": 270,
+      "sha256": "8360080f0e24997e78e3f1042b57f53040d1280311edc8f417dd0ba350c6c3ec",
+      "inputs": {
+        "db/quests.lua": "2cc49447b4c18f0a680612a79b4c199f0c46a1dbebdc6f4d78a27035e99c0d93",
+        "db/units.lua": "b8de09aa33fd4b16edb2287b8c4224c86e6ee420e717a4d428e2935c22c4a922",
+        "db/objects.lua": "be4846e2f2049cafba7da5ed18d6422bde35ed0e6f6ac34cb1215c1bbafd306e",
+        "db/enUS/quests.lua": "1acb03547187637cf797926ca8d31700371856df835b561b6775b86eb375a699",
+        "LICENSE": "7ee3c5402cd719de230f3bbc59a6506a3b2b65981d0d793f143fa5b08f926510"
+      },
+      "sourceURL": "https://github.com/shagu/pfQuest/tree/104f35678ca39ab1fb78b655f815cc7016f5e0c8",
+      "licenseURL": "https://github.com/shagu/pfQuest/blob/104f35678ca39ab1fb78b655f815cc7016f5e0c8/LICENSE",
+      "license": "MIT; full copyright and permission notice appended to shipped NOTICE.txt",
+      "transformation": "Original safe AST reader converts only ID/title/coordinate/level/start-contact facts into lazy area loaders. No third-party runtime logic, descriptions, artwork or libraries copied.",
+      "qualification": "Classic reference, not an authoritative or complete Forever catalog. 270 named quests lack fixed coordinates. Runtime native POIs and approximate personal observations supplement it. Native completion=false is required; availability requirements are not inferred."
+    },
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/QuestLogDocumentation.lua",
+        "cachePath": ".cache/quest-guidance-0295/Blizzard_APIDocumentationGenerated/QuestLogDocumentation.lua",
+        "sha256": "e637368f36d153f8b432455cfa247d0c67c84996dce8d591bc1eb4d1cd7bc098"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/QuestInfoSharedDocumentation.lua",
+        "cachePath": ".cache/quest-guidance-0295/Blizzard_APIDocumentationGenerated/QuestInfoSharedDocumentation.lua",
+        "sha256": "deaaa5d8314dee77bfda96b6652a3520657961cdba1163b941bc20dc56266b18"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/NamePlateDocumentation.lua",
+        "cachePath": ".cache/quest-guidance-0295/Blizzard_APIDocumentationGenerated/NamePlateDocumentation.lua",
+        "sha256": "1af6fb8f2428211ce696b2af18d09503116a12920d28ca76231bedb72a88292c"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SharedScriptObjectNamePlateFrameDocumentation.lua",
+        "cachePath": ".cache/quest-guidance-0295/Blizzard_APIDocumentationGenerated/SharedScriptObjectNamePlateFrameDocumentation.lua",
+        "sha256": "fb1e35647b07cb16762f0a57ddfba0522667fe95f8d033c7de9a512b64b78f85"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua",
+        "cachePath": ".cache/quest-guidance-0295/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua",
+        "sha256": "a823e84f90fabe58d9ffe547ea17eae83708d451e593b4052bce002cc02ce5c1"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/MapDocumentation.lua",
+        "cachePath": ".cache/quest-guidance-0295/Blizzard_APIDocumentationGenerated/MapDocumentation.lua",
+        "sha256": "b73a2ed1d1552c1b38bc59df0a586a0986dfad54991efc905abc87799cecce57"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/QuestLineInfoDocumentation.lua",
+        "cachePath": ".cache/quest-guidance-0295/Blizzard_APIDocumentationGenerated/QuestLineInfoDocumentation.lua",
+        "sha256": "8a88ad0b0bed014d155b033d0a9e970060f53c0529ebdef1d697e52316fab83d"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_MapCanvas/Blizzard_MapCanvas.lua",
+        "cachePath": ".cache/quest-guidance-0295/Blizzard_MapCanvas/Blizzard_MapCanvas.lua",
+        "sha256": "1360239aa43996f74b1793e800bc384a1baa8eb2b307ea61a8873ea5ec461143"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_MapCanvas/MapCanvas_DataProviderBase.lua",
+        "cachePath": ".cache/quest-guidance-0295/Blizzard_MapCanvas/MapCanvas_DataProviderBase.lua",
+        "sha256": "22d116c7d374116623ca1f4adab12a5dea48a6f94485606712578b96a59df7a0"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_NamePlates/Blizzard_NamePlateBase.lua",
+        "cachePath": ".cache/quest-guidance-0295/Blizzard_NamePlates/Blizzard_NamePlateBase.lua",
+        "sha256": "ccb676795561f69a20ac1379684f6251f9bef4d206d0530fc9d39a90ba753be8"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_NamePlates/Blizzard_NamePlates.lua",
+        "cachePath": ".cache/quest-guidance-0295/Blizzard_NamePlates/Blizzard_NamePlates.lua",
+        "sha256": "5f868d58a6652fab24c2ad523bc4054deec7c5e1cc2b5b9f493d669ffa2f6ef6"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_SharedMapDataProviders/QuestDataProvider.lua",
+        "cachePath": ".cache/quest-guidance-0295/Blizzard_SharedMapDataProviders/QuestDataProvider.lua",
+        "sha256": "be7610338144886df30a6ad6ad597981f1f49ab309644024c0d9574fab5776ab"
+      }
+    ],
+    "implementation": {
+      "modules": [
+        "QuestCatalogData.lua",
+        "QuestKnowledge.lua",
+        "QuestLocations.lua",
+        "QuestNameplates.lua"
+      ],
+      "preferences": "Independent default-off questLocations, questNameplates, questRecordLocations; hidden IDs follow profiles, knowledge excluded from profile copies.",
+      "knowledge": "Validated account store bounded to 2000 approximate quest-giver observations; no unseen-world scanning, HTTP, identity recovery or idle polling.",
+      "map": "Suite-only MapCanvas provider, cached area data, native locale name resolution/map rectangles, grouped pins with identity-preserving coarse clustering and 1024 button cap. Hidden-map/no-combat scans, coalesced cancellable 0.1-second timer. Ctrl-right-click hides quest IDs, settings restore them.",
+      "nameplates": "Native public UnitIsRelatedToActiveQuest with hostile/alive/non-player checks; guarded readable values and 80 prebuilt owned frames. No GUID or hidden-tooltip fallback. Left yellow !, token reuse/removal cleanup, no native scripts/parents/sizing/CVars changed. New combat anchors defer.",
+      "updater": "Local pinned refresh/update check, syntax/count/license validation, validated reviewed same-quest Wowhead JSON imports, generated-data-only output. No tools/caches packaged.",
+      "wowhead": "Actual quest catalog and NPC requests returned a verification page. No Wowhead data imported. --check-wowhead is a page/hash probe; complete automated bulk extraction is not implemented or verified. Normal browser verification/review and supported normalized records remain necessary."
+    },
+    "validation": {
+      "luaFiles": 66,
+      "substituteChecks": 16224,
+      "catalogNodeTests": 3,
+      "commands": [
+        "node scripts/Update-QuestCatalog.cjs --build-cache",
+        "node scripts/Update-QuestCatalog.cjs --refresh",
+        "node scripts/Update-QuestCatalog.cjs --check-updates",
+        "node --test tests/quest_catalog_tools.test.cjs",
+        "node scripts/check-addon.cjs"
+      ],
+      "updateCheck": "Reference revision unchanged",
+      "rebuild": "Network refresh and cached rebuild generated the same SHA256",
+      "native": "Pending docs/testing.md 0.2.95 checklist; no actual map/plate or full Forever coverage claim."
+    },
+    "delivery": {
+      "scope": "Canonical P: only. Existing uncommitted 0.2.94 vendor work retained. No installation/junction, third-party addon or SavedVariables files changed.",
+      "beforeFiles": ".cache/quest-guidance-0295/before",
+      "package": "dist/WoWForeverSuite-0.2.95.zip",
+      "verifiedFiles": 74,
+      "packageSHA256": "a51390827640c080ed3859fd25634c8acbd851ff214d5a0492717b40e5f1c6c2"
+    },
+    "featureStatus": "Removed in 0.2.97 at user request; historical development/source record only."
+  },
+  "vendorAutoTalk": {
+    "reviewedOn": "2026-10-20",
+    "version": "0.2.94",
+    "canonicalWorkspace": "P:/GitHub Repos/WoW Forever Suite",
+    "installedExecutable": "1.60.1.70450",
+    "runningBuildInterface": "Not supplied; native smoke testing pending.",
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "sourceUrl": "https://github.com/Gethe/wow-ui-source/commit/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/GossipInfoDocumentation.lua",
+        "cachePath": ".cache/vendor-talk-0294/Blizzard_APIDocumentationGenerated/GossipInfoDocumentation.lua",
+        "sha256": "22cd6a48eded91316753af2e40624e542a91c728c713636549b7d3a6ef7916a5"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/ClientDocumentation.lua",
+        "cachePath": ".cache/vendor-talk-0294/Blizzard_APIDocumentationGenerated/ClientDocumentation.lua",
+        "sha256": "0fcb4fe81b243137169973c10cec8b0237a61c370fd0b37315e4912d1e36d60a"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_UIPanels_Game/Shared/GossipFrameShared.lua",
+        "cachePath": ".cache/vendor-talk-0294/Blizzard_UIPanels_Game/Shared/GossipFrameShared.lua",
+        "sha256": "c1bbb634964b03e4e5ca9c8d6aa7cce9683c300b1b9bac78d481c5acaa31240f"
+      }
+    ],
+    "request": "Automatically select the vendor shop dialogue after one NPC interaction.",
+    "finding": "General gossip requires one option, no quests and ForceGossip=false, excluding forced/multi-service/quest-bearing shop menus.",
+    "decision": "Independent default-off profile-aware autoVendor. Preserve ready quest/pickup priority, then select a unique Available vendor base icon by stable ID. Resolve native texture path through guarded GetFileIDFromPath; no text/override-icon or hardcoded-ID match. General gossip unchanged.",
+    "qualification": "Base icon is an inference, not a semantic service type. Unknown/secret/unavailable/rejected identities and multiple shops stay manual. SelectOption has no text/confirmed arguments. Exact source supports argument shapes, not runtime permission or actual opening.",
+    "lifecycle": "Shared cancellable next-frame worker, shown-frame/NPC validation, Shift latch, mark-before-request deduplication, twenty-action limit and close/combat/world/disable/prompt cancellation. Merchant close clears continuing visits. Existing loaded quest readiness preserved. No new idle worker or native script/CVar replacement.",
+    "profiles": "Profiles:Keys derives the independent boolean from defaults; Settings copying retains true and repairs restricted values to false. No profile schema migration or automatic enable.",
+    "validation": {
+      "luaFiles": 62,
+      "substituteChecks": 15907,
+      "baselineChecks": 15822,
+      "additionalAssertions": 85,
+      "command": "node scripts/check-addon.cjs",
+      "tocVersion": "0.2.94",
+      "native": "Pending docs/testing.md vendor shop conversation smoke test."
+    },
+    "delivery": {
+      "beforeFiles": ".cache/vendor-talk-0294/before",
+      "scope": "Canonical P: checkout updated from 0.2.93 with focused vendor changes. Later quest-data, Training Planner, chat, profile and theme work retained. No further C: source or installed-copy edits, deployment or game-junction changes; user manages junction.",
+      "initialCorrection": "Initial task edits were made in a stale C: workspace and installed copy. User clarified P: as canonical; all follow-up changes, references, tests and package are here."
+    }
+  },
   "borderColors": {
     "reviewedOn": "2026-10-19",
     "version": "0.2.93",
@@ -64,7 +405,6 @@
       "junctionChanged": false
     }
   },
-
   "trainingPlannerClassIcons": {
     "reviewedOn": "2026-10-19",
     "version": "0.2.92",
@@ -11986,5 +12326,639 @@
       "allEntriesMatchSource": true,
       "path": "dist/WoWForeverSuite-0.2.60.zip"
     }
+  },
+  "preferredArmorUpgrades": {
+    "reviewedOn": "2026-10-21",
+    "request": "Green + for upgrades matching preferred armor; yellow + for other usable armor upgrades. User explicitly defines warrior mail below 40 and plate at 40+.",
+    "installedClient": "C:/Games/World of Warcraft/_forever_",
+    "installedExecutable": "1.60.1.70532",
+    "installedAddonVersion": "0.2.93",
+    "workspaceVersion": "0.2.58",
+    "runningBuildInterface": "Not supplied. TOCs declare 16001; actual revised native rendering/eligibility/combat results remain pending.",
+    "policy": {
+      "warriorPaladin": "Mail below 40; plate from 40",
+      "hunterShaman": "Leather below 40; mail from 40",
+      "rogueDruid": "Leather",
+      "magePriestWarlock": "Cloth",
+      "scope": "Head, shoulder, chest/robe, waist, legs, feet, wrist and hands only. Cloaks/accessories, weapons, shields, offhand and relics retain normal green qualifying markers.",
+      "meaning": "Class/level armor preference is presentation only; preserve scores, custom weights, item-level preference, empty-slot handling, native player eligibility and complete-hand comparison. Yellow is still an upgrade under the chosen comparison, not a downgrade or unusable item.",
+      "unknown": "Unknown/restricted main armor class/subclass or class/transition level yields no guessed color/summary. Optional armor name lookup can fall back to ordinary labels."
+    },
+    "implementation": "Capture numeric classID/subclassID at GetItemInfo returns 12/13; do not match localized item types. Namespace-only UpgradeColor guards UnitClass pcall/readability before map keys and returns static green 0.2/1/0.2 or yellow 1/0.82/0, plus tooltip reason. Recolor existing FontStrings for every positive update, preserving layout/combat deferral and independent item levels. Tooltip uses the same semantic colors; border themes do not recolor them. Use existing cancellable 0.1s coalesced worker for hint-only level/spell/skill changes, reading actual level after event; no new timer, idle updater, CVar or preference.",
+    "nativePredicateDecision": "Reviewed IsItemPreferredArmorType accepts ItemLocation rather than arbitrary reward hyperlinks and does not document the requested per-level policy. It is not called or fabricated for unowned reward items.",
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "sourceQualification": "Public Forever branch still identifies 1.60.1.70450. Exact pinned declarations establish earlier API tuple, numeric enum, unit access and ItemLocation signature only; not exact 70532 source identity or native behavior. User supplies the warrior threshold; other mappings are the declared class/level preference policy.",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/ItemDocumentation.lua",
+        "cachePath": ".cache/upgrade-armor-70532/ItemDocumentation.lua",
+        "sha256": "9401f07287abe87095f2acac7e51c7f5843407e4d43ac360db16f978f7e58b7a",
+        "url": "https://github.com/Gethe/wow-ui-source/blob/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63/Interface/AddOns/Blizzard_APIDocumentationGenerated/ItemDocumentation.lua"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/ItemConstantsDocumentation.lua",
+        "cachePath": ".cache/upgrade-armor-70532/ItemConstantsDocumentation.lua",
+        "sha256": "d1e3604017f0396a604e8461a41296f8013fd821148fe170355a6d2905cb6b0d",
+        "url": "https://github.com/Gethe/wow-ui-source/blob/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63/Interface/AddOns/Blizzard_APIDocumentationGenerated/ItemConstantsDocumentation.lua"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua",
+        "cachePath": ".cache/upgrade-armor-70532/UnitDocumentation.lua",
+        "sha256": "0132c67a811357b3d78a950cb05fb4f0257f7d8b92362e982d6a9e54f0aafe13",
+        "url": "https://github.com/Gethe/wow-ui-source/blob/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63/Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/PlayerScriptDocumentation.lua",
+        "cachePath": ".cache/upgrade-armor-70532/PlayerScriptDocumentation.lua",
+        "sha256": "5581dd0a098f189f635e29a9aefab8a7c66d7672b4acca380aeb08788eb038ec",
+        "url": "https://github.com/Gethe/wow-ui-source/blob/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63/Interface/AddOns/Blizzard_APIDocumentationGenerated/PlayerScriptDocumentation.lua"
+      }
+    ],
+    "preservedInstalledScoring": {
+      "path": "C:/Games/World of Warcraft/_forever_/Interface/AddOns/WoWForeverSuite/Scoring.lua",
+      "sha256": "94e90e7413c0c84d5907b077d8728f4e49d600d232b6273a42a2fc987a7799d7",
+      "guarantee": "Entire Scoring.lua unchanged. Overlay preparation requires installed Items WeaponUpgrade/UpgradeDelta segment to remain byte-identical, retaining custom profiles/weights, hand combinations, score terms and detailed breakdown metadata. Installed ComparisonDetails stays intact."
+    },
+    "implementationFiles": [
+      {
+        "path": "src/WoWForeverSuite/Items.lua",
+        "sha256": "0444ede86f46e83fdd3863bbb49dcd9835ad6893a32d660922ad1ed01fdcb0f9"
+      },
+      {
+        "path": "src/WoWForeverSuite/Tooltips.lua",
+        "sha256": "244955dc185ed781dd8efb502901e39d3ca81632aa632a015e196d7ad9cec041"
+      },
+      {
+        "path": "src/WoWForeverSuite/GUI.lua",
+        "sha256": "49022f0284cf298dc966152fbcf176974971434d9a46c2ea971fafa334d469e6"
+      },
+      {
+        "path": "tests/armor_upgrade_spec.lua",
+        "sha256": "9c2d456d360d7fa8f8906bdc5c30757fd9ace481d3575681ca0bf5686e627db0"
+      },
+      {
+        "path": "tests/addon_spec.lua",
+        "sha256": "f879c438f95f064c512f6b985071c151e05d054c7c1b10112db22f8bb9da112f"
+      },
+      {
+        "path": "tests/upgrade_spec.lua",
+        "sha256": "08e9464b3e072ac3300a6a557a45608ca73b6f5314cf77433bcd3b201daad0ac"
+      },
+      {
+        "path": "tests/inventory_spec.lua",
+        "sha256": "87e7ec16ed91286d63ca56b2fcf6c3f60c89ef200449b12049f824ff274b41da"
+      }
+    ],
+    "offlineValidation": {
+      "command": "node scripts/check-addon.cjs",
+      "lua51Files": 52,
+      "identicalWorkspaceTOCs": true,
+      "behaviorChecks": 11595,
+      "additionalChecks": 144,
+      "installedIntegrationCommand": "node .cache/upgrade-armor-70532/verify-overlay.cjs",
+      "installedIntegrationChecks": 11595,
+      "qualification": "Focused armor fixture executes actual patched installed Items/Tooltips and unchanged newer Scoring within the older available full feature fixtures. Native discovery/hooks are isolated for this fixture. It does not regress all later features or prove native rendering/taint.",
+      "predecessor": "Unchanged installed predecessor fails the first warrior plate green assertion: expected red channel 0.2, got old teal 0.41.",
+      "coverage": "Three qualifying items with unchanged delta; all nine class policies and 39/40 transitions; Stats/Item level, empty no-stat slots, excluded equipment types, numeric/localized metadata, tooltip reasons/colors, unknown/restricted/rejected data, native eligibility/level/disable gates, existing-widget combat recoloring, coalesced level/spell/skill refresh and item-level-only event exclusion."
+    },
+    "delivery": {
+      "status": "Applied and SHA256-verified",
+      "files": [
+        {
+          "name": "Items.lua",
+          "target": "C:/Games/World of Warcraft/_forever_/Interface/AddOns/WoWForeverSuite/Items.lua",
+          "backup": "C:\\Games\\Development\\WoW Forever Suite\\.cache\\upgrade-armor-70532\\installed-Items.lua.before",
+          "beforeSha256": "407d3bd8d382177dc63d929e05f0b352e885f09f361ba867f9ed1f81d819b33e",
+          "overlay": "C:\\Games\\Development\\WoW Forever Suite\\.cache\\upgrade-armor-70532\\Items.lua.overlay",
+          "overlaySha256": "8b74dd71d5602d733e0e2018433917b8cad666b53ab0d1a07b2d07b52bae2817",
+          "observedInstalledSha256": "8b74dd71d5602d733e0e2018433917b8cad666b53ab0d1a07b2d07b52bae2817"
+        },
+        {
+          "name": "Tooltips.lua",
+          "target": "C:/Games/World of Warcraft/_forever_/Interface/AddOns/WoWForeverSuite/Tooltips.lua",
+          "backup": "C:\\Games\\Development\\WoW Forever Suite\\.cache\\upgrade-armor-70532\\installed-Tooltips.lua.before",
+          "beforeSha256": "dabd7e672c3efff80305006a7d6ef0b12123beaf95bc44aa3e3ef60d02461f2c",
+          "overlay": "C:\\Games\\Development\\WoW Forever Suite\\.cache\\upgrade-armor-70532\\Tooltips.lua.overlay",
+          "overlaySha256": "d5af62c98ecf853eb7ecea58a2a0d6d1e4bb01da0f53d755e9389cddecb6eddf",
+          "observedInstalledSha256": "d5af62c98ecf853eb7ecea58a2a0d6d1e4bb01da0f53d755e9389cddecb6eddf"
+        },
+        {
+          "name": "GUI.lua",
+          "target": "C:/Games/World of Warcraft/_forever_/Interface/AddOns/WoWForeverSuite/GUI.lua",
+          "backup": "C:\\Games\\Development\\WoW Forever Suite\\.cache\\upgrade-armor-70532\\installed-GUI.lua.before",
+          "beforeSha256": "96b7800c45bfc54db87d9bc5407539c5ae2390e584301ff6483dfe9347c6e595",
+          "overlay": "C:\\Games\\Development\\WoW Forever Suite\\.cache\\upgrade-armor-70532\\GUI.lua.overlay",
+          "overlaySha256": "f47223e88e6b6dae5217926cd2ae8eb752887898fa7b7f764a55bde5cb1b4ac7",
+          "observedInstalledSha256": "f47223e88e6b6dae5217926cd2ae8eb752887898fa7b7f764a55bde5cb1b4ac7"
+        }
+      ],
+      "scope": "Only the three listed files; GUI changes only two help strings. Preserve installed version/TOCs, scoring, tracker/setup changes, other addons and external SavedVariables. No full older package or junction replacement."
+    },
+    "nativeResults": "Pending user reload and docs/testing.md preferred-armor checklist, especially the reported reward choices, level-40 refresh, color/tooltip consistency and combat/taint.",
+    "canonicalAdoption": {
+      "root": "P:/GitHub Repos/WoW Forever Suite",
+      "version": "0.2.101",
+      "date": "2026-10-21",
+      "note": "Historical alternate-workspace/installed evidence preserved; current canonical validation is recorded under canonicalReconciliation."
+    }
+  },
+  "setupReviewStressTest": {
+    "reviewedOn": "2026-10-21",
+    "request": "Review newly added setup choices and automatically show the setup box on first use.",
+    "installedClient": "C:/Games/World of Warcraft/_forever_",
+    "installedExecutable": "1.60.1.70532",
+    "installedAddonVersion": "0.2.93",
+    "workspaceVersion": "0.2.58",
+    "runningBuildInterface": "Not supplied. Installed TOCs declare 16001. Native first-use opening, visual fit, persistence and combat/taint remain pending.",
+    "priorBehavior": "Original guide contains 36 choices and allocates ten cards per page. It already attempts one-time opening at PLAYER_LOGIN. User requests automatic first use but supplies no specific fresh-account failure.",
+    "welcome": "Move only the existing welcome dispatch from PLAYER_LOGIN to PLAYER_ENTERING_WORLD. Preserve AfterCombat deferral and normal navigation/hide cancellation. Mark seen only after setup page, draft and readable shown frame are present. Normalize content version 2 without resetting existing seen/completed. Installed Profiles excludes setupGuide from profile switches, retaining account-wide welcome state.",
+    "choices": {
+      "previous": 36,
+      "installed": 72,
+      "workspace": 65,
+      "pages": {
+        "Everyday": 18,
+        "Bars & HUD": 22,
+        "Map & bags": 15,
+        "Items & social": 17,
+        "Review": 0
+      },
+      "added": "Bags/containers, nearby quest items, zone reputation, leveling/training, border mode, buff/threat/progress feedback, minimap detail switches, inventory search/characters, upgrade hints, disenchant/modifier, class names, chat history, macro updates and audio sync.",
+      "unsupported": "Curated options are filtered by actual typed defaults at addon load; older snapshots never invent newer settings. Installed 0.2.93 has no autoVendor default, so its shop option is omitted; workspace supports it. Workspace omits trainer/chat-history/additional-buff defaults.",
+      "advanced": "Custom color creation, fonts, per-frame sizes/castbars, profile operations, stat weights and explicit macro creation stay in dedicated settings."
+    },
+    "implementation": "Retain five steps with responsive reusable cards in a dedicated clipped Suite scroll frame; forward wheel over cards, expose all rows, retain offsets within a page and reset for new draft/step. Review range uses readable native text measurement. Tips/navigation/Apply remain outside scroll view. Support both 514 and 780 panel widths. Stage only allowlisted supported options, preserve current values and literal false suggestions, apply modules once only on explicit finish. Harden disclosed one-time Auto Loot getter/setter with pcall; unavailable/rejected writes keep Suite changes staged. No feature or CVar is changed by opening, suggestions or scrolling.",
+    "installedReferences": [
+      {
+        "path": "C:/Games/World of Warcraft/_forever_/Interface/AddOns/WoWForeverSuite/Core.lua",
+        "sha256": "47514decb6353f4a7506291cab2e741c3a09a35ff7ab727ab6be934bfec875db",
+        "qualification": "Read-only installed Suite feature/setting semantics, not exact native Blizzard UI source."
+      },
+      {
+        "path": "C:/Games/World of Warcraft/_forever_/Interface/AddOns/WoWForeverSuite/GUI.lua",
+        "sha256": "51963aee4ef6400476545a3063eb7bbc3f749d2acaf054efc83fda4ce9e3e1d8",
+        "qualification": "Read-only installed Suite feature/setting semantics, not exact native Blizzard UI source."
+      },
+      {
+        "path": "C:/Games/World of Warcraft/_forever_/Interface/AddOns/WoWForeverSuite/Setup.lua",
+        "sha256": "57351ca237a37c74ca44bf1ff224c7a4135c9bf8cc83d807b593016821c3ae33",
+        "qualification": "Read-only installed Suite feature/setting semantics, not exact native Blizzard UI source."
+      },
+      {
+        "path": "C:/Games/World of Warcraft/_forever_/Interface/AddOns/WoWForeverSuite/Profiles.lua",
+        "sha256": "5f04f91e591744614c975973b988961a10b876168a21b36dd729fccc24e1090e",
+        "qualification": "Read-only installed Suite feature/setting semantics, not exact native Blizzard UI source."
+      },
+      {
+        "path": "C:/Games/World of Warcraft/_forever_/Interface/AddOns/WoWForeverSuite/SettingsCatalog.lua",
+        "sha256": "eed057aee90cc2a2ed82b243e2582685b097726d0c029ec5bdf3a50c050b0c21",
+        "qualification": "Read-only installed Suite feature/setting semantics, not exact native Blizzard UI source."
+      },
+      {
+        "path": "C:/Games/World of Warcraft/_forever_/Interface/AddOns/WoWForeverSuite/Training.lua",
+        "sha256": "dfd74780379f94e381c6ab2cf66c8e47bb064dc6dd07048f4d0a16a0aa39edc4",
+        "qualification": "Read-only installed Suite feature/setting semantics, not exact native Blizzard UI source."
+      },
+      {
+        "path": "C:/Games/World of Warcraft/_forever_/Interface/AddOns/WoWForeverSuite/ChatHistory.lua",
+        "sha256": "d078dca7d2b6e9550305e10eb51bba65cc003800b0166f4ae03d915365d71f80",
+        "qualification": "Read-only installed Suite feature/setting semantics, not exact native Blizzard UI source."
+      },
+      {
+        "path": "C:/Games/World of Warcraft/_forever_/Interface/AddOns/WoWForeverSuite/BuffReminders.lua",
+        "sha256": "32f1a8d23260d996607d9ee6bd81eb9aa7f2f429dda8a13ffb3c7f59f71f8b8b",
+        "qualification": "Read-only installed Suite feature/setting semantics, not exact native Blizzard UI source."
+      },
+      {
+        "path": "C:/Games/World of Warcraft/_forever_/Interface/AddOns/WoWForeverSuite/MissingBuffs.lua",
+        "sha256": "e5971d80fb72a74ce41968c5f97777fe55ba906c80830273cb3de99cec8cb7fb",
+        "qualification": "Read-only installed Suite feature/setting semantics, not exact native Blizzard UI source."
+      }
+    ],
+    "implementationFiles": [
+      {
+        "path": "src/WoWForeverSuite/Core.lua",
+        "sha256": "4a57ef4e0d584c59d08ba612e8370d126d88fde0615976a2ba7dfee65b8fc9ae"
+      },
+      {
+        "path": "src/WoWForeverSuite/GUI.lua",
+        "sha256": "2706df568d3824d4e4886bc33ce0f09abe0e05f6487c2049e101e3d299a6b4df"
+      },
+      {
+        "path": "src/WoWForeverSuite/Setup.lua",
+        "sha256": "7837b604d6a3eefc12eeb4db7333afbbde44bdbc61313f6f86252a865a06a737"
+      },
+      {
+        "path": "tests/setup_spec.lua",
+        "sha256": "0cddb7a1b40e3cadb1c1ed79269ec670269e1bcb04e5dcee60a2269036d1778d"
+      }
+    ],
+    "offlineValidation": {
+      "command": "node scripts/check-addon.cjs",
+      "lua51Files": 52,
+      "identicalWorkspaceTOCs": true,
+      "workspaceChecks": 11451,
+      "installedIntegrationCommand": "node .cache/setup-review-70532/verify-overlay.cjs",
+      "installedIntegrationChecks": 11516,
+      "qualification": "Exact installed Setup file and identical overlaid GUI setup methods are exercised with installed defaults and 780 content width through the available older feature fixtures. Overlaid installed Core/GUI/Setup parse as Lua 5.1. This is not a full regression of later installed features.",
+      "predecessor": "Substituting the installed 36-choice predecessor fails the new expanded-coverage regression.",
+      "coverage": "Every supported option/reachable card, >10 cards/scroll offsets/wheel/clipping bounds/both widths, allowlisted staging and all option commits, actual login/world dispatch, unsuccessful opening not consuming seen, old completion preservation, rejected native APIs/no partial Suite commit, prior discard/combat/permission/native-write behavior."
+    },
+    "delivery": {
+      "status": "Applied and SHA256-verified",
+      "files": [
+        {
+          "name": "Core.lua",
+          "target": "C:/Games/World of Warcraft/_forever_/Interface/AddOns/WoWForeverSuite/Core.lua",
+          "backup": "C:\\Games\\Development\\WoW Forever Suite\\.cache\\setup-review-70532\\installed-Core.lua.before",
+          "beforeSha256": "47514decb6353f4a7506291cab2e741c3a09a35ff7ab727ab6be934bfec875db",
+          "overlay": "C:\\Games\\Development\\WoW Forever Suite\\.cache\\setup-review-70532\\Core.lua.overlay",
+          "overlaySha256": "69141dde3f5fdc5eafd964cd3a591651e85f4085f427cd3c72e1586fd49652e7",
+          "observedInstalledSha256": "69141dde3f5fdc5eafd964cd3a591651e85f4085f427cd3c72e1586fd49652e7"
+        },
+        {
+          "name": "GUI.lua",
+          "target": "C:/Games/World of Warcraft/_forever_/Interface/AddOns/WoWForeverSuite/GUI.lua",
+          "backup": "C:\\Games\\Development\\WoW Forever Suite\\.cache\\setup-review-70532\\installed-GUI.lua.before",
+          "beforeSha256": "51963aee4ef6400476545a3063eb7bbc3f749d2acaf054efc83fda4ce9e3e1d8",
+          "overlay": "C:\\Games\\Development\\WoW Forever Suite\\.cache\\setup-review-70532\\GUI.lua.overlay",
+          "overlaySha256": "96b7800c45bfc54db87d9bc5407539c5ae2390e584301ff6483dfe9347c6e595",
+          "observedInstalledSha256": "96b7800c45bfc54db87d9bc5407539c5ae2390e584301ff6483dfe9347c6e595"
+        },
+        {
+          "name": "Setup.lua",
+          "target": "C:/Games/World of Warcraft/_forever_/Interface/AddOns/WoWForeverSuite/Setup.lua",
+          "backup": "C:\\Games\\Development\\WoW Forever Suite\\.cache\\setup-review-70532\\installed-Setup.lua.before",
+          "beforeSha256": "57351ca237a37c74ca44bf1ff224c7a4135c9bf8cc83d807b593016821c3ae33",
+          "overlay": "C:\\Games\\Development\\WoW Forever Suite\\.cache\\setup-review-70532\\Setup.lua.overlay",
+          "overlaySha256": "339f31da474d0dda8c47f6e8bd73993a6a6db4824eca31ba1ee5a07c016426f4",
+          "observedInstalledSha256": "339f31da474d0dda8c47f6e8bd73993a6a6db4824eca31ba1ee5a07c016426f4"
+        }
+      ],
+      "scope": "Only these three installed files. Preserve all other newer files, addon version, both TOCs, existing tracker fix, profiles and external SavedVariables. No older full package or junction replacement."
+    },
+    "nativeResults": "Pending docs/testing.md first-use and expanded setup checklist. Existing users reopen with /wfs setup; no saved marker is reset for demonstration.",
+    "canonicalAdoption": {
+      "root": "P:/GitHub Repos/WoW Forever Suite",
+      "version": "0.2.101",
+      "date": "2026-10-21",
+      "note": "Historical alternate-workspace/installed evidence preserved; current canonical validation is recorded under canonicalReconciliation."
+    }
+  },
+  "questTrackerStressTest": {
+    "reviewedOn": "2026-10-21",
+    "installedClient": "C:/Games/World of Warcraft/_forever_",
+    "installedExecutable": "1.60.1.70532",
+    "installedFlavor": "wowf",
+    "installedAddonVersion": "0.2.93",
+    "workspaceVersion": "0.2.58",
+    "runningBuildInterface": "Not supplied. Installed addon TOCs declare 16001; no running GetBuildInfo capture or new native verification.",
+    "userEvidence": {
+      "screenshot": "C:/Users/DROCKZ~1/AppData/Local/Temp/codex-clipboard-d93eba7b-6258-4498-bf6a-7b609603f42c.png",
+      "observation": "User identifies the new stress-test installation and a tracker issue; screenshot shows dim All Objectives/Quests labels, Dwarven Outfitters title, objective progress and buttons beneath a dark panel."
+    },
+    "diagnosis": "Installed tracker skin adds a separate opaque fill child at BACKGROUND/0 without fixed strata/level. Native parent restacking can promote unfixed descendants. A modeled restack reproduces the old code defect, but the actual native restacking trigger and causal role on 70532 are unverified.",
+    "implementation": "Fix only the Suite-owned fill with capability-checked SetFixedFrameStrata(true) and SetFixedFrameLevel(true) before setting BACKGROUND/0. Preserve the newer native-timer treatment, tracker parent/visibility, noninteractive input, content bounds, native HUD layout/scripts/colors and all existing restoration/combat/cancellation behavior. If either fixed API is absent, omit the opaque fill and keep the outline. Backport the same focused change to the older workspace; retain installed version and all other installed files.",
+    "sourceCommit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+    "sourceQualification": "Public Forever branch checked during task still identifies 1.60.1.70450, not 70532. References document older tracker/template structure and protected fixed-layer signatures only. Exact stress-test UI source and live native behavior remain pending; broad cache metadata is unchanged.",
+    "referenceFiles": [
+      {
+        "path": "Interface/AddOns/Blizzard_ObjectiveTracker/Blizzard_ObjectiveTracker.xml",
+        "cachePath": ".cache/quest-tracker-stress-70532/Blizzard_ObjectiveTracker.xml",
+        "sha256": "bbff33d7934233de6b515005be8b35c31b1475fec779d47d1d7f20a02fea68f9",
+        "url": "https://github.com/Gethe/wow-ui-source/blob/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63/Interface/AddOns/Blizzard_ObjectiveTracker/Blizzard_ObjectiveTracker.xml"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_ObjectiveTracker/Blizzard_ObjectiveTrackerContainer.xml",
+        "cachePath": ".cache/quest-tracker-stress-70532/Blizzard_ObjectiveTrackerContainer.xml",
+        "sha256": "8ff007fa7a9905de3027474273f67ab3a21955ce00c101c7d329ccb25b6810d8",
+        "url": "https://github.com/Gethe/wow-ui-source/blob/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63/Interface/AddOns/Blizzard_ObjectiveTracker/Blizzard_ObjectiveTrackerContainer.xml"
+      },
+      {
+        "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleFrameAPIDocumentation.lua",
+        "cachePath": ".cache/quest-tracker-stress-70532/SimpleFrameAPIDocumentation.lua",
+        "sha256": "a2fe9bdb006c5360d2a50b0f4dd5221be610e00da478a75d73d1fe31a12b263c",
+        "url": "https://github.com/Gethe/wow-ui-source/blob/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleFrameAPIDocumentation.lua"
+      }
+    ],
+    "implementationFiles": [
+      {
+        "path": "src/WoWForeverSuite/QuestTrackerSkin.lua",
+        "sha256": "c9eeec26c66fcb97c6fd37e3087d459ad4ecb66009fca0861cdb6cb4fe33ec2e"
+      },
+      {
+        "path": "tests/quest_tracker_skin_spec.lua",
+        "sha256": "4d2f8f3e11dd87eb62e353db4ced2fb9a898ec94f2d3d54b3eeee65c8b9cf7e4"
+      },
+      {
+        "path": "scripts/Deploy.ps1",
+        "sha256": "aa251848e589a0a5799c5dc1984d2bc8e125bc4b73edc8857bff1040c29646e0"
+      },
+      {
+        "path": "AGENTS.md",
+        "sha256": "0dcf12719cf21ecea4e36f0f81db1c8bfd8f03029f599bcd4656568a3212b426"
+      }
+    ],
+    "offlineValidation": {
+      "command": "node scripts/check-addon.cjs",
+      "lua51Files": 52,
+      "behaviorChecks": 10756,
+      "previousChecks": 10502,
+      "identicalWorkspaceTOCs": true,
+      "overlayCommand": "node .cache/quest-tracker-stress-70532/verify-overlay.cjs",
+      "result": "Workspace and exact installed overlay pass the same 10756 substitute checks. Installed predecessor fails the added parent-restacking regression: expected BACKGROUND, got LOW. Missing fixed APIs omit the fill; existing collapse/input/restoration/restriction/combat cases remain. Focused validation does not establish native rendering/taint or validate all later installed features."
+    },
+    "delivery": {
+      "target": "C:/Games/World of Warcraft/_forever_/Interface/AddOns/WoWForeverSuite/QuestTrackerSkin.lua",
+      "backup": ".cache/quest-tracker-stress-70532/installed-QuestTrackerSkin.before.lua",
+      "beforeSha256": "94385f3da3cd12ace195579a6cd3f2df8a63236bb057e25bfc1e6c332481d39c",
+      "overlay": ".cache/quest-tracker-stress-70532/QuestTrackerSkin.overlay.lua",
+      "overlaySha256": "28e02e038905345768f1cccc80eaebcbef6c4dcbd5fb1cddd92a22170301274c",
+      "installedSha256": "28e02e038905345768f1cccc80eaebcbef6c4dcbd5fb1cddd92a22170301274c",
+      "result": "Single file copied after exact predecessor and reviewed overlay SHA256 checks; resulting installed SHA256 matches. Installed TOCs remain 0.2.93; no full package, junction replacement, other addons or external SavedVariables were changed."
+    },
+    "nativeResults": "Pending user reload in stress-test client, readable tracker rendering, real quest timer/input/Edit Mode behavior and combat/taint checks in docs/testing.md.",
+    "canonicalAdoption": {
+      "root": "P:/GitHub Repos/WoW Forever Suite",
+      "version": "0.2.101",
+      "date": "2026-10-21",
+      "note": "Historical alternate-workspace/installed evidence preserved; current canonical validation is recorded under canonicalReconciliation."
+    }
+  },
+  "levelingSessionJournal": {
+    "reviewedOn": "2026-10-21",
+    "version": "0.2.101",
+    "reference": "EverCore AGENTS.md, relevant API_NOTES.md, Core.lua, Dashboard.lua and README.md read-only at P:/GitHub Repos/EverCore",
+    "implementation": "Original Suite recaps and permanent per-character paginated history using existing guarded APIs, SavedVariables and ticker; no imported source/assets or unrelated collectors",
+    "evidence": ".cache/leveling-log-70532/provenance.json",
+    "nativeResults": "Unverified; actual runtime build/Interface and SavedVariables persistence/input/combat checks pending"
+  },
+  "canonicalReconciliation": {
+    "reviewedOn": "2026-10-21",
+    "canonicalRoot": "P:/GitHub Repos/WoW Forever Suite",
+    "version": "0.2.101",
+    "baselineVersion": "0.2.100",
+    "baselineChecks": 16021,
+    "checks": 17249,
+    "luaFiles": 62,
+    "identicalTOCs": true,
+    "imported": [
+      "Leveling session journal",
+      "Expanded first-use setup review",
+      "Preferred-armor upgrade colors",
+      "Stress-test quest tracker background"
+    ],
+    "preserved": [
+      "Newer channel-colored/brighter chat input",
+      "Vendor auto-talk",
+      "Settings profiles",
+      "Custom stat-weight and detailed weapon comparisons",
+      "Removed standalone quest guidance",
+      "All unrelated canonical files"
+    ],
+    "evidence": ".cache/canonical-reconcile-20261021",
+    "gameDeployment": "None during reconciliation; user manages junction",
+    "nativeVerification": "Pending; installed executable 1.60.1.70532, actual running build/Interface unreported",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.101.zip",
+      "files": 70,
+      "sha256": "69989949f3f71137eb116991527c92c854f55e7fe67a1cb492195109517baccf",
+      "validation": "Every ZIP member SHA256 matches the canonical src/WoWForeverSuite file; exact source file count and only addon paths."
+    },
+    "preservationAudit": {
+      "untouchedPreviouslyExistingFiles": 114,
+      "modifiedPreviouslyExistingFiles": 24,
+      "newTestFiles": 1,
+      "allChangesAllowlisted": true
+    }
+  },
+  "vendorKnownItems": {
+    "reviewedOn": "2026-10-22",
+    "version": "0.2.102",
+    "canonicalRoot": "P:/GitHub Repos/WoW Forever Suite",
+    "request": "Port ZoidsTools Retail green known/collected vendor-item highlighting",
+    "retailReference": {
+      "repository": "P:/GitHub Repos/ZoidsTools",
+      "revision": "8c704f81fd5a2be727851825736f2291ce80b264",
+      "file": "Modules/VendorAutomation.lua",
+      "license": "MIT",
+      "scope": "Read-only behavioral reference; absent working files read via git show without restoration"
+    },
+    "client": {
+      "installedExecutable": "1.60.1.70532",
+      "actualRunningBuildInterface": "Unreported"
+    },
+    "blizzardReference": {
+      "revision": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+      "build": 70450,
+      "qualification": "Earlier source, not an exact installed 70532 match",
+      "files": [
+        {
+          "file": ".cache/vendor-known-02102/Blizzard_UIPanels_Game__Mainline__MerchantFrame.lua",
+          "sha256": "b8508aafdc48ed1f866d989bc1f501dadd144c58d2565f0407e18b41c625588e"
+        },
+        {
+          "file": ".cache/vendor-known-02102/Blizzard_UIPanels_Game__Mainline__MerchantFrame.xml",
+          "sha256": "17b50e69043f4b0abf7409e44d924b547595eb3f7499b40ef38cc7033b4e263d"
+        },
+        {
+          "file": ".cache/vendor-known-02102/Blizzard_APIDocumentationGenerated__TooltipInfoDocumentation.lua",
+          "sha256": "0c2184a4ba787a5fbd37646e0f297a6e79a3ac5f60ccbcd07dabcc8048e89718"
+        },
+        {
+          "file": ".cache/vendor-known-02102/Blizzard_APIDocumentationGenerated__MerchantFrameDocumentation.lua",
+          "sha256": "c3d078c8b0667d63094a265f21480e270f9f2cdf75cdc4616f053b587b9847c1"
+        },
+        {
+          "file": ".cache/vendor-known-02102/ZoidsTools-VendorAutomation.reference.lua",
+          "sha256": "bd249fc3a8c07898fab54f73d2b7deb8fc13f262bd21fa4ac3ff72e7dda49dce"
+        },
+        {
+          "file": ".cache/vendor-known-02102/PetJournalInfoDocumentation.lua",
+          "sha256": "9d9ebf504da3aee364741fb021084c39107caef1c19465b308aadbc2363076e2"
+        },
+        {
+          "file": ".cache/vendor-known-02102/TooltipInfoSharedDocumentation.lua",
+          "sha256": "08292af51fa78edbf2c2f8e1f8dc89812db3d4faa05e01528f3750b802ba3741"
+        },
+        {
+          "file": ".cache/vendor-known-02102/Shared__Blizzard_PetCollection.lua",
+          "sha256": "103c16389463f25ce096d11f766281a2e8eeb06134839f9ea9c4377063e2741a"
+        },
+        {
+          "file": ".cache/vendor-known-02102/TooltipDataHandler.lua",
+          "sha256": "05a86b963b518a589cfebf22dec825507a5b1f564f66eb64fd7caead919f0642"
+        },
+        {
+          "file": ".cache/vendor-known-02102/TooltipUtil.lua",
+          "sha256": "4825bac4057b4002e630ffa7a6104add204f1164c0910e73bfe7b84ea6b31ec8"
+        }
+      ]
+    },
+    "optionalPetQueryQualification": "Legacy return-13 species and first-count behavior comes from reviewed Retail reference; not present in generated PetJournalInfo signatures/shared UI calls. Capability checked and guarded outside combat; actual Forever availability/permissions remain unverified.",
+    "default": false,
+    "savedKey": "vendorKnownItems",
+    "setupChoices": 74,
+    "luaFiles": 63,
+    "checks": 17326,
+    "identicalTOCs": true,
+    "gameDeployment": "None; user manages installation/junction",
+    "nativeResults": "Pending testing.md; no live test performed",
+    "tooltipFields": "Pinned TooltipDataHandler reads ordinary leftText/rightText; pinned TooltipUtil has no SurfaceArgs method.",
+    "package": {
+      "path": "dist/WoWForeverSuite-0.2.102.zip",
+      "files": 71,
+      "sha256": "029badf477729f94b12a34a014f0dd57c26170f6050c6ffcf8a91e3395d014f3",
+      "validation": "All members hash-match canonical addon source; development references excluded"
+    }
+  },
+  "canonicalJournalTraining02103": {
+    "date": "2026-10-22",
+    "version": "0.2.103",
+    "canonicalRoot": "P:/GitHub Repos/WoW Forever Suite",
+    "cause": "Canonical P:/GitHub Repos/WoW Forever Suite advances from 0.2.102 to 0.2.103. The user screenshot shows 0.2.102 with the old compact journal. Earlier changes went into alternate C: copies and had not reached P:. This reconciliation preserves all existing uncommitted work, including known-vendor highlights, chat, profiles, setup and quest changes. No game folder, junction, other addon or SavedVariables is changed; user manages the game junction.",
+    "behavior": "The original Suite journal now has six labeled statistic cards and Summary/Loot/Reputation/Levels/History under Current/Previous/Overall. Enabled future tracking collects guarded self loot/value estimates, ordinary reputation changes, deaths/last death, cross-session level milestones and Suite-confirmed sales/personal/guild repairs through existing Leveling/Vendor work. No independent idle worker or game action. Keep all prior XP/gold/time and permanent history; missing new detail stays Not recorded. Do not import EverCore SavedVariables or invent earlier details.",
+    "trainer": "The bundled default catalog supplies 1,409 class/pet training ranks across nine classes through level 60 without a trainer visit or recording. All levels uses six-row paging; By level groups requirements/levels/known skills. Base and Recorded costs remain distinct. Visits supplement unseen catalog ranks/master offerings, with unknown server-only base costs left unknown. Show prior-skill, talent, poison and pet requirements; filter faction/race; account for replaced lower ranks and reject unknown/restricted availability claims. Weapons retain full faction master references, locations, eligibility and known markers. Recording starts off; purchases remain manual.",
+    "data": "Factual catalog data comes from the original MIT-licensed fusionpit/WhatsTraining Forever branch at e0d52183bac0581464d91b3b859528d53afd4a0d, with the complete TrainingCatalog-LICENSE.txt bundled. Wago SpellName/Spell CSVs requested for 1.60.1.70532 provide offline English names/rank labels; they do not establish server trainer prices. No upstream UI/runtime implementation copied. Full server-build catalog accuracy remains unverified. Generator and pinned research inputs are retained in P:.",
+    "quality": "Bring earlier gear-editor button spacing and unused-helper/local fixes into P:. Full canonical tests exposed an ordering issue in the old duplicate-dispatch cleanup: schedule combat reminders once after preview cancellation, preserving visible native reminders. Add a one-dispatch regression check. Other event ordering is preserved.",
+    "validation": "Baseline: 63 Lua files / 17,326 checks. Reconciled: 66 Lua files / 22,963 checks; 22,964 with --journey-preview. All 27 settings pages remain covered. Approximate sample-data previews come from canonical source and Summary/Training were inspected. Screenshot establishes Suite 0.2.102 only; running build/Interface remain unreported, with earlier executable observation 1.60.1.70532. Live rendering/input, persistence, exact server catalog and combat/taint remain pending. Restart after loading 0.2.103 for the three new Lua TOC entries. Backups/models/manifest: .cache/reconcile-02103.",
+    "catalog": {
+      "date": "2026-10-22",
+      "upstream": {
+        "repository": "https://github.com/fusionpit/WhatsTraining",
+        "branch": "forever",
+        "revision": "e0d52183bac0581464d91b3b859528d53afd4a0d",
+        "license": "MIT",
+        "scope": "Adapted factual Camelot class data and weapon class eligibility; no UI, layout, or runtime implementation copied.",
+        "sourceRoot": "https://github.com/fusionpit/WhatsTraining/tree/e0d52183bac0581464d91b3b859528d53afd4a0d/Classes/Camelot",
+        "exactServerBuild": "Not established by upstream; maintained reference costs and requirements, not an exhaustive live-70532 trainer audit."
+      },
+      "labels": {
+        "build": "1.60.1.70532",
+        "source": "Wago client-table CSV exports; English names and rank labels only, not server trainer prices.",
+        "urls": [
+          "https://wago.tools/db2/SpellName/csv?build=1.60.1.70532",
+          "https://wago.tools/db2/Spell/csv?build=1.60.1.70532"
+        ],
+        "sha256": {
+          "SpellName.csv": "88f0e96ad902ab1a15da366018edfc73ecf0b0ad3e02402c064527bdf9d1a912",
+          "Spell.csv": "fd16c218c830f504bb69707acee4fc6fa3168ea04a1180d7348bfae503a2bbdf"
+        }
+      },
+      "classRanks": {
+        "DRUID": 182,
+        "HUNTER": 169,
+        "MAGE": 176,
+        "PALADIN": 152,
+        "PRIEST": 208,
+        "ROGUE": 107,
+        "SHAMAN": 167,
+        "WARLOCK": 147,
+        "WARRIOR": 101
+      },
+      "totalRanks": 1409,
+      "delivery": {
+        "canonicalRoot": "P:/GitHub Repos/WoW Forever Suite",
+        "version": "0.2.103",
+        "deployment": "None; user manages game junction",
+        "supersedes": "Prior alternate C: delivery did not update canonical 0.2.102."
+      },
+      "checks": {
+        "lua": 66,
+        "behavior": 22963,
+        "withPreviews": 22964,
+        "baseline": 17326,
+        "liveGame": "Not run"
+      },
+      "maintenance": {
+        "data": "src/WoWForeverSuite/TrainingCatalogData.lua",
+        "helper": "src/WoWForeverSuite/TrainingCatalog.lua",
+        "generator": "scripts/build-training-catalog.cjs",
+        "integration": "src/WoWForeverSuite/Training.lua",
+        "validation": "node scripts/check-addon.cjs",
+        "inputs": ".cache/training-catalog-20261022"
+      },
+      "inputs": {
+        "Cache.lua": "1a0c4489b00ac341253086b5d89c56ffb6060263928bd681c66e9dac857d4ee0",
+        "DataBuilder.lua": "c2e6ca9a7adc85fac414d41ab3189b3954b999fc409503d6ba2bfbca90fa3d24",
+        "Druid.lua": "4639d20116ecd2a1aaf2087fc4aab979717ea86d60ce67fd7a492cb54dd32380",
+        "Hunter.lua": "72da1043ff7b592c20bb5050676c81845d557e4d06ac13c9294c542cf28870a6",
+        "HunterPets.lua": "94166ba1c57cbc008448c1b516233bcf9d3116db97a0d4b085b6a65c4fa9cf0f",
+        "LICENSE": "64c4e54df59cc6516ddffd512abb053e7cee2e064d2af53ce5ada164be4a67fa",
+        "Mage.lua": "d10ce03cee3dacf9e1b3591bc0d6b0860f8c84e50f42dacdbf189fcebd60fbc1",
+        "Paladin.lua": "dc909a279a4ff941e161a358dfecd7a26b662f24397e9e1ec4962960fbe55ba7",
+        "Player.lua": "8112aede2ad496bf7e003f07c3a75aa25127939779e84f0635f5b1a3c78c2c65",
+        "Priest.lua": "422a03381991bfad5c5ce7a66b2efb43b725682e68d12adf1b3fcf1d8813078d",
+        "QuestSpells.lua": "0f26c61f566330ed3abb3e17b88df966752b2b2f365b3cbf0a00e1c674d3be5f",
+        "Rogue.lua": "a63a7aa658f8c3088e2e31007c5c5462c3e6e9413d9f9cc769268d983e295a03",
+        "Shaman.lua": "0a9ff49c395c148352bd3df16c076c3a93d1f1f58e2f997b4c322d2f777dd3f5",
+        "TrainerFactions.lua": "b43c5505af2ffcf39dd9888c41f71ae94e73b49eee580c8a9dff6b37f46a5a0e",
+        "Utils.lua": "9b3ef22c53ba93666b0c01dd3996589713eb9a8a20274a94ce360760a3383f6f",
+        "Warlock.lua": "74f984582007c77f76252e12445c19c95ce80874d2fd2e25ec47397c4b8f5126",
+        "Warrior.lua": "d061a87bcbe25e82adba25229077e529916c144a1c1bb3a2ce3d41c867c5aedb",
+        "WeaponSkills.lua": "774559b5b019129170cb59c1c8d6f91e87d92996e327e3082b7aed55e018c7bf",
+        "WeaponsBase.lua": "4245053e6d76768efcf502b21741f402ec232207a00a4dd0cf3766224602dc7c",
+        "changes.log": "59636d4cd71dd3a302f42592e1d88e5fbf0d1e8a30e9685c32570794f9c03859"
+      }
+    },
+    "screenshot": "C:/Users/DROCKZ~1/AppData/Local/Temp/codex-clipboard-5b5a84c1-9659-4cd8-ac8c-1a3a01c0a5d0.png",
+    "apiEvidence": "UI commit 172a387e3ab85b26e6640d3058d5ec1e6ccd4c63 / build 70450 is earlier signature evidence, not an exact 70532 availability/permission match.",
+    "preservation": "Existing uncommitted changes retained; normalized predecessor equality required for whole module migrations, bounded GUI changes and exact predecessor matches for quality fixes.",
+    "baseline": {
+      "lua": 63,
+      "assertions": 17326
+    },
+    "result": {
+      "lua": 66,
+      "assertions": 22963,
+      "withPreviews": 22964,
+      "settingsPages": 27
+    },
+    "backup": ".cache/reconcile-02103/before",
+    "preview": ".cache/reconcile-02103/preview-summary.png",
+    "manifest": ".cache/reconcile-02103/manifest.json",
+    "deployment": "None. No game folder/junction, other addon or SavedVariables changed.",
+    "nativeValidation": "Pending: rendering/input, server catalog, persistence, combat/taint.",
+    "package": {
+      "file": "P:\\GitHub Repos\\WoW Forever Suite\\dist\\WoWForeverSuite-0.2.103.zip",
+      "sha256": "1BAB01579427776B9070C1D408207ED8273BD5944C58FA5CE066D6EAB8D38A18",
+      "files": 75,
+      "verified": "Every packaged byte matches canonical source; no cache/research inputs included."
+    }
+  },
+  "equippedHints02104": {
+    "date": "2026-10-22",
+    "version": "0.2.104",
+    "canonicalRoot": "P:/GitHub Repos/WoW Forever Suite",
+    "requestScreenshot": "C:/Users/DROCKZ~1/AppData/Local/Temp/codex-clipboard-85715afa-b898-45d1-ac27-a053d1662426.png",
+    "implementation": "User screenshot shows a green plus on an equipped weapon because the scorer can compare it with the other compatible slot. Add a dynamic equipped-origin flag from the existing guarded ItemLocation equipmentSlotIndex in Items:Resolve/Update. Equipped buttons clear and skip upgrade markers while retaining item-level labels. The flag is recomputed each update, so recycled buttons and moved items recover correctly. Bag origins explicitly remain candidates. Do not suppress by item ID or identical hyperlink: a separate bag copy may legitimately improve the other ring/trinket/weapon slot. Scoring weights, preferred-armor colors, complete-hand comparisons, tooltip comparisons and all other behavior remain unchanged.",
+    "validation": "Canonical source only: P:/GitHub Repos/WoW Forever Suite. Core and identical TOCs advance to 0.2.104. No deployment, junction or SavedVariables changes. 66 Lua 5.1 files parse and 23,006 behavior checks pass. New regressions exercise rings/trinkets/one-handed weapons in Stats and Item level modes, existing plus clearing, retained item levels, reused bag buttons and restricted location fields. No new native API, event, hook or timer. Native rendering/input/combat/persistence remain pending.",
+    "sourceReference": {
+      "commit": "172a387e3ab85b26e6640d3058d5ec1e6ccd4c63",
+      "build": 70450,
+      "files": [
+        "Blizzard_UIPanels_Game/Mainline/PaperDollFrame.lua",
+        "Blizzard_ItemButton/Mainline/ItemButtonTemplate.lua",
+        "Blizzard_ObjectAPI/Mainline/ItemLocation.lua"
+      ],
+      "scope": "Existing equipment location callback and field semantics only; earlier than executable 70532, not an exact running-build availability/permission claim."
+    },
+    "nativeResults": "Pending; running build/Interface unreported",
+    "backup": ".cache/equipped-hints-02104/before",
+    "deployment": "None; user manages junction."
+  },
+  "initialRelease100": {
+    "preparedOn": "2026-10-22",
+    "plannedRelease": "1.0.0",
+    "requestedLaunchDate": "2026-11-04",
+    "dateSource": "User-provided launch target",
+    "acceptedBaseline": "0.2.104",
+    "acceptance": "User: It feels like everything is working.",
+    "scope": "The user reports that everything appears to be working and designates the current build as the expected initial release for the user-provided November 4, 2026 launch target. Promote accepted 0.2.104 to planned 1.0.0 in canonical P:/GitHub Repos/WoW Forever Suite. Only Core/TOC version metadata changes in addon code. Preserve all features, defaults, SavedVariables schemas/history and prior pending source changes. Build and retain the matching local package and SHA256 file manifest. Do not publish, push a release tag, schedule publication, deploy or change the game junction as part of this preparation.",
+    "limits": "General user acceptance is recorded as broad working feedback, not an exhaustive feature/build/taint certification. Existing focused in-game checklists remain applicable. Confirm the launch client build/Interface and matching catalog/API behavior before actual publication; no future client compatibility is inferred from the earlier 70532 executable or build-70450 source references.",
+    "notes": "docs/release-1.0.0.md",
+    "manifest": ".cache/launch-100/release-manifest.json",
+    "published": false,
+    "deployed": false
   }
 }

@@ -154,7 +154,11 @@ function Tips:Item(tooltip, data)
                     elseif comparison.weapon then
                         text = "Possible weapon upgrade · " .. Suite.Scoring.Format(delta, true) .. " (" .. preset.label .. "; " .. comparison.slot .. ")"
                     else text = "Possible stat upgrade · " .. Suite.Scoring.Format(delta, true) .. " (" .. preset.label .. ")" end
-                    tooltip:AddLine(text, 0.41, 0.84, 0.75)
+                    local red, green, blue, armorNote = Suite.Items:UpgradeColor(info)
+                    if red then
+                        tooltip:AddLine(text, red, green, blue)
+                        if armorNote then tooltip:AddLine(armorNote, red, green, blue) end
+                    end
                     self:ComparisonDetails(tooltip, comparison)
                 end
             end

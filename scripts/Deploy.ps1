@@ -1,4 +1,4 @@
-param([string]$GamePath = 'C:\Games\World of Warcraft\_classic_beta_')
+param([string]$GamePath = 'C:\Games\World of Warcraft\_forever_')
 $ErrorActionPreference = 'Stop'
 $workspacePath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $sourcePath = Join-Path $workspacePath 'src\WoWForeverSuite'

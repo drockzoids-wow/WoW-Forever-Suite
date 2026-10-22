@@ -207,7 +207,7 @@ equal(saved.checkpoint.gold, 1000, "core logout checkpoints net money")
 equal(CountTicks(), 0, "logout cancels all display work")
 local function Fresh(state)
     local env = { modules = {}, db = { levelingBar = true }, IsReadable = Suite.IsReadable, BagSpace = Suite.BagSpace,
-        AfterCombat = Suite.AfterCombat, pending = Suite.pending, GUI = Suite.GUI, Theme = Suite.Theme }
+        AfterCombat = Suite.AfterCombat, pending = Suite.pending, GUI = Suite.GUI, Theme = Suite.Theme, Journey = Suite.Journey }
     assert(loadfile("src/WoWForeverSuite/Leveling.lua"))("WoWForeverSuite", env)
     env.Leveling:InitializeCharacter(state); env.Leveling:Apply()
     return env.Leveling, env
@@ -259,7 +259,7 @@ equal(feature:ValidateCheckpoint(bad), nil, "restricted checkpoint flags cannot 
 feature:ResetSession()
 local nativeTime = GetTime; GetTime = function() return Secret() end
 equal(feature:Snapshot().seconds, nil, "restricted clock data cannot drive a rate")
-feature:SaveSession(); equal(feature.db.checkpoint, nil, "unknown elapsed time is not saved as a guessed duration")
+feature:SaveSession(); equal(feature.db.checkpoint.timePartial, true, "unknown elapsed time preserves an explicitly partial session")
 GetTime = nativeTime; feature:ResetSession()
 cursor = Secret(); feature.header.OnDragStart()
 equal(feature.moving, nil, "unknown cursor data cannot start a drag")
@@ -427,6 +427,90 @@ Suite.GUI:Action("levelingMinimize")
 equal(feature.db.minimized, true, "settings can minimize without reaching header controls")
 equal(Suite.GUI.rows[3].value.text, "Minimized", "settings report the saved minimized state")
 equal(feature.session, settingsSession, "settings presentation controls retain current session data")
+-- Journal lifecycle: a checkpoint is current until world entry decides
+-- reload versus login. Completed records never include offline deltas.
+do
+    local journal, env = Fresh(nil)
+    journal:OnWorld(true, false)
+    local startXP, startMoney = xp, money
+    Advance(90); xp, money = xp + 40, money - 250
+    journal:OnEvent("PLAYER_XP_UPDATE", "player"); journal:OnEvent("PLAYER_MONEY")
+    journal:SaveSession()
+    local checkpoint = Suite.Copy(journal.db)
+    equal(#checkpoint.history, 0, "logout stores current without prematurely archiving a reload")
+    journal:SaveSession()
+    equal(#journal.db.history, 0, "duplicate saves do not append sessions")
+    env.db.levelingBar = false; journal:Apply()
+    local resumed, resumedEnv = Fresh(Suite.Copy(checkpoint))
+    Advance(15); resumed:OnWorld(false, true)
+    equal(#resumed.db.history, 0, "reload does not duplicate current in completed history")
+    equal(resumed:Recap("Overall").xp, 40, "overall adds current exactly once")
+    equal(resumed:Recap("Current").elapsed, 105, "reload includes loading time")
+    resumed:ResetSession()
+    equal(#resumed.db.history, 1, "new session archives the previous recap")
+    equal(resumed:Recap("Previous").gold, -250, "previous retains net spending")
+    equal(resumed:Recap("Previous").reason, "restart", "manual boundary has a readable reason")
+    equal(resumed:Recap("Overall").xp, 40, "restart does not double overall totals")
+    equal(resumed:Recap("Current").xp, 0, "restart begins a clean current recap")
+    resumedEnv.db.levelingBar = false; resumed:Apply(); resumed:Apply()
+    equal(#resumed.db.history, 2, "disable closes even an empty session exactly once")
+    equal(resumed:Recap("Previous").reason, "disabled", "disable records its boundary")
+    local relog, relogEnv = Fresh(Suite.Copy(checkpoint))
+    Advance(5000); xp, money = xp + 80, money + 900
+    relog:OnWorld(true, false); relog:OnWorld(true, false)
+    equal(#relog.db.history, 1, "fresh login archives checkpoint exactly once despite repeated world events")
+    equal(relog:Recap("Previous").elapsed, 90, "completed time excludes logged-out time")
+    equal(relog:Recap("Previous").xp, 40, "fresh login does not count offline XP changes")
+    equal(relog:Recap("Previous").gold, -250, "fresh login does not count offline money changes")
+    equal(relog:Recap("Current").xp, 0, "fresh login establishes new XP baseline")
+    equal(relog:Recap("Overall").gold, -250, "overall retains recorded spending after fresh login")
+    local record = Suite.Copy(relog.db.history[1])
+    record.reason, record.startedAt, record.startLevel = Secret(), Secret(), Secret()
+    equal(relog:ValidateCheckpoint(record), nil, "restricted history metadata cannot enter saved recaps")
+    record = Suite.Copy(relog.db.history[1]); record.extra = { secret = Secret() }
+    local sanitized = relog:InitializeCharacter({ history = { record, Secret(), { version = 1 } } })
+    equal(#sanitized.history, 1, "initialization retains valid history and omits corrupt records")
+    equal(sanitized.history[1].extra, nil, "history strips unrelated serialized fields")
+    for i = 1, 120 do relog:Archive(record, "restart") end
+    equal(#relog.db.history, 121, "all completed sessions are retained without a rolling history limit")
+    equal(relog:Recap("Overall").xp, 121 * 40, "overall includes every retained recap")
+    equal(Suite.Journey:Summary(relog:Recap("Previous"), "Previous").cards[4][2], "1,600", "historical recaps show earned XP per hour")
+    relogEnv.db.levelingBar = false; relog:Apply()
+    xp, money = startXP, startMoney
+end
+-- The journal is reachable even when collection is disabled, with bounded
+-- reusable rows and working history navigation.
+feature.db.history = {}
+local record = feature:RecordCurrent()
+local labelRecord = { elapsed = 60, xp = 10, gold = 0, startLevel = 29, level = 30 }
+equal(Suite.Journey:Summary(labelRecord, "Previous").details[1][2], "Level 29 → 30",
+    "journal headings show one level range")
+labelRecord.startLevel = nil
+equal(Suite.Journey:Summary(labelRecord, "Previous").details[1][2], "Not recorded",
+    "journal headings omit incomplete level ranges")
+for i = 1, 14 do feature:Archive(record, "restart") end
+Suite.GUI:Select("leveling")
+Suite.GUI.levelingViewButtons.History.OnClick()
+equal(#Suite.GUI.levelingLogRows, 6, "journal uses six reusable rows")
+equal(Suite.GUI.levelingLogCount.text, "1 / 3", "history paginates all sessions newest first")
+Suite.GUI.levelingLogNext.OnClick()
+equal(Suite.GUI.levelingLogCount.text, "2 / 3", "next history page advances")
+Suite.GUI.levelingLogBack.OnClick()
+equal(Suite.GUI.levelingLogCount.text, "1 / 3", "previous history page returns")
+Suite.GUI.levelingScopeButtons.Previous.OnClick()
+equal(Suite.GUI.levelingScope, "Previous", "previous recap is selectable")
+Suite.GUI.levelingScopeButtons.Overall.OnClick()
+equal(Suite.GUI.levelingScope, "Overall", "overall recap is selectable")
+Suite.GUI:Select("overview")
+equal(Suite.GUI.levelingLogPanel:IsShown(), false, "journal hides when leaving leveling settings")
+local existingLog, beforeLogBuild = Suite.GUI.levelingLogPanel, constructed
+Suite.GUI.levelingLogPanel = nil
+SetCombat(true); Suite.GUI:BuildLevelingLog()
+equal(constructed, beforeLogBuild, "first journal construction defers during combat")
+equal(type(Suite.pending.levelingLogBuild), "function", "journal queues one combat recovery callback")
+LeaveCombat()
+equal(Suite.GUI.levelingLogPanel, nil, "leaving leveling cancels deferred journal construction")
+Suite.GUI.levelingLogPanel = existingLog
 Suite.db.levelingBar = false; feature:Apply()
 Suite.GUI:Select(selected); Suite.GUI.frame:SetShown(shown)
 feature.db, feature.worldEntered = oldFeatureDB, oldWorld

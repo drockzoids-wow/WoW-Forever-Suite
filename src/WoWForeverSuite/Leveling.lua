@@ -57,7 +57,7 @@ function Leveling:ValidateCheckpoint(saved)
         if not Suite.IsReadable(saved[key]) or type(saved[key]) ~= "boolean" then return end
         result[key] = saved[key]
     end
-    for _, key in ipairs({ "savedAt", "lastXP", "maxXP", "level", "lastMoney" }) do
+    for _, key in ipairs({ "savedAt", "lastXP", "maxXP", "level", "lastMoney", "startedAt", "startLevel" }) do
         local value = saved[key]
         if not Suite.IsReadable(value) then return end
         if value ~= nil then
@@ -66,18 +66,96 @@ function Leveling:ValidateCheckpoint(saved)
         end
     end
     if result.level and not Integer(result.level, 1, 1000) then return end
+    if result.startLevel and not Integer(result.startLevel, 1, 1000) then return end
     if result.lastXP and (not result.maxXP or not result.level or result.lastXP > result.maxXP) then return end
     if not result.lastXP then result.maxXP, result.level, result.xpPartial = nil, nil, true end
     if not result.lastMoney then result.goldPartial = true end
+    if Suite.IsReadable(saved.reason) and type(saved.reason) == "string" then
+        if saved.reason == "login" or saved.reason == "restart" or saved.reason == "disabled" then result.reason = saved.reason end
+    end
+    result.journey = Suite.Journey:Validate(saved.journey)
+    if result.journey and result.journey.lastDeath and result.journey.lastDeath.elapsed > result.elapsed then
+        result.journey.lastDeath, result.journey.deathsPartial = nil, true
+    end
+    result.xpPaused = Suite.IsReadable(saved.xpPaused) and saved.xpPaused == true or false
     return result
 end
 
 function Leveling:InitializeCharacter(saved)
     saved = Suite.IsReadable(saved) and type(saved) == "table" and saved or {}
-    self.db = { position = Suite.BagSpace:InitializePosition(saved.position), checkpoint = self:ValidateCheckpoint(saved.checkpoint),
+    local history = {}
+    if Suite.IsReadable(saved.history) and type(saved.history) == "table" then
+        for _, entry in ipairs(saved.history) do
+            local record = self:ValidateCheckpoint(entry)
+            if record then history[#history + 1] = record end
+        end
+    end
+    self.historyTotal, self.journeyRuntime = nil, nil
+    self.db = { history = history, position = Suite.BagSpace:InitializePosition(saved.position), checkpoint = self:ValidateCheckpoint(saved.checkpoint),
         locked = Suite.IsReadable(saved.locked) and saved.locked == true or false,
-        minimized = Suite.IsReadable(saved.minimized) and saved.minimized == true or false }
+        minimized = Suite.IsReadable(saved.minimized) and saved.minimized == true or false,
+        levelProgress = Suite.Journey:Progress(saved.levelProgress) }
     return self.db
+end
+
+-- Logout cannot distinguish reload from login. World entry consumes the
+-- checkpoint once, either continuing it or appending its completed recap.
+function Leveling:Archive(record, reason)
+    record = self:ValidateCheckpoint(record)
+    if not record then return end
+    record.reason = reason
+    if record.journey then record.journey.baselines, record.journey.seeded = nil, nil end
+    self.db.history[#self.db.history + 1] = record
+    self.historyTotal = nil
+end
+
+function Leveling:RecordCurrent()
+    if not self.session then return end
+    self:SampleXP(); self:SampleMoney()
+    Suite.Journey:Sync(self)
+    Suite.Journey:ReconcileVendor(self, true)
+    local s, elapsed = self.session, self:Seconds()
+    local record = { version = 1, elapsed = Number(elapsed, 0, 315360000) and elapsed or 0,
+        xp = s.xp, gold = s.gold, xpPartial = s.xpPartial or self.pendingXP ~= nil,
+        goldPartial = s.goldPartial, timePartial = s.timePartial or not Number(elapsed, 0, 315360000),
+        lastXP = s.lastXP, maxXP = s.maxXP, level = s.level, lastMoney = s.lastMoney,
+        startedAt = s.startedAt, startLevel = s.startLevel, xpPaused = s.paused == true,
+        journey = Suite.Journey:Validate(s.journey) }
+    local server = Read(GetServerTime)
+    if Integer(server, 0) then record.savedAt = server end
+    if self.pendingXP then record.lastXP, record.maxXP, record.level = nil, nil, nil end
+    return self:ValidateCheckpoint(record)
+end
+
+function Leveling:Recap(scope)
+    if not self.db then return end
+    if scope == "Previous" then return self.db.history[#self.db.history] end
+    local s = self.session
+    local live = s and { elapsed = self:Seconds() or 0, xp = s.xp, gold = s.gold,
+        xpPartial = s.xpPartial or not s.xpReadable or self.pendingXP ~= nil,
+        goldPartial = s.goldPartial or not s.goldReadable,
+        timePartial = s.timePartial or self:Seconds() == nil,
+        startedAt = s.startedAt, startLevel = s.startLevel, level = s.level,
+        lastXP = s.lastXP, maxXP = s.maxXP, xpPaused = s.paused == true, journey = s.journey } or self.db.checkpoint
+    if scope ~= "Overall" then return live end
+    if not self.historyTotal then
+        local total = { elapsed = 0, xp = 0, gold = 0, journey = Suite.Journey:New(), journeyRecorded = false }
+        for _, record in ipairs(self.db.history) do
+            total.journeyRecorded = total.journeyRecorded or record.journey ~= nil
+            total.journey = Suite.Journey:Merge(total.journey, record.journey, total.elapsed)
+            for _, key in ipairs({ "elapsed", "xp", "gold" }) do total[key] = total[key] + record[key] end
+            for _, key in ipairs({ "xpPartial", "goldPartial", "timePartial" }) do total[key] = total[key] or record[key] end
+        end
+        self.historyTotal = total
+    end
+    local result = {}
+    for _, key in ipairs({ "elapsed", "xp", "gold" }) do result[key] = self.historyTotal[key] + (live and live[key] or 0) end
+    for _, key in ipairs({ "xpPartial", "goldPartial", "timePartial" }) do result[key] = self.historyTotal[key] or live and live[key] or false end
+    if self.historyTotal.journeyRecorded or live and live.journey then
+        result.journey = live and Suite.Journey:Merge(self.historyTotal.journey, live.journey, self.historyTotal.elapsed) or self.historyTotal.journey
+    end
+    result.sessions = #self.db.history + (live and 1 or 0)
+    return result
 end
 
 function Leveling:SampleMoney()
@@ -99,6 +177,7 @@ function Leveling:SampleXP()
     local s = self.session
     if not s then return end
     local xp, maximum, level = Read(UnitXP, "player"), Read(UnitXPMax, "player"), Read(UnitLevel, "player")
+    Suite.Journey:Sync(self, level)
     local paused = Read(IsXPUserDisabled)
     s.paused = nil
     if type(paused) == "boolean" then s.paused = paused end
@@ -171,6 +250,8 @@ end
 function Leveling:StartSession(restore)
     self:CancelWork()
     local saved = restore and self:ValidateCheckpoint(self.db.checkpoint)
+    if self.session then self:Archive(self:RecordCurrent(), "restart")
+    elseif not saved and self.db.checkpoint then self:Archive(self.db.checkpoint, "login") end
     local s = saved or { xp = 0, gold = 0, xpPartial = false, goldPartial = false, timePartial = false }
     local now, server = Read(GetTime), Read(GetServerTime)
     local elapsed = saved and saved.elapsed or 0
@@ -180,7 +261,13 @@ function Leveling:StartSession(restore)
     end
     s.start = Number(now, 0) and now - elapsed or nil
     self.session, self.expectedLevel, self.pendingXP, self.db.checkpoint, self.restorePending = s, nil, nil, nil, nil
+    Suite.Journey:Start(self, saved and true or false)
     self:SampleXP(); self:SampleMoney()
+    if not saved then
+        if Integer(server, 0) then s.startedAt = server end
+        s.startLevel = s.level
+    end
+    Suite.Journey:Events(self)
     if C_Timer and type(C_Timer.NewTicker) == "function" then
         local ticker
         ticker = C_Timer.NewTicker(1, function()
@@ -197,7 +284,7 @@ function Leveling:OnWorld(initial, reloading)
     local first = not self.worldEntered
     self.worldEntered = true
     if not self:Enabled() then
-        if self.db then self.db.checkpoint = nil end
+        if self.db then self:Archive(self.db.checkpoint, "login"); self.db.checkpoint = nil end
         return
     end
     local restore = first and Suite.IsReadable(initial) and initial == false
@@ -210,22 +297,16 @@ function Leveling:OnWorld(initial, reloading)
     end
     if not self.session then
         self:StartSession(restore)
-    else self:SampleXP(); self:SampleMoney(); self:Render() end
+    else
+        self:SampleXP(); self:SampleMoney(); Suite.Journey:SyncDeath(self); Suite.Journey:Reputation(self); self:Render()
+    end
 end
 
 function Leveling:SaveSession()
     if not self.active or not self.session or not self:Enabled() then return end
-    self:SampleXP(); self:SampleMoney()
-    local s, elapsed = self.session, self:Seconds()
-    if Number(elapsed, 0, 315360000) then
-        local record = { version = 1, elapsed = elapsed, xp = s.xp, gold = s.gold,
-            xpPartial = s.xpPartial or self.pendingXP ~= nil, goldPartial = s.goldPartial, timePartial = s.timePartial,
-            lastXP = s.lastXP, maxXP = s.maxXP, level = s.level, lastMoney = s.lastMoney }
-        local server = Read(GetServerTime)
-        if Integer(server, 0) then record.savedAt = server end
-        if self.pendingXP then record.lastXP, record.maxXP, record.level = nil, nil, nil end
-        self.db.checkpoint = self:ValidateCheckpoint(record)
-    else self.db.checkpoint = nil end
+    local record = self:RecordCurrent()
+    Suite.Journey:SaveProgress(self)
+    self.db.checkpoint = record
     self:CancelWork()
 end
 
@@ -433,11 +514,13 @@ function Leveling:Build()
     frame:SetScript("OnLeave", function() self:HideTooltip() end)
     frame:SetScript("OnHide", function() self:HideTooltip(); self:StopDrag(false) end)
     self.events = CreateFrame("Frame")
-    self.events:SetScript("OnEvent", function(_, event, value) self:OnEvent(event, value) end)
+    self.events:SetScript("OnEvent", function(_, event, ...) self:OnEvent(event, ...) end)
 end
 
 function Leveling:Render()
     if not self.active or not Accessible(self.frame) then return end
+    if self == Suite.Leveling and Suite.GUI and Suite.GUI.RefreshLevelingLog
+        and Suite.GUI.frame and Read(Suite.GUI.frame.IsShown, Suite.GUI.frame) == true then Suite.GUI:RefreshLevelingLog() end
     local v = self:Snapshot()
     local level = v.level and tostring(v.level) or "--"
     if Number(v.percent, 0, 100) then level = level .. string.format(" (%.0f%%)", v.percent) end
@@ -451,29 +534,59 @@ function Leveling:Render()
     if self.hovered and Read(GameTooltip and GameTooltip.GetOwner, GameTooltip) == self.hovered then self:Tooltip(self.hovered) end
 end
 
-function Leveling:OnEvent(event, value)
+function Leveling:QueueSample()
+    if self.work then return end
+    local work
+    work = C_Timer.NewTimer(0.05, function()
+        if self.work ~= work then return end
+        self.work = nil
+        if not self.active or not self:Enabled() then return end
+        self:SampleXP()
+        local state = self.journeyRuntime
+        if state and state.reputationDirty then
+            Suite.Journey:Reputation(self, state.factionID)
+            if not state.reputationDirty then state.factionID = nil end
+        end
+        self:Render()
+    end)
+    self.work = work
+end
+
+function Leveling:OnEvent(event, value, ...)
     if not self.active or not self:Enabled() then return end
     if event == "PLAYER_REGEN_DISABLED" then self:HideTooltip(); self:StopDrag(false)
     elseif event == "DISPLAY_SIZE_CHANGED" or event == "UI_SCALE_CHANGED" then self:Place()
-    elseif event == "PLAYER_MONEY" then self:SampleMoney(); self:Render()
+    elseif event == "PLAYER_MONEY" then
+        self:SampleMoney(); Suite.Journey:Sync(self); Suite.Journey:ReconcileVendor(self); self:Render()
+    elseif event == "PLAYER_DEAD" then Suite.Journey:Death(self); self:Render()
+    elseif event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST" then Suite.Journey:SyncDeath(self)
+    elseif event == "CHAT_MSG_LOOT" then Suite.Journey:Loot(self, value, select(10, ...)); self:Render()
+    elseif event == "ITEM_DATA_LOAD_RESULT" or event == "GET_ITEM_INFO_RECEIVED" then Suite.Journey:ResolveItem(self, value); self:Render()
+    elseif event == "UPDATE_FACTION" or event == "FACTION_STANDING_CHANGED" then
+        if self.journeyRuntime then
+            self.journeyRuntime.reputationDirty = true
+            if event == "FACTION_STANDING_CHANGED" and Integer(value, 1, 2147483647) then self.journeyRuntime.factionID = value end
+            self:QueueSample()
+        end
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        if self.journeyRuntime and self.journeyRuntime.reputationDirty then self:QueueSample() end
     elseif event == "PLAYER_XP_UPDATE" or event == "UNIT_LEVEL" then
         if Suite.IsReadable(value) and value == "player" then self:SampleXP(); self:Render() end
     elseif event == "ENABLE_XP_GAIN" or event == "DISABLE_XP_GAIN" then self:SampleXP(); self:Render()
     elseif event == "PLAYER_LEVEL_UP" then
-        if Integer(value, 1, 1000) then self.expectedLevel = math.max(self.expectedLevel or 0, value) end
-        if self.work then return end
-        local work
-        work = C_Timer.NewTimer(0.05, function()
-            if self.work ~= work then return end
-            self.work = nil
-            if self.active and self:Enabled() then self:SampleXP(); self:Render() end
-        end)
-        self.work = work
+        if Integer(value, 1, 1000) then
+            self.expectedLevel = math.max(self.expectedLevel or 0, value); Suite.Journey:Sync(self, value)
+        end
+        self:QueueSample()
     end
 end
 
 function Leveling:Apply()
     if not self:Enabled() then
+        Suite.Journey:ReconcileVendor(self, true)
+        if self.session then Suite.Journey:SaveProgress(self, true) end
+        if self.session then self:Archive(self:RecordCurrent(), "disabled")
+        elseif self.db and self.db.checkpoint then self:Archive(self.db.checkpoint, "disabled") end
         self.active = false; self:CancelWork(); self:HideTooltip(); self:StopDrag(false)
         if self.events then self.events:UnregisterAllEvents() end
         Suite.pending.levelingPresentation = nil
@@ -487,7 +600,8 @@ function Leveling:Apply()
         self.events:UnregisterAllEvents()
         for _, event in ipairs({ "PLAYER_XP_UPDATE", "UNIT_LEVEL", "PLAYER_LEVEL_UP", "PLAYER_MONEY", "ENABLE_XP_GAIN",
             "DISABLE_XP_GAIN", "PLAYER_REGEN_DISABLED", "DISPLAY_SIZE_CHANGED", "UI_SCALE_CHANGED" }) do self.events:RegisterEvent(event) end
-        if self.worldEntered and not self.session then self:StartSession(self.restorePending == true) end
+        if self.worldEntered and not self.session then self:StartSession(self.restorePending == true)
+        elseif self.session then Suite.Journey:Events(self) end
         self:Presentation(); self.frame:Show(); self:Render()
     end)
 end

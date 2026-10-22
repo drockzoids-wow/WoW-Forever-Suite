@@ -11,9 +11,6 @@ local function Texture(value)
     if Text(value) and value:lower():match("^interface[\\/]icons[\\/][%w_%-%.]+$")
         and not value:find("..", 1, true) then return value end
 end
-local weaponIDs = {}
-for _, skill in ipairs(Suite.WeaponTraining.skills) do weaponIDs[skill[1]] = true end
-local function WeaponID(value) return Integer(value, 1000000) and weaponIDs[value] == true end
 local function FactionTag(value)
     if Read(value, "string") and (value == "Alliance" or value == "Horde") then return value end
 end
@@ -211,29 +208,7 @@ function Training:SaveWeapons(snapshot)
     return #records
 end
 function Training:WeaponGroups()
-    local faction = self:PlayerFaction()
-    if not faction then return { { title = "Weapon trainers", rows = {}, snapshot = { unavailable = true } } } end
-    local groups, names = {}, {}
-    for _, skill in ipairs(Suite.WeaponTraining.skills) do
-        local name = Call(C_Spell and C_Spell.GetSpellName, skill[1])
-        names[skill[1]] = Text(name) and name or skill[2]
-    end
-    for _, snapshot in ipairs(self.db.weapons) do
-        if self:WeaponFaction(snapshot) == faction then
-            groups[#groups + 1] = { title = snapshot.trainer or "Recorded weapon trainer", rows = snapshot.rows, snapshot = snapshot }
-        end
-    end
-    for _, trainer in ipairs(Suite.WeaponTraining.trainers) do
-        if trainer.faction == faction then
-            local snapshot = { trainer = trainer.name, place = trainer.place, reference = true, faction = trainer.faction }
-            local group = { title = trainer.name, rows = {}, snapshot = snapshot }
-            for _, id in ipairs(trainer.skills) do
-                group.rows[#group.rows + 1] = { name = names[id], weaponID = id, state = "reference", cost = id == 200 and 10000 or 1000, level = id == 200 and 20 or 1 }
-            end
-            groups[#groups + 1] = group
-        end
-    end
-    return groups
+    return Suite.TrainingCatalog:WeaponGroups(self, self.recordedCosts)
 end
 function Training:SelectView(view)
     if not Read(view, "string") or view ~= "class" and view ~= "weapons" then return end
@@ -248,6 +223,7 @@ function Training:SelectView(view)
     end)
 end
 function Training:Groups(snapshot, level, project)
+    if snapshot and snapshot.catalog then return Suite.TrainingCatalog:Groups(snapshot, level, self.allLevels ~= false) end
     local groups, byLevel, levels = { { title = "Available now", rows = {} } }, {}, {}
     local other = { title = "Other requirements", rows = {} }
     for _, row in ipairs(snapshot and snapshot.rows or {}) do
@@ -313,7 +289,7 @@ function Training:Capture(allowEmpty)
             if snapshot.kind == "weapons" then
                 weaponPage = nil
                 for index, group in ipairs(self:WeaponGroups()) do
-                    if group.snapshot == snapshot then weaponPage = index; break end
+                    if group.snapshot.trainer == snapshot.trainer and group.snapshot.faction == snapshot.faction then weaponPage = index; break end
                 end
             end
             if snapshot.kind == "class" or weaponPage then
@@ -344,6 +320,7 @@ end
 function Training:ClassIcon(row)
     local icon = Texture(row.icon)
     if icon then return icon end
+    if row.spellID then return self:WeaponIcon(row.spellID) end
     -- Older snapshots have no captured texture; public name lookup is cosmetic only.
     if Text(row.name) then
         icon = Texture(Call(C_Spell and C_Spell.GetSpellTexture, row.name))
@@ -352,10 +329,10 @@ function Training:ClassIcon(row)
     return icon or 134400
 end
 function Training:WeaponIcon(id)
-    if not WeaponID(id) then return end
+    if not Integer(id, 2147483647) or id == 0 then return end
     local icon = Call(C_Spell and C_Spell.GetSpellTexture, id)
     if Integer(icon, 2147483647) and icon > 0 then return icon end
-    -- A fixed, public proficiency list bounds requests; never save texture metadata.
+    -- Only visible catalog rows request icons; retain one request per public spell ID.
     self.iconLoads = self.iconLoads or {}
     if not self.iconLoads[id] and C_Spell and type(C_Spell.RequestLoadSpellData) == "function"
         and C_Timer and type(C_Timer.NewTimer) == "function" then
@@ -386,7 +363,7 @@ function Training:Refresh()
     local frame = self.frame
     if not frame or not frame:IsShown() then return end
     self.view = self.view == "weapons" and "weapons" or "class"
-    local snapshot = self.db and self.db.snapshot
+    local snapshot = Suite.TrainingCatalog:Snapshot(self.db and self.db.snapshot, self:CurrentLevel(), self.recordedCosts)
     local currentVisit = self.live and self.fresh and self.visitKind == "class"
     local groups = self.view == "weapons" and self:WeaponGroups() or self:Groups(snapshot, self:CurrentLevel(), not currentVisit)
     self.page = math.max(1, math.min(self.page, #groups))
@@ -398,6 +375,11 @@ function Training:Refresh()
     end
     local reference = snapshot and snapshot.reference == true or false
     local weapons = self.view == "weapons"
+    local allLevels = not weapons and snapshot and snapshot.catalog and self.allLevels ~= false
+    self.catalogPaging = allLevels
+    frame.levels:SetShown(not weapons)
+    frame.levels.label:SetText(allLevels and "By level" or "All levels")
+    frame.prices.label:SetText(self.recordedCosts and "Costs: Recorded" or "Costs: Base")
     local compact = weapons and not (snapshot and snapshot.unavailable == true)
     if frame.compactHeader ~= compact then
         if InCombatLockdown() then
@@ -413,9 +395,9 @@ function Training:Refresh()
         end
     end
     if self.groupTitle ~= group.title then self.offset = 0; self.groupTitle = group.title end
-    self.offset = math.max(0, math.min(self.offset, math.max(0, #group.rows - 6)))
+    self.offset = math.max(0, math.min(self.offset, math.max(0, allLevels and math.floor(math.max(0, #group.rows - 1) / 6) * 6 or #group.rows - 6)))
     local stamp = snapshot and snapshot.at and Call(date, "%m/%d %H:%M", snapshot.at)
-    frame.context:SetText(compact and "" or (self.levelNotice and "Level " .. self.levelNotice .. " · " or "") .. (snapshot and snapshot.unavailable and "Faction unavailable" or currentVisit and "Current visit" or "Saved offerings") .. " · " .. (snapshot and snapshot.trainer or "No trainer recorded") .. (Text(stamp) and " · " .. stamp or ""))
+    frame.context:SetText(snapshot and snapshot.catalog and "Built-in catalog · Levels 1–60" or compact and "" or (self.levelNotice and "Level " .. self.levelNotice .. " · " or "") .. (snapshot and snapshot.unavailable and "Faction unavailable" or currentVisit and "Current visit" or "Saved offerings") .. " · " .. (snapshot and snapshot.trainer or "No trainer recorded") .. (Text(stamp) and " · " .. stamp or ""))
     local message = not self.levelNotice and (not self.visitKind or self.visitKind == self.view) and self.message
     local place = compact and self:WeaponLocation(snapshot)
     local city, location
@@ -425,6 +407,7 @@ function Training:Refresh()
     end
     frame.status:SetText(snapshot and snapshot.unavailable and "Your faction is unavailable. Weapon trainers appear once it is known."
         or compact and (location and location:gsub(", ", " - ") or "Location unavailable")
+        or snapshot and snapshot.catalog and "Base costs exclude discounts. Trainer visits add recorded prices and offerings."
         or message or (snapshot and (currentVisit and "Only visible class trainer offerings are included."
         or "Saved class training: confirm skills, requirements and prices at a trainer.") or "Visit your class trainer with recording enabled to refresh this list."))
     frame.group:SetText(compact and ("|cff68d5bf" .. group.title .. "|r"
@@ -461,6 +444,13 @@ function Training:Refresh()
                 if row.state == "available" and not row.projected then widget.state:SetTextColor(0.65, 0.91, 0.75)
                 else widget.state:SetTextColor(0.9, 0.72, 0.4) end
             end
+            widget.data = row
+            if row.catalog then
+                local state = row.state == "used" and "Trained" or row.requirement or row.state == "available" and "Level met" or row.level and snapshot.level and row.level > snapshot.level and "Upcoming" or "Confirm requirements"
+                widget.state:SetText((row.level and "L" .. row.level .. " · " or "") .. state .. " · " .. (row.priceLabel or "Base price"))
+            elseif weapons and row.weaponID then
+                widget.state:SetText("L" .. row.level .. " · " .. Suite.TrainingCatalog:WeaponState(row.weaponID))
+            end
             widget.cost:SetText(Money(row.cost))
             widget.cost:SetTextColor(row.state == "available" and 0.88 or 0.65, 0.91, 0.75)
         end
@@ -468,14 +458,18 @@ function Training:Refresh()
     local money = Call(GetMoney)
     local total, covered, partial, offerCount = self:Budget(group.rows, money, snapshot and snapshot.partial)
     local totalLabel = partial and "Known total: " or "Group total: "
+    if snapshot and snapshot.catalog then totalLabel = partial and "Known group cost: " or "Group cost: " end
     if weapons and not currentVisit then totalLabel = partial and "Known saved total: " or "Saved total: " end
-    frame.total:SetText(reference and "Reference base prices" or totalLabel .. Money(total))
+    frame.total:SetText(reference and (self.recordedCosts and "Recorded prices where available; otherwise base" or "Reference base prices") or totalLabel .. Money(total))
     local sufficient = Number(money) and not partial and money >= total
     frame.total:SetTextColor(sufficient and 0.41 or 1, sufficient and 0.84 or 0.65, sufficient and 0.75 or 0.4)
     frame.funds:SetText(reference and "Your class and known skills determine what can be trained." or "Your gold: " .. Money(money) .. " · Savings gap: " .. (Number(money) and Money(math.max(0, total - money)) or "--"))
-    frame.covered:SetText(reference and "Wands, Unarmed and Defense are automatic. Dual Wield is class training." or Number(money) and string.format("Gold covers %d/%d offers individually", covered, offerCount) or "Gold coverage unavailable")
+    frame.covered:SetText(snapshot and snapshot.catalog and "Reference catalog; talents, skills and trainer availability apply." or reference and "Wands, Unarmed and Defense are automatic. Dual Wield is class training." or Number(money) and string.format("Gold covers %d/%d offers individually", covered, offerCount) or "Gold coverage unavailable")
     frame.range:SetText(#group.rows > 6 and string.format("%d–%d of %d · Scroll", self.offset + 1, math.min(self.offset + 6, #group.rows), #group.rows) or "")
-    frame.previous:SetEnabled(self.page > 1); frame.next:SetEnabled(self.page < #groups)
+    if allLevels then
+        frame.pageText:SetText(math.floor(self.offset / 6) + 1 .. " / " .. math.max(1, math.ceil(#group.rows / 6)))
+        frame.previous:SetEnabled(self.offset > 0); frame.next:SetEnabled(self.offset + 6 < #group.rows)
+    else frame.previous:SetEnabled(self.page > 1); frame.next:SetEnabled(self.page < #groups) end
 end
 function Training:StopDrag(save)
     if not self.moving then return end
@@ -597,11 +591,12 @@ function Training:Build()
     header:SetScript("OnDragStop", function() self:StopDrag(true) end)
     frame.header = header
     Button(frame, "X", 460, -6, 28, function() self.autoPending = nil; frame:Hide() end)
-    frame:SetScript("OnShow", function() frame:RegisterEvent("SPELL_DATA_LOAD_RESULT") end)
+    frame:SetScript("OnShow", function() frame:RegisterEvent("SPELL_DATA_LOAD_RESULT"); frame:RegisterEvent("SPELLS_CHANGED") end)
     frame:SetScript("OnEvent", function(_, event, id, success)
+        if event == "SPELLS_CHANGED" then self:QueueIcons(); return end
         if event ~= "SPELL_DATA_LOAD_RESULT" or not Integer(id, 2147483647) or id == 0
             or not Read(success, "boolean") or not success then return end
-        if WeaponID(id) and self.iconLoads and self.iconLoads[id] == true then
+        if self.iconLoads and self.iconLoads[id] == true then
             self.iconLoads[id] = "done"
             self:QueueIcons()
         elseif self.classIconNames then
@@ -619,6 +614,9 @@ function Training:Build()
     frame.context = Label(frame, 11, 14, -80, 472); frame.context:SetWordWrap(false)
     frame.status = Label(frame, 11, 14, -101, 472); frame.status:SetHeight(34); frame.status:SetWordWrap(true)
     frame.group = Label(frame, 14, 14, -140, 330)
+    frame.prices = Button(frame, "Costs: Base", 254, -42, 232, function()
+        self.recordedCosts = not self.recordedCosts; self:Refresh()
+    end)
     frame.rows = {}
     for index = 1, 6 do
         local row = CreateFrame("Frame", nil, frame); row:SetSize(472, 37); row:SetPoint("TOPLEFT", 14, -166 - (index - 1) * 38)
@@ -626,6 +624,18 @@ function Training:Build()
         row.name = Label(row, 12, 36, 0, 289); row.name:SetWordWrap(false)
         row.state = Label(row, 10, 36, -17, 289); row.state:SetTextColor(0.55, 0.65, 0.7)
         row.cost = Label(row, 12, 330, 0, 140); row.cost:SetJustifyH("RIGHT")
+        row:EnableMouse(true)
+        row:SetScript("OnEnter", function()
+            local data = row.data
+            if not data or InCombatLockdown() or not GameTooltip or type(GameTooltip.SetOwner) ~= "function"
+                or type(GameTooltip.AddLine) ~= "function" or type(GameTooltip.Show) ~= "function" then return end
+            GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
+            GameTooltip:AddLine(data.name .. (data.rank and " · " .. data.rank or ""))
+            GameTooltip:AddLine("Shown cost: " .. Money(data.cost) .. " · " .. (data.priceLabel or "Trainer price"), 0.7, 0.85, 0.8)
+            for _, text in ipairs(Suite.TrainingCatalog:Details(data)) do GameTooltip:AddLine(text, 0.8, 0.8, 0.8, true) end
+            GameTooltip:Show()
+        end)
+        row:SetScript("OnLeave", function() if GameTooltip and type(GameTooltip.Hide) == "function" then GameTooltip:Hide() end end)
         frame.rows[index] = row
     end
     frame.empty = Label(frame, 12, 14, -181, 470)
@@ -633,12 +643,15 @@ function Training:Build()
     frame.funds = Label(frame, 11, 14, -422, 472)
     frame.covered = Label(frame, 11, 14, -442, 472)
     frame.range = Label(frame, 10, 14, -461, 260)
-    frame.previous = Button(frame, "Previous", 14, -487, 92, function() self.page = self.page - 1; self:Refresh() end)
-    frame.next = Button(frame, "Next", 114, -487, 92, function() self.page = self.page + 1; self:Refresh() end)
+    frame.previous = Button(frame, "Previous", 14, -487, 92, function() if self.catalogPaging then self.offset = math.max(0, self.offset - 6) else self.page = self.page - 1 end; self:Refresh() end)
+    frame.next = Button(frame, "Next", 114, -487, 92, function() if self.catalogPaging then self.offset = self.offset + 6 else self.page = self.page + 1 end; self:Refresh() end)
     frame.pageText = Label(frame, 12, 225, -494, 75)
+    frame.levels = Button(frame, "By level", 300, -487, 80, function()
+        self.allLevels = self.allLevels == false; self.page, self.offset, self.groupTitle = 1, 0, nil; self:Refresh()
+    end)
     frame.settings = Button(frame, "Settings", 388, -487, 98, function() Suite.GUI:OpenPage("training") end)
     frame:EnableMouseWheel(true); frame:SetScript("OnMouseWheel", function(_, delta)
-        if Read(delta, "number") and not InCombatLockdown() then self.offset = self.offset - delta; self:Refresh() end
+        if Read(delta, "number") and not InCombatLockdown() then self.offset = self.offset - delta * (self.catalogPaging and 6 or 1); self:Refresh() end
     end)
     frame:Hide(); self:Place()
     return true

@@ -1,5 +1,78 @@
 # Forever Suite
 
+## 1.0.0 — Initial release (planned November 4, 2026)
+
+- Establish the accepted 0.2.104 feature set as the planned Forever launch release.
+- Include the modular Suite settings, profiles and setup guide; inventory and gear tools; window, minimap, chat and combat tools; vendor helpers; readable journey journal; and built-in class/weapon training planner.
+- Preserve existing preferences, session history and optional feature defaults. No gameplay behavior changes from 0.2.104.
+
+
+## 0.2.104
+
+- Hide gear-upgrade plus markers on equipped item buttons while preserving item-level labels.
+- Keep separate bag copies eligible for second-slot upgrades and reset the equipped flag when buttons are reused.
+
+## 0.2.103
+
+- Reconcile the readable journey journal and default level 1–60 training catalog into the canonical P: repository.
+- Add labeled journal cards and Loot/Reputation/Levels/History views while preserving prior session totals.
+- Include base training costs/prerequisites from first login; preserve recorded prices and complete weapon-master references.
+- Bring earlier layout/unused-code fixes into canonical source and dispatch combat reminders once after preview cleanup.
+- Preserve newer vendor, chat, profile and setup changes; no deployment or junction change.
+
+## 0.2.102
+
+- Add optional green highlights and checkmarks for already-known vendor recipes and collected items, including pets when readable ownership is available.
+- Refresh highlights when paging, switching Buyback, learning spells/recipes or updating the pet journal; keep native purchases, prices, quality colors and tooltips intact.
+- Add the default-off setting under Vendor > Known Items and as an optional setup-guide choice.
+
+## 0.2.101
+
+- Add per-character leveling session history with Current, Previous and Overall recaps, dates, observed level endpoints, XP, net gold and rates. Reload continues Current; completed sessions remain available with tracking off.
+- Expand the five-step setup guide with scrollable choices and show its first-use welcome after entering the world, preserving previous completion and profile behavior.
+- Show green upgrade markers for preferred armor and yellow for other usable armor improvements, with matching tooltip explanations.
+- Keep the quest tracker's owned background below native text, controls and timers during parent restacking.
+- Reconcile these updates into the official P: checkout, preserving newer chat styling, vendor conversations, profiles and removal of standalone quest guidance.
+
+## 0.2.100
+
+- Brighten the channel-colored typing-box border for visibility while preserving the dark fill, alignment and visible gap.
+
+## 0.2.99
+
+- Match the typing-box border to the active chat channel color, including Say, Guild and whispers.
+- Soften its border to the chat panel's opacity while preserving the dark input fill and visible gap.
+
+## 0.2.98
+
+- Darken the chat typing box for readability while preserving its visible gap and alignment below chat.
+- Keep message/tab transparency adjustable and native typing behavior intact.
+
+## 0.2.97
+
+- Remove the standalone quest map pins, nameplate marks, location learning, bundled catalog and local updater at the user's request.
+- Remove their settings page, search entries and command aliases; discard retired saved fields on reload.
+- Keep the existing quest automation, tracker style, nearby quest-item button and vendor auto-talk.
+
+## 0.2.96
+
+- Show Suite quest pins only on individual zone maps; remove continent/world projection.
+- Clear old pins immediately when changing maps, and skip quest scans on unsupported map scopes.
+- Preserve zone coordinates, completion filtering, hidden quests and native map providers.
+
+## 0.2.95
+
+- Add standalone map markers for cataloged uncompleted quests, native active objectives and optional learned quest-giver locations.
+- Add optional yellow quest-mob markers to the left of nameplates using public native quest relevance.
+- Add per-quest map hiding, restore-hidden and clear-learned controls under Everyday → Quest Locations.
+- Include a compact Classic reference catalog and local data update tools; neither Questie nor QuestieDB is required.
+
+## 0.2.94
+
+- Add an independent Vendor option to open a shop without the extra dialogue click, including menus with quests or other services.
+- Hold Shift when talking to keep the menu open; multiple shops and confirmation prompts stay manual.
+- Save shop-opening choices with the active settings profile.
+
 ## 0.2.93
 
 - Add Interface → Appearance: default teal, your current class color, or a custom color wheel.

@@ -181,7 +181,7 @@ C_Item = {
     GetItemInfo = function(item)
         local data = items[item]
         if not data then return nil end
-        return item, item, 2, data.level, data.required or 1, "Armor", "Cloth", 1, data.equip
+        return item, item, 2, data.level, data.required or 1, "Armor", "Cloth", 1, data.equip, 1, 0, 4, 1
     end,
     GetDetailedItemLevelInfo = function(item) return items[item] and items[item].level end,
     GetItemInfoInstant = function() return 999 end,
@@ -203,6 +203,18 @@ Suite.InitializeDB(saved)
 equal(saved.itemLevels, true, "preserve valid saved preference")
 equal(saved.scorePreset, "balanced", "repair invalid preset")
 equal(type(saved.windowPositions), "table", "repair invalid window data")
+local retired = Suite.InitializeDB({questLocations=true,questNameplates=true,questRecordLocations=true,
+    questLocationHidden={[7]=true},questKnowledge={schema=1,entries={[7]={mapID=101,x=0.2,y=0.3,title="Old giver"}}},
+    autoQuestPickup=true,autoQuestTurnIn=true,autoVendor=true,questItemButton=true,questTrackerSkin=true})
+for _,key in ipairs({"questLocations","questNameplates","questRecordLocations","questLocationHidden","questKnowledge"}) do
+    equal(retired[key],nil,"removed quest guidance data is retired: "..key)
+    equal(Suite.defaults[key],nil,"removed quest guidance has no default: "..key)
+    equal(Suite.Profiles:Settings({[key]=true})[key],nil,"removed quest guidance is absent from profile settings: "..key)
+end
+for _,key in ipairs({"autoQuestPickup","autoQuestTurnIn","autoVendor","questItemButton","questTrackerSkin"}) do
+    equal(retired[key],true,"removing quest guidance preserves existing preference: "..key)
+end
+
 equal(Suite.IsReadable({ secret = true }), false, "secret values rejected")
 assert(loadfile("tests/core_spec.lua"))(Suite, equal)
 
@@ -749,6 +761,8 @@ local secretEquip = Frame()
 tooltipCallbacks[0](secretEquip, { hyperlink = "misc" })
 equal(#secretEquip.lines, 0, "restricted equipment classification is skipped safely")
 
+local originalIconClass = UnitClass
+UnitClass = function() return "Warlock", "WARLOCK", 9 end
 -- Icon hooks also run for profession results/reagents and recycled item buttons.
 do
     Suite.db.itemLevels = true
@@ -1079,6 +1093,7 @@ do
     bagButton:Hide(); bankButton:Hide(); equipped:Hide(); discovered:Hide()
 end
 
+UnitClass = originalIconClass
 Suite.db.playerItemLevel = true
 local noUnit = Frame()
 tooltipCallbacks[2](noUnit, {})
@@ -1537,6 +1552,7 @@ assert(loadfile("tests/buff_borders_spec.lua"))(Suite, equal, Frame, function(va
 assert(loadfile("tests/unitframes_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/targetthreat_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/vendor_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/merchant_known_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/inventory_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/offlinebank_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/minimapdrawer_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
@@ -1544,6 +1560,7 @@ assert(loadfile("tests/mail_spec.lua"))(Suite, equal, Frame, function(value) com
 assert(loadfile("tests/chat_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/items_spec.lua"))(Suite, equal)
 assert(loadfile("tests/upgrade_spec.lua"))(Suite, equal, Frame)
+assert(loadfile("tests/armor_upgrade_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/gear_profiles_spec.lua"))(Suite, equal, Frame, function(value) combat = value end, frames[1])
 assert(loadfile("tests/quests_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/loot_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
@@ -1572,4 +1589,6 @@ assert(loadfile("tests/window_layers_spec.lua"))(Suite, equal, Frame, function(v
 assert(loadfile("tests/settings_profiles_spec.lua"))(Suite, equal, Frame, function(value) combat = value end, frames[1])
 assert(loadfile("tests/chat_history_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/theme_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/journey_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/training_catalog_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 print("Behavior checks passed: " .. checks)

@@ -554,7 +554,11 @@ do
         combatReads = combatReads + 1; return combatAura
     end
     local framesBefore, bagReadsBefore, spellReadsBefore = made, itemReads, bookReads
+    local nativeEvent, dispatches = extra.OnEvent, 0
+    extra.OnEvent = function(self, event) dispatches = dispatches + 1; return nativeEvent(self, event) end
     SetCombat(true); buffs.controller:RunState("combat"); buffs.events:OnEvent("PLAYER_REGEN_DISABLED"); Flush()
+    extra.OnEvent = nativeEvent
+    equal(dispatches, 1, "combat reminder dispatch runs once after preview cleanup")
     equal(extra.combatFrame:IsShown(), true, "native combat entry reveals passive missing-buff reminders")
     equal(extra.combatEntries[1].spell.id, 6673, "selected Battle Shout is combat useful")
     buffs.itemsDirty = true; extra:RefreshCombat()

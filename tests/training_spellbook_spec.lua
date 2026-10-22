@@ -1,5 +1,8 @@
 local Suite, equal, Frame, SetCombat = ...
 local training = Suite.Training
+local oldClass = UnitClass
+-- Exercise the saved-view fallback while checking companion lifecycle.
+UnitClass = function() return "Unsupported", "UNSUPPORTED" end
 local oldDB, oldPending, oldTrainingDB = Suite.db, Suite.pending, training.db
 local oldRegistry, oldPlayerSpells, oldTrainer = EventRegistry, PlayerSpellsFrame, ClassTrainerFrame
 local showEvent, hideEvent = "PlayerSpellsFrame.SpellBookFrame.Show", "PlayerSpellsFrame.SpellBookFrame.Hide"
@@ -129,3 +132,5 @@ GetNumTrainerServices = oldCount
 EventRegistry, PlayerSpellsFrame, ClassTrainerFrame = oldRegistry, oldPlayerSpells, oldTrainer
 Suite.db, Suite.pending, training.db = oldDB, oldPending, oldTrainingDB
 SetCombat(false)
+
+UnitClass = oldClass

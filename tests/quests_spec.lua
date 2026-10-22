@@ -1,6 +1,6 @@
 local Suite, equal, Frame, SetCombat = ...
 local quests = Suite.Quests
-local names = { "CreateFrame", "C_Timer", "UnitGUID", "IsShiftKeyDown", "C_GossipInfo", "Enum",
+local names = { "CreateFrame", "C_Timer", "UnitGUID", "IsShiftKeyDown", "C_GossipInfo", "Enum", "GetFileIDFromPath",
     "C_PlayerInteractionManager", "C_QuestLog",
     "GossipFrame", "QuestFrame", "QuestFrameGreetingPanel", "QuestFrameDetailPanel", "QuestFrameProgressPanel",
     "QuestFrameRewardPanel", "GetQuestID", "QuestFlagsPVP", "QuestGetAutoAccept", "AcceptQuest",
@@ -111,6 +111,7 @@ local function Fresh()
     active, available, options, forced = {}, {}, {}, false
     activeCount, availableCount, legacyActive, legacyAvailable = 0, 0, {}, {}
     GossipFrame.forbidden, QuestFrame.forbidden = false, false
+    Suite.db.autoVendor = false
     Suite.db.autoQuestPickup, Suite.db.autoQuestTurnIn, Suite.db.autoGossip = true, true, true
     quests:Apply()
 end
@@ -118,6 +119,9 @@ Suite.db = Suite.InitializeDB(nil); Suite.pending = {}
 equal(Suite.db.autoQuestPickup, false, "quest pickup starts off")
 equal(Suite.db.autoQuestTurnIn, false, "quest turn-in starts off")
 equal(Suite.db.autoGossip, false, "gossip starts off independently")
+equal(Suite.db.autoVendor, false, "vendor conversations start off independently")
+equal(Suite.Profiles:Settings({ autoVendor = true }).autoVendor, true, "shop opening participates in copied settings profiles")
+equal(Suite.Profiles:Settings({ autoVendor = Secret() }).autoVendor, false, "restricted shop preferences restore the off default")
 quests:Apply()
 equal(constructed, 0, "disabled quest module creates no event frame")
 SetCombat(true); Suite.db.autoQuestPickup = true; quests:Apply()
@@ -358,6 +362,93 @@ options = { { gossipOptionID = 900, status = 0 } }; Show("gossip"); Flush()
 equal(#calls, 20, "long conversation is bounded to twenty automatic actions")
 equal(TimerCount(), 0, "action cap leaves no recurring work")
 
+local function Shop()
+    Fresh()
+    Suite.db.autoQuestPickup, Suite.db.autoQuestTurnIn, Suite.db.autoGossip = false, false, false
+    Suite.db.autoVendor = true
+    GetFileIDFromPath = function(path)
+        equal(path, "Interface\\GossipFrame\\VendorGossipIcon", "shop icon resolves from the native interface path")
+        return 132060
+    end
+    forced = true
+    options = { { gossipOptionID = 800, orderIndex = 7, status = 0, icon = 132060, name = Secret() },
+        { gossipOptionID = 801, status = 0, icon = 136243 } }
+    active = { { questID = 200, isComplete = false, isIgnored = false } }
+    available = { { questID = 201, isIgnored = false } }
+    quests:Apply()
+end
+Shop(); Show("gossip"); equal(#calls, 0, "shop opening waits for the native show handler"); Flush()
+equal(calls[1] and calls[1].action, "option", "vendor-only setting selects a shop beside other services and quests")
+equal(calls[1].value, 800, "vendor opening uses option ID, independent of localized text and row index")
+Fire("GOSSIP_SHOW"); Fire("GOSSIP_OPTIONS_REFRESHED"); Flush()
+equal(#calls, 1, "duplicate vendor events cannot repeat the shop request")
+equal(TimerCount(), 0, "shop opening leaves no idle timer")
+Fire("GOSSIP_CLOSED", false); Show("gossip"); Flush()
+equal(#calls, 2, "closing permits another shop visit to the same vendor")
+Shop(); Show("gossip"); Flush(); Fire("GOSSIP_CLOSED", true); Fire("MERCHANT_CLOSED")
+equal(quests.visit, nil, "closing the shop ends a continuing gossip visit without interaction-manager reads")
+Show("gossip"); Flush()
+equal(#calls, 2, "the same vendor opens again after closing its shop")
+Shop(); options = { options[1] }; Show("gossip"); Flush()
+equal(#calls, 1, "a single forced shop choice opens even with quests listed")
+Shop(); Suite.db.autoVendor = false; quests:Apply(); Show("gossip"); Flush()
+equal(#calls, 0, "vendor opening does not follow repair or other quest preferences")
+equal(next(quests.events.registered), nil, "vendor-only disable unregisters the shared events")
+Shop(); Show("gossip"); Suite.db.autoVendor = false; quests:Apply(); Flush()
+equal(#calls, 0, "disabling vendor opening cancels a queued shop request")
+Shop(); shift = true; Show("gossip"); shift = false; Fire("GOSSIP_OPTIONS_REFRESHED"); Flush()
+equal(#calls, 0, "Shift latches across the vendor conversation")
+Fire("GOSSIP_CLOSED", false); Show("gossip"); Flush()
+equal(#calls, 1, "a fresh vendor visit releases the Shift bypass")
+Shop(); Show("gossip"); shift = true; Flush()
+equal(#calls, 0, "Shift sampled before the shop request pauses it")
+Shop(); Show("gossip"); SetCombat(true); Fire("PLAYER_REGEN_DISABLED"); Flush(); SetCombat(false)
+Fire("PLAYER_REGEN_ENABLED"); Flush()
+equal(#calls, 0, "vendor requests cancel in combat without replay")
+Shop(); Show("gossip"); GossipFrame:Hide(); Flush()
+equal(#calls, 0, "hidden vendor menus cannot open shops")
+Shop(); Show("gossip"); guid = "npc:two"; Flush()
+equal(#calls, 0, "vendor requests reject a changed NPC")
+Shop(); actionEvent = function() Fire("GOSSIP_CLOSED", true); Fire("GOSSIP_SHOW") end
+Show("gossip"); Flush()
+equal(#calls, 1, "synchronous returning shop menus cannot loop")
+for _, event in ipairs({ "GOSSIP_CONFIRM", "GOSSIP_ENTER_CODE", "PLAYER_ENTERING_WORLD" }) do
+    Shop(); Show("gossip"); Fire(event); Flush()
+    equal(#calls, 0, event .. " cancels automatic shop opening")
+end
+for _, value in ipairs({ 1, 2, Secret() }) do
+    Shop(); options[1].status = value; Show("gossip"); Flush()
+    equal(#calls, 0, "unavailable, locked and restricted shops stay manual")
+end
+Shop(); options[2].icon = 132060; Show("gossip"); Flush()
+equal(#calls, 0, "multiple shop options require a choice")
+Shop(); options[1].icon = 136243; options[1].overrideIconID = 132060; Show("gossip"); Flush()
+equal(#calls, 0, "a decorative override cannot identify a shop")
+for _, field in ipairs({ "icon", "gossipOptionID" }) do
+    Shop(); options[1][field] = Secret(); Show("gossip"); Flush()
+    equal(#calls, 0, "restricted vendor " .. field .. " stays manual")
+end
+Shop(); options[2].icon = Secret(); Show("gossip"); Flush()
+equal(#calls, 0, "an unknown second icon cannot rule out another shop")
+Shop(); options = { [2] = options[1] }; Show("gossip"); Flush()
+equal(#calls, 0, "sparse vendor option lists stay manual")
+Shop(); C_GossipInfo.GetOptions = function() error("unavailable") end; Show("gossip"); Flush()
+equal(#calls, 0, "rejected option queries cannot trigger a shop request")
+C_GossipInfo.GetOptions = function() return options end
+for _, result in ipairs({ 0, Secret(), false }) do
+    Shop(); GetFileIDFromPath = function() return result end; Show("gossip"); Flush()
+    equal(#calls, 0, "unavailable or restricted native icon IDs stay manual")
+end
+Shop(); GetFileIDFromPath = nil; Show("gossip"); Flush()
+equal(#calls, 0, "missing native icon lookup stays manual")
+Shop(); GetFileIDFromPath = function() error("unavailable") end; Show("gossip"); Flush()
+equal(#calls, 0, "rejected native icon lookup stays manual")
+Shop(); Suite.db.autoQuestTurnIn = true; active[1].isComplete = true; Show("gossip"); Flush()
+equal(calls[1].action, "active", "enabled ready turn-ins precede vendor opening")
+Shop(); Suite.db.autoQuestPickup = true; Show("gossip"); Flush()
+equal(calls[1].action, "available", "enabled quest pickup precedes vendor opening")
+Fresh()
+
 Suite.GUI:OpenPage("quests")
 equal(Suite.GUI.page, "quests", "quests have their own settings page")
 equal(Suite.GUI.tabs.quests.label.text, "Quests & Loot", "sidebar groups quest and loot tools")
@@ -375,7 +466,18 @@ equal(-Suite.GUI.tabs.chat.point[3] + Suite.GUI.tabs.chat.height < Suite.GUI.fra
 SlashCmdList.WOWFOREVERSUITE("quests"); equal(Suite.GUI.page, "quests", "quest slash shortcut opens settings")
 SlashCmdList.WOWFOREVERSUITE("gossip"); equal(Suite.GUI.page, "quests", "gossip slash shortcut opens settings")
 
+Suite.GUI:OpenPage("vendor")
+equal(Suite.GUI.rows[6].label.text, "Automatically open vendor shops", "vendor page exposes the independent shop setting")
+Suite.Apply = function() quests:Apply() end
+Suite.GUI.rows[6].OnClick()
+equal(Suite.db.autoVendor, true, "vendor control saves its own preference")
+equal(Suite.db.autoGossip, false, "vendor control leaves general gossip disabled")
+Suite.Apply = oldApply
+local shopResults = Suite.SettingsCatalog:Search("auto talk")
+equal(shopResults[1].key, "autoVendor", "auto talk search finds the vendor setting")
+
 Suite.db.autoQuestPickup, Suite.db.autoQuestTurnIn, Suite.db.autoGossip = false, false, false
+Suite.db.autoVendor = false
 quests:Apply(); Flush(); SetCombat(false)
 Suite.db, Suite.pending = oldDB, oldPending
 for _, name in ipairs(names) do _G[name] = saved[name] end

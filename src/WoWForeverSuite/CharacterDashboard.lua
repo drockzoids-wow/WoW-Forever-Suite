@@ -152,11 +152,6 @@ function Dashboard:Rows(query, sort)
     end)
     return rows, total, gold, known, limited, true
 end
-function Dashboard:ProfessionText(row)
-    if not row.professions then return "Professions not recorded" end
-    local parts = {}; for _, skill in ipairs(row.professions) do parts[#parts + 1] = skill.name .. " " .. skill.rank .. "/" .. skill.maxRank end
-    return #parts > 0 and table.concat(parts, "  ·  ") or "No professions"
-end
 function Dashboard:HideTooltip()
     local tooltip = GameTooltip
     if self.hovered and tooltip and Call(tooltip.IsForbidden, tooltip) == false

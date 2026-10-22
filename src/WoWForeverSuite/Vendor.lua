@@ -38,6 +38,7 @@ function Vendor:CancelTimer()
 end
 
 function Vendor:EndVisit()
+    Suite.Journey:ReconcileVendor(Suite.Leveling, true)
     self:CancelTimer()
     self.visit = nil
     self.eventPending = nil
@@ -81,7 +82,9 @@ function Vendor:Repair()
     end
     -- The native guild path can charge personal gold for a shortfall. Require full guild coverage first.
     visit.repairRequested = true
+    local journal = Suite.Journey:BeginVendor("repair", nil, cost, guild)
     RepairAllItems(guild)
+    Suite.Journey:EndVendor(journal)
 end
 
 function Vendor:BagExcluded(bag)
@@ -173,7 +176,9 @@ function Vendor:SlowSale()
             item.waits = 0
             visit.pendingSale = item
             visit.sent = visit.sent + 1
+            local journal = Suite.Journey:BeginVendor("sale", { item })
             api.UseContainerItem(item.bag, item.slot)
+            Suite.Journey:EndVendor(journal)
             return self.interval
         end
     end
@@ -193,7 +198,9 @@ function Vendor:SellInstant(callback)
     if not Suite.db or not Suite.db.autoSellJunk or Suite.db.junkMode ~= "instant"
         or InCombatLockdown() or not self:MerchantOpen() or not self:InstantAvailable() then return false end
     if self.visit then self.visit.fastSold = true end
+    local journal = Suite.Journey:BeginVendor("sale", self:SnapshotJunk())
     if callback then callback() else C_MerchantFrame.SellAllJunkItems() end
+    Suite.Journey:EndVendor(journal)
     self:Queue(0.1)
     return true
 end
@@ -218,6 +225,7 @@ end
 
 function Vendor:Work()
     if not Enabled() or not self.visit or InCombatLockdown() or not self:MerchantOpen() then return end
+    Suite.Journey:ReconcileVendor(Suite.Leveling)
     self:Repair()
     if not self.visit or not Suite.db.autoSellJunk then return end
     if Suite.db.junkMode == "instant" then

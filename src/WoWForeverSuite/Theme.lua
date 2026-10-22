@@ -60,23 +60,27 @@ function Theme:Paint(object, style, feedback)
         -- Retain their last applied RGB until the queued theme change is safe.
         if not feedback or style.r == nil then return end
         r, g, b = style.r, style.g, style.b
+    elseif Color(style.color) then
+        r, g, b = style.color.r, style.color.g, style.color.b
     else r, g, b = self:RGB() end
     object[style.method](object, r, g, b, style.alpha)
     style.r, style.g, style.b = r, g, b
 end
 
-function Theme:Register(object, method, alpha)
+function Theme:Register(object, method, alpha, color)
     if not Writable(object) or type(object[method]) ~= "function" then return end
     local style = self.borders[object]
     if not style then style = {}; self.borders[object] = style end
     style.method, style.alpha = method, Channel(alpha) and alpha or 1
+    -- Semantic borders can retain a validated display color through shared theme refreshes.
+    style.color = Color(color) and { r = color.r, g = color.g, b = color.b } or nil
     if InCombatLockdown() then
         if method == "SetColorTexture" then self:Paint(object, style, true) end
         Suite.AfterCombat("borderTheme", function() self:Refresh() end)
     else self:Paint(object, style) end
 end
 
-function Theme:Backdrop(object, alpha) self:Register(object, "SetBackdropBorderColor", alpha) end
+function Theme:Backdrop(object, alpha, color) self:Register(object, "SetBackdropBorderColor", alpha, color) end
 function Theme:Texture(object, alpha) self:Register(object, "SetColorTexture", alpha) end
 function Theme:Vertex(object, alpha) self:Register(object, "SetVertexColor", alpha) end
 

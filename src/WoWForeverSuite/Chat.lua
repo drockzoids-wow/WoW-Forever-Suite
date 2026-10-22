@@ -115,13 +115,31 @@ function Chat:PaintTab(record, opacity)
     pane:Show()
     record.indicator:SetShown(record.selected)
 end
+function Chat:PaintInputBorder(record)
+    if not record.applied or not self:Enabled() or not Writable(record.frame)
+        or not Writable(record.input) or not Writable(record.inputPane) then return end
+    if InCombatLockdown() then self:Schedule(); return end
+    local color
+    if type(record.input.GetTextColor) == "function" then
+        -- The native header update already resolves Say, whispers, numbered channels and custom colors.
+        -- Read only its display color; never inspect typed text, recipients or channel names.
+        local ok, r, g, b = pcall(record.input.GetTextColor, record.input)
+        if ok and Number(r) and r >= 0 and r <= 1 and Number(g) and g >= 0 and g <= 1
+            and Number(b) and b >= 0 and b <= 1 then color = { r = r, g = g, b = b } end
+    end
+    local _, opacity = self:Options()
+    Suite.Theme:Backdrop(record.inputPane, (0.4 + opacity * 0.2) * 1.3, color)
+end
 function Chat:Paint(record)
     local _, opacity = self:Options()
     for _, pane in ipairs(record.panes) do
         if pane == record.tabPane then self:PaintTab(record, opacity)
         else
-            pane:SetBackdropColor(0.025, 0.04, 0.05, opacity)
-            Suite.Theme:Backdrop(pane, 0.4 + opacity * 0.2)
+            -- Keep typing readable over bright scenery, independently of chat transparency.
+            local paneOpacity = pane == record.inputPane and math.max(0.9, opacity) or opacity
+            pane:SetBackdropColor(0.025, 0.04, 0.05, paneOpacity)
+            if pane == record.inputPane then self:PaintInputBorder(record)
+            else Suite.Theme:Backdrop(pane, 0.4 + opacity * 0.2) end
             pane:Show()
         end
     end
@@ -409,8 +427,15 @@ function Chat:Remember(frame)
         record.input = input
         self:RememberFont(record, input)
         for _, suffix in ipairs(inputArt) do self:RememberAlpha(record, _G[name .. "EditBox" .. suffix]) end
-        record.panes[#record.panes + 1] = Pane(input, input)
-        input:HookScript("OnShow", function() if self.copyRecord == record then self:StopCopy() end end)
+        record.inputPane = Pane(input, input)
+        record.panes[#record.panes + 1] = record.inputPane
+        if type(input.SetTextColor) == "function" then
+            hooksecurefunc(input, "SetTextColor", function() self:PaintInputBorder(record) end)
+        end
+        input:HookScript("OnShow", function()
+            if self.copyRecord == record then self:StopCopy() end
+            self:PaintInputBorder(record)
+        end)
     end
     if Available(frame.Selection) and type(frame.SetClampRectInsets) == "function" then
         hooksecurefunc(frame, "SetClampRectInsets", function(_, left, right, top, bottom)

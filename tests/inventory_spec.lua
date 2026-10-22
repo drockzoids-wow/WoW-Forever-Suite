@@ -154,7 +154,7 @@ colored.OnTooltipCleared(colored); colored.lines = {}; Hover({ id = 100 }, color
 equal(HasLine(colored, "First")[3], 1, "restricted class color falls back to native gold")
 RAID_CLASS_COLORS.MAGE = classColor
 local getInfo, upgradeDelta = Suite.Items.GetInfo, Suite.Items.UpgradeDelta
-Suite.Items.GetInfo = function() return { equipLoc = "INVTYPE_HEAD", level = 20 } end
+Suite.Items.GetInfo = function() return { equipLoc = "INVTYPE_HEAD", level = 20, classID = 4, subclassID = 1 } end
 Suite.Items.UpgradeDelta = function() return 2, { preference = "stats" } end
 Suite.db.itemTooltipLevels, Suite.db.upgradeHints = true, true
 local gear = Hover({ id = 100 })

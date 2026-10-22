@@ -107,10 +107,14 @@ equal(tabCount, 7, "six workspaces include standalone Profiles and a separate se
 for page = 1, 4 do
     setup:Move(page)
     equal(gui.setupReview:IsShown(), false, "choice pages hide the review scrollbar")
+    equal(gui.setupChoices:IsShown(), true, "choice pages use their own clipped viewport")
+    equal(gui.setupChoiceChild:GetParent(), gui.setupChoices, "option cards scroll inside their viewport")
+    equal(-gui.setupChoices.point[3] + gui.setupChoices.height < 467, true, "option viewport stays above instructions")
     for _, card in ipairs(gui.setupCards) do
         if card:IsShown() then
-            equal(-card.point[3] + card.height < 467, true, "choice card stays above instructions")
-            equal(card.point[2] + card.width <= 780, true, "choice card stays inside the content width")
+            equal(card:GetParent(), gui.setupChoiceChild, "choice card belongs to clipped scroll contents")
+            equal(-card.point[3] + card.height <= gui.setupChoiceChild.height, true, "every option fits in scroll contents")
+            equal(card.point[2] + card.width <= gui.setupChoiceChild.width, true, "choice card stays inside the content width")
         end
     end
 end
@@ -119,6 +123,7 @@ equal(gui.setupTip.text:find("Ctrl+scroll", 1, true) ~= nil, true, "map and wind
 equal(gui.setupTip.text:find("Ctrl+right-click", 1, true) ~= nil, true, "map and window step teaches resetting")
 Review()
 equal(gui.setupReview:IsShown(), true, "review uses a scrollable change list")
+equal(gui.setupChoices:IsShown(), false, "review hides the choice viewport")
 equal(gui.setupSuggested:IsShown(), false, "review has no hidden preset mutation")
 equal(gui.note.height, 12, "guide footer leaves navigation clear")
 equal(-gui.setupNext.point[3] + gui.setupNext.height <= 540, true, "navigation ends before the guide footer")
@@ -130,6 +135,55 @@ for _, value in ipairs({ { secret = true }, -1, math.huge }) do
     equal(gui.setupReviewChild.height, childHeight, "unreadable or invalid measured text cannot enter scroll arithmetic")
 end
 gui.setupReviewText.GetStringHeight = stringHeight
+
+-- Every curated setting is reachable, validated and staged, including later additions.
+local keys, total = {}, 0
+for index, page in ipairs(setup.pages) do
+    setup:Move(index)
+    for slot, option in ipairs(page.options) do
+        equal(keys[option.key], nil, "setup offers each setting once")
+        keys[option.key], total = true, total + 1
+        equal(option.native or Suite.defaults[option.key] ~= nil, true, "setup never invents unsupported saved settings")
+        equal(gui.setupCards[slot].option, option, "every option has a reachable card")
+        equal(type(option.help), "string", "every choice explains its effect")
+    end
+end
+equal(total > 60, true, "guide includes newer tools beyond the original 36 choices")
+for _, key in ipairs({ "autoOpenContainers", "questItemButton", "levelingBar", "zoneReputation", "playerBuffBorders", "targetThreat",
+    "missingBuffs", "missingBuffSelf", "missingBuffOutgoing", "missingBuffIncoming", "missingBuffClass", "progressBarSegments",
+    "borderColorMode", "bagSpaceAlert", "reverseCombinedBags", "reverseBagSlots", "inventorySearch", "characterDashboard",
+    "upgradeHints", "classNames", "modifierDisenchant", "disenchantModifier", "macroUpdates", "audioSync" }) do
+    equal(keys[key], true, "guide includes supported newer choice: " .. key)
+end
+for _, key in ipairs({ "trainingPlanner", "trainingAuto", "trainingLevelUp", "trainingSpellbook", "chatHistory",
+    "missingBuffExpiry", "missingBuffCombat", "missingBuffWeapons" }) do
+    equal(keys[key] == true, Suite.defaults[key] ~= nil, "later-build choice follows actual capability: " .. key)
+    if Suite.defaults[key] == nil then equal(setup:Stage(key, true), false, "unsupported options cannot be committed: " .. key) end
+end
+setup:Move(2)
+local choices = gui.setupChoices
+equal(choices.suiteMaximum > 0, true, "long choice pages expose a scrollbar")
+choices.OnMouseWheel(choices, -100)
+equal(choices.suiteOffset, choices.suiteMaximum, "choice wheel reaches all lower options")
+local beforeScroll = choices.suiteOffset
+gui.setupCards[1].OnMouseWheel(gui.setupCards[1], 1)
+equal(choices.suiteOffset < beforeScroll, true, "wheel over a card scrolls its viewport")
+local retainedOffset = choices.suiteOffset
+gui:RefreshSetup()
+equal(choices.suiteOffset, retainedOffset, "refreshing a draft retains its scroll position")
+setup:Move(3)
+equal(choices.suiteOffset, 0, "changing steps starts at the top of the next list")
+setup:Move(2)
+setup:ChoosePage(true)
+equal(setup.draft.missingBuffs, false, "suggestions do not enable the missing-buff bar implicitly")
+equal(setup.draft.targetThreat, false, "threat display remains an independent choice")
+equal(setup.draft.borderColorMode, "default", "suggested border color is explicitly staged")
+setup:ChoosePage(false)
+local reviewHeight = gui.setupReviewText.GetStringHeight
+gui.setupReviewText.GetStringHeight = function() return 900 end
+Review()
+equal(gui.setupReview.suiteMaximum > 0, true, "long review has an explicit scroll range")
+gui.setupReviewText.GetStringHeight = reviewHeight
 
 -- Successful application touches chosen settings only and coalesces module application.
 Fresh()
@@ -201,6 +255,20 @@ local api = C_CVar
 C_CVar = nil; equal(setup:AutoLoot(), nil, "missing CVar API")
 C_CVar = { GetCVarInfo = api.GetCVarInfo }; equal(setup:AutoLoot(), nil, "missing native setter")
 C_CVar = api
+Fresh()
+local goodGetter = C_CVar.GetCVarInfo
+C_CVar.GetCVarInfo = function() error("native preference read rejected") end
+equal(setup:AutoLoot(), nil, "a rejected native getter cannot break the welcome")
+setup:Open()
+equal(gui.setupCards[1].enabled, false, "rejected native getter leaves an unavailable Auto Loot card")
+C_CVar.GetCVarInfo = goodGetter
+Fresh(); setup:Open(); setup:Stage("autoLoot", true); setup:Stage("quickLoot", true); Review()
+local goodSetter = C_CVar.SetCVar
+C_CVar.SetCVar = function() error("native preference write rejected") end
+equal(setup:Finish(), false, "a rejected native setter retains the review")
+equal(Suite.db.quickLoot, false, "a rejected native setter cannot partially enable Suite tools")
+equal(setup.draft.quickLoot, true, "a rejected native setter retains staged choices")
+C_CVar.SetCVar = goodSetter
 
 for _, failure in ipairs({ { success = false }, { success = nil }, { success = { secret = true } }, { success = true, ignore = true } }) do
     Fresh()
@@ -261,6 +329,70 @@ equal(setup:InitializeState({ completed = true }).seen, true, "completion implie
 local valid = setup:InitializeState({ seen = true, completed = true, version = 999, draft = {} })
 equal(valid.seen, true, "guide version changes do not nag completed accounts")
 equal(valid.draft, nil, "runtime drafts are never persisted in guide state")
+
+Fresh(); setup:Open()
+equal(setup:Stage("borderColorMode", "invalid"), false, "unknown theme choices cannot be committed")
+equal(setup:Stage("disenchantModifier", "invalid"), false, "unknown modifier choices cannot be committed")
+local expected = {}
+for _, page in ipairs(setup.pages) do
+    for _, option in ipairs(page.options) do
+        if not option.native then
+            local previous = Suite.db[option.key]
+            local desired = not previous
+            if option.choices then
+                desired = option.choices[1] == previous and option.choices[2] or option.choices[1]
+            end
+            equal(setup:Stage(option.key, desired), true, "supported choice can be staged: " .. option.key)
+            equal(Suite.db[option.key], previous, "staging leaves the active setting unchanged: " .. option.key)
+            expected[option.key] = desired
+        end
+    end
+end
+Review()
+local beforeApplies = applies
+equal(setup:Finish(), true, "all supported choices can be explicitly applied together")
+equal(applies, beforeApplies + 1, "expanded setup still applies modules only once")
+for key, value in pairs(expected) do equal(Suite.db[key], value, "new and existing choices survive commit: " .. key) end
+equal(Suite.db.customBorderColor.r, Suite.defaults.customBorderColor.r, "choosing a theme retains the saved custom color")
+
+-- The welcome is offered when the world is ready, never during earlier login UI setup.
+Fresh()
+local onLogin, onWorld = setup.OnLogin, Suite.Leveling.OnWorld
+local initialize, register = gui.Initialize, gui.RegisterSettings
+local welcomeCalls, worldCalls = 0, 0
+setup.OnLogin = function() welcomeCalls = welcomeCalls + 1 end
+Suite.Leveling.OnWorld = function() worldCalls = worldCalls + 1 end
+gui.Initialize, gui.RegisterSettings = function() end, function() end
+events.OnEvent(events, "PLAYER_LOGIN")
+equal(welcomeCalls, 0, "login initialization does not show setup before world entry")
+events.OnEvent(events, "PLAYER_ENTERING_WORLD", true, false)
+equal(welcomeCalls, 1, "world entry dispatches the first-use welcome")
+equal(worldCalls, 1, "welcome preserves the existing world-entry handler")
+setup.OnLogin, Suite.Leveling.OnWorld = onLogin, onWorld
+gui.Initialize, gui.RegisterSettings = initialize, register
+local openPage = gui.OpenPage
+gui.OpenPage = function() end
+setup:OnLogin()
+equal(Suite.db.setupGuide.seen, false, "an unsuccessful opening never consumes the welcome")
+gui.OpenPage = openPage
+setup:OnLogin(); gui:Select("overview")
+local completed = setup:InitializeState({ version = 1, seen = true, completed = true })
+equal(completed.version, 2, "content revision updates state without losing old completion")
+equal(completed.seen and completed.completed, true, "new content does not nag an existing completed account")
+
+-- The same setup controls fit the newer installed settings panel width.
+local contentWidth = gui.contentWidth
+gui.setupPanel:Hide(); gui.setupPanel = nil; gui.contentWidth = 816
+setup:Open()
+equal(gui.setupPanel.width, 780, "setup uses the newer panel's full content width")
+for _, step in ipairs(gui.setupSteps) do
+    equal(step.point[2] + step.width <= gui.setupPanel.width + 0.001, true, "all five step buttons fit the newer panel")
+end
+for _, card in ipairs(gui.setupCards) do
+    equal(card.point[2] + card.width <= gui.setupChoiceChild.width, true, "expanded setup cards fit the newer viewport")
+end
+gui:Select("overview"); gui.setupPanel:Hide(); gui.setupPanel = nil; gui.contentWidth = contentWidth
+setup:Open(); gui:Select("overview")
 
 setCombat(false)
 gui:Select("overview")

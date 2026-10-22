@@ -165,6 +165,15 @@ local function Native(index)
     input:SetScript("OnTextChanged", function() nativeCalls = nativeCalls + 1 end)
     input:SetScript("OnEnterPressed", function() nativeCalls = nativeCalls + 1 end)
     input.text = "unsent draft"
+    input.channelColor = { 1, 1, 1 }
+    input:SetTextColor(1, 1, 1)
+    input.GetTextColor = function(self) return unpack(self.textColor) end
+    input.GetText = function() error("border styling must never inspect typed messages") end
+    input.GetTellTarget = function() error("border styling must never inspect recipients") end
+    input.UpdateHeader = function(self)
+        nativeCalls = nativeCalls + 1
+        self:SetTextColor(unpack(self.channelColor)) -- Native UpdateHeader resolves its final display color.
+    end
     _G[name .. "EditBox"] = input; regions[#regions + 1] = name .. "EditBox"
     Region(name .. "EditBoxLeft"); Region(name .. "EditBoxFocusMid")
     frame.ScrollToBottomButton:SetScript("OnClick", function() nativeCalls = nativeCalls + 1 end)
@@ -297,6 +306,57 @@ input.GetHeight = inputHeight
 equal(first.fontPath, "Fonts\\ARIALN.TTF", "original font family is preserved")
 equal(first.Background.alpha, 0, "native background is suppressed while Suite panel is used")
 equal(record.panes[1].backdropAlpha, 0.45, "account opacity is used for Suite background")
+equal(record.inputPane.backdropAlpha, 0.9, "typing fill remains dark independently of message transparency")
+equal(record.inputPane.borderColor[4], record.panes[1].borderColor[4] * 1.3, "input border is brighter than the message border opacity")
+equal(record.inputPane.borderColor[1], 1, "initial Say border is white")
+local nativeInputUpdate = input.UpdateHeader
+for _, channel in ipairs({
+    { "SAY", 1, 1, 1 }, { "GUILD", 0.25, 1, 0.25 }, { "WHISPER", 1, 0.5, 1 },
+    { "PARTY", 0.67, 0.67, 1 }, { "RAID", 1, 0.5, 0 }, { "YELL", 1, 0.25, 0.25 },
+    { "BN_WHISPER", 0, 1, 1 }, { "CHANNEL1", 1, 0.75, 0.75 }, { "CHANNEL2", 0.15, 0.45, 0.85 },
+}) do
+    input.channelColor = { channel[2], channel[3], channel[4] }
+    input:UpdateHeader()
+    for index = 1, 3 do equal(record.inputPane.borderColor[index], channel[index + 1], channel[1] .. " uses the native display RGB") end
+    equal(record.inputPane.borderColor[4], record.panes[1].borderColor[4] * 1.3, "channel changes retain the brighter border opacity")
+end
+equal(input.UpdateHeader, nativeInputUpdate, "native header update is never replaced or hooked")
+equal(input.OnTextChanged, inputChange, "channel tint never changes native typing handlers")
+equal(input.OnEnterPressed, inputEnter, "channel tint never changes native sending handlers")
+equal(input.points.TOPLEFT[5], -3, "channel tint preserves the visible gap")
+equal(TimerCount(), 0, "color changes paint directly without an idle or per-key timer")
+secondInput:SetTextColor(0.71, 0.22, 0.13)
+equal(chat.records[second].inputPane.borderColor[1], 0.71, "each native input owns its channel tint")
+equal(record.inputPane.borderColor[1], 0.15, "another window's color never leaks into this input")
+Suite.Theme:Refresh()
+equal(record.inputPane.borderColor[3], 0.85, "theme refresh preserves active channel tint")
+equal(chat.records[second].inputPane.borderColor[2], 0.22, "theme refresh preserves other windows' distinct tints")
+local inputColorGetter = input.GetTextColor
+local fallbackR, fallbackG, fallbackB = Suite.Theme:RGB()
+for _, channels in ipairs({
+    { { secret = true }, 1, 1 }, { 1, { secret = true }, 1 }, { 1, 1, { secret = true } },
+    { -1, 1, 1 }, { 1, 2, 1 }, { 1, 1, 0/0 }, { math.huge, 1, 1 }, { "1", 1, 1 }, {},
+}) do
+    input.GetTextColor = function() return unpack(channels) end
+    chat:PaintInputBorder(record)
+    equal(record.inputPane.borderColor[1], fallbackR, "unreadable or invalid RGB uses the selected theme")
+    equal(Suite.Theme.borders[record.inputPane].color, nil, "invalid RGB never enters the semantic border registry")
+end
+input.GetTextColor = nil; chat:PaintInputBorder(record)
+equal(record.inputPane.borderColor[2], fallbackG, "missing native getter uses safe themed fallback")
+input.GetTextColor = function() error("unavailable native display color") end; chat:PaintInputBorder(record)
+equal(record.inputPane.borderColor[3], fallbackB, "rejected native getter uses safe themed fallback")
+input.GetTextColor = inputColorGetter
+input:SetTextColor(0, 0, 0)
+equal(record.inputPane.borderColor[1], 0, "ordinary black channel colors remain valid")
+equal(Suite.Theme.borders[record.inputPane].color.g, 0, "zero green is retained as a semantic color")
+input:SetTextColor(1, 1, 1)
+for _, opacity in ipairs({ 0, 0.5, 1 }) do
+    chat:SetOption("chatOpacity", opacity); Flush()
+    equal(record.inputPane.borderColor[4], record.panes[1].borderColor[4] * 1.3, "border stays brighter at all transparency settings")
+    equal(record.inputPane.backdropAlpha, math.max(0.9, opacity), "channel border changes preserve the dark typing fill")
+end
+chat:SetOption("chatOpacity", 0.45); Flush()
 equal(tab.glow.alpha, 0.9, "native new-message alerts remain intact")
 equal(record.tabPane:GetHeight(), 20, "tab chrome fits the font with four units above and below")
 equal(record.tabPane.points.LEFT[2], tab.Text, "tab chrome follows the native label instead of the tall button")
@@ -492,6 +552,11 @@ chat.events.OnEvent(chat.events, "PLAYER_REGEN_DISABLED")
 equal(chat.copyRecord, nil, "combat entry ends native selection mode")
 equal(TimerCount(), 0, "combat leaves no copy gesture workers")
 equal(first.mouseEnabled, false, "combat entry restores unprotected native input")
+local combatInputBorder = record.inputPane.borderColor
+input:SetTextColor(0.25, 1, 0.25)
+input:SetTextColor(1, 0.5, 1)
+equal(record.inputPane.borderColor, combatInputBorder, "combat queues channel tint without repainting")
+equal(TimerCount(), 0, "combat tint changes use the existing deferred worker without timers")
 local combatInputs = inputCalls
 record.button.OnClick()
 equal(inputCalls, combatInputs, "combat cannot start a new copy gesture")
@@ -507,6 +572,8 @@ LeaveCombat()
 equal(record.tabPane:GetHeight(), 25, "deferred tab font geometry settles after combat")
 equal(first.fontSize, 18, "latest account size applies after combat")
 equal(record.panes[1].backdropAlpha, 0.2, "latest opacity applies after combat")
+equal(record.inputPane.borderColor[2], 0.5, "combat exit reads the final native channel color")
+equal(record.inputPane.borderColor[4], record.panes[1].borderColor[4] * 1.3, "combat exit retains brighter border opacity")
 local savedAccount = Suite.Copy(Suite.db)
 local newCharacter = Suite.InitializeDB(savedAccount)
 equal(newCharacter.chatStyle, true, "enabled chat is account-wide for a new character")
@@ -531,6 +598,11 @@ equal(first.Background.alpha, 0.73, "disable restores latest native fade alpha")
 equal(record.button:IsShown(), false, "disable hides copy icon")
 equal(record.panes[1]:IsShown(), false, "disable hides Suite background")
 equal(record.tabPane:IsShown(), false, "disable hides compact tab chrome")
+equal(record.inputPane:IsShown(), false, "disable removes the channel-colored input pane")
+local disabledBorder = record.inputPane.borderColor
+input:SetTextColor(0.2, 0.3, 0.4)
+equal(record.inputPane.borderColor, disabledBorder, "disabled color hooks leave borders untouched")
+equal(TimerCount(), 0, "disabled input colors schedule no work")
 equal(tab:GetWidth(), 64, "restoration leaves native dock width intact")
 equal(tab.Text.point, labelPoint, "restoration leaves native label anchors intact")
 equal(tab.Text.fontSize, 17, "restoration retains the latest native tab font")
@@ -548,6 +620,7 @@ first:SetClampRectInsets(-32, 25, 60, -36)
 equal(first.insets[4], -36, "disabled clamp hook yields to native changes")
 Suite.db.chatStyle = true; chat:Apply()
 equal(first.fontSize, 18, "re-enable applies account defaults")
+equal(record.inputPane.borderColor[1], 0.2, "re-enable reads the current native color instead of a stale tint")
 equal(input.points.TOPLEFT[5], -3, "re-enable restores the separated aligned typing input")
 equal(first.insets[4], -43, "re-enable expands the current native screen clamp again")
 local fontGetter = first.GetFont

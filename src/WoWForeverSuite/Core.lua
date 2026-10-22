@@ -1,12 +1,12 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "0.2.93"
+Suite.version = "1.0.0"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {
     schema = 1,
     borderColorMode = "default", customBorderColor = { r = 0.41, g = 0.84, b = 0.75 },
-    setupGuide = { version = 1, seen = false, completed = false },
+    setupGuide = { version = 2, seen = false, completed = false },
     squareMinimap = false, minimapStats = false,
     revealWorldMap = false, mapRevealOpacity = 0.6,
     minimapButton = true, minimapButtonAngle = 225,
@@ -18,7 +18,7 @@ Suite.defaults = {
     progressBarValues = false, progressBarCustomSize = false, progressBarWidth = 600, progressBarHeight = 14, progressBarSegments = false,
     shortKeybinds = false, keybindFontStyle = false, keybindFont = "default", keybindSize = 12,
     keybindOutline = "default", keybindBold = false,
-    autoRepair = false, repairSource = "personal", autoSellJunk = false, junkMode = "slow",
+    autoRepair = false, repairSource = "personal", autoSellJunk = false, junkMode = "slow", autoVendor = false, vendorKnownItems = false,
     autoQuestPickup = false, autoQuestTurnIn = false, autoGossip = false,
     quickLoot = false, sortBagsOnOpen = false, reverseCombinedBags = false, reverseBagSlots = false, autoOpenContainers = false, questTrackerSkin = false, questItemButton = false, questItemPosition = {},
     modifierDisenchant = false, disenchantModifier = "alt", castbars = {}, zoneReputation = false,
@@ -71,6 +71,9 @@ function Suite.InitializeDB(saved)
     for key, value in pairs(Suite.defaults) do
         if not Suite.IsReadable(db[key]) or type(db[key]) ~= type(value) then db[key] = Suite.Copy(value) end
     end
+    -- Retire saved fields from the removed quest map, catalog and nameplate modules.
+    db.questLocations, db.questNameplates, db.questRecordLocations = nil, nil, nil
+    db.questLocationHidden, db.questKnowledge = nil, nil
     Suite.Theme:Initialize(db)
     if not Suite.Scoring.presets[db.scorePreset] then db.scorePreset = "balanced" end
     db.upgradePreference = Suite.Scoring.Preference(db, true)
@@ -158,11 +161,11 @@ events:SetScript("OnEvent", function(_, event, name, second)
         Suite.Profiles:RegisterCharacter()
         Suite.GUI:RegisterSettings()
         Suite.Apply()
-        Suite.Setup:OnLogin()
     elseif event == "ADDON_LOADED" and Suite.db then
         Suite.GUI:RegisterSettings()
     elseif event == "PLAYER_ENTERING_WORLD" then
         Suite.Leveling:OnWorld(name, second)
+        Suite.Setup:OnLogin()
     elseif event == "PLAYER_LOGOUT" then
         Suite.Profiles:SaveActive()
         Suite.Leveling:SaveSession()

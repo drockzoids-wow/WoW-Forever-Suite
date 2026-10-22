@@ -1,5 +1,119 @@
 # Forever Suite in game testing
 
+## Initial launch release baseline - 1.0.0, October 22, 2026
+
+The user reports that everything appears to be working and designates the current build as the expected initial release for the user-provided November 4, 2026 launch target. Promote accepted 0.2.104 to planned 1.0.0 in canonical P:/GitHub Repos/WoW Forever Suite. Only Core/TOC version metadata changes in addon code. Preserve all features, defaults, SavedVariables schemas/history and prior pending source changes. Build and retain the matching local package and SHA256 file manifest. Do not publish, push a release tag, schedule publication, deploy or change the game junction as part of this preparation.
+
+General user acceptance is recorded as broad working feedback, not an exhaustive feature/build/taint certification. Existing focused in-game checklists remain applicable. Confirm the launch client build/Interface and matching catalog/API behavior before actual publication; no future client compatibility is inferred from the earlier 70532 executable or build-70450 source references.
+
+See [the planned release notes](release-1.0.0.md). Validation/package hashes are recorded under .cache/launch-100.
+
+
+## Equipped upgrade markers - 0.2.104, October 22, 2026
+
+Canonical source only: P:/GitHub Repos/WoW Forever Suite. Core and identical TOCs advance to 0.2.104. No deployment, junction or SavedVariables changes. 66 Lua 5.1 files parse and 23,006 behavior checks pass. New regressions exercise rings/trinkets/one-handed weapons in Stats and Item level modes, existing plus clearing, retained item levels, reused bag buttons and restricted location fields. No new native API, event, hook or timer. Native rendering/input/combat/persistence remain pending.
+
+1. Load 0.2.104 from your managed canonical source and /reload. Record actual build/Interface. With item levels and upgrade hints enabled, equip different-strength rings, trinkets and two usable one-handed weapons. No equipped slot should show a plus; native art/input and item-level labels must remain.
+2. Keep a separate stronger copy in bags, including an identical item/link to an equipped piece. It may still qualify for the weaker second slot. Test Stats/Item level, empty second slots, single-slot armor, moving items between slots/bags, reused buttons, disabling/re-enabling hints and normal tooltip comparisons. Existing green/yellow preference colors must remain on real candidates.
+3. Enter/leave combat during gear changes and refreshes; check no new Lua/blocked-action errors, stale plus, geometry changes or idle work. Reload/relog to verify expected appearance and retained settings. Record native results before marking verified.
+
+
+## Readable journal and default training catalog - 0.2.103, October 22, 2026
+
+Canonical P:/GitHub Repos/WoW Forever Suite advances from 0.2.102 to 0.2.103. The user screenshot shows 0.2.102 with the old compact journal. Earlier changes went into alternate C: copies and had not reached P:. This reconciliation preserves all existing uncommitted work, including known-vendor highlights, chat, profiles, setup and quest changes. No game folder, junction, other addon or SavedVariables is changed; user manages the game junction.
+
+Baseline: 63 Lua files / 17,326 checks. Reconciled: 66 Lua files / 22,963 checks; 22,964 with --journey-preview. All 27 settings pages remain covered. Approximate sample-data previews come from canonical source and Summary/Training were inspected. Screenshot establishes Suite 0.2.102 only; running build/Interface remain unreported, with earlier executable observation 1.60.1.70532. Live rendering/input, persistence, exact server catalog and combat/taint remain pending. Restart after loading 0.2.103 for the three new Lua TOC entries. Backups/models/manifest: .cache/reconcile-02103.
+
+1. Load canonical source through your managed game junction/install and restart WoW. Footer and /wfs status must show 0.2.103. If 0.2.102 remains, this source has not loaded. Record active addon path and actual build/Interface.
+
+2. Open /wfs leveling. Expect six cards and Summary/Loot/Reputation/Levels/History, all scopes and permanent history. Inspect smaller UI scales, long text, scrolling, paging, selection and tooltips. Existing totals survive; absent details stay Not recorded. New session/disable/login archive once; reload resumes Current. Test relog/restart/another character.
+
+3. With tracking enabled, verify self loot/stack/uncached items, ordinary reputation across tiers, death/release/resurrection/Feign Death and cross-session level milestones. Exclude other players/crafted messages, offline changes and restricted/special data. Compare Suite-confirmed sale/personal/guild repair categories with native completion and money; requests/manual/unconfirmed actions must not become guessed categories.
+
+4. On a fresh level-one character with recording OFF, open /wfs training and page to level 60. Test All levels/By level and final short page. Compare actual trainers to references, especially Forever additions; record omissions/hotfixes. Check racial/faction restrictions, prior ranks/talents/poisons/pet sources, replaced known ranks and asynchronous icons. Base excludes discounts; Recorded uses observations with labeled base fallbacks. Partial visits must preserve unseen ranks and master stock.
+
+5. Verify faction weapon masters/locations/eligibility, automatic selection of a visited master, optional spellbook/level-up companions and manual dismissal. Test opening/hiding/disable/combat during deferred collection/layout/icon work, with no stale work, idle polling, Lua/blocked-action/taint errors or changed native input.
+
+6. Recheck gear-editor button spacing, combat buff reminders, vendor-known highlights, chat, profiles and setup using existing smoke guides. Record native screenshots, API availability and actual persistence before calling verified. No deployment/junction update is performed here.
+
+
+## Known vendor items - 0.2.102
+
+October 22, 2026: 63 Lua 5.1 files, identical TOCs and 17,326 substitute checks pass in the official P: checkout. Installed executable remains 1.60.1.70532; actual running build/Interface and native results remain unreported. Source mirror evidence is 70450, not an exact 70532 match. No in-game test occurred or installation/junction changed.
+
+1. Load canonical 0.2.102 through your managed installation, reload and record /wfs status, actual build/Interface and active vendor addons. Open /wfs vendor > Known Items. A new preference starts off; search green collected/known recipe/pet. Enabling it alone must not enable shop opening, repairs or junk sales. Verify shared/personal profiles and reload/relog retain this independent choice; setup offers it without selecting it by default or re-opening previously completed welcome state.
+2. Visit a vendor with a recipe/spell you know and one you do not. Known rows/icons should have a subtle green wash and checkmark; unknown stock remains native. Test both tooltip columns, local language and unavailable metadata. A normal carried item must not become green solely because it is in bags. Confirm native quality/affordability/stock colors, prices, currency costs, labels, hover tooltips, clicks, modified clicks and purchases remain readable/functional. Inspect normal/smaller UI scales and other vendor addons; unsupported custom rows need not be claimed supported.
+3. Learn a recipe or obtain a new collectible while the shop is open, then inspect updated state. Test a vendor pet with zero and one collected copy, including journal updates, with pet-query capability availability recorded. Missing/unsupported queries remain unmarked unless native tooltip positively says known. Retail's housing collection feature is not ported. Do not interpret a missing green marker as proof an item is unowned.
+4. Switch stock pages rapidly, filters, Buyback and back, including an empty/short last page. Old rows must clear and match their current stock, with no green Buyback rows. Close/reopen, walk away, zone and disable during queued refresh: no stale artwork or background polling. Re-enable on an open shop and check current state once; off restores native appearance without changing any vendor/collection state.
+5. Enable first during combat, enter combat with a shop open and known rows visible, change settings repeatedly, then leave combat. Check deferred construction/layout/protected cleanup, no ownership queries in combat, final enabled state, cancellation and no Lua/protected-action/taint errors. Confirm native page/Buyback/input handlers and other Suite features remain intact. Record screenshots, API availability, actual persistence and combat results before calling verified.
+
+## Canonical update reconciliation - 0.2.101
+
+October 21, 2026: full checks run in P:/GitHub Repos/WoW Forever Suite. Baseline 16,021; merged result 17,249 substitute checks pass across 62 Lua 5.1 files and identical 0.2.101 TOCs. Newer chat/vendor/profile/custom-scoring tests remain included. These checks do not prove native rendering, disk persistence, event timing or taint. Installed stress-test executable is 1.60.1.70532; actual running build/Interface remain unreported. No game installation or junction change occurs in this reconciliation.
+
+1. After loading this canonical version through your managed installation, record /wfs status and actual build/Interface. Inspect /wfs leveling > Session journal at normal/smaller UI scale: all three scopes, dates, single level-endpoint label, partial markers and six-row pagination fit. Earn known XP and receive/spend gold, wait one minute, compare rates with tracker tooltips, start new sessions and navigate multiple pages newest first. Overall counts completed plus Current once.
+2. Reload repeatedly: Current and start time persist without completed duplicates. Zone/instance transitions preserve it. Log out, wait and log in: one prior Login recap excludes offline changes. Disable/reapply/re-enable: one disabled recap and a fresh Current; saved history remains viewable with tracking off. Test a second character and restart the game to verify isolation/persistence. Forced termination can lose data since the game's last save.
+3. Preserve existing setup seen/completed markers. Use /wfs setup to inspect all five steps and all 73 choices, card scrolling/wheel/scrollbar, step resets, retained refresh offsets and review scrolling. Staging/suggestions/navigation apply nothing; Later/X/Escape discard. Apply only selected changes once. On a naturally fresh account, confirm the welcome after world entry, deferring combat. Verify shared/personal profiles do not reset welcome state; do not erase SavedVariables to demonstrate.
+4. Enable upgrade hints deliberately. For a warrior below/at 40, compare preferred mail/plate and improving off-type armor in bags, rewards and tooltips: green versus yellow, consistent explanation and unchanged score/replacement breakdown. Retest class/level transition, recycled buttons, unavailable metadata, Stats/Item level, custom weights, empty slots, weapons/shields/accessories and disabled hints. Keep weapons under the existing complete-hand model.
+5. Enable the tracker skin and inspect All Objectives/Quests headers, quest text, objective progress, timers and controls on varied backgrounds; collapse/expand and update quests. Native colors/input and Edit Mode must remain correct. Disable/re-enable to confirm restoration. Record screenshots; source-based layering and substitutes alone do not establish corrected rendering.
+6. Check combat entry/exit with each page open, deferred first journal construction/cancellation, tracker lock/minimize, setup Review and feature disable. Watch Lua/protected-action/taint errors. Retest canonical chat channel hue/brighter input border, copy/typing, vendor auto-talk, profiles and custom score breakdowns. No retired quest-guidance settings/pins should return. Record actual results before marking verified.
+
+## Brighter typing border - 0.2.100
+
+October 20, 2026: user reports the preceding behavior works nicely and clarifies the requested border refinement as brighter. The supplied screenshot is before-change evidence. Running build/Interface are unreported. This confirms the reported preceding behavior only; the brighter opacity remains pending.
+
+1. /reload and compare the input edge with chat over the same scenery. It should be more visible with 30% greater border opacity than 0.2.99, retaining the native Say/Guild/whisper/other channel hue. Check normal/alternate UI scale and opacity 0/50/100%. Record /wfs status and actual build/Interface.
+2. Confirm the dark input fill, three-unit gap, matching edges and normal typing are unchanged. Retain the preceding channel, theme, combat and restoration checklist for broader checks; do not treat the reported visual acceptance as taint verification.
+
+Validation: 62 Lua 5.1 files, identical 0.2.100 TOCs and 16,021 substitute checks pass. The existing opacity checks now require the brighter input border; native RGB, gap, fill, input and combat regressions still pass. Package dist/WoWForeverSuite-0.2.100.zip contains 70 source-identical addon files, SHA256 1ca882e5750313e2e2c664619dd76cbd9a18f42784296dd2f9e76a138e0daadc. Revised native brightness remains pending; no deployment or junction change.
+
+## Channel-colored typing border - 0.2.99
+
+October 20, 2026: user requests a softer input border matching chat-border opacity, with native outgoing-channel colors. Installed executable 1.60.1.70450; actual running build/Interface are unreported. All 62 Lua 5.1 files, identical 0.2.99 TOCs and 16,021 substitute checks pass (94 new assertions). Native appearance/input/taint remain unverified.
+
+1. /reload with Suite chat enabled. Record /wfs status, actual running build/Interface and UI scale. Open typing: the border should be softer, while the dark fill, three-unit visible gap, matching edges and native input height remain intact. Compare normal/alternate UI scale, bright/dark scenery and opacity 0/50/100%.
+2. Switch through available /s, /g, /w recipient, reply, /p, /raid, /y and /1 or /2, completing the native channel command. Border and native typing/header colors should agree: Say white, Guild green, ordinary whispers purple and other channels their native colors. Test numbered channels with different/custom chat colors, a Battle.net whisper, temporary whisper windows, tab switching and reopen. Only the corresponding input should change; message/tab borders retain the Suite appearance color.
+3. While a channel is active, change Suite border mode between default/class/custom and change that channel's native chat color. Input must keep/follow its channel color; other Suite borders follow the theme. Test long drafts, channel/tell headers, autocomplete, Enter/Escape, sending and copy-control/native toolbar input normally. No text/recipient/channel choice should change solely from a border update.
+4. Switch channels several times in combat and change opacity: cosmetic changes wait, then settle to the final native typing color and matched border opacity after combat. Disable during pending work: no stale tint or visible input pane returns. Restore Blizzard chat, change channels, re-enable and /reload: current native input colors and existing style preferences should remain correct. Watch Lua/blocked-action/taint errors and record actual results before calling the feature verified.
+
+Delivery: dist/WoWForeverSuite-0.2.99.zip contains 70 source-identical addon files, SHA256 61ff97042793d85225f88752a7e41143147c565fda13c6f5804599727c5e2ea1. No deployment or game-junction change; native checks remain pending.
+
+## Darker chat typing box - 0.2.98
+
+October 20, 2026: supplied screenshot establishes insufficient typing-box contrast and requests the existing gap be retained. It is before-change evidence. Installed executable 1.60.1.70450; running build/Interface not supplied. Existing substitutes check the three-unit gap, alignment, native height/scripts, late windows, combat deferral and restoration. Native appearance remains unverified.
+
+1. With Suite chat enabled, /reload and record /wfs status and actual running build/Interface. Open typing over bright foliage and dark scenery: the input should have a much darker slate fill while chat keeps its current transparency. Confirm the visible three-unit gap and matching edges at normal/alternate UI scale, including movement and resizing.
+2. Try chat opacity 0%, 50% and 100%: message/tab fills follow the setting; input stays at least 90% opaque and becomes fully opaque at 100%. Check typed text, channel/whisper headers, drafts, autocomplete, Enter/Escape, General/Combat Log and a temporary whisper. The copy control and native toolbar remain clear.
+3. Restore Blizzard chat and re-enable: Suite input styling hides/returns, preserving native input and original geometry. Change opacity or disable during combat: final styling/restoration waits until combat ends without Lua/blocked-action errors. Reload/relog to check the saved opacity is retained. Record actual results before marking this verified.
+
+Offline validation: **62 Lua 5.1 files, identical 0.2.98 TOCs and 15,927 substitute checks pass**. Existing chat alignment/input/restoration/combat checks pass. Package dist/WoWForeverSuite-0.2.98.zip contains 70 source-identical addon files, SHA256 9f5b1cc2a2f6285d78b8bd6540f2ee0f4baeb47b828f46584104b2e476037350. The existing game junction exposes this source; no deployment or junction change. Native appearance/input/taint remain pending.
+
+## Standalone quest guidance removal — 0.2.97
+
+Source/package are in the canonical P: checkout. Installed executable reference: **1.60.1.70450**; record actual /wfs status, GetBuildInfo()/Interface and active addons. The user manages installation. Reload is necessary to unload modules already running from a prior version; no installed SavedVariables are edited externally.
+
+1. Update to 0.2.97 and /reload. The Quest Locations page, map/location-recording toggles, nameplate marks and restore/clear actions should be absent. Search for the old guidance settings and check no obsolete control remains. Former command aliases must not open a removed page.
+2. Open zone/continent/world maps and relevant quest-mob nameplates: Suite must create no guidance pins, providers or yellow marks. If Questie is enabled, its own pins/marks should retain its behavior. Retest after combat, quest updates and another reload; no missing-module/Lua/blocked-action errors.
+3. Upgrade a Suite database that previously enabled guidance and held learned/hidden locations: the five retired root fields must be gone after initialization. Shared/personal profiles and copied settings must not restore removed keys. Existing quest pickup/turn-in, gossip, tracker style, nearby quest-item button and vendor auto-talk preferences must stay intact.
+4. Smoke-test the preserved quest/vendor controls and normal map/nameplate UI with the usual addons. Reload/relog separately and confirm no removed feature returns. Follow the earlier vendor and quest automation checklists for their remaining native validation.
+
+Offline: **62 Lua 5.1 files, identical 0.2.97 TOCs and 15,927 substitute checks pass**. Migration/preservation, existing vendor/quest behavior, profiles and all 27 GUI destinations pass. Native removal/coexistence and combat/taint remain unverified.
+
+Delivery: dist/WoWForeverSuite-0.2.97.zip contains 70 source-identical addon files, with the quest guidance modules and data absent. SHA-256 b56283e8191f90cf89ca2ef86d1e993cf864b63289849eac1d6d516247a8a59e. No deployment or game-junction change.
+
+## Vendor shop conversation — 0.2.94
+
+Canonical source: P:/GitHub Repos/WoW Forever Suite. Core and both TOCs are 0.2.94. The user manages the game addon junction; no deployment/junction change is performed in this correction. Installed executable reference is **1.60.1.70450**; record /wfs status, actual GetBuildInfo()/Interface, NPC name, active addons and UI scale before testing. Actual shop opening is unverified.
+
+1. Load the canonical 0.2.94 build, then /reload and open /wfs vendor. Expand Vendor Conversation and enable Automatically open vendor shops. A fresh database starts off. Search auto talk and check the row, help and note fit. Keep general gossip, quests, repairs and junk selling off to test shop opening independently.
+2. Revisit the reported vendor that requires a second click: its shop should open after one interaction. Test a forced menu with another service and a vendor listing quests. Two distinct shop entries must require a choice. Non-vendor conversation, taxis, training and binding stay manual with general gossip off. Record unresolved native/vendor icons rather than assuming support.
+3. Hold Shift while first opening, release before the worker, and confirm the whole conversation remains manual. Also press Shift before a queued action. Close and reopen without Shift to resume. Close the shop and reopen the same NPC several times; each fresh visit should work without repeated selections or idle polling.
+4. Enable pickup and turn-in separately: eligible quests keep priority before shop opening. Retest loaded quest details/readiness, multiple rewards, positive gold costs and native confirmations. A shop option producing confirmation/code entry must wait for your action; Suite supplies neither confirmation nor text.
+5. Burst option refreshes, return to the same menu, close/walk away/change NPCs, enter combat/change world, and disable while work is pending. No stale action, repeated shop request, combat replay, Lua error or blocked-action/taint error. Vendor-only operation stays active with the other three conversation preferences off; all four off removes its events/timer.
+6. Verify repairs and junk sales still depend only on their own switches. Copy a settings profile, choose shared versus personal overrides, reload, relog and restart separately: autoVendor must follow the selected profile and persist independently. New profiles/default repairs must not enable it unexpectedly. Retest newer Training Planner, theme, chat and quest readiness behavior after updating.
+
+Offline: **62 Lua 5.1 files, identical TOCs and 15,907 substitute checks pass**, 85 above the canonical 15,822 baseline. New cases cover forced/quest/service menus, stable IDs, text independence, repeats and deduplication, priority, ambiguity/overrides/unknown icons, rejected/restricted/unavailable reads, Shift, native prompts and lifecycle cancellation. Shared settings-key handling and explicit profile-copy/restricted-value assertions cover the new preference. These checks do not establish native icon resolution, ordinary-addon permissions, actual shop opening, visual input, persistence or taint safety.
+
 ## Shared border color — 0.2.93
 
 October 19 installed executable: **1.60.1.70450**. Record `/wfs status` and actual running build/Interface with results. Offline checks pass for 62 Lua 5.1 files, identical TOCs and 15,822 substitute assertions. Native tests below remain pending.

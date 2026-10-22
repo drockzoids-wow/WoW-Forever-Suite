@@ -48,11 +48,22 @@ equal(art.color[4], 0.95, "custom color preserves art opacity")
 theme:Texture(flat, 1)
 equal(flat.color[2], 0.3, "hover uses custom RGB")
 equal(flat.color[4], 1, "hover can still brighten a custom edge")
+local semantic, displayColor = Frame(), { r = 0, g = 1, b = 0.5 }
+theme:Backdrop(semantic, 0.49, displayColor)
+displayColor.g = 0.2; theme:Refresh()
+equal(semantic.borderColor[2], 1, "semantic border keeps a private copy of the validated display color")
+equal(semantic.borderColor[4], 0.49, "semantic border retains its own soft opacity")
 local late = Frame(); theme:Backdrop(late, 0.65)
 equal(late.borderColor[3], 1, "late-created or newly enabled borders inherit current color")
 late:Hide(); theme:SetCustom(0.2, 0.4, 0.6)
 equal(late:IsShown(), false, "recolor never shows a disabled or hidden feature")
 equal(late.borderColor[3], 0.6, "hidden borders are ready for their next opening")
+equal(semantic.borderColor[1], 0, "shared custom RGB leaves a semantic border's black channel intact")
+equal(semantic.borderColor[2], 1, "shared theme changes preserve semantic colors")
+theme:Backdrop(semantic, 0.49)
+equal(semantic.borderColor[2], 0.4, "clearing a semantic override restores the current theme")
+theme:Backdrop(semantic, 0.49, { r = 1, g = secret, b = 1 })
+equal(semantic.borderColor[3], 0.6, "restricted override data safely falls back to the theme")
 for _, bad in ipairs({ secret, -1, math.huge, 0/0 }) do
     theme:SetCustom(bad, 0, 0)
     equal(Suite.db.customBorderColor.b, 0.6, "invalid picker data is never saved")
@@ -180,8 +191,8 @@ equal(Suite.Minimap.border.borderColor[2], 0.34, "actual minimap border receives
 equal(Suite.Minimap.header.borderColor[3], 0.56, "actual minimap header follows the same color")
 for object, style in pairs(theme.borders) do
     if not object.IsForbidden or object:IsForbidden() == false then
-        equal(style.r, 0.12, "registered Suite border receives the custom theme")
-        equal(style.b, 0.56, "registered Suite border receives all custom RGB channels")
+        equal(style.r, style.color and style.color.r or 0.12, "registered border respects its semantic color or current theme")
+        equal(style.b, style.color and style.color.b or 0.56, "registered border preserves semantic RGB through theme changes")
     end
 end
 UnitClass, C_ClassColor, RAID_CLASS_COLORS, ColorPickerFrame = saved.unit, saved.classes, saved.raid, saved.picker

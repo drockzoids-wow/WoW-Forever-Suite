@@ -1,5 +1,86 @@
 # Forever Suite feature plan
 
+## Initial launch release baseline - 1.0.0, October 22, 2026
+
+The user reports that everything appears to be working and designates the current build as the expected initial release for the user-provided November 4, 2026 launch target. Promote accepted 0.2.104 to planned 1.0.0 in canonical P:/GitHub Repos/WoW Forever Suite. Only Core/TOC version metadata changes in addon code. Preserve all features, defaults, SavedVariables schemas/history and prior pending source changes. Build and retain the matching local package and SHA256 file manifest. Do not publish, push a release tag, schedule publication, deploy or change the game junction as part of this preparation.
+
+General user acceptance is recorded as broad working feedback, not an exhaustive feature/build/taint certification. Existing focused in-game checklists remain applicable. Confirm the launch client build/Interface and matching catalog/API behavior before actual publication; no future client compatibility is inferred from the earlier 70532 executable or build-70450 source references.
+
+See [the planned release notes](release-1.0.0.md). Validation/package hashes are recorded under .cache/launch-100.
+
+
+## Equipped upgrade markers - 0.2.104, October 22, 2026
+
+User screenshot shows a green plus on an equipped weapon because the scorer can compare it with the other compatible slot. Add a dynamic equipped-origin flag from the existing guarded ItemLocation equipmentSlotIndex in Items:Resolve/Update. Equipped buttons clear and skip upgrade markers while retaining item-level labels. The flag is recomputed each update, so recycled buttons and moved items recover correctly. Bag origins explicitly remain candidates. Do not suppress by item ID or identical hyperlink: a separate bag copy may legitimately improve the other ring/trinket/weapon slot. Scoring weights, preferred-armor colors, complete-hand comparisons, tooltip comparisons and all other behavior remain unchanged.
+
+Canonical source only: P:/GitHub Repos/WoW Forever Suite. Core and identical TOCs advance to 0.2.104. No deployment, junction or SavedVariables changes. 66 Lua 5.1 files parse and 23,006 behavior checks pass. New regressions exercise rings/trinkets/one-handed weapons in Stats and Item level modes, existing plus clearing, retained item levels, reused bag buttons and restricted location fields. No new native API, event, hook or timer. Native rendering/input/combat/persistence remain pending.
+
+
+## Readable journal and default training catalog - 0.2.103, October 22, 2026
+
+Canonical P:/GitHub Repos/WoW Forever Suite advances from 0.2.102 to 0.2.103. The user screenshot shows 0.2.102 with the old compact journal. Earlier changes went into alternate C: copies and had not reached P:. This reconciliation preserves all existing uncommitted work, including known-vendor highlights, chat, profiles, setup and quest changes. No game folder, junction, other addon or SavedVariables is changed; user manages the game junction.
+
+The original Suite journal now has six labeled statistic cards and Summary/Loot/Reputation/Levels/History under Current/Previous/Overall. Enabled future tracking collects guarded self loot/value estimates, ordinary reputation changes, deaths/last death, cross-session level milestones and Suite-confirmed sales/personal/guild repairs through existing Leveling/Vendor work. No independent idle worker or game action. Keep all prior XP/gold/time and permanent history; missing new detail stays Not recorded. Do not import EverCore SavedVariables or invent earlier details.
+
+The bundled default catalog supplies 1,409 class/pet training ranks across nine classes through level 60 without a trainer visit or recording. All levels uses six-row paging; By level groups requirements/levels/known skills. Base and Recorded costs remain distinct. Visits supplement unseen catalog ranks/master offerings, with unknown server-only base costs left unknown. Show prior-skill, talent, poison and pet requirements; filter faction/race; account for replaced lower ranks and reject unknown/restricted availability claims. Weapons retain full faction master references, locations, eligibility and known markers. Recording starts off; purchases remain manual.
+
+Bring earlier gear-editor button spacing and unused-helper/local fixes into P:. Full canonical tests exposed an ordering issue in the old duplicate-dispatch cleanup: schedule combat reminders once after preview cancellation, preserving visible native reminders. Add a one-dispatch regression check. Other event ordering is preserved.
+
+Baseline: 63 Lua files / 17,326 checks. Reconciled: 66 Lua files / 22,963 checks; 22,964 with --journey-preview. All 27 settings pages remain covered. Approximate sample-data previews come from canonical source and Summary/Training were inspected. Screenshot establishes Suite 0.2.102 only; running build/Interface remain unreported, with earlier executable observation 1.60.1.70532. Live rendering/input, persistence, exact server catalog and combat/taint remain pending. Restart after loading 0.2.103 for the three new Lua TOC entries. Backups/models/manifest: .cache/reconcile-02103.
+
+
+## Known vendor items - 0.2.102
+
+Bring ZoidsTools Retail's known/collected vendor recognition into original Suite controls. Add default-off Vendor > Known Items > Highlight already-known vendor items, searchable by green/owned/recipe/pet and optional in setup. Mark positively learned recipes/known collectible tooltips and pets with at least one readable owned copy using a green row/icon wash plus checkmark. Ordinary bag possession is not collection. Missing/restricted information remains unmarked; no native purchase, sale, repair or collection state changes.
+
+Reuse a bounded set of passive owned row widgets and a single cancellable event-driven refresh. Native absolute row indices/page/tab checks prevent stock reuse and Buyback mislabeling. Learning, metadata and pet-journal updates refresh a shown shop. No idle polling or combat ownership queries; first construction/layout and protected cleanup defer. Leave all native row input/art/tooltips intact and keep this choice independent of automation and shared border color.
+
+Canonical source is P:/GitHub Repos/WoW Forever Suite; version 0.2.102 with identical TOCs. All 63 Lua files and 17,326 checks pass. Earlier build-70450 source is qualified against executable 70532; legacy optional pet query availability/permissions and live visual/persistence/taint results remain pending. No deployment/junction change.
+
+## Canonical reconciliation - 0.2.101, October 21, 2026
+
+All updates from this chat now belong to P:/GitHub Repos/WoW Forever Suite. Merge the leveling session journal, expanded first-use setup, preferred-armor upgrade colors and fixed quest-tracker background into the newer 0.2.100 source, releasing local metadata as 0.2.101. Preserve newer chat styling, vendor auto-talk, profiles, custom scoring, the removed quest-guidance state and all other canonical features. Retain code, tests, source provenance and smoke instructions in this checkout. No deployment or game-junction change is part of this reconciliation.
+
+The default-off Leveling tracker records every future captured session per character, with Current/Previous/Overall and permanent six-row paging. Show dates, level endpoints, time, XP, net gold, rates and honest partial markers. Reload continues Current; login/restart/disable archive exactly once without offline changes. History remains readable with collection off. The five-step setup now scrolls all 73 supported choices and opens after first world entry; seen/completed markers and staged/profile behavior survive. Preferred armor changes only hint color/explanation, following the disclosed class/level rules. Fixed-layer tracker background keeps native text/controls/timers visible while retaining native ownership and combat deferral.
+
+Full canonical checks pass: 62 Lua files, identical TOCs and 17,249 assertions. Client 70532 actual runtime build/Interface, native appearance, persistence and combat/taint remain pending. User manages the game junction. This source supersedes the older alternate-workspace delivery for future development.
+
+## Brighter typing border - 0.2.100
+
+The user confirms the preceding channel-color behavior works nicely and clarifies the desired refinement as brighter. Increase only input-border opacity to 130% of the message-border formula: (0.4 + chatOpacity * 0.2) * 1.3, a 30% increase from 0.2.99 (bounded to 0.52-0.78 by the existing opacity normalization). Preserve native channel RGB, the 90% minimum dark fill, visible three-unit gap, aligned edges and all existing input/theme/combat/restoration behavior. No new API, hook, timer, setting or saved field. Actual running build/Interface are not supplied; the new brightness needs in-game review.
+
+This supersedes the 0.2.99 plan to use exactly the message panel's border opacity. All other channel-color choices and behavior remain current.
+
+Validation: 62 Lua 5.1 files, identical 0.2.100 TOCs and 16,021 substitute checks pass. The existing opacity checks now require the brighter input border; native RGB, gap, fill, input and combat regressions still pass. Package dist/WoWForeverSuite-0.2.100.zip contains 70 source-identical addon files, SHA256 1ca882e5750313e2e2c664619dd76cbd9a18f42784296dd2f9e76a138e0daadc. Revised native brightness remains pending; no deployment or junction change.
+
+## Channel-colored typing border - 0.2.99
+
+Match the typing-box border opacity to the message panel, while retaining its dark fill and visible three-unit gap. Use the native active typing color: Say white, Guild green, whispers purple, plus native Party/Raid/Yell/Battle.net/numbered-channel colors and user-customized chat colors. Each input follows its own native display state. Preserve native text, commands, recipients, header, sending, scripts and geometry; no new setting or saved field.
+
+The input's channel tint survives shared class/custom border-theme changes; unreadable/unavailable native RGB falls back to that selected theme. Changes in combat defer through the existing worker and use the final native color afterward. Disable hides the owned pane and leaves retained hooks inert. All 62 Lua 5.1 files, identical 0.2.99 TOCs and 16,021 substitute checks pass. Canonical P: source only; no deployment/junction change. Native rendering, channel switching and combat/taint still need the focused smoke test.
+
+Delivery: dist/WoWForeverSuite-0.2.99.zip contains 70 source-identical addon files, SHA256 61ff97042793d85225f88752a7e41143147c565fda13c6f5804599727c5e2ea1. No deployment or game-junction change; native checks remain pending.
+
+## Darker chat typing box - 0.2.98
+
+Give the existing Suite typing box a 90% minimum slate fill, rising to full opacity if the saved chat opacity is higher. Keep message/tab transparency under the existing setting and use the current shared input border color. Preserve the visible three-unit gap, matching edges, native typing height and behavior. Clarify the existing opacity helper text; no additional control or saved preference. Restore Blizzard chat removes the Suite input pane as before. Canonical P: source only; no deployment or junction change. In-game contrast, gap and input validation remain pending.
+
+Offline validation: **62 Lua 5.1 files, identical 0.2.98 TOCs and 15,927 substitute checks pass**. Existing chat alignment/input/restoration/combat checks pass. Package dist/WoWForeverSuite-0.2.98.zip contains 70 source-identical addon files, SHA256 9f5b1cc2a2f6285d78b8bd6540f2ee0f4baeb47b828f46584104b2e476037350. The existing game junction exposes this source; no deployment or junction change. Native appearance/input/taint remain pending.
+
+## Remove standalone quest guidance — 0.2.97
+
+The user rejects the new quest guidance experiment and will use Questie. Remove all 0.2.95/0.2.96 standalone map/nameplate/location-recording modules, the data catalog, updater/localtools, GUI page/actions, search entries, command aliases and their dedicated tests. No new Questie dependency or integration is added. Earlier quest pickup/turn-in/gossip, tracker styling, nearby quest-item tools and 0.2.94 vendor auto-talk remain.
+
+Retire the five experimental saved fields through Suite.InitializeDB; existing profile whitelists discard their obsolete settings and overrides. Do not edit installed SavedVariables, other addons or the game junction. Preserve development provenance as historical only. Canonical P: checkout, matching Core/TOCs 0.2.97. **62 Lua 5.1 files and 15,927 substitute checks pass**, including retired-data migration and retained preferences. Native reload/coexistence checks remain pending.
+
+## Vendor shop conversation — 0.2.94
+
+Add **Everyday → Vendor → Vendor Conversation → Automatically open vendor shops**, reachable through /wfs vendor or search for auto talk. The default-off preference follows the active shared/personal settings profile. After enabled ready quest turn-ins/pickup, select a unique available shop option even when quests, other services or a forced menu are present. General Automatically advance gossip keeps its previous single-option/no-quest rules.
+
+Identify the shop from its base icon resolved through the native vendor texture path, using a stable option ID. Localized names and decorative override icons never determine the choice. Unknown/restricted data, multiple shops, locked/unavailable entries and native confirmation/code prompts remain manual. Hold Shift while opening or before execution to pause the current conversation. Reuse the bounded, cancellable quest worker and clear its visit when the merchant closes. Shop opening does not enable repairs, sales or quest settings.
+
+Canonical P: checkout only: port the focused changes onto 0.2.93, preserving later quest-data readiness, Training Planner, chat, theme and profiles. Core and both identical TOCs are 0.2.94. Before-file snapshots and three exact 70450 references are retained under .cache/vendor-talk-0294. No further installed-addon or game-junction changes. All **62 Lua 5.1 files and 15,907 substitute checks pass**; native opening, icon lookup, persistence and taint remain pending.
+
 ## Shared border color — 0.2.93
 
 October 19: implement profile-aware **Interface → Appearance** with **Default teal**, **My class**, **Custom**, and Blizzard's native color wheel. Include current swatch/hex preview, live border updates and Cancel restoring prior mode/custom RGB. `/wfs colors`, `/wfs appearance` and settings search reach these controls. Class mode follows each character, with teal fallback when unavailable. Switching modes remembers custom RGB; changing color enables no optional feature.

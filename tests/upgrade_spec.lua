@@ -1,7 +1,8 @@
 -- Exercise real hint/tooltip paths with competing levels, DPS and complete hand sets.
 local Suite, equal, Frame = ...
-local saved = { api = C_Item, link = GetInventoryItemLink, dual = CanDualWield,
+local saved = { class = UnitClass, api = C_Item, link = GetInventoryItemLink, dual = CanDualWield,
     level = UnitLevel, db = Suite.db, apply = Suite.Apply, page = Suite.GUI.page }
+UnitClass = function() return "Warlock", "WARLOCK", 9 end
 local records, equipment = {}, {}
 local function Item(name, loc, level, intellect, dps, strength)
     records[name] = { link = name, loc = loc, level = level, required = 1, usable = true,
@@ -30,7 +31,7 @@ local statsCalls, dual = 0, true
 C_Item = {
     GetItemInfo = function(link)
         local item = records[link]
-        if item then return "Item", item.link, 2, item.level, item.required, "Weapon", "", 1, item.loc end
+        if item then return "Item", item.link, 2, item.level, item.required, "Weapon", "", 1, item.loc, 1, 0, 4, 1 end
     end,
     GetDetailedItemLevelInfo = function(link) return records[link] and records[link].level end,
     IsUsableItem = function(link) return records[link] and records[link].usable end,
@@ -161,6 +162,47 @@ Suite.db.upgradeHints = false
 Suite.Items:Update(button, record)
 equal(record.arrow.text, "", "disabled hints clear weapon marker")
 Suite.db.upgradeHints = true
+-- Equipped buttons retain levels without scoring themselves against the second slot.
+do
+    local oldEquipment, oldPreference, oldLevels, oldPreset = equipment, Suite.db.upgradePreference, Suite.db.itemLevels, Suite.db.scorePreset
+    local oldExists, oldLocationLink = C_Item.DoesItemExist, C_Item.GetItemLink
+    Item("trinketStrong", "INVTYPE_TRINKET", 40, 12)
+    Item("trinketWeak", "INVTYPE_TRINKET", 20, 4)
+    local candidate
+    C_Item.DoesItemExist = function() return true end
+    C_Item.GetItemLink = function() return candidate end
+    Suite.db.itemLevels, Suite.db.scorePreset = true, "caster"
+    for _, preference in ipairs({ "stats", "ilevel" }) do
+        Suite.db.upgradePreference = preference
+        for _, case in ipairs({
+            { "ringOther", 11, 12, "ringOld" },
+            { "trinketStrong", 13, 14, "trinketWeak" },
+            { "flex", 16, 17, "off" },
+        }) do
+            candidate = case[1]; equipment = { [case[2]] = candidate, [case[3]] = case[4] }
+            local location = { bagID = 0, slotIndex = 1 }
+            local ownButton, ownRecord = Frame(), {}
+            ownButton.GetItemLocation = function() return location end
+            Suite.Items:Update(ownButton, ownRecord)
+            equal(ownRecord.arrow.text, "+", preference .. " " .. candidate .. " still marks a separate bag copy for the weaker second slot")
+            location = { equipmentSlotIndex = case[2] }
+            Suite.Items:Update(ownButton, ownRecord)
+            equal(ownRecord.equipped, true, "equipment origin is flagged")
+            equal(ownRecord.arrow.text, "", preference .. " clears the plus for the equipped instance")
+            equal(ownRecord.level.text, records[candidate].level, "equipped item level remains visible")
+            location = { bagID = 0, slotIndex = 1 }
+            Suite.Items:Update(ownButton, ownRecord)
+            equal(ownRecord.equipped, false, "recycled button clears equipped flag after moving to a bag")
+            equal(ownRecord.arrow.text, "+", "the separate bag candidate can qualify again")
+            location = { equipmentSlotIndex = { secret = true } }
+            Suite.Items:Update(ownButton, ownRecord)
+            equal(ownRecord.arrow.text, "", "restricted equipped location never produces a marker")
+        end
+    end
+    equipment, Suite.db.upgradePreference, Suite.db.itemLevels = oldEquipment, oldPreference, oldLevels
+    C_Item.DoesItemExist, C_Item.GetItemLink = oldExists, oldLocationLink
+    Suite.db.scorePreset = oldPreset
+end
 local tooltip = Frame()
 Suite.Tooltips:Item(tooltip, { hyperlink = "staffWorse" })
 equal(tooltip.lines[1][1], "Higher weapon-set item level · +20.0 (Both hands)", "weapon tooltip identifies level basis and replaced hands")
@@ -209,6 +251,7 @@ local search = Suite.SettingsCatalog:Search("prefer higher ilevel")
 equal(search[1].key, "upgradePreference", "new comparison option is searchable")
 Suite.GUI.rows[5].OnClick()
 equal(Suite.db.upgradePreference, "stats", "comparison control returns to stats")
+UnitClass = saved.class
 C_Item, GetInventoryItemLink, CanDualWield, UnitLevel = saved.api, saved.link, saved.dual, saved.level
 Suite.db, Suite.Apply = saved.db, saved.apply
 Suite.GUI:Select(saved.page or "overview")

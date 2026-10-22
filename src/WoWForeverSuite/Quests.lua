@@ -4,7 +4,9 @@ Suite.Quests = Quests
 table.insert(Suite.modules, Quests)
 
 local function Read(callback, ...)
-    if type(callback) == "function" then return callback(...) end
+    if type(callback) ~= "function" then return end
+    local ok, a, b, c, d, e = pcall(callback, ...)
+    if ok then return a, b, c, d, e end
 end
 
 local function Yes(value)
@@ -26,7 +28,7 @@ end
 
 local function Enabled()
     local db = Suite.db
-    return db and (Yes(db.autoQuestPickup) or Yes(db.autoQuestTurnIn) or Yes(db.autoGossip))
+    return db and (Yes(db.autoQuestPickup) or Yes(db.autoQuestTurnIn) or Yes(db.autoGossip) or Yes(db.autoVendor))
 end
 
 local function Shown(frame)
@@ -110,6 +112,23 @@ function Quests:Request(key, callback, argument, fromList)
     return true
 end
 
+local function VendorOption(options)
+    -- The API exposes the base icon, not an NPC service type. Resolve the native
+    -- shop icon on this client instead of depending on text or a fixed file ID.
+    local icon = Read(GetFileIDFromPath, "Interface\\GossipFrame\\VendorGossipIcon")
+    if not ID(icon) then return end
+    local vendor
+    for _, option in ipairs(options) do
+        -- Unknown icons cannot rule out a second shop entry.
+        if not ID(option.icon) then return end
+        if option.icon == icon then
+            if vendor then return end
+            vendor = option
+        end
+    end
+    return vendor
+end
+
 function Quests:Gossip()
     if not Shown(GossipFrame) then return end
     local api = C_GossipInfo or {}
@@ -129,11 +148,16 @@ function Quests:Gossip()
             end
         end
     end
-    -- Keep all quest entries accessible, including unfinished and manually chosen rewards.
-    if not Yes(Suite.db.autoGossip) or #active > 0 or #available > 0 then return end
+    if not Yes(Suite.db.autoVendor) and not Yes(Suite.db.autoGossip) then return end
     local options = List(Read(api.GetOptions))
-    if not options or #options ~= 1 or not No(Read(api.ForceGossip)) then return end
-    local option = options[1]
+    if not options then return end
+    local option = Yes(Suite.db.autoVendor) and VendorOption(options) or nil
+    if not option then
+        -- General conversation still preserves quest entries and deliberate menus.
+        if not Yes(Suite.db.autoGossip) or #active > 0 or #available > 0
+            or #options ~= 1 or not No(Read(api.ForceGossip)) then return end
+        option = options[1]
+    end
     local status = Enum and Enum.GossipOptionStatus and Enum.GossipOptionStatus.Available
     if not Count(status, 10) or not Suite.IsReadable(option.status) or option.status ~= status
         or not ID(option.gossipOptionID) then return end
@@ -234,6 +258,8 @@ function Quests:OnEvent(event, continuing, success)
         elseif No(success) then stage.dataFailed = true end
     elseif event == "QUEST_PROGRESS" then self:SetStage("progress")
     elseif event == "QUEST_COMPLETE" then self:SetStage("reward")
+    elseif event == "MERCHANT_CLOSED" then
+        if Yes(Suite.db.autoVendor) then self:EndVisit() end
     elseif event == "GOSSIP_CLOSED" then
         self:Cancel(); self.stage = nil
         if not Yes(continuing) then self:EndVisit() end
@@ -267,7 +293,7 @@ function Quests:Apply()
             self.events:SetScript("OnEvent", function(_, event, ...) self:OnEvent(event, ...) end)
         end
         self.active = true
-        for _, event in ipairs({ "GOSSIP_SHOW", "GOSSIP_CLOSED", "GOSSIP_OPTIONS_REFRESHED", "GOSSIP_CONFIRM",
+        for _, event in ipairs({ "GOSSIP_SHOW", "GOSSIP_CLOSED", "MERCHANT_CLOSED", "GOSSIP_OPTIONS_REFRESHED", "GOSSIP_CONFIRM",
             "GOSSIP_ENTER_CODE", "QUEST_GREETING", "QUEST_DETAIL", "QUEST_DATA_LOAD_RESULT", "QUEST_PROGRESS", "QUEST_COMPLETE",
             "QUEST_FINISHED", "QUEST_ITEM_UPDATE", "QUEST_LOG_UPDATE", "PLAYER_INTERACTION_MANAGER_FRAME_HIDE",
             "PLAYER_REGEN_DISABLED", "PLAYER_ENTERING_WORLD" }) do

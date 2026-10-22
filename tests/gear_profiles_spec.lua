@@ -96,7 +96,7 @@ local equipment, records = {}, {
     staff = { loc = "INVTYPE_2HWEAPON", level = 25, stats = { ITEM_MOD_INTELLECT_SHORT = 10, ITEM_MOD_DAMAGE_PER_SECOND_SHORT = 20 } },
 }
 C_Item = {
-    GetItemInfo = function(link) local r = records[link]; if r then return link, link, 2, r.level, 1, "Armor", "", 1, r.loc end end,
+    GetItemInfo = function(link) local r = records[link]; if r then return link, link, 2, r.level, 1, "Armor", "", 1, r.loc, 1, 0, 4, 1 end end,
     GetDetailedItemLevelInfo = function(link) return records[link] and records[link].level end,
     IsUsableItem = function() return true end,
     GetItemStats = function(link) return records[link] and records[link].stats end,
@@ -121,12 +121,13 @@ equal(comparison.breakdown[1].points, 10, "largest contribution is first")
 equal(comparison.breakdown[2].points, -2, "negative tradeoffs remain visible")
 local tip = Frame(); Suite.Tooltips:Item(tip, { hyperlink = "new" })
 equal(tip.lines[1][1], "Possible stat upgrade · +8.0 (Detailed caster)", "tooltip uses the same character weights as icons")
-equal(tip.lines[2][1], "Score · equipped -> candidate", "score label uses a font-safe comparison separator")
-equal(tip.lines[2][2], "14.0 -> 22.0", "tooltip shows exact equipped/candidate basis")
+equal(tip.lines[2][1], "Not your preferred armor type (Mail preferred).", "armor explanation preserves the full custom comparison below it")
+equal(tip.lines[3][1], "Score · equipped -> candidate", "score label uses a font-safe comparison separator")
+equal(tip.lines[3][2], "14.0 -> 22.0", "tooltip shows exact equipped/candidate basis")
 state.details = true
 tip = Frame(); Suite.Tooltips:Item(tip, { hyperlink = "new" })
-equal(tip.lines[3][2], "old", "full detail names the item being replaced")
-equal(tip.lines[4][1], "Intellect +5.0 x 2", "full detail exposes the actual weight multiplication")
+equal(tip.lines[4][2], "old", "full detail names the item being replaced")
+equal(tip.lines[5][1], "Intellect +5.0 x 2", "full detail exposes the actual weight multiplication")
 local button, buttonRecord = Frame(), {}; button.GetItemLink = function() return "new" end
 Suite.Items:Update(button, buttonRecord)
 equal(buttonRecord.arrow.text, "+", "custom improvements appear through the real item icon renderer")

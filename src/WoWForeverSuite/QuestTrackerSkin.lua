@@ -103,6 +103,22 @@ local function Texture(parent, color, layer, level)
     texture:Hide()
     return texture
 end
+local function BackgroundLayer(parent)
+    local layer = CreateFrame("Frame", nil, parent)
+    if type(layer.SetFixedFrameStrata) ~= "function" or type(layer.SetFixedFrameLevel) ~= "function" then
+        layer:Hide()
+        return
+    end
+    -- Parent restacking must never raise the opaque fill over native text or controls.
+    -- Native quest timers also live below the LOW tracker, in BACKGROUND strata.
+    layer:SetFixedFrameStrata(true)
+    layer:SetFixedFrameLevel(true)
+    layer:SetFrameStrata("BACKGROUND")
+    layer:SetFrameLevel(0)
+    layer:SetAllPoints(parent)
+    layer:EnableMouse(false)
+    return layer
+end
 local function AnchorEdge(edge, target, side, left, right)
     edge:ClearAllPoints()
     if side == "TOP" or side == "BOTTOM" then
@@ -122,16 +138,11 @@ function Skin:Panel(parent, target, header, pass)
     if not panel then
         panel = { textures = {}, edges = {} }
         if not header then
-            -- Native quest timers use BACKGROUND strata below the LOW tracker.
-            -- Keep only our fill below them; the native timer and tracker stay untouched.
-            local layer = CreateFrame("Frame", nil, parent)
-            layer:SetAllPoints(parent)
-            layer:SetFrameStrata("BACKGROUND")
-            layer:SetFrameLevel(0)
-            layer:EnableMouse(false)
-            panel.backgroundLayer = layer
-            panel.background = Texture(layer, { 0.035, 0.05, 0.065, 0.88 })
-            panel.textures[1] = panel.background
+            panel.backgroundLayer = BackgroundLayer(parent)
+            if panel.backgroundLayer then
+                panel.background = Texture(panel.backgroundLayer, { 0.035, 0.05, 0.065, 0.88 })
+                panel.textures[1] = panel.background
+            end
         end
         for _, side in ipairs(header and { "BOTTOM" } or { "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
             local edge = Texture(parent, { 0.41, 0.84, 0.75, header and 0.45 or 0.65 }, "OVERLAY", 7)

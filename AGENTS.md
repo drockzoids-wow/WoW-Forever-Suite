@@ -12,7 +12,8 @@ Read `docs/forever-development.md`, `docs/feature-plan.md` and `docs/testing.md`
 
 ## Client and source
 
-- Installed game: `C:\Games\World of Warcraft\_classic_beta_`.
+- Current stress-test game: `C:\Games\World of Warcraft\_forever_` (user-selected October 21, 2026).
+- October 21 installed executable: `Wow.exe` `1.60.1.70532`, flavor `wowf`; actual running build/Interface unreported. Installed stress-test Suite is a separate 0.2.93 directory; this canonical source is newer. The public source mirror at build 70450 is earlier evidence, not an exact match for 70532.
 - Verified on October 5, 2026: product `wow_classic_beta`, executable `1.60.1.70205`, Interface `16001`.
 - This client uses modern API conventions. A low Interface number does not imply Classic Era APIs. Prefer capability checks and exact build sources.
 - Source of truth for implementations: the running client, then its matching Blizzard API and UI source. The cached mirror is `.cache/wow-ui-source/Interface/AddOns`; revision metadata is `.cache/forever-ui-source.json`.

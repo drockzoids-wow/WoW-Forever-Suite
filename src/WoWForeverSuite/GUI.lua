@@ -33,7 +33,7 @@ local pages = {
         { key = "levelingBar", label = "Leveling tracker", help = "Stack XP/hour, net gold/hour, level progress and time to level.\nStarts at the top left. Drag its unlocked header; position saves per character." },
         { action = "levelingLock", label = "Lock tracker", help = "Locked clicks pass through; hover details remain available.\nThe header lock and minimize buttons stay clickable." },
         { action = "levelingMinimize", label = "Minimize tracker", help = "Show only the Leveling header. Tracking continues while minimized.\nClick the header's + button to expand it again." },
-        { action = "levelingSession", label = "Start a new session", help = "Reset tracked XP, gold and elapsed time. Rates appear after one minute.\nReload keeps the session; a fresh login starts a new one. Idle time counts." },
+        { action = "levelingSession", label = "Start a new session", help = "Save this session in the log and start fresh. Rates appear after one minute.\nReload keeps the session; a fresh login starts a new one. Idle time counts." },
         { action = "levelingPosition", label = "Reset tracker position", help = "Return this character's tracker to the top left.\nCtrl-right-clicking its unlocked header also resets its position." },
     }, note = "Gold/hour includes spending and transfers. Estimates use your session pace; incomplete XP tracking shows no estimate." },
     professions = { title = "Professions", description = "Use deliberate profession shortcuts on eligible bag equipment.", rows = {
@@ -41,12 +41,12 @@ local pages = {
         { action = "disenchantModifier", label = "Choose modifier key", help = "Cycle Alt, Ctrl and Shift. Hold only that modifier.\nEquipped gear, bank items, locked slots and combat are excluded." },
     }, note = "Only uncommon, rare or epic weapons and armor are offered.\nThe game makes the final skill and eligibility check. Nothing is disenchanted automatically." },
     training = { title = "Training Planner", description = "Review class skills, future training costs and weapon trainers.", rows = {
-        { action = "trainingOpen", label = "Open Training Planner", help = "Review class training and your faction's weapon-trainer reference.\nWeapon visits save their own locations and prices." },
+        { action = "trainingOpen", label = "Open Training Planner", help = "Browse your class catalog from level 1 to 60, with base costs.\nWeapon trainers include locations, class eligibility and base costs." },
         { key = "trainingPlanner", label = "Record trainer offerings", help = "Save class skills separately from weapon trainer visits.\nStarts off. Training purchases remain manual." },
-        { key = "trainingSpellbook", label = "Show with spellbook", help = "Open saved class training when you open the spellbook.\nUses trainer recording; closing the spellbook dismisses its companion." },
+        { key = "trainingSpellbook", label = "Show with spellbook", help = "Open your class catalog with the spellbook while recording is enabled.\nClosing the spellbook dismisses its companion." },
         { key = "trainingAuto", label = "Show Training Planner at trainers", help = "Open Class or Weapons beside the trainer after offerings arrive.\nClosing the planner dismisses it for that visit." },
-        { key = "trainingLevelUp", label = "Show Training Planner on level up", help = "Show saved class training after each level while recording is enabled.\nWeapon trainer visits keep their own list." },
-    }, note = "Enable trainer recording for automatic openings. Saved offerings and prices may be outdated; visit your trainer to refresh them. Purchases stay manual." },
+        { key = "trainingLevelUp", label = "Show Training Planner on level up", help = "Review the built-in catalog after leveling while recording is enabled.\nWeapon trainer visits keep their own list." },
+    }, note = "The built-in level 1–60 catalog works without trainer recording. Base costs exclude discounts; visits add recorded prices. Enable recording for automatic openings. Purchases stay manual." },
     castbars = { title = "Castbars", description = "Adjust player, target and focus castbar sizes. Native positions are kept.", rows = {},
         note = "Each bar is optional. Turning custom size off restores its native dimensions.\nPreview ends on leaving this page or a real cast; combat cleanup waits until combat ends." },
     audio = { title = "Audio", description = "Keep game sound with the Windows playback device you choose.", rows = {
@@ -55,13 +55,13 @@ local pages = {
     }, note = "Disabling stops syncing. Choose a fixed device in the game's Audio settings.\nYour volume, mute, microphone and voice-chat choices stay under your control." },
     profiles = { title = "Profiles", description = "Save a familiar setup, share it, or make it personal.", rows = {},
         note = "Switches reload the UI. Gear weights, macros, inventory and contacts stay separate.\nNative Edit Mode layouts, keybindings and the character leveling tracker keep their own settings." },
-    setup = { title = "Setup guide", description = "Five steps to a setup that feels like yours.", rows = {} },
+    setup = { title = "Setup guide", description = "Choose your tools in five steps, then review and apply.", rows = {} },
     overview = { title = "A little less friction.", description = "Choose the tools that belong in your everyday setup.\nStart with Setup guide for a tour of the main choices.", rows = {
         { key = "squareMinimap", label = "Square minimap", help = "Area and subzone header with a clock inside the map.\nMove closer to screen edges in Edit Mode, then save the layout." },
         { key = "minimapStats", label = "Minimap stats", help = "FPS and home/world latency below Blizzard's coordinates.\nClick the stats row to open this panel; customize it in Minimap." },
         { key = "windowTools", label = "Window tools", help = "Drag a header to move. Ctrl+scroll to resize.\nCtrl+right-click the header to reset position and size." },
         { key = "itemLevels", label = "Item levels on icons", help = "Show quality-colored levels at the top right of gear icons.\nEnable tooltip item levels separately in Items or Tooltips." },
-        { key = "upgradeHints", label = "Possible upgrades", help = "A teal + marks a possible upgrade under your chosen comparison.\nChoose Stats or Item level in Gear Details; effects need your judgment." },
+        { key = "upgradeHints", label = "Possible upgrades", help = "Green +: preferred armor; yellow +: another usable armor type.\nBoth follow your comparison; weapons and accessories stay green." },
         { key = "playerItemLevel", label = "Player item levels", help = "Hover yourself or a nearby player to see equipment level.\nOther players need an available inspect; requests pause in combat." },
     } },
     minimap = { title = "Minimap", description = "A compact header, a clear map, and room for Blizzard's coordinates.", rows = {
@@ -90,7 +90,7 @@ local pages = {
         { key = "itemLevels", label = "Item levels on icons", help = "Show quality-colored equipment and weapon levels at the top right of icons." },
         { key = "itemTooltipLevels", label = "Item levels in tooltips", help = "Show item levels for equipment and weapons only." },
         { key = "characterItemLevel", label = "Character frame item level", help = "Show your equipped average above the character model.\nThe level and class line keeps its full space." },
-        { key = "upgradeHints", label = "Possible upgrades", help = "A teal + marks usable gear for an empty slot or a possible upgrade, including weapons." },
+        { key = "upgradeHints", label = "Possible upgrades", help = "Green +: preferred armor; yellow +: another usable armor type.\nMarks possible upgrades or empty slots under your chosen comparison." },
         { action = "upgradePreference", label = "Prefer", help = "Click to prefer Stats or Item level. Stats includes role weights and DPS.\nWeapon comparisons include the hands being replaced." },
         { action = "preset", label = "Comparison profile", help = "Ready-made class and role presets work without editing.\nChoose Automatic, a role, or your own saved weights for this character." },
         { action = "weights", label = "Details & custom weights", help = "See how scores are calculated and choose tooltip detail.\nOptionally create or edit your own weights; built-in presets stay intact." },
@@ -149,13 +149,15 @@ local pages = {
     }, note = "Known alts fill missing last names from account autocomplete when available. Your active character stays hidden. Save full names in To for any unresolved contact." },
     chat = { title = "A quieter place for conversation.", description = "A clean chat panel using your active settings profile.", rows = {},
         note = "Click the small copy icon on chat, then drag across text and release to copy. A chat message reports the result. Click the icon again for normal chat." },
-    vendor = { title = "Ready for the next trip.", description = "Repair your gear and choose how to clear gray-quality junk.", rows = {
+    vendor = { title = "Ready for the next trip.", description = "Open shops, repair your gear and choose how to clear gray-quality junk.", rows = {
         { key = "autoRepair", label = "Automatically repair", help = "Repair when you visit a vendor who offers repairs." },
         { action = "repairSource", label = "Repair funding", help = "Personal uses your gold. Guild requires full permitted guild funds.\nGuild mode skips repairs if those funds are unavailable." },
         { key = "autoSellJunk", label = "Automatically sell junk", help = "Clear gray-quality items when you visit a vendor.\nBoth modes respect bags excluded from junk selling." },
         { action = "junkMode", label = "Junk sale mode", help = "Slow sells one stack at a time, up to 12 per vendor visit.\nInstant sells permanently and accepts the junk-sale popup for you." },
         { action = "junkDetails", label = "Sale and recovery", help = "", passive = true },
-    }, note = "Buyback retains only the last 12 sold stacks. Later sales can displace them. Instant sales aren't recoverable." },
+        { key = "autoVendor", label = "Automatically open vendor shops", help = "Skip the extra dialogue click when one shop option is listed.\nHold Shift when talking to keep the menu open." },
+        { key = "vendorKnownItems", label = "Highlight already-known vendor items", help = "Green highlights and a checkmark mark learned or collected items.\nIncludes already-known recipes and collected pets; not ordinary bag contents." },
+    }, note = "Buyback retains only the last 12 sold stacks. Later sales can displace them. Instant sales aren't recoverable.\nShop opening pauses for confirmations and menus with more than one shop." },
     quests = { title = "Keep your journey moving.", description = "Style your tracker and choose how conversations and looting are handled.", rows = {
         { key = "autoQuestPickup", label = "Automatically pick up quests", help = "Open and accept available quests, including low-level quests.\nIgnored quests and PvP confirmations stay manual." },
         { key = "autoQuestTurnIn", label = "Automatically turn in quests", help = "Complete ready quests with no reward choice or one item.\nChoose between multiple rewards yourself; gold costs stay manual." },
@@ -250,6 +252,7 @@ end
 function GUI:Select(key)
     self:StopScrollDrags()
     if not Suite.IsReadable(key) or type(key) ~= "string" or not pages[key] then return end
+    if key ~= "leveling" then Suite.pending.levelingJournalLayout = nil end
     local previousPage, previousScroll = self.page, self.scrollOffset or 0
     Suite.pending.settingsReveal = nil
     self.selectionSerial = (self.selectionSerial or 0) + 1
@@ -292,6 +295,8 @@ function GUI:Select(key)
     if self.mapPanel then self.mapPanel:SetShown(key == "worldmap") end
     if self.castbarPanel then self.castbarPanel:SetShown(key == "castbars") end
     if self.setupPanel then self.setupPanel:SetShown(key == "setup") end
+    if self.levelingLogPanel then self.levelingLogPanel:SetShown(key == "leveling") end
+    if key == "leveling" then self:BuildLevelingLog(); self:RefreshLevelingLog() end
     if self.appearancePanel then self.appearancePanel:SetShown(key == "appearance") end
     if key == "appearance" then self:BuildAppearance(); self:RefreshAppearance() end
     if key == "setup" then Suite.Setup:Begin(); self:BuildSetup(); self:RefreshSetup() end
@@ -462,6 +467,274 @@ function GUI:BuildHome()
     end
 end
 
+function GUI:BuildLevelingLog()
+    if self.levelingLogPanel then return end
+    if InCombatLockdown() then
+        Suite.pending.levelingLogBuild = function()
+            if self.page == "leveling" and self.frame:IsShown() then self:BuildLevelingLog(); self:Select("leveling") end
+        end
+        return
+    end
+    local width = CONTENT_WIDTH - 36
+    local panel = CreateFrame("Frame", nil, self.content)
+    panel:SetSize(width, 600)
+    self.levelingLogPanel, self.levelingLogRows, self.levelingScopeButtons = panel, {}, {}
+    local function Label(parent, size, color, x, y, w, height)
+        local text = Text(parent, size, color)
+        text:SetPoint("TOPLEFT", x, y); text:SetWidth(w); text:SetHeight(height)
+        text:SetWordWrap(true); text:SetJustifyV("TOP")
+        return text
+    end
+    local function Button(label, x, y, w, callback)
+        local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
+        button:SetSize(w, 30); button:SetPoint("TOPLEFT", x, y)
+        button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+        button:SetBackdropColor(unpack(palette.row)); Suite.Theme:Backdrop(button, 0.5)
+        button.label = Text(button, 11, palette.accent); button.label:SetPoint("CENTER"); button.label:SetWidth(w - 12)
+        button.label:SetWordWrap(false); button.label:SetJustifyH("CENTER"); button.label:SetText(label)
+        button:SetScript("OnClick", function() if not InCombatLockdown() then callback() end end)
+        return button
+    end
+    Label(panel, 17, palette.text, 0, -2, width, 22):SetText("Session journal")
+    Label(panel, 11, palette.muted, 0, -30, width, 30):SetText("Your progress, rewards and milestones, one session at a time.")
+    local scopeWidth = math.min(112, (width - 136) / 3)
+    for index, scope in ipairs({ "Current", "Previous", "Overall" }) do
+        self.levelingScopeButtons[scope] = Button(scope, (index - 1) * (scopeWidth + 8), -66, scopeWidth, function()
+            self.levelingScope, self.levelingRecord, self.levelingLogPage = scope, nil, 1
+            if self.levelingView == "History" then self.levelingView = "Summary" end
+            self:RefreshLevelingLog()
+        end)
+    end
+    self.levelingNewSession = Button("New session", width - 112, -66, 112, function() Suite.Leveling:ResetSession(); self:RefreshLevelingLog() end)
+    self.levelingViewButtons = {}
+    local viewWidth = (width - 32) / 5
+    for index, view in ipairs({ "Summary", "Loot", "Reputation", "Levels", "History" }) do
+        self.levelingViewButtons[view] = Button(view, (index - 1) * (viewWidth + 8), -110, viewWidth, function()
+            self.levelingView, self.levelingLogPage = view, 1; self:RefreshLevelingLog()
+        end)
+    end
+    self.levelingJournalTitle = Label(panel, 15, palette.text, 0, -162, width, 23)
+    self.levelingJournalSubtitle = Label(panel, 11, palette.muted, 0, -188, width, 32)
+    local summary = CreateFrame("Frame", nil, panel); self.levelingSummaryPanel = summary
+    summary:SetPoint("TOPLEFT", 0, -230); summary:SetSize(width, 1)
+    self.levelingCards = {}
+    local columns = width >= 660 and 3 or 2
+    local cardWidth = (width - (columns - 1) * 12) / columns
+    for index = 1, 6 do
+        local card = CreateFrame("Frame", nil, summary, "BackdropTemplate")
+        card:SetPoint("TOPLEFT", (index - 1) % columns * (cardWidth + 12), -math.floor((index - 1) / columns) * 78)
+        card:SetSize(cardWidth, 66); Fill(card, palette.row)
+        card.caption = Label(card, 11, palette.muted, 12, -10, cardWidth - 24, 16)
+        card.value = Label(card, 19, palette.text, 12, -32, cardWidth - 24, 26)
+        self.levelingCards[index] = card
+    end
+    local detailY = math.ceil(6 / columns) * 78 + 8
+    Label(summary, 13, palette.text, 0, -detailY, width, 20):SetText("Adventure & gold")
+    self.levelingDetailTop = detailY + 31
+    self.levelingDetails = {}
+    local labelWidth = math.floor(width * 0.34)
+    for index = 1, 9 do
+        local row = { label = Label(summary, 11, palette.muted, 0, -self.levelingDetailTop - (index - 1) * 28, labelWidth, 24),
+            value = Label(summary, 12, palette.text, labelWidth + 12, -self.levelingDetailTop - (index - 1) * 28, width - labelWidth - 12, 24) }
+        self.levelingDetails[index] = row
+    end
+    self.levelingColumnHeaders = {}
+    local function ItemTooltip(row, show)
+        local tip = GameTooltip
+        if InCombatLockdown() or not Suite.IsReadable(tip) or not tip or type(tip.IsForbidden) ~= "function" then return end
+        local ok, forbidden = pcall(tip.IsForbidden, tip)
+        if not ok or not Suite.IsReadable(forbidden) or forbidden ~= false then return end
+        if show then
+            if not row.itemID or type(tip.SetOwner) ~= "function" or type(tip.SetHyperlink) ~= "function" then return end
+            pcall(function() tip:SetOwner(row, "ANCHOR_RIGHT"); tip:SetHyperlink("item:" .. row.itemID) end)
+        elseif type(tip.GetOwner) == "function" and type(tip.Hide) == "function" then
+            local ownerOK, owner = pcall(tip.GetOwner, tip)
+            if ownerOK and Suite.IsReadable(owner) and owner == row then tip:Hide() end
+        end
+    end
+    for index = 1, 4 do
+        local column = index
+        self.levelingColumnHeaders[index] = Button("", 0, -230, 100, function()
+            if self.levelingView ~= "Loot" then return end
+            local field = ({ "name", "quantity", "value" })[column]
+            if not field then return end
+            if self.levelingLootSort == field then self.levelingLootDescending = not self.levelingLootDescending
+            else self.levelingLootSort, self.levelingLootDescending = field, field ~= "name" end
+            self.levelingLogPage = 1; self:RefreshLevelingLog()
+        end)
+    end
+    for index = 1, 6 do
+        local row = CreateFrame("Button", nil, panel, "BackdropTemplate")
+        row:SetSize(width, 54); Fill(row, palette.row); row.cells = {}
+        for cell = 1, 4 do row.cells[cell] = Label(row, 12, palette.text, 12, -8, 100, 18); row.cells[cell]:SetWordWrap(false) end
+        row.detail = Label(row, 10, palette.muted, 12, -31, width - 24, 16); row.detail:SetWordWrap(false)
+        row.hideTooltip = function() ItemTooltip(row, false) end
+        row:SetScript("OnEnter", function()
+            if row.number or row.itemID then row:SetBackdropColor(0.09, 0.13, 0.145) end
+            ItemTooltip(row, true)
+        end)
+        row:SetScript("OnLeave", function() Fill(row, palette.row); row.hideTooltip() end)
+        row:SetScript("OnHide", row.hideTooltip)
+        row:SetScript("OnClick", function()
+            if InCombatLockdown() or not row.number then return end
+            self.levelingRecord, self.levelingView, self.levelingLogPage = row.number, "Summary", 1; self:RefreshLevelingLog()
+        end)
+        self.levelingLogRows[index] = row
+    end
+    self.levelingJournalEmpty = Label(panel, 13, palette.muted, 12, -250, width - 24, 80)
+    self.levelingLogBack = Button("Previous page", 0, -626, 112, function()
+        self.levelingLogPage = math.max(1, (self.levelingLogPage or 1) - 1); self:RefreshLevelingLog()
+    end)
+    self.levelingLogNext = Button("Next page", width - 112, -626, 112, function()
+        self.levelingLogPage = (self.levelingLogPage or 1) + 1; self:RefreshLevelingLog()
+    end)
+    self.levelingLogCount = Label(panel, 11, palette.muted, 120, -634, width - 240, 22)
+    self.levelingLogCount:SetJustifyH("CENTER")
+    self.levelingJournalNote = Label(panel, 10, palette.muted, 0, -670, width, 48)
+end
+
+function GUI:RefreshLevelingLog()
+    if self.page ~= "leveling" or not self.levelingLogPanel then return end
+    if InCombatLockdown() then
+        Suite.pending.levelingJournalLayout = function()
+            if self.page == "leveling" and self.frame:IsShown() then self:RefreshLevelingLog() end
+        end
+        return
+    end
+    Suite.pending.levelingJournalLayout = nil
+    local feature, journal, panel = Suite.Leveling, Suite.Journey, self.levelingLogPanel
+    local width = panel:GetWidth()
+    local view, scope = self.levelingView or "Summary", self.levelingScope or "Current"
+    local record = self.levelingRecord and feature.db and feature.db.history[self.levelingRecord] or nil
+    if record then scope = "Session #" .. self.levelingRecord else self.levelingRecord = nil; record = feature:Recap(scope) end
+    for name, button in pairs(self.levelingScopeButtons) do
+        local selected = view ~= "History" and not self.levelingRecord and name == scope
+        button:SetBackdropColor(unpack(selected and { 0.1, 0.2, 0.21 } or palette.row))
+        Suite.Theme:Backdrop(button, selected and 1 or 0.5)
+    end
+    for name, button in pairs(self.levelingViewButtons) do
+        button:SetBackdropColor(unpack(name == view and { 0.1, 0.2, 0.21 } or palette.row))
+        Suite.Theme:Backdrop(button, name == view and 1 or 0.5)
+    end
+    local canRestart = feature.active == true and feature:Enabled()
+    self.levelingNewSession:SetEnabled(canRestart)
+    self.levelingNewSession.label:SetTextColor(unpack(canRestart and palette.accent or palette.muted))
+    local summary, model
+    if view == "Summary" then summary = journal:Summary(record, scope)
+    else model = journal:Rows(feature, record, scope, view, self.levelingLootSort or "quantity", self.levelingLootDescending ~= false) end
+    local rows = model and model.rows or {}
+    local pages = math.max(1, math.ceil(#rows / 6))
+    self.levelingLogPage = math.max(1, math.min(self.levelingLogPage or 1, pages))
+    local visible = math.min(6, math.max(0, #rows - (self.levelingLogPage - 1) * 6))
+    local detailCount = summary and #summary.details or 0
+    local detailHeights, detailHeight = {}, 0
+    self.levelingSummaryPanel:SetShown(summary ~= nil and record ~= nil)
+    self.levelingJournalTitle:SetText(summary and summary.title or view == "History" and "Session history" or scope .. " · " .. view)
+    self.levelingJournalSubtitle:SetText(summary and summary.subtitle or model.title)
+    self.levelingJournalEmpty:SetShown(summary and record == nil or model ~= nil and #rows == 0)
+    self.levelingJournalEmpty:SetText(model and model.empty or "Turn on the Leveling tracker to begin. Existing sessions remain available in History.")
+    if summary then
+        for index, card in ipairs(self.levelingCards) do
+            local data = summary.cards[index]
+            card:SetShown(data ~= nil)
+            if data then
+                card.caption:SetText(data[1]); card.value:SetText(data[2])
+                local size = #data[2] > math.floor((card:GetWidth() - 24) / 10) and 13 or 19
+                card.value:SetFont("Fonts\\FRIZQT__.TTF", size, "")
+                card.value:SetTextColor(unpack(data[3] == "negative" and { 1, 0.52, 0.45 } or palette.text))
+            end
+        end
+        for index, row in ipairs(self.levelingDetails) do
+            local data = summary.details[index]
+            row.label:SetShown(data ~= nil); row.value:SetShown(data ~= nil)
+            row.label:SetText(data and data[1] or ""); row.value:SetText(data and data[2] or "")
+            if data then
+                local measured = row.value.GetStringHeight and row.value:GetStringHeight()
+                local height = Suite.IsReadable(measured) and type(measured) == "number" and measured == measured
+                    and measured > 0 and measured < 96 and math.max(24, math.ceil(measured)) or 24
+                detailHeights[index] = height; detailHeight = detailHeight + height + 4
+            end
+        end
+    end
+    local layout = view .. ":" .. visible .. ":" .. detailCount .. ":" .. tostring(record ~= nil) .. ":" .. table.concat(detailHeights, ",")
+    local changed = self.levelingJournalLayout ~= layout
+    self.levelingJournalLayout = layout
+    for index, header in ipairs(self.levelingColumnHeaders) do
+        local title = model and model.headers[index]
+        header:SetShown(title ~= nil and #rows > 0); header:SetEnabled(view == "Loot")
+        header.label:SetText(title or "")
+    end
+    for index, row in ipairs(self.levelingLogRows) do
+        local data = rows[(self.levelingLogPage - 1) * 6 + index]
+        local itemID = data and data.id or nil
+        if row.itemID ~= itemID then row.hideTooltip() end
+        row.itemID = itemID
+        row:SetShown(data ~= nil); row.number = data and data.number or nil
+        row.detail:SetText(data and data.detail or "")
+        Fill(row, palette.row)
+        for cell, text in ipairs(row.cells) do
+            text:SetShown(data ~= nil and data.cells[cell] ~= nil)
+            text:SetText(data and data.cells[cell] or "")
+            text:SetTextColor(unpack(data and cell == #data.cells and data.tone == "negative" and { 1, 0.52, 0.45 }
+                or data and cell == #data.cells and data.tone == "positive" and { 0.48, 0.86, 0.62 } or palette.text))
+        end
+    end
+    if changed then
+        if model then
+            local x = 0
+            for cell, fraction in ipairs(model.widths) do
+                local columnWidth = width * fraction
+                local header = self.levelingColumnHeaders[cell]
+                header:ClearAllPoints(); header:SetPoint("TOPLEFT", x, -230); header:SetWidth(columnWidth - 4)
+                header.label:ClearAllPoints(); header.label:SetPoint("LEFT", 12, 0); header.label:SetWidth(columnWidth - 28)
+                header.label:SetJustifyH(cell == 1 and "LEFT" or "RIGHT")
+                for index, row in ipairs(self.levelingLogRows) do
+                    row:ClearAllPoints(); row:SetPoint("TOPLEFT", 0, -270 - (index - 1) * 62)
+                    local text = row.cells[cell]
+                    text:ClearAllPoints(); text:SetPoint("TOPLEFT", x + 12, -8); text:SetWidth(columnWidth - 24)
+                    text:SetJustifyH(cell == 1 and "LEFT" or "RIGHT")
+                end
+                x = x + columnWidth
+            end
+        elseif summary and record then
+            local offset, labelWidth = 0, math.floor(width * 0.34)
+            for index = 1, detailCount do
+                local row, height = self.levelingDetails[index], detailHeights[index]
+                row.label:ClearAllPoints(); row.label:SetPoint("TOPLEFT", 0, -self.levelingDetailTop - offset)
+                row.value:ClearAllPoints(); row.value:SetPoint("TOPLEFT", labelWidth + 12, -self.levelingDetailTop - offset)
+                row.value:SetHeight(height); offset = offset + height + 4
+            end
+            self.levelingSummaryPanel:SetHeight(self.levelingDetailTop + detailHeight)
+        end
+        local bottom = summary and record and 230 + self.levelingDetailTop + detailHeight
+            or model and (#rows > 0 and 270 + visible * 62 or 350) or 350
+        if not summary and pages > 1 then
+            self.levelingLogBack:ClearAllPoints(); self.levelingLogBack:SetPoint("TOPLEFT", 0, -bottom)
+            self.levelingLogNext:ClearAllPoints(); self.levelingLogNext:SetPoint("TOPLEFT", width - 112, -bottom)
+            self.levelingLogCount:ClearAllPoints(); self.levelingLogCount:SetPoint("TOPLEFT", 120, -bottom - 8)
+            bottom = bottom + 44
+        end
+        self.levelingJournalNote:ClearAllPoints(); self.levelingJournalNote:SetPoint("TOPLEFT", 0, -bottom - 12)
+        panel:SetHeight(bottom + 76)
+        self:LayoutPage("leveling"); self:ScrollTo(self.scrollOffset or 0)
+    end
+    local navigation = not summary and pages > 1
+    self.levelingLogBack:SetShown(navigation); self.levelingLogNext:SetShown(navigation); self.levelingLogCount:SetShown(navigation)
+    self.levelingLogBack:SetEnabled(self.levelingLogPage > 1); self.levelingLogNext:SetEnabled(self.levelingLogPage < pages)
+    self.levelingLogCount:SetText(self.levelingLogPage .. " / " .. pages)
+    self.levelingJournalNote:SetText(summary and summary.note or model.note)
+    for _, row in ipairs(self.levelingLogRows) do if row:IsShown() then
+        for _, text in ipairs(row.cells) do if text:IsShown() then
+            text:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+            local measured = text.GetUnboundedStringWidth and text:GetUnboundedStringWidth()
+            if Suite.IsReadable(measured) and type(measured) == "number" and measured == measured
+                and measured > text:GetWidth() and measured < 10000 then
+                text:SetFont("Fonts\\FRIZQT__.TTF", math.max(9, math.floor(12 * text:GetWidth() / measured)), "")
+            end
+        end end
+    end end
+end
+
 function GUI:BuildAppearance()
     if self.appearancePanel then return end
     local panel = CreateFrame("Frame", nil, self.content)
@@ -528,9 +801,10 @@ end
 
 function GUI:BuildSetup()
     if self.setupPanel then return end
+    local width, viewport = (self.contentWidth or CONTENT_WIDTH) - 36, 316
     local panel = CreateFrame("Frame", nil, self.body)
     panel:SetPoint("TOPLEFT", 18, 0)
-    panel:SetSize(780, 550)
+    panel:SetSize(width, 550)
     self.setupPanel, self.setupCards, self.setupSteps = panel, {}, {}
     local function Button(x, y, width, label, callback)
         local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
@@ -543,8 +817,9 @@ function GUI:BuildSetup()
         button:SetScript("OnClick", callback)
         return button
     end
+    local stepWidth = (width - (#Suite.Setup.pages - 1) * 6) / #Suite.Setup.pages
     for i, page in ipairs(Suite.Setup.pages) do
-        local step = Button((i - 1) * 158, -77, 148, i .. "  " .. page.short, function() Suite.Setup:Move(i) end)
+        local step = Button((i - 1) * (stepWidth + 6), -77, stepWidth, i .. "  " .. page.short, function() Suite.Setup:Move(i) end)
         step.label:SetFont("Fonts\\FRIZQT__.TTF", 10)
         self.setupSteps[i] = step
     end
@@ -556,22 +831,35 @@ function GUI:BuildSetup()
     end)
     self.setupCount = Text(panel, 10, palette.muted)
     self.setupCount:SetPoint("TOPRIGHT", -2, -117)
-    for i = 1, 10 do
-        local card = CreateFrame("Button", nil, panel, "BackdropTemplate")
-        card:SetSize(384, 60)
-        card:SetPoint("TOPLEFT", (i - 1) % 2 * 396, -143 - math.floor((i - 1) / 2) * 64)
+    local choices = self:CreateSuiteScrollFrame(panel)
+    choices:SetPoint("TOPLEFT", 0, -143)
+    choices:SetSize(width - 30, viewport)
+    self.setupChoices = choices
+    local choiceChild = CreateFrame("Frame", nil, choices)
+    choiceChild:SetSize(width - 30, viewport)
+    choices:SetScrollChild(choiceChild)
+    self.setupChoiceChild = choiceChild
+    local capacity, cardWidth = 0, (width - 38) / 2
+    for _, page in ipairs(Suite.Setup.pages) do capacity = math.max(capacity, #page.options) end
+    for i = 1, capacity do
+        local card = CreateFrame("Button", nil, choiceChild, "BackdropTemplate")
+        card:SetSize(cardWidth, 66)
+        card:SetPoint("TOPLEFT", (i - 1) % 2 * (cardWidth + 8), -math.floor((i - 1) / 2) * 70)
         Fill(card, palette.row)
         card.label = Text(card, 11, palette.text)
         card.label:SetPoint("TOPLEFT", 9, -7)
-        card.label:SetWidth(317)
+        card.label:SetWidth(cardWidth - 78)
         card.value = Text(card, 10, palette.accent)
         card.value:SetPoint("TOPRIGHT", -9, -8)
         card.help = Text(card, 10, palette.muted)
         card.help:SetPoint("TOPLEFT", 9, -25)
-        card.help:SetSize(366, 30)
+        card.help:SetSize(cardWidth - 18, 34)
+        card.help:SetWordWrap(true)
         card.help:SetJustifyV("TOP")
         card:SetScript("OnEnter", function() card:SetBackdropColor(0.09, 0.13, 0.145) end)
         card:SetScript("OnLeave", function() Fill(card, palette.row) end)
+        card:EnableMouseWheel(true)
+        card:SetScript("OnMouseWheel", choices:GetScript("OnMouseWheel"))
         card:SetScript("OnClick", function()
             local option = card.option
             if not option or not Suite.Setup.draft then return end
@@ -587,24 +875,24 @@ function GUI:BuildSetup()
     end
     local scroll = self:CreateSuiteScrollFrame(panel)
     scroll:SetPoint("TOPLEFT", 0, -143)
-    scroll:SetSize(750, 316)
+    scroll:SetSize(width - 30, viewport)
     self.setupReview = scroll
     local child = CreateFrame("Frame", nil, scroll)
-    child:SetSize(750, 316)
+    child:SetSize(width - 30, viewport)
     scroll:SetScrollChild(child)
     self.setupReviewChild = child
     self.setupReviewText = Text(child, 11, palette.text)
     self.setupReviewText:SetPoint("TOPLEFT", 10, -8)
-    self.setupReviewText:SetWidth(730)
+    self.setupReviewText:SetWidth(width - 50)
     self.setupReviewText:SetWordWrap(true)
     self.setupReviewText:SetJustifyV("TOP")
     self.setupTip = Text(panel, 10, palette.muted)
     self.setupTip:SetPoint("TOPLEFT", 0, -467)
-    self.setupTip:SetSize(780, 38)
+    self.setupTip:SetSize(width, 38)
     self.setupTip:SetJustifyV("TOP")
     self.setupBack = Button(0, -512, 88, "Back", function() Suite.Setup:Move(Suite.Setup.page - 1) end)
     self.setupLater = Button(94, -512, 110, "Later", function() self:Select("overview") end)
-    self.setupNext = Button(606, -512, 174, "Next", function()
+    self.setupNext = Button(width - 174, -512, 174, "Next", function()
         if Suite.Setup.page == #Suite.Setup.pages then Suite.Setup:Finish()
         else Suite.Setup:Move(Suite.Setup.page + 1) end
     end)
@@ -617,16 +905,30 @@ function GUI:RefreshSetup()
     local review = setup.page == #setup.pages
     self.heading:SetText(page.title)
     self.description:SetText(page.description)
-    self.note:SetText("Step " .. setup.page .. " of 5  ·  Choices apply only when you finish.  ·  /wfs setup")
+    self.note:SetText("Step " .. setup.page .. " of " .. #setup.pages .. "  ·  Choices apply only when you finish.  ·  /wfs setup")
+    if self.setupDisplayedDraft ~= setup.draft or self.setupDisplayedPage ~= setup.page then
+        for _, scroll in ipairs({ self.setupChoices, self.setupReview }) do
+            scroll.suiteOffset = 0
+            scroll:SetVerticalScroll(0)
+        end
+        self.setupDisplayedDraft, self.setupDisplayedPage = setup.draft, setup.page
+    end
     for i, step in ipairs(self.setupSteps) do
         Fill(step, i == setup.page and { 0.1, 0.2, 0.21 } or palette.row)
         step.label:SetTextColor(unpack(i == setup.page and palette.accent or palette.muted))
     end
     self.setupSuggested:SetShown(not review)
     self.setupCurrent:SetShown(not review)
+    self.setupChoices:SetShown(not review)
     self.setupReview:SetShown(review)
+    local choiceHeight = math.max(316, math.ceil(#page.options / 2) * 70)
+    self.setupChoiceChild:SetHeight(choiceHeight)
+    self.setupChoices.suiteMaximum = choiceHeight - 316
+    self.setupChoices.suiteOffset = math.min(self.setupChoices.suiteOffset, self.setupChoices.suiteMaximum)
+    self.setupChoices:SetVerticalScroll(self.setupChoices.suiteOffset)
+    self:SyncScrollBar(self.setupChoices)
     local count, summary = 0, {}
-    for i = 1, 4 do
+    for i = 1, #setup.pages - 1 do
         local changes = setup:Changes(i)
         count = count + #changes
         summary[#summary + 1] = "|cff68d5bf" .. i .. "  " .. setup.pages[i].short .. "|r\n"
@@ -654,6 +956,10 @@ function GUI:RefreshSetup()
         if Suite.IsReadable(height) and type(height) == "number" and height >= 0 and height < math.huge then
             self.setupReviewText:SetHeight(height)
             self.setupReviewChild:SetHeight(math.max(316, height + 16))
+            self.setupReview.suiteMaximum = math.max(0, height + 16 - 316)
+            self.setupReview.suiteOffset = math.min(self.setupReview.suiteOffset, self.setupReview.suiteMaximum)
+            self.setupReview:SetVerticalScroll(self.setupReview.suiteOffset)
+            self:SyncScrollBar(self.setupReview)
         end
     end
     self.setupTip:SetText(setup.message or (review and InCombatLockdown()
@@ -1003,7 +1309,7 @@ function GUI:BuildChat()
         track:SetHeight(3); track:SetColorTexture(0.17, 0.25, 0.29)
         local help = Text(panel, 10, palette.muted)
         help:SetPoint("TOPLEFT", 0, -y - 62)
-        help:SetText(percent and "0% is transparent; 100% is opaque." or "Message and typing text, saved for all characters.")
+        help:SetText(percent and "Message panel and tabs; the typing box stays dark." or "Message and typing text, saved for all characters.")
         slider:SetScript("OnValueChanged", function(_, value)
             if self.chatSyncing or not Suite.IsReadable(value) or type(value) ~= "number"
                 or value ~= value or math.abs(value) == math.huge then return end
@@ -1283,7 +1589,7 @@ function GUI:LayoutNavigation(key)
 end
 
 function GUI:LayoutPage(key)
-    local panels = { appearance = self.appearancePanel, buffs = Suite.BuffSettings.mode and self.buffPanel or nil, profiles = self.profilePanel, overview = self.homePanel, items = Suite.GearSettings.mode and self.gearPanel or nil, macros = self.macroPanel, meters = self.meterPanel, chat = self.chatPanel,
+    local panels = { leveling = self.levelingLogPanel, appearance = self.appearancePanel, buffs = Suite.BuffSettings.mode and self.buffPanel or nil, profiles = self.profilePanel, overview = self.homePanel, items = Suite.GearSettings.mode and self.gearPanel or nil, macros = self.macroPanel, meters = self.meterPanel, chat = self.chatPanel,
         actionbars = self.keybindPanel, bars = self.progressPanel, worldmap = self.mapPanel, characters = self.characterPanel, castbars = self.castbarPanel }
     local panel, bottom = panels[key], self.controlsOffset or 0
     if panel then
@@ -1574,6 +1880,7 @@ function GUI:Initialize()
         Suite.MissingBuffs:SetSettingsVisible(self.page == "buffs")
     end)
     frame:SetScript("OnHide", function()
+        Suite.pending.levelingJournalLayout = nil
         self:StopScrollDrags()
         Suite.pending.dashboardBuild, Suite.pending.dashboardView = nil, nil
         self:ClearSearch(); self:ClearSettingHighlight(); Suite.pending.settingsReveal = nil

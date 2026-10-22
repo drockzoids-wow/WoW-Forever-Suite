@@ -26,7 +26,7 @@ end
 
 function Items:GetInfo(item)
     if not Suite.IsReadable(item) or not item or not C_Item or not C_Item.GetItemInfo then return nil end
-    local name, link, quality, level, requiredLevel, _, _, _, equipLoc = C_Item.GetItemInfo(item)
+    local name, link, quality, level, requiredLevel, _, _, _, equipLoc, _, _, classID, subclassID = C_Item.GetItemInfo(item)
     if not Suite.IsReadable(name) then return nil end
     if not name then
         local id = C_Item.GetItemInfoInstant and C_Item.GetItemInfoInstant(item)
@@ -43,13 +43,44 @@ function Items:GetInfo(item)
     if not Suite.IsReadable(actual) then return nil end
     local itemLevel = actual or level
     if not Number(itemLevel) or itemLevel <= 0 then return nil end
-    return { link = link, quality = quality, level = itemLevel, requiredLevel = requiredLevel, equipLoc = equipLoc }
+    return { link = link, quality = quality, level = itemLevel, requiredLevel = requiredLevel, equipLoc = equipLoc,
+        classID = classID, subclassID = subclassID }
 end
 
 local function Read(callback, ...)
     if type(callback) ~= "function" then return nil end
     local ok, value = pcall(callback, ...)
     if ok and Suite.IsReadable(value) then return value end
+end
+
+local armorSlots = { INVTYPE_HEAD = true, INVTYPE_SHOULDER = true, INVTYPE_CHEST = true, INVTYPE_ROBE = true,
+    INVTYPE_WAIST = true, INVTYPE_LEGS = true, INVTYPE_FEET = true, INVTYPE_WRIST = true, INVTYPE_HAND = true }
+-- Blizzard item armor subclass IDs; compare IDs rather than localized item text.
+local armorNames = { "Cloth", "Leather", "Mail", "Plate" }
+local armorPreferences = { WARRIOR = { 3, 4 }, PALADIN = { 3, 4 }, HUNTER = { 2, 3 }, SHAMAN = { 2, 3 },
+    ROGUE = 2, DRUID = 2, MAGE = 1, PRIEST = 1, WARLOCK = 1 }
+
+function Items:UpgradeColor(info)
+    if not Suite.IsReadable(info) or type(info) ~= "table" or not Suite.IsReadable(info.equipLoc)
+        or type(info.equipLoc) ~= "string" then return end
+    -- Cloaks, jewelry, shields and weapons have no primary-armor preference.
+    if not armorSlots[info.equipLoc] then return 0.2, 1, 0.2 end
+    if not Number(info.classID) or info.classID ~= 4 or not Number(info.subclassID)
+        or info.subclassID ~= math.floor(info.subclassID) or not armorNames[info.subclassID]
+        or type(UnitClass) ~= "function" then return end
+    local ok, _, class = pcall(UnitClass, "player")
+    if not ok or not Suite.IsReadable(class) or type(class) ~= "string" then return end
+    local preferred = armorPreferences[class]
+    if type(preferred) == "table" then
+        local level = Read(UnitLevel, "player")
+        if not Number(level) or level <= 0 then return end
+        preferred = preferred[level < 40 and 1 or 2]
+    end
+    if not preferred then return end
+    local name = Read(C_Item and C_Item.GetItemSubClassInfo, 4, preferred)
+    if type(name) ~= "string" or name == "" then name = armorNames[preferred] end
+    if info.subclassID == preferred then return 0.2, 1, 0.2, "Preferred armor type: " .. name end
+    return 1, 0.82, 0, "Not your preferred armor type (" .. name .. " preferred)."
 end
 
 function Items:CanEquip(info)
@@ -220,7 +251,7 @@ function Items:Resolve(button, record)
             if not Suite.IsReadable(info) then return nil end
             if type(info) == "table" and Suite.IsReadable(info.itemID) then item = info.itemID end
         end
-        return item, location
+        return item, location, false
     end
     if button.GetItemLocation then
         local location = button:GetItemLocation()
@@ -233,7 +264,8 @@ function Items:Resolve(button, record)
             local item = C_Item.GetItemLink(location)
             if not Suite.IsReadable(item) then return nil end
             if not item and C_Item.GetItemID then item = C_Item.GetItemID(location) end
-            return item, location
+            -- This is the actual equipped instance, not a second copy with the same link.
+            return item, location, location.equipmentSlotIndex ~= nil
         end
     end
     if button.GetItemLink then
@@ -264,11 +296,11 @@ function Items:Update(button, record)
         record.arrow:SetDrawLayer("OVERLAY", 7)
         record.arrow:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
         record.arrow:SetPoint("BOTTOMLEFT", 2, 2)
-        record.arrow:SetTextColor(0.41, 0.84, 0.75)
     end
     record.level:SetText("")
     record.arrow:SetText("")
-    local item, location = self:Resolve(button, record)
+    local item, location, equipped = self:Resolve(button, record)
+    record.equipped = equipped == true
     local info = self:GetInfo(item)
     if not self:IsEquipment(info) then return end
     if Suite.db.itemLevels and location and C_Item.GetCurrentItemLevel then
@@ -282,7 +314,13 @@ function Items:Update(button, record)
         if color then record.level:SetTextColor(color.r, color.g, color.b)
         else record.level:SetTextColor(1, 1, 1) end
     end
-    if Suite.db.upgradeHints and self:UpgradeDelta(info.link) then record.arrow:SetText("+") end
+    if Suite.db.upgradeHints and not record.equipped and self:UpgradeDelta(info.link) then
+        local red, green, blue = self:UpgradeColor(info)
+        if red then
+            record.arrow:SetTextColor(red, green, blue)
+            record.arrow:SetText("+")
+        end
+    end
 end
 
 function Items:Track(button, item, supplied)
@@ -389,6 +427,9 @@ function Items:Apply()
         self.events:UnregisterAllEvents()
         if enabled then
             for _, event in ipairs({ "BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED", "GET_ITEM_INFO_RECEIVED", "ADDON_LOADED" }) do self.events:RegisterEvent(event) end
+            if Suite.db.upgradeHints then
+                for _, event in ipairs({ "PLAYER_LEVEL_UP", "SPELLS_CHANGED", "SKILL_LINES_CHANGED" }) do self.events:RegisterEvent(event) end
+            end
         end
     end
     if not enabled then

@@ -3,7 +3,7 @@
 ## Notes: A personal collection of optional tools for WoW Forever.
 ## Author: Drockzoids
 ## IconTexture: Interface\AddOns\WoWForeverSuite\Media\ForeverSuiteIcon.tga
-## Version: 0.2.93
+## Version: 1.0.0
 ## Bindings: Bindings.xml
 ## SavedVariables: WoWForeverSuiteDB
 ## SavedVariablesPerCharacter: WoWForeverSuiteCharDB
@@ -32,9 +32,12 @@ Keybinds.lua
 UnitFrames.lua
 TargetThreat.lua
 Vendor.lua
+MerchantKnown.lua
 Quests.lua
 QuestItem.lua
 ProfessionHelper.lua
+TrainingCatalogData.lua
+TrainingCatalog.lua
 TrainingWeapons.lua
 Training.lua
 Castbars.lua
@@ -58,6 +61,7 @@ MacroItems.lua
 Macros.lua
 CampingItems.lua
 Camping.lua
+Journey.lua
 Leveling.lua
 BuffCatalog.lua
 MissingBuffs.lua

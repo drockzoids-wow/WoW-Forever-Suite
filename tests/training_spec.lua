@@ -1,5 +1,9 @@
 local Suite, equal, Frame, SetCombat = ...
 local training = Suite.Training
+-- Exercise legacy saved-class fallback with an unsupported class identity.
+local oldClass, oldMode = UnitClass, training.allLevels
+UnitClass = function() return "Unsupported", "UNSUPPORTED" end
+training.allLevels = false
 local oldDB, oldPending, oldTrainingDB = Suite.db, Suite.pending, training.db
 local names = { "CreateFrame", "C_Timer", "C_Trainer", "Enum", "GetNumTrainerServices", "GetTrainerServiceInfo", "GetTrainerServiceCost", "GetMoney", "GetServerTime", "UnitName", "UnitLevel", "BuyTrainerService", "SelectTrainerService", "SetTrainerServiceTypeFilter", "ExpandTrainerSkillLine", "ClassTrainerFrame", "GetTrainerServiceSkillReq", "GetTrainerServiceNumAbilityReq", "GetTrainerServiceAbilityReq", "C_Spell", "GetRealZoneText", "GetSubZoneText", "UnitFactionGroup" }
 local old = {}; for _, name in ipairs(names) do old[name] = _G[name] end
@@ -134,6 +138,7 @@ equal(training.frame.rows[1].name.text, "Skill A · Rank 2", "level-up view cann
 equal(training.frame.context.text:find("Current visit", 1, true), nil, "class view cannot claim live weapon data as current class offerings")
 equal(training.db.snapshot, saved, "level-up refresh at a weapon trainer still preserves class training")
 training:SelectView("weapons")
+training.recordedCosts, training.page = true, 5; training:Refresh()
 equal(training.frame.rows[1].name.text, "Fist Weapons", "Weapons tab shows its own recorded offerings")
 equal(training.frame.rows[1].icon.texture, 415590, "recorded weapon names resolve to native proficiency icons")
 equal(training.db.weapons[1].rows[1].weaponID, nil, "presentation does not rewrite saved weapon records")
@@ -145,7 +150,7 @@ trainerName = "Second weapon master"; Event("TRAINER_CLOSED"); Event("TRAINER_SH
 equal(#training.db.weapons, 2, "different weapon trainers retain separate location and cost lists")
 local weaponGroups = training:WeaponGroups()
 equal(#weaponGroups, 6, "Alliance sees its four reference weapon masters alongside both own visits")
-local wooPing = weaponGroups[3]
+local wooPing = weaponGroups[1]
 equal(wooPing.title, "Woo Ping", "full reference directory starts with the Stormwind weapon master")
 equal(wooPing.snapshot.place:find("Weller's Arsenal", 1, true) ~= nil, true, "directory gives the trainer's building and district")
 equal(wooPing.rows[6].cost, 10000, "Polearms reference cost is one gold before discounts")
@@ -166,7 +171,8 @@ equal(#unknownGroups[1].rows, 0, "restricted player faction never exposes either
 factionTag = "Neutral"
 equal(#training:WeaponGroups()[1].rows, 0, "unselected faction has no cross-faction recommendations")
 factionTag = "Alliance"
-training.view, training.page = "weapons", 3; training:Refresh()
+training.recordedCosts = false
+training.view, training.page = "weapons", 1; training:Refresh()
 equal(training.frame.group.text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""), "Woo Ping - Stormwind", "reference heading combines the trainer and city")
 equal(training.frame.total.text, "Reference base prices", "reference list does not present every weapon as a character budget")
 equal(training.frame.funds.text:find("Your class", 1, true) ~= nil, true, "reference view discloses class eligibility instead of inventing availability")
@@ -184,7 +190,7 @@ training:SelectView("class")
 equal(firstRow.icon:IsShown(), true, "class rows now expose their own ability icons")
 equal(firstRow.icon.texture, 135940, "switching to class replaces stale weapon artwork with its captured ability icon")
 equal(firstRow.name.point[2], 36, "class names use the same icon gutter as weapons")
-training.view, training.page = "weapons", 3; training:Refresh()
+training.view, training.page = "weapons", 1; training:Refresh()
 missingIcons[5011] = true; training:Refresh(); training:Refresh()
 equal(firstRow.icon.texture, 134400, "uncached icon uses a native question-mark placeholder")
 equal(iconRequests[5011], 1, "uncached weapon metadata is requested once")
@@ -225,7 +231,7 @@ equal(hiddenTimer.cancelled, true, "closing the planner cancels pending icon wor
 equal(next(training.frame.registered), nil, "hidden planner removes its metadata subscription")
 hiddenTimer.callback()
 equal(training.iconTimer, nil, "a stale metadata timer cannot revive hidden work")
-Flush(); training:Open(); training.view, training.page = "weapons", 3; training:Refresh()
+Flush(); training:Open(); training.view, training.page = "weapons", 1; training:Refresh()
 
 
 equal(training.db.snapshot, saved, "a second weapon trainer cannot replace class data")
@@ -241,16 +247,16 @@ local oldWeapons = {
 }
 training:InitializeCharacter({ snapshot = saved, weapons = oldWeapons })
 local oldAlliance = training:WeaponGroups()
-equal(#oldAlliance, 5, "old known Alliance visit appears alongside four Alliance references")
+equal(#oldAlliance, 4, "old known Alliance visit merges into its reference master")
 equal(oldAlliance[1].title, "Woo Ping", "old Horde and unidentified visits cannot enter the Alliance list")
 equal(#training.db.weapons, 3, "filtering preserves all stored weapon history")
 factionTag = "Horde"
 local oldHorde = training:WeaponGroups()
-equal(#oldHorde, 5, "old known Horde visit appears alongside four Horde references")
+equal(#oldHorde, 4, "old known Horde visit merges into its reference master")
 equal(oldHorde[1].title, "Sayoc", "old Alliance and unidentified visits cannot enter the Horde list")
 factionTag = "Alliance"
 Event("TRAINER_CLOSED"); trainerName = "Fresh weapon master"; Event("TRAINER_SHOW")
-equal(training.page, 2, "weapon auto-open uses its visible page after opposite-faction history is filtered")
+equal(training.page, 5, "weapon auto-open selects the appended unknown master after reference pages")
 equal(training.frame.group.text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""), "Fresh weapon master - Stormwind City", "filtered auto-open displays the just-recorded trainer and observed city")
 equal(training.db.weapons[4].faction, "Alliance", "new unknown master captures the current player's faction")
 local factionAPI = UnitFactionGroup; UnitFactionGroup = nil
@@ -539,7 +545,7 @@ training:InitializeCharacter({ snapshot = headerDB.snapshot, weapons = visits })
 for _, faction in ipairs({ "Alliance", "Horde" }) do
     factionTag = faction
     local allGroups = training:WeaponGroups()
-    equal(#allGroups, 8, "each faction exposes four recorded and four reference masters")
+    equal(#allGroups, 4, "each faction merges recorded offers into four complete reference masters")
     for index, group in ipairs(allGroups) do
         local expected = expectedHeaders[group.title]
         assert(expected, "all masters must have an explicit header expectation")
@@ -558,7 +564,7 @@ equal(training:WeaponLocation({ trainer = "Unknown master", faction = "Horde", p
 equal(training:WeaponLocation({ trainer = secret, place = secret }), nil, "restricted location metadata is never formatted")
 training.page = 1; SetCombat(true); training:Refresh()
 equal(Suite.pending.trainingHeader, nil, "recorded/reference changes reuse the prepared compact layout in combat")
-equal(training.frame.total.text, "Saved total: 0g 9s 0c", "compact recorded header retains an honest saved-price label")
+equal(training.frame.total.text, "Reference base prices", "merged master keeps base-price mode separate from observations")
 SetCombat(false); training:SelectView("class")
 equal(training.frame.context:IsShown(), true, "class view restores its original context after all weapon master pages")
 training.frame:Hide(); training.db = headerDB; factionTag = "Alliance"
@@ -579,3 +585,5 @@ training.level, training.levelNotice, training.levelWork, training.docked = nil,
 Suite.db, Suite.pending, training.db = oldDB, oldPending, oldTrainingDB
 for _, name in ipairs(names) do _G[name] = old[name] end
 SetCombat(false)
+
+UnitClass, training.allLevels = oldClass, oldMode

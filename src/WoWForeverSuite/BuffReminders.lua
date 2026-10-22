@@ -26,12 +26,6 @@ local function Label(parent, size)
     local font = parent:CreateFontString(nil, "OVERLAY"); font:SetFont("Fonts\\FRIZQT__.TTF", size, "OUTLINE")
     font:SetTextColor(0.88, 0.91, 0.93); return font
 end
-local function Button(parent, text, x, y, width, callback)
-    local button = CreateFrame("Button", nil, parent, "BackdropTemplate"); Surface(button)
-    button:SetPoint("TOPLEFT", x, y); button:SetSize(width, 26)
-    button.label = Label(button, 11); button.label:SetPoint("CENTER"); button.label:SetText(text)
-    button:SetScript("OnClick", callback); return button
-end
 function Extra:Custom(value)
     local result, seen = {}, {}
     if not Read(value, "table") then return result end
@@ -142,8 +136,8 @@ function Extra:Prepare()
     self.watches, self.coatings = {}, {}
     if Suite.db.missingBuffCombat then
         if buffs.bookDirty then buffs.learned, buffs.learnedComplete = buffs:Learned(); buffs.bookDirty = false end
-        local _, class
-        if type(UnitClass) == "function" then local ok, localized, token = pcall(UnitClass, "player"); if ok and Text(token) then class = token end end
+        local class
+        if type(UnitClass) == "function" then local ok, _, token = pcall(UnitClass, "player"); if ok and Text(token) then class = token end end
         if class then
             for _, family in ipairs(buffs:Families(class, buffs.learned or {})) do
                 local catalog = family.catalog

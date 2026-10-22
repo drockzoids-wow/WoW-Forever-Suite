@@ -47,7 +47,7 @@ luaEntries.forEach((entry, index) => {
   lua.lua_rawseti(state, -2, index + 1);
 });
 lua.lua_setglobal(state, to_luastring('WFS_TEST_FILES'));
-if (process.argv.includes('--gui-preview') || process.argv.includes('--dashboard-preview') || process.argv.includes('--workspace-preview')) {
+if (process.argv.includes('--gui-preview') || process.argv.includes('--dashboard-preview') || process.argv.includes('--workspace-preview') || process.argv.includes('--journey-preview')) {
   const previewDirectory = path.join(root, '.cache/gui-cleanup-ui-source-70338');
   fs.mkdirSync(previewDirectory, { recursive: true });
   function readValue(index) {
@@ -65,6 +65,18 @@ if (process.argv.includes('--gui-preview') || process.argv.includes('--dashboard
       return entries.sort((a, b) => a[0] - b[0]).map(([, value]) => value);
     }
     return Object.fromEntries(entries);
+  }
+  if (process.argv.includes('--journey-preview')) {
+    const directory = path.join(root, '.cache/reconcile-02103');
+    fs.mkdirSync(directory, { recursive: true });
+    lua.lua_pushcfunction(state, () => {
+      const model = readValue(1);
+      const name = String(model.view).toLowerCase();
+      if (!['summary','loot','reputation','levels','history','training'].includes(name)) throw new Error('Invalid journey preview view');
+      fs.writeFileSync(path.join(directory, 'installed-' + name + '-model.json'), JSON.stringify(model, null, 2));
+      return 0;
+    });
+    lua.lua_setglobal(state, to_luastring('WFS_JOURNAL_PREVIEW'));
   }
   if (process.argv.includes('--workspace-preview')) {
     const directory = path.join(root, '.cache/gui-workspace-0279');

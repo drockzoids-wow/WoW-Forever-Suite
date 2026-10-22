@@ -1,5 +1,21 @@
 # Forever Suite
 
+**Planned initial release: 1.0.0 — November 4, 2026.** This is the accepted 0.2.104 feature set prepared for the user’s launch target. See [release notes](docs/release-1.0.0.md).
+
+**Known vendor items:** enable `/wfs vendor` → **Known Items → Highlight already-known vendor items** for green highlights/checkmarks on learned recipes and collected items. Ordinary items in your bags do not count as learned. Missing data remains unmarked. This feature starts off and does not enable vendor automation. See the [smoke test](docs/testing.md#known-vendor-items---02102).
+
+The official source is **P:\GitHub Repos\WoW Forever Suite**. Version **1.0.0** includes the readable journey journal, default training catalog and earlier quality fixes alongside the newer vendor highlights. Restart after loading this source; the footer should show **1.0.0**.
+
+Open /wfs leveling > **Session journal** for six labeled cards and **Summary, Loot, Reputation, Levels and History**. New tracking adds deaths, loot estimates, ordinary reputation, level milestones and confirmed Suite sales/repairs. Old XP/gold/time remains; details not collected earlier show **Not recorded**. No EverCore history is imported. See the [smoke checklist](docs/testing.md#readable-journal-and-default-training-catalog---02103-october-22-2026).
+
+## Quest guidance removed
+
+Version **0.2.97** removes Suite's quest location pins, quest-mob nameplate marks, location database, learning and updater. Use Questie for that guidance. Reload after updating to unload the old modules and retire their saved data. Existing auto pickup/turn-in, tracker styling, nearby quest-item button and vendor auto-talk remain available.
+
+## Vendor shops
+
+Version **0.2.94** adds `/wfs vendor` → **Vendor Conversation → Automatically open vendor shops**. Enable it to skip the extra dialogue click when one shop option is available, including menus with quests or other services. Hold Shift when talking to keep the menu open. Multiple shops and confirmation prompts stay manual. The setting starts off, follows your active settings profile and is independent of general gossip, quests, repairs and junk selling.
+
 ## Border color
 
 Version **0.2.93** adds **Interface → Appearance**, also opened with `/wfs colors` or `/wfs appearance`. Choose **Default teal**, **My class**, or **Custom**. **Choose custom color** opens Blizzard’s color wheel with live border preview; Okay keeps your choice and Cancel restores the previous mode and custom color. The swatch and hex preview show the active color. Class mode follows the character you’re playing, and Custom remembers your last color. Both choices follow the active shared or personal settings profile.
@@ -58,6 +74,8 @@ Search by item name, type, subtype or exact item ID. **Save view** keeps the sea
 
 ## Gear comparisons
 
+Equipped item buttons keep their item levels but never display an upgrade plus. Separate bag copies remain eligible for upgrades to another compatible slot.
+
 Open **/wfs gear** → Gear Details and enable **Possible upgrades**. Choose **Comparison profile** for Automatic, Balanced, Physical, Caster, Healer or Tank. They work without editing. New characters start with Automatic and Stats; existing characters retain their previous role and Stats/Item level preference. These choices now save per character.
 
 Automatic supplies a class-aware leveling starter: Caster for Mage/Warlock/Priest, Physical with ranged weapon emphasis for Hunter, Physical with melee weapon emphasis for Rogue/Warrior, and Balanced for other classes. Choose a ready-made role for a different build or activity; no manual weights are required. Automatic does not infer your talents or current combat role.
@@ -70,9 +88,9 @@ Scores express the selected preferences. Unweighted stats, special effects, set 
 
 ## Training Planner
 
-Open **/wfs → Home → Training Planner → Open Training Planner**, or use `/wfs training`, for **Class** and **Weapons**. Class rows show native ability icons with gold names, teal levels and green/amber requirements. Weapon rows show their native proficiency icons beside the name, with muted requirements underneath. Every weapon page, including recorded visits and all Alliance/Horde masters, puts the teal trainer and gold city on one line, with district/building below. Level-up reminders use only saved class training. Weapon visits keep their own records and actual prices; the Weapons tab also lists your faction's four reference capital-city masters, their locations, skills and base prices before discounts. Both the reference and recorded visits show only your faction. Reference stock does not imply your class can learn every skill.
+Open /wfs training or **Home → Training Planner → Open Training Planner**. From level one, browse your class’s bundled ranks through 60 without visiting a trainer or enabling recording. The catalog contains 1,409 class/pet ranks across nine classes. **All levels** offers six-row paging; **By level** groups skills. Rows and hover details show rank, level, base costs, earlier skills, talents, poison requirements and pet sources. Known ranks and race/faction restrictions are distinguished.
 
-After updating, visit your class trainer once with recording enabled to refresh the Class list and exact ability icons. Older entries try a native name lookup and show a question mark if the icon is unavailable. Older mixed history is kept separately and excluded from level-up reminders. Recording and automatic openings remain optional under **Home → Training Planner**. See the [trainer smoke test](docs/testing.md#separate-class-and-weapon-training--0273) and [reference sources](docs/sources.json).
+**Costs: Base** shows undiscounted reference prices. **Costs: Recorded** uses observed prices where available and labels base fallbacks. Visits add observations without deleting unseen catalog ranks. Weapons retains your faction’s masters, city/building, full stock references, eligibility and known proficiencies. Data is adapted from the MIT-licensed original What’s Training Forever catalog; complete availability/current server prices still need in-game confirmation. Purchases remain manual.
 
 ## Leveling tracker
 
@@ -82,15 +100,11 @@ Right-click the unlocked tracker to open its settings; Ctrl-right-click restores
 
 Rates appear after one minute and include idle time. Gold is net change, including purchases, repairs and transfers. `/reload` continues the same session, including loading time when available; a fresh login starts over and excludes offline time. Disabling ends tracking; re-enabling starts fresh. Partial totals have a `~` marker, and missing/paused/incomplete XP tracking has no time-to-level estimate. This brings over EverCore's leveling/session behavior in a focused Suite tracker. Native appearance, hover/click routing, persistence and combat behavior need the [tracker smoke test](docs/testing.md#vertical-leveling-tracker--0254).
 
-## Training Planner
+## Training Planner recording and companions
 
-Open **Home → Training Planner** and enable **Record trainer offerings**. The planner opens beside the trainer after readable data arrives; its separate auto-open toggle can be turned off. The attachment follows the trainer and uses the left side when that fits better. **/wfs training** opens the latest saved view. Available now, future training levels and Other requirements show unlearned offers, ranks, costs, group totals, your gold and savings gaps. Scroll longer groups; totals include every listed offer. Training purchases remain manual.
+**Record trainer offerings** starts off. Enable it to capture actual offerings/prices and use optional automatic opening beside trainers, with the spellbook, or after leveling. Each choice is independent; combat defers opening. Closing the spellbook dismisses its automatic companion; manually opened views remain independent. Closing the companion keeps it dismissed for that visit.
 
-With recording enabled, **Show with spellbook** opens saved **Class → Available now** beside the spellbook. Closing the book dismisses its automatic companion; manually opened views stay independent. Closing only the companion keeps it dismissed until you reopen the spellbook. Turn this choice off independently. Automatic opening waits through combat and cancels if the book closes first. See the [spellbook smoke test](docs/testing.md#training-planner-gui-and-spellbook-companion--0287).
-
-With recording enabled, **Show Training Planner on level up** opens **Available now** after every level, independently of trainer auto-opening. Combat delays the popup until combat ends. Newly reached saved level requirements appear as **Level met · confirm at trainer** estimates; known unmet prerequisites remain separate. Visit a trainer to populate or refresh the saved list.
-
-Snapshots and standalone placement save per character. Saved prices and eligibility are historical, native filters can hide offerings, and unknown prices produce a known partial total. Pet training uses points and is excluded. Away from trainers, drag the header to place the planner; temporary trainer attachment preserves that position. X/Escape closes it. Native appearance and data delivery still need the focused test.
+Visits and standalone placement save per character. Away from companions, drag the header to place the planner. The built-in catalog remains available with recording off. See the [catalog/companion smoke tests](docs/testing.md#readable-journal-and-default-training-catalog---02103-october-22-2026).
 
 ## Square minimap header
 

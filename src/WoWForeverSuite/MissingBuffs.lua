@@ -673,7 +673,7 @@ function Buffs:Refresh()
         Suite.BuffReminders:PlaceCombat(); Suite.BuffReminders:Schedule(); return
     end
     if not self:Build() then return end
-    local scale,size = self:DisplayOptions()
+    local _,size = self:DisplayOptions()
     if not self.bar.moving then self:Place(self.bar) end
     local stride,rowStride = size + 9,size + 14
     self.header.caption:SetText(Suite.db.missingBuffLocked and "MISSING BUFFS / LOCKED" or "MISSING BUFFS")
@@ -738,11 +738,12 @@ function Buffs:Apply()
         if not self.events then
             self.events = CreateFrame("Frame")
             self.events:SetScript("OnEvent", function(_, event, unit)
-                Suite.BuffReminders:OnEvent(event)
                 if event == "PLAYER_REGEN_DISABLED" then
                     self:Cancel(); self:SetPreview(false)
                     if self.bar and self.bar.moving then self.cancelMove = true end
-                    Suite.BuffReminders:OnEvent(event)
+                end
+                Suite.BuffReminders:OnEvent(event)
+                if event == "PLAYER_REGEN_DISABLED" then return
                 elseif event == "PLAYER_REGEN_ENABLED" then self:Refresh()
                 elseif event == "UNIT_AURA" or event == "UNIT_FLAGS" or event == "UNIT_CONNECTION" or event == "UNIT_LEVEL" or event == "UNIT_INVENTORY_CHANGED" then
                     if Text(unit) and (unit == "player" or unit:match("^party%d+$") or unit:match("^raid%d+$")) then self:Queue() end
