@@ -77,7 +77,7 @@ equal(gui.groupTabs.profiles:IsShown(),true,"Profiles remains visible from Home"
 gui.groupTabs.profiles.OnClick(gui.groupTabs.profiles)
 equal(gui.page,"profiles","standalone Profiles opens the existing profile page")
 equal(gui.groupTabs.profiles.point[2],12,"Profiles aligns with other primary sections")
-equal(routes, 27, "all existing routes plus Appearance remain accessible")
+equal(routes, 28, "all existing routes plus Appearance and Combat Indicator remain accessible")
 local gear = Suite.GearSettings
 gear:Open("picker")
 for _, card in ipairs(gear.profileButtons) do

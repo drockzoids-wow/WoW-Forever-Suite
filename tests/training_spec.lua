@@ -581,7 +581,7 @@ training.frame:OnEvent("SPELL_DATA_LOAD_RESULT", 99001, true); Flush()
 equal(training.frame.rows[1].icon.texture, 135060, "matching public name metadata replaces the old-list class placeholder")
 training.frame:Hide(); training.db.snapshot = classIconSnapshot
 Suite.db.trainingPlanner = false; training:Apply()
-training.level, training.levelNotice, training.levelWork, training.docked = nil, nil, nil, nil
+training.level, training.levelNotice, training.levelWork = nil, nil, nil
 Suite.db, Suite.pending, training.db = oldDB, oldPending, oldTrainingDB
 for _, name in ipairs(names) do _G[name] = old[name] end
 SetCombat(false)

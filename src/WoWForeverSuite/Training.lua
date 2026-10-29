@@ -564,10 +564,8 @@ function Training:Place()
         self.frame:ClearAllPoints()
         if side == "LEFT" then self.frame:SetPoint("TOPRIGHT", trainer, "TOPLEFT", -8, 0)
         else self.frame:SetPoint("TOPLEFT", trainer, "TOPRIGHT", 8, 0) end
-        self.docked = true
         return
     end
-    self.docked = nil
     local p = self.db.position
     local width, height = UIParent:GetWidth(), UIParent:GetHeight()
     if not Number(width) or not Number(height) or width <= 0 or height <= 0 then return end
@@ -577,7 +575,7 @@ function Training:Build()
     if self.frame then return true end
     if InCombatLockdown() then return end
     local frame = CreateFrame("Frame", "WoWForeverSuiteTraining", UIParent, "BackdropTemplate")
-    self.frame = frame; frame.foreverOwned = true
+    self.frame = frame
     frame:SetSize(500, 528); frame:SetFrameStrata("DIALOG"); frame:SetClampedToScreen(true); frame:SetMovable(true); frame:EnableMouse(true); Surface(frame)
     -- Keep the window family together on native focus, with an opaque content plate.
     frame:SetToplevel(true); frame:SetBackdropColor(0.035, 0.05, 0.065, 1)

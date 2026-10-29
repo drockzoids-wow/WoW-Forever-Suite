@@ -19,6 +19,15 @@ local data = {
     [114] = { name = "Percent Food", sub = 5, description = "Restores 20% of your health over 20 seconds." },
     [115] = { name = "Uncached Reagent", class = 7, noUse = true },
     [116] = { name = "Stronger Bandage", sub = 7, required = 20, description = "Heals 400 damage over 8 seconds." },
+    [20388] = { name = "Lollipop", sub = 8, description = "Restores 3% of your health and mana per second for 25 sec. Must remain seated while eating." },
+    [20389] = { name = "Candy Corn", sub = 8, description = "Restores 3% of your health and mana per second for 25 sec. Must remain seated while eating." },
+    [20390] = { name = "Candy Bar", sub = 8, description = "Restores 3% of your health and mana per second for 25 sec. Must remain seated while eating." },
+    [17344] = { name = "Candy Cane", sub = 5, description = "Restores 61 health over 18 sec." },
+    [19997] = { name = "Harvest Nectar", sub = 8, description = "Restores 2% of your mana per second for 30 sec." },
+    [21537] = { name = "Festival Dumplings", sub = 8, description = "Restores 4% of your health and mana per second for 25 sec." },
+    [7807] = { name = "Candy Bar", sub = 5, description = "Restores 61 health over 18 sec." },
+    [20516] = { name = "Bobbing Apple", sub = 5, description = "Restores 2% of your health per second for 24 sec. You become well fed and gain Stamina and Spirit." },
+    [20557] = { name = "Hallow's End Pumpkin Treat", sub = 8, description = "Enjoy a tasty Hallow's End treat! Better eat it quick before they go bad..." },
     [5512] = { name = "Healthstone", description = "Restores 100 health." },
     [2862] = { name = "Rough Sharpening Stone", sub = 6 },
     [12404] = { name = "Dense Sharpening Stone", sub = 6, required = 50 },
@@ -89,6 +98,62 @@ equal(snapshot.best.food.health, 600, "restoration is read from item text")
 equal(snapshot.best.healing.health, 80, "range restoration uses its midpoint")
 local body = macros:Generate(food, snapshot)
 equal(body, "#showtooltip [nocombat] item:101\n/use [nocombat] item:101", "food stays outside combat by default")
+do
+    local savedBags = bags
+    for _, id in ipairs({ 20388, 20389, 20390 }) do
+        bags = { 100, 104, id }
+        local seasonal = supplies:Scan()
+        equal(seasonal.best.food.id, id, "Hallow's End candy outranks stronger ordinary food")
+        equal(seasonal.best.water.id, id, "combined percentage candy also outranks ordinary water")
+        equal(macros:Generate(food, seasonal), "#showtooltip [nocombat] item:" .. id .. "\n/use [nocombat] item:" .. id,
+            "the food macro uses the candy's item ID despite its non-food subclass")
+        equal(macros:Generate(water, seasonal), "#showtooltip [nocombat] item:" .. id .. "\n/use [nocombat] item:" .. id,
+            "the drink macro uses the same health-and-mana candy")
+        local choices, found = supplies:Choices(seasonal, "water"), false
+        for _, choice in ipairs(choices) do if choice.id == id then found = true end end
+        equal(found, true, "holiday candy remains available as an explicit food/drink choice")
+        bags = { id, 101, 103, 100, 104 }
+        seasonal = supplies:Scan()
+        equal(seasonal.best.food.id, 101, "mage food retains priority over event candy")
+        equal(seasonal.best.water.id, 103, "mage water retains priority over event candy")
+    end
+    bags = { 100, 104, 17344, 19997 }
+    local seasonal = supplies:Scan()
+    equal(seasonal.best.food.id, 17344, "Winter Veil recovery outranks ordinary food")
+    equal(seasonal.best.water.id, 19997, "Harvest Festival recovery outranks ordinary water")
+    equal(seasonal.byID[17344].flags.water, false, "health-only event food is never selected as water")
+    equal(seasonal.byID[19997].flags.food, false, "mana-only event drink is never selected as food")
+    bags = { 100, 104, 21537 }
+    seasonal = supplies:Scan()
+    equal(seasonal.best.food.id, 21537, "Lunar Festival dumplings receive event-food priority")
+    equal(seasonal.best.water.id, 21537, "Lunar Festival dumplings restore both resources")
+    bags = { 100, 104, 7807, 20516, 20557 }
+    seasonal = supplies:Scan()
+    equal(seasonal.best.food.id, 100, "ordinary candy names, seasonal buff food and non-restoring treats cannot displace recovery food")
+    equal(seasonal.best.water.id, 104, "non-restoring event treats cannot displace water")
+    local candyDescription = data[20390].description
+    data[20390].description = candyDescription .. " You become well fed."
+    bags = { 100, 104, 20390 }; seasonal = supplies:Scan()
+    equal(seasonal.best.food.id, 100, "a cataloged event ID never bypasses the buff-food exclusion")
+    equal(seasonal.best.water.id, 104, "a cataloged event ID never bypasses the buff-drink exclusion")
+    data[20390].description = candyDescription
+    bags, unavailable = { 100, 104, 20390 }, 20390
+    seasonal = supplies:Scan()
+    equal(seasonal.pending.food, true, "uncached event candy pauses food selection despite subclass 8")
+    equal(seasonal.pending.water, true, "uncached event candy pauses water selection despite subclass 8")
+    equal(macros:Generate(food, seasonal), nil, "loading event metadata cannot silently replace an existing action")
+    unavailable, restrictedTooltip = nil, 20390
+    seasonal = supplies:Scan()
+    equal(seasonal.pending.food, true, "restricted event tooltip preserves food selection")
+    equal(seasonal.pending.water, true, "restricted event tooltip preserves drink selection")
+    restrictedTooltip, locale = nil, "deDE"
+    seasonal = supplies:Scan()
+    equal(macros:Generate(food, seasonal), nil, "a known holiday ID does not bypass the English tooltip requirement")
+    food.item = 20390
+    equal(macros:Generate(food, seasonal), "#showtooltip [nocombat] item:20390\n/use [nocombat] item:20390",
+        "explicit event candy works for other locales")
+    food.item, locale, bags = nil, "enUS", savedBags
+end
 food.combat, water.combat = true, true
 body = macros:Generate(food, snapshot)
 equal(body:find("/use [combat] item:5512", 1, true) ~= nil, true, "health recipe includes the carried Healthstone")
@@ -173,6 +238,14 @@ Suite.db.macroUpdates = true
 macros:Refresh()
 equal(native[1].body:find("item:100", 1, true) ~= nil, true, "enabled updates follow current carried food")
 equal(created, 1, "events never create unchecked or uncreated recipes")
+bags = { 100, 104, 20390 }; macros:Refresh()
+equal(native[1].body:find("[nocombat] item:20390", 1, true) ~= nil, true, "restocking event candy updates the owned food macro")
+bags = { 100, 104, 20390, 101 }; macros:Refresh()
+equal(native[1].body:find("[nocombat] item:101", 1, true) ~= nil, true, "restocking mage food takes priority over carried event candy")
+food.item = 100; macros:Refresh()
+equal(native[1].body:find("[nocombat] item:100", 1, true) ~= nil, true, "an explicit food choice overrides mage and event priority")
+food.item, bags = nil, { 100, 105 }; macros:Refresh()
+equal(native[1].body:find("[nocombat] item:100", 1, true) ~= nil, true, "depleted event and mage food fall back to ordinary supplies")
 local current = native[1].body
 local unchangedEdits = edited
 native[1].body = current:gsub("\n", "\r\n") .. "\r\n"
@@ -237,7 +310,9 @@ native[1].body = "/say My edited macro"
 current = native[1].body
 macros:Refresh()
 equal(native[1].body, current, "manual text edits pause updates")
-equal(macros:Save(food), false, "explicit save also preserves external edits")
+equal(macros:Save(food), true, "deliberate Update replaces edited text in a previously owned macro")
+equal(native[1].body, macros:Generate(food, supplies:Scan()), "explicit Update writes the generated preview")
+equal(Suite.db.macroOwnership[food.name], native[1].body, "confirmed Update refreshes ownership for subsequent automatic changes")
 native[1] = nil
 macros:Refresh()
 equal(native[1], nil, "deleted macros are not recreated by events")
@@ -420,6 +495,13 @@ local gui = Suite.GUI
 gui:Select("macros")
 macros:Refresh()
 equal(gui.macroPanel:IsShown(), true, "Macros opens as a sidebar page")
+-- The 240px copy box extends past its 93px viewport over both actions.
+-- Model overlapping input priority rather than invoking a covered button directly.
+local function MacroActionReceiver(button)
+    return button:GetFrameLevel() > gui.macroPreview:GetFrameLevel() and button or gui.macroPreview
+end
+equal(MacroActionReceiver(gui.macroSave), gui.macroSave, "save receives input above the overflowing preview")
+equal(MacroActionReceiver(gui.macroUpdates), gui.macroUpdates, "automatic-update toggle receives input above the overflowing preview")
 equal(gui.macroRows[1].entry, food, "recipe selection uses persistent character choices")
 offhand.created = false
 weapon[17] = nil
@@ -427,7 +509,8 @@ macros.snapshot = supplies:Scan()
 gui.macroRows[5].OnClick()
 equal(gui.macroSave.enabled, true, "empty hand leaves the GUI Create button enabled")
 equal(gui.macroSave.label.text, "Create placeholder", "GUI explains blank weapon macro creation")
-gui.macroSave.OnClick()
+MacroActionReceiver(gui.macroSave).OnClick()
+equal(gui.macroStatus.text:find("Placeholder saved", 1, true) ~= nil, true, "GUI save immediately displays the write result")
 equal(offhand.created, true, "GUI can save the empty-hand placeholder")
 equal(native[offhandIndex].body, "#showtooltip", "GUI placeholder cannot apply a coating to an empty hand")
 weapon[17] = 202
@@ -729,10 +812,86 @@ equal(menuChoices[1][1] ~= "Select automatically", true, "pet food never offers 
 for _, choice in ipairs(menuChoices) do if choice[1]:find("Raw Pet Food", 1, true) then choice[2]() end end
 equal(pet.item, 113, "pet food picker records the player's explicit ingredient choice")
 local petBody = macros:Generate(pet, macros.snapshot)
-equal(petBody, "#showtooltip\n/cast [@pet,dead][nopet,mod:shift] Revive Pet\n/cast [combat,@pet,exists,nodead] Mend Pet; [nocombat,@pet,exists,nodead] Feed Pet\n/use [nocombat,@pet,exists,nodead] item:113", "pet macro guards feeding against combat, dead and absent pets")
+equal(petBody, "#showtooltip\n/cast [@pet,dead][nopet,mod:shift] Revive Pet\n/cast [combat,@pet,exists,nodead] Mend Pet; [nocombat,@pet,exists,nodead] Feed Pet\n/stopmacro [combat][nopet][@pet,dead]\n/use Raw Pet Food", "pet macro guards feeding against combat, dead and absent pets")
 equal(#petBody <= 255, true, "English pet care fits the native body limit")
 equal(macros:Save(pet), true, "selected pet food allows explicit creation")
 local petIndex = macros:Find(pet.name)
+
+-- Feed Pet consumes an item target, not a unit target. Model the generated
+-- command contract separately from ordinary item-ID use macros.
+local function FeedingTarget(text, combatState, petState)
+    local blocked = combatState or petState == "absent" or petState == "dead"
+    for line in text:gmatch("[^\n]+") do
+        if line == "/stopmacro [combat][nopet][@pet,dead]" and blocked then return nil end
+        if line:sub(1, 5) == "/use " then return line:sub(6) end
+    end
+end
+equal(FeedingTarget(petBody, false, "alive"), "Raw Pet Food", "feeding supplies an exact item name to the pending food cursor")
+equal(FeedingTarget(petBody, true, "alive"), nil, "combat stops before the ingredient use line")
+equal(FeedingTarget(petBody, false, "dead"), nil, "dead pets stop before the ingredient use line")
+equal(FeedingTarget(petBody, false, "absent"), nil, "absent pets stop before the ingredient use line")
+equal(petBody:find("/use [", 1, true), nil, "food use does not pass a unit target to item targeting")
+
+
+-- Deliberate pet food changes update an existing owned macro even when automatic
+-- bag/equipment updates are off, including a raw ingredient in reagent bag 5.
+Suite.db.macroUpdates = false
+menuChoices = {}; gui:ChooseMacroItem()
+for _, choice in ipairs(menuChoices) do if choice[1]:find("Vendor Bread", 1, true) then choice[2]() end end
+equal(pet.item, 100, "manual pet food selection changes the stored choice")
+equal(native[petIndex].body:find("/use Vendor Bread", 1, true) ~= nil, true, "manual pet food selection updates the saved macro with automatic updates off")
+equal(Suite.db.macroUpdates, false, "manual pet food selection preserves the automatic-update preference")
+local bagSlots, bagInfo, bagID, bagMaximum = C_Container.GetContainerNumSlots, C_Container.GetContainerItemInfo, C_Container.GetContainerItemID, NUM_TOTAL_EQUIPPED_BAG_SLOTS
+local rawName, rawBags = data[113].name, bags
+bags, data[113].name, NUM_TOTAL_EQUIPPED_BAG_SLOTS = { 100 }, "Raw Bristle Whisker Catfish", 5
+C_Container.GetContainerNumSlots = function(bag) return bag == 5 and 1 or bagSlots(bag) end
+C_Container.GetContainerItemInfo = function(bag, slot) if bag == 5 and slot == 1 then return { itemID = 113, stackCount = 3 } end; return bagInfo(bag, slot) end
+C_Container.GetContainerItemID = function(bag, slot) if bag == 5 and slot == 1 then return 113 end; return bagID(bag, slot) end
+menuChoices = {}; gui:ChooseMacroItem()
+for _, choice in ipairs(menuChoices) do if choice[1]:find("Raw Bristle Whisker Catfish", 1, true) then choice[2]() end end
+equal(pet.item, 113, "raw food in reagent bag 5 can be explicitly selected")
+equal(native[petIndex].body, petBody:gsub("Raw Pet Food", "Raw Bristle Whisker Catfish"), "reagent-bag raw food uses its exact localized name without requiring an item-use spell")
+equal(macros.snapshot.carriedByID[113].count, 3, "reagent bag food count reaches the picker")
+C_Container.GetContainerNumSlots, C_Container.GetContainerItemInfo, C_Container.GetContainerItemID, NUM_TOTAL_EQUIPPED_BAG_SLOTS = bagSlots, bagInfo, bagID, bagMaximum
+bags, data[113].name = rawBags, rawName
+macros:Save(pet, true)
+local petNative, petCreates = native[petIndex], created
+native[petIndex] = nil
+equal(macros:Save(pet, true), false, "existing-only food update never recreates a deleted macro")
+equal(created, petCreates, "existing-only food update allocates no General slot")
+native[petIndex] = petNative
+petNative.body = "/say Keep my custom pet macro"
+equal(macros:Save(pet, true), false, "manual food change preserves externally edited macros")
+equal(petNative.body, "/say Keep my custom pet macro", "manual food choice cannot overwrite custom text")
+-- Reproduce the recording: the owned macro has older/manual text; the visible
+-- Update action must save the preview even though picker/background writes pause.
+gui:Select("macros"); gui.macroSelected = pet; gui:RefreshMacros()
+equal(macros:Save(pet, true), false, "existing-only picker cannot approve replacement")
+Suite.db.macroUpdates = true; macros:Refresh()
+equal(petNative.body, "/say Keep my custom pet macro", "automatic updates continue preserving edited pet text")
+equal(macros.statuses[pet]:find("Click Update macro", 1, true) ~= nil, true, "paused status explains the explicit replacement action")
+equal(gui.macroStatus.textColor[1], 1, "blocked automatic update status is red")
+equal(gui.macroStatus.textColor[2], 0.3, "blocked status uses a readable red tone")
+gui.macroSave.OnClick()
+equal(gui.macroStatus.textColor[1], 0.41, "confirmed save clears red and uses Suite teal")
+equal(petNative.body, petBody, "GUI Update replaces the old pet text with the food-name preview")
+equal(Suite.db.macroOwnership[pet.name], petBody, "GUI replacement records only confirmed saved text")
+equal(gui.macroStatus.text:find("Saved in General macros", 1, true) ~= nil, true, "GUI replacement reports a visible save result")
+local confirmedPet = Suite.db.macroOwnership[pet.name]
+petNative.body = "/say Unsaved editor work"; MacroFrame:Show()
+equal(macros:Save(pet), false, "explicit replacement still pauses for the open native editor")
+equal(gui.macroStatus.textColor[1], 1, "open-editor failure is red")
+equal(petNative.body, "/say Unsaved editor work", "open-editor text survives explicit replacement attempt")
+MacroFrame:Hide(); SetCombat(true)
+equal(macros:Save(pet), false, "explicit replacement still pauses in combat")
+equal(gui.macroStatus.textColor[1], 1, "combat pause is red")
+SetCombat(false)
+Suite.db.macroOwnership[pet.name] = nil
+equal(macros:Save(pet), false, "explicit replacement cannot take over an unowned same-name macro")
+equal(petNative.body, "/say Unsaved editor work", "unowned General macro remains intact")
+Suite.db.macroOwnership[pet.name], petNative.body = confirmedPet, petBody
+gui:Select("overview")
+
 bags = {}; Suite.db.macroUpdates = true; macros:Refresh()
 equal(native[petIndex].body, petBody, "depleted food retains the chosen action rather than clearing or substituting it")
 equal(macros.statuses[pet]:find("not carried", 1, true) ~= nil, true, "depleted food remains visible as a reminder after automatic refresh")

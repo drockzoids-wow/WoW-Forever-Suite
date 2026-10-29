@@ -615,7 +615,6 @@ function Windows:Track(name, frame)
     local function ResetClick(_, button)
         if Suite.db.windowTools and button == "RightButton" and IsControlKeyDown() then self:Reset(record) end
     end
-    record.resetClick = ResetClick
     record.mouseDown = function(_, button)
         record.titleClick = nil
         if not Suite.db.windowTools or button ~= "LeftButton" or IsControlKeyDown() or not CanTouch(frame) then return end

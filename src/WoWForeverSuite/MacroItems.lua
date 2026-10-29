@@ -24,6 +24,16 @@ local healthstones = { [5512] = true, [5511] = true, [5509] = true, [5510] = tru
     [19010] = true, [19011] = true, [19012] = true, [19013] = true, [22103] = true, [22104] = true,
     [22105] = true, [224464] = true }
 
+-- Seasonal recovery supplies from client item data. Some use subclass 8 instead
+-- of Food & Drink (5); still require a readable restorative tooltip and no buff.
+local eventFoods = {
+    [20388] = true, [20389] = true, [20390] = true, -- Hallow's End candy
+    [19696] = true, [19994] = true, [19995] = true, [19996] = true, [19997] = true, -- Harvest Festival
+    [17344] = true, [17404] = true, [17406] = true, [17407] = true, [17408] = true, -- Winter Veil
+    [21215] = true, [21235] = true, [21241] = true,
+    [21537] = true, -- Lunar Festival dumplings
+}
+
 local function Read(callback, ...)
     if type(callback) ~= "function" then return nil end
     local ok, value = pcall(callback, ...)
@@ -80,7 +90,8 @@ function Items:Read(id, bag, slot, level, english)
     if not spellOK or not Suite.IsReadable(spell) then return nil, true, class, subclass end
     if not Text(spell) or spell == "" then return nil end
     local item = { id = id, name = name, class = class, subclass = subclass, quality = Number(quality) and quality or 0,
-        level = Number(itemLevel) and itemLevel or required, flags = {}, health = 0, mana = 0 }
+        level = Number(itemLevel) and itemLevel or required, eventFood = eventFoods[id] == true,
+        flags = {}, health = 0, mana = 0 }
     if stones[id] then item.family, item.tier = unpack(stones[id]) end
     if healthstones[id] then item.flags.healthstone = true end
     if class == 0 and subclass == 7 then item.flags.bandage = true end
@@ -91,7 +102,8 @@ function Items:Read(id, bag, slot, level, english)
         item.health, item.mana = Restoration(description, "health"), Restoration(description, "mana")
         local restoresHealth = item.health > 0 or description:find("%% of your health") ~= nil
         local restoresMana = item.mana > 0 or description:find("%% of your mana") ~= nil
-        if class == 0 and subclass == 5 then
+            or description:find("%% of your health and mana") ~= nil
+        if class == 0 and (subclass == 5 or item.eventFood) then
             local buff = description:find("well fed", 1, true) or description:find("increases", 1, true)
                 or description:find("gain .- for ")
             if not buff then item.flags.food, item.flags.water = restoresHealth, restoresMana end
@@ -100,7 +112,7 @@ function Items:Read(id, bag, slot, level, english)
                 or description:find("asleep", 1, true)
             if not special then item.flags.healing, item.flags.mana = restoresHealth, restoresMana end
         end
-    elseif english and class == 0 and (subclass == 5 or subclass == 1) then
+    elseif english and class == 0 and (subclass == 5 or subclass == 1 or item.eventFood) then
         return item, true, class, subclass -- Keep actions that depend on this incomplete tooltip.
     end
     return item
@@ -110,6 +122,7 @@ local function Better(candidate, current, kind)
     if not current then return true end
     if kind == "food" or kind == "water" then
         if candidate.conjured ~= current.conjured then return candidate.conjured == true end
+        if candidate.eventFood ~= current.eventFood then return candidate.eventFood == true end
     end
     local resource = (kind == "water" or kind == "mana") and "mana" or "health"
     if candidate[resource] ~= current[resource] then return candidate[resource] > current[resource] end
@@ -138,7 +151,7 @@ local function Pending(snapshot, id, class, subclass)
     -- Missing full metadata for gear/reagents must not freeze unrelated recipes.
     -- Unknown classes still pause recovery choices that could depend on this item.
     if not Number(class) or class == 0 then
-        if not Number(class) or not Number(subclass) or subclass == 5 then
+        if not Number(class) or not Number(subclass) or subclass == 5 or eventFoods[id] then
             snapshot.pending.food, snapshot.pending.water = true, true
         end
         if not Number(class) or not Number(subclass) or subclass == 1 then
@@ -274,7 +287,7 @@ function Items:Choices(snapshot, recipe)
         local recovery = recipe == "food" or recipe == "water"
         local weapon = recipe == "mainhand" or recipe == "offhand"
         local lower = item.name:lower()
-        if recipe == "item" or recovery and item.class == 0 and item.subclass == 5
+        if recipe == "item" or recovery and item.class == 0 and (item.subclass == 5 or item.eventFood)
             or recipe == "bandage" and item.flags.bandage
             or weapon and (item.family or item.class == 0 and item.subclass == 6
                 or lower:find("poison", 1, true) or lower:find("oil", 1, true)) then

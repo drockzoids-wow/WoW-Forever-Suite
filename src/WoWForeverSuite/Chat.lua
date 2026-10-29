@@ -266,10 +266,8 @@ end
 function Chat:CopyResult(record, count)
     if self.copyRecord ~= record or not self:Enabled() or InCombatLockdown() then return end
     if Number(count) and count > 0 and count == math.floor(count) then
-        record.copyResult = "copied"
         Suite.Print("Chat text copied to clipboard.")
     else
-        record.copyResult = "failed"
         Suite.Print("The game did not confirm copying that selection to the clipboard.")
     end
 end
@@ -307,7 +305,6 @@ function Chat:ToggleCopy(record)
     local callback = frame:GetOnTextCopiedCallback()
     if not Suite.IsReadable(callback) or (callback ~= nil and type(callback) ~= "function") then return end
     record.copyState = { copyable = copyable, mouse = mouse, links = links, callback = callback }
-    record.copyResult = nil
     record.copyCallback = record.copyCallback or function(owner, text, count)
         local state = record.copyState
         self:CopyResult(record, count)

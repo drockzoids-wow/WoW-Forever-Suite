@@ -562,7 +562,7 @@ function Bank:Schedule()
     end)
 end
 
-function Bank:OnEvent(event, id)
+function Bank:OnEvent(event)
     if not Suite.db.offlineBank then return end
     if event == "MODIFIER_STATE_CHANGED" then
         if self.hovered and self.hovered.bankItem then self:ShowTooltip(self.hovered) end
@@ -608,7 +608,7 @@ function Bank:Apply()
         if not Suite.db.offlineBank or self.active then return end
         if not self.events then
             self.events = CreateFrame("Frame")
-            self.events:SetScript("OnEvent", function(_, event, ...) self:OnEvent(event, ...) end)
+            self.events:SetScript("OnEvent", function(_, event) self:OnEvent(event) end)
         end
         for _, event in ipairs({ "BANKFRAME_OPENED", "BANKFRAME_CLOSED", "BAG_UPDATE_DELAYED",
             "PLAYERBANKSLOTS_CHANGED", "PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED", "BANK_TABS_CHANGED",

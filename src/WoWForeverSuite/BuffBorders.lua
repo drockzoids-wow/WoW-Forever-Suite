@@ -108,11 +108,11 @@ function Borders:Track(root, button)
     if not record then
         record = { button = button, edges = {} }
         self.buttons[button] = record
-        for _, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
+        for index = 1, 4 do
             local edge = button:CreateTexture(nil, "OVERLAY", nil, 7)
             Suite.Theme:Texture(edge, 0.7)
             edge:Hide()
-            record.edges[#record.edges + 1] = edge
+            record.edges[index] = edge
         end
     end
     self:Visible(record, false)

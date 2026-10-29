@@ -113,7 +113,6 @@ function Scoring:Automatic()
     -- Hunters value the ranged weapon's DPS; melee classes use ranged items for bonuses.
     if class == "HUNTER" then profile.meleeDPS = 0
     elseif class == "ROGUE" or class == "WARRIOR" then profile.rangedDPS = 0 end
-    profile.automatic, profile.starter = true, starter
     self.automaticProfile, self.automaticClass = profile, class
     return profile
 end

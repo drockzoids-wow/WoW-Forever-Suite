@@ -14,6 +14,7 @@ Suite.defaults = {
     showFPS = true, showLatency = true, showCoordinates = true, showClock = true,
     windowTools = false, windowPositions = {}, guiPosition = {}, offlineBank = false,
     fullButtonRange = false, actionBarSkin = false, classHealthBars = false, targetThreat = false,
+    combatIndicator = false, combatIndicatorPersistent = false, combatIndicatorLocked = false, combatIndicatorPosition = {},
     statusBarSkin = false, bagBarSkin = false, microBarSkin = false, playerBuffBorders = false,
     progressBarValues = false, progressBarCustomSize = false, progressBarWidth = 600, progressBarHeight = 14, progressBarSegments = false,
     shortKeybinds = false, keybindFontStyle = false, keybindFont = "default", keybindSize = 12,
@@ -94,6 +95,7 @@ function Suite.InitializeDB(saved)
     db.bagSpaceBlacklist = Suite.BagSpace:InitializeBlacklist(db.bagSpaceBlacklist)
     db.bagSpacePosition = Suite.BagSpace:InitializePosition(db.bagSpacePosition)
     db.questItemPosition = Suite.BagSpace:InitializePosition(db.questItemPosition)
+    db.combatIndicatorPosition = Suite.CombatIndicator:InitializePosition(db.combatIndicatorPosition)
     if db.missingBuffWarning ~= 30 and db.missingBuffWarning ~= 60 and db.missingBuffWarning ~= 120 then db.missingBuffWarning = 60 end
     db.missingBuffScale, db.missingBuffIconSize = Suite.MissingBuffs:DisplayOptions(db)
     db.missingBuffCustom = Suite.BuffReminders:Custom(db.missingBuffCustom)
@@ -185,7 +187,7 @@ local commandPages = {
     appearance = "appearance", colors = "appearance",
     profiles = "profiles", profile = "profiles", characters = "characters", dashboard = "characters", gear = "items", items = "items",
     bags = "bags", macros = "macros", camping = "camping", campfire = "camping",
-    actionbars = "actionbars", unitframes = "unitframes", vendor = "vendor", buffs = "buffs", missingbuffs = "buffs",
+    actionbars = "actionbars", unitframes = "unitframes", combat = "combat", vendor = "vendor", buffs = "buffs", missingbuffs = "buffs",
     bars = "bars", map = "worldmap", worldmap = "worldmap",
     quests = "quests", gossip = "quests", loot = "quests", mail = "mail", chat = "chat", audio = "audio",
     leveling = "leveling", xp = "leveling",

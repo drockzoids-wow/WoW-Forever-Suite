@@ -42,6 +42,7 @@ Setup.pages = {
         { key = "borderColorMode", label = "Border color", help = "Teal, your class or saved custom color.\nPick new custom colors in Appearance.", choices = { "default", "class", "custom" }, labels = { default = "Teal", class = "My class", custom = "Custom" }, suggested = "default" },
         { key = "playerBuffBorders", label = "Player buff borders", help = "Frame your top-right buff icons.\nKeeps native timers and controls.", suggested = true },
         { key = "targetThreat", label = "Target threat", help = "Show your threat against enemy NPCs.\nUnknown percentages display as --.", suggested = false },
+        { key = "combatIndicator", label = "Combat indicator", help = "Show when combat starts and ends.\nMove or lock it in Combat settings.", suggested = false },
         { key = "progressBarSegments", label = "Progress bar sections", help = "Mark ten-percent progress sections.\nNeeds the progress bar skin above.", suggested = false },
         { key = "missingBuffs", label = "Missing buff bar", help = "Remind you of missing group buffs\nand your class upkeep choices.", suggested = false },
         { key = "missingBuffSelf", label = "My missing buffs", help = "Show learned buffs you can cast on you.\nNeeds the Missing buff bar.", suggested = true },

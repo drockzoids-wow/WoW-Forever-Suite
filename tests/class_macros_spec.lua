@@ -92,8 +92,10 @@ for _, case in ipairs(cases) do
         C_Spell = saved.api
     end
     native[index].body = "/say manually edited"
-    equal(macros:Save(entry), false, "manual macro edits retain ownership protection")
-    equal(native[index].body, "/say manually edited", "manual body is never overwritten")
+    equal(macros:Save(entry, true), false, "non-replacing saves retain manual macro edit protection")
+    equal(native[index].body, "/say manually edited", "non-replacing saves preserve manual body")
+    equal(macros:Save(entry), true, "explicit Update can restore the class recipe preview")
+    equal(native[index].body, body, "explicit Update restores the generated class body")
     native[index].body = body
     SetCombat(true)
     equal(macros:Save(entry), false, "class macro writes defer during combat")

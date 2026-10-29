@@ -5,11 +5,11 @@ local LOGO_TEXTURE = "Interface\\AddOns\\" .. addonName .. "\\Media\\ForeverSuit
 local Catalog = Suite.SettingsCatalog
 local CONTENT_WIDTH, BODY_HEIGHT = 816, 628
 local WINDOW_WIDTH, WINDOW_HEIGHT, SIDEBAR_WIDTH = 1120, 760, 208
-GUI.contentWidth, GUI.detailWidth = CONTENT_WIDTH, 780
+GUI.contentWidth = CONTENT_WIDTH
 
 local palette = {
     background = { 0.035, 0.05, 0.065 }, sidebar = { 0.055, 0.075, 0.09 },
-    row = { 0.07, 0.095, 0.11 }, accent = { 0.41, 0.84, 0.75 },
+    error = { 1, 0.3, 0.3 }, row = { 0.07, 0.095, 0.11 }, accent = { 0.41, 0.84, 0.75 },
     text = { 0.88, 0.91, 0.93 }, muted = { 0.55, 0.65, 0.7 }, gold = { 0.9, 0.72, 0.4 },
 }
 
@@ -139,6 +139,13 @@ local pages = {
         { key = "microBarSkin", label = "Suite micro menu skin", help = "Slate menu buttons with Suite borders and hover feedback.\nKeep native icons, alerts, tooltips and shortcuts." },
         { key = "playerBuffBorders", label = "Player buff borders", help = "Square icons with fine Suite borders in your top-right buff display.\nDebuffs, weapon enchants and unit-frame auras keep their native appearance." },
     }, note = "Move these bars in Edit Mode. Progress options use the progress bar skin.\nValues stay visible in combat; layout and skin changes wait until it ends." },
+    combat = { title = "Know when the fight changes.", description = "A clear signal when combat starts and ends.", rows = {
+        { key = "combatIndicator", label = "Combat indicator", help = "Show IN COMBAT in gold and COMBAT ENDED in green.\nEach message stays visible for four seconds." },
+        { key = "combatIndicatorPersistent", label = "Stay visible during combat", help = "Keep IN COMBAT visible for the entire fight.\nRequires the combat indicator above." },
+        { key = "combatIndicatorLocked", label = "Lock indicator", help = "Make the indicator click-through and prevent dragging.\nUnlock to move it outside combat." },
+        { action = "combatPreview", label = "Preview indicator", help = "Show a four-second preview, even while the feature is off.\nDrag to position it when unlocked; dragging holds the preview." },
+        { action = "combatReset", label = "Reset indicator position", help = "Return the indicator above the center of the screen." },
+    }, note = "Drag outside combat to move. Ctrl+right-click resets its position.\nThe lock makes the indicator click-through; closing settings ends the preview." },
     unitframes = { title = "Unit frame details", description = "Optional color and threat details on your existing unit frames.", rows = {
         { key = "classHealthBars", label = "Class colored health bars", help = "Softer class colors for player, target, target of target and focus.\nReplace the original fill so its color stays clear." },
         { key = "targetThreat", label = "Target threat indicator", help = "Your threat against the target: grey at 0%, red at 100%.\nA translucent Blizzard-style rectangle moves below the frame when buffs are on top." },
@@ -172,7 +179,9 @@ local pages = {
 Catalog:Configure(pages)
 
 function GUI:Action(action)
-    if action == "levelingSession" then Suite.Leveling:ResetSession()
+    if action == "combatPreview" then Suite.CombatIndicator:Preview()
+    elseif action == "combatReset" then Suite.CombatIndicator:ResetPosition()
+    elseif action == "levelingSession" then Suite.Leveling:ResetSession()
     elseif action == "levelingPosition" then Suite.Leveling:ResetPosition()
     elseif action == "levelingLock" then Suite.Leveling:SetLocked(not Suite.Leveling.db.locked); self:Select("leveling")
     elseif action == "levelingMinimize" then Suite.Leveling:SetMinimized(not Suite.Leveling.db.minimized); self:Select("leveling")
@@ -311,6 +320,7 @@ function GUI:Select(key)
     Suite.Macros:SetVisible(key == "macros" and self.frame:IsShown())
     Suite.Camping:SetSettingsVisible(key == "camping" and self.frame:IsShown())
     Suite.MissingBuffs:SetSettingsVisible(key == "buffs" and self.frame:IsShown())
+    if key ~= "combat" then Suite.CombatIndicator:StopPreview() end
     local offset, sectionIndex, sectionStart, collapsed = 0, 0, nil, false
     local column, lineHeight, pairedRow = 0, 0, nil
     local function FlushRows()
@@ -1893,6 +1903,7 @@ function GUI:Initialize()
         Suite.Macros:SetVisible(false)
         Suite.Camping:SetSettingsVisible(false)
         Suite.MissingBuffs:SetSettingsVisible(false)
+        Suite.CombatIndicator:StopPreview()
         if self.macroPreview then self.macroPreview:ClearFocus() end
     end)
     frame:SetScript("OnEvent", function(_, event)
@@ -2261,7 +2272,12 @@ function GUI:ChooseMacroItem()
         end
         entry.item = id
         macros.statuses[entry] = nil
-        macros:Queue()
+        macros.statusErrors[entry] = nil
+        if recipe.foodChoice and entry.created then macros:Save(entry, true)
+        else
+            macros:Queue()
+            if recipe.foodChoice then macros.statuses[entry] = "Food selected. Click Create macro to save it before feeding." end
+        end
         self:RefreshMacros()
     end
     if MenuUtil and type(MenuUtil.CreateContextMenu) == "function" then
@@ -2406,6 +2422,10 @@ function GUI:BuildMacros()
         Suite.Set("macroUpdates", not Suite.db.macroUpdates)
         self:RefreshMacros()
     end)
+    -- Multiline edit boxes can receive input beyond their scroll viewport.
+    -- Keep both actions above the copyable preview's entire input frame.
+    self.macroSave:SetFrameLevel(preview:GetFrameLevel() + 1)
+    self.macroUpdates:SetFrameLevel(preview:GetFrameLevel() + 1)
     self:RefreshMacros()
 end
 
@@ -2509,6 +2529,10 @@ function GUI:RefreshMacros()
     self.macroPreviewBody = body or "#showtooltip"
     self.macroPreview:SetText(self.macroPreviewBody)
     self.macroStatus:SetText(paused and "Changes are paused until combat ends." or macros.statuses[entry] or detail or "")
+    local statusError = paused or pending or (macros.statuses[entry] and macros.statusErrors[entry])
+    local statusColor = statusError and palette.error
+        or (macros.statuses[entry] and macros.statusErrors[entry] == false and palette.accent) or palette.muted
+    self.macroStatus:SetTextColor(unpack(statusColor))
     self.macroSave.label:SetText(entry.created and "Update macro" or (not pending and not ready and recipe.slot and "Create placeholder" or "Create macro"))
     self.macroSave:SetEnabled(macros:CanSave(entry, body, pending, ready))
     self.macroUpdates.label:SetText("Keep created macros current: " .. (Suite.db.macroUpdates and "On" or "Off") .. " · click to change")

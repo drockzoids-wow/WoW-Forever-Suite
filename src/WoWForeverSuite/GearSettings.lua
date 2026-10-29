@@ -226,7 +226,7 @@ function Gear:BuildEditor()
         if state then state.details = not state.details end
         self:Refresh()
     end)
-    self.chooseButton = Button(self.editor, "Choose another profile", 396, -456, 384, function() self:Open("picker") end)
+    Button(self.editor, "Choose another profile", 396, -456, 384, function() self:Open("picker") end)
     self.saveButton = Button(self.editor, "Save & use profile", 0, -496, 384, function() self:Save() end)
     self.cancelButton = Button(self.editor, "Cancel edits", 396, -496, 384, function() self:Cancel() end)
     self.status = Label(self.editor, "", 0, -537, 780, 11, colors.muted)

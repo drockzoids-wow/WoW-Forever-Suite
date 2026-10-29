@@ -257,7 +257,7 @@ function Search:CreatePopup()
     popup:SetScript("OnMouseWheel", function(_, delta)
         if not InCombatLockdown() and Integer(delta, -100, 100) and delta ~= 0 then self:Page(delta > 0 and -1 or 1) end
     end)
-    local close = CreateFrame("Button", nil, popup); self.close = close
+    local close = CreateFrame("Button", nil, popup)
     close:SetSize(22, 22); close:SetPoint("TOPRIGHT", -2, -2)
     Label(close, 13, colors.muted, "CENTER", 0, 0):SetText("×")
     close:SetScript("OnClick", function() self:Dismiss() end)

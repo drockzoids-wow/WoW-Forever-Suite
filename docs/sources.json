@@ -1,4 +1,77 @@
 {
+  "canonicalFoodCombat20261023": {
+    "date": "2026-10-23",
+    "canonicalRoot": "P:/GitHub Repos/WoW Forever Suite",
+    "version": "1.0.0",
+    "request": "Correct the destination for both requested updates: seasonal food/water priority and combat indicator.",
+    "correction": "Earlier work in this chat missed P:. Merge both changes narrowly into the newer canonical source. From this correction onward no alternate source, game installation or junction is written.",
+    "behavior": {
+      "food": "Mage/conjured, known seasonal, regular supplies; Hallow candy 20388/20389/20390 restores both health and mana; preserve explicit choices, level, no-buff, metadata, ownership and combat guards.",
+      "combat": "Default-off four-second gold IN COMBAT and green COMBAT ENDED; persistent option, normalized position, click-through lock, preview/reset; one owned frame and cancellable timer, deferred layout/input."
+    },
+    "source": {
+      "commit": "ca8368f2f2380cbe696854f7f2646387c278a61b",
+      "mirrorBuild": "1.60.1 (70532)",
+      "observedExecutable": "1.60.1.70532",
+      "runtimeBuildInterface": "Unreported",
+      "qualification": "Seven narrowly fetched exact-build generated references. Older full cache retains its old identity. Declarations/substitutes do not prove native permissions or taint safety."
+    },
+    "references": [
+      {
+        "file": ".cache/canonical-food-combat-20261023/research/combat/UnitDocumentation.lua",
+        "sha256": "a823e84f90fabe58d9ffe547ea17eae83708d451e593b4052bce002cc02ce5c1",
+        "url": "https://raw.githubusercontent.com/Gethe/wow-ui-source/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua"
+      },
+      {
+        "file": ".cache/canonical-food-combat-20261023/research/combat/RestrictedActionsDocumentation.lua",
+        "sha256": "3b22f5e0249d53d492432648c92295aabb4a3a211f50f7e617bd7eaca3676680",
+        "url": "https://raw.githubusercontent.com/Gethe/wow-ui-source/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_APIDocumentationGenerated/RestrictedActionsDocumentation.lua"
+      },
+      {
+        "file": ".cache/canonical-food-combat-20261023/research/combat/SimpleFrameAPIDocumentation.lua",
+        "sha256": "c00bc77ee27f8fd81ba8b8d1bfd85fbd0ad817b22457adbe5adca6876a1d604a",
+        "url": "https://raw.githubusercontent.com/Gethe/wow-ui-source/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleFrameAPIDocumentation.lua"
+      },
+      {
+        "file": ".cache/canonical-food-combat-20261023/research/combat/SimpleFrameScriptObjectAPIDocumentation.lua",
+        "sha256": "09c85f7ee160d6f4d39765ba92a93ccd112d9e578b48d6f99b79f65e2ec42b1d",
+        "url": "https://raw.githubusercontent.com/Gethe/wow-ui-source/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleFrameScriptObjectAPIDocumentation.lua"
+      },
+      {
+        "file": ".cache/canonical-food-combat-20261023/research/combat/SimpleScriptRegionAPIDocumentation.lua",
+        "sha256": "3718e5f81b99525819264d2f50e473080541d655978f88ca85582acc4073fd82",
+        "url": "https://raw.githubusercontent.com/Gethe/wow-ui-source/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleScriptRegionAPIDocumentation.lua"
+      },
+      {
+        "file": ".cache/canonical-food-combat-20261023/research/combat/SimpleFontStringAPIDocumentation.lua",
+        "sha256": "156e370421081e6a8ec78afdee8e4306686cecc99f0d2163c1b62ce9a5ddbe96",
+        "url": "https://raw.githubusercontent.com/Gethe/wow-ui-source/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleFontStringAPIDocumentation.lua"
+      },
+      {
+        "file": ".cache/canonical-food-combat-20261023/research/combat/UITimerDocumentation.lua",
+        "sha256": "db087ebb155a349c91ac80d55f3d48c7d56913463217ee33d9403f235b616420",
+        "url": "https://raw.githubusercontent.com/Gethe/wow-ui-source/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_APIDocumentationGenerated/UITimerDocumentation.lua"
+      }
+    ],
+    "seasonalData": {
+      "file": ".cache/canonical-food-combat-20261023/research/food/seasonal-item-records.json",
+      "sha256": "673d86ae814c1d38a2caa8d8ad99f9c4c941eb62e7c7327ee53fa85ca2289069",
+      "items": 17,
+      "qualification": "Curated client data, not exhaustive live-server event coverage."
+    },
+    "validation": {
+      "baselineLua": 66,
+      "baselineChecks": 23006,
+      "finalLua": 67,
+      "finalChecks": 23342,
+      "settingsPages": 28,
+      "TOCsIdentical": true,
+      "native": "Pending game load through user-managed installation and native smoke tests."
+    },
+    "backup": ".cache/canonical-food-combat-20261023/before",
+    "packageReceipt": ".cache/canonical-food-combat-20261023/release-manifest.json",
+    "noPublishPushOrCommit": true
+  },
   "chatInputBorderBrightness": {
     "reviewedOn": "2026-10-20",
     "version": "0.2.100",

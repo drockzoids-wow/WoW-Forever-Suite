@@ -346,7 +346,7 @@ function Extra:RefreshCombat()
         end
         button:SetShown(entry ~= nil)
     end
-    self.combatEntries = entries; self.combatFrame:SetShown(count > 0); self:Schedule()
+    self.combatFrame:SetShown(count > 0); self:Schedule()
 end
 function Extra:OnEvent(event)
     if not Enabled() then return end

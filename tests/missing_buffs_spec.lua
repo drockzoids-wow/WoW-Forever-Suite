@@ -501,7 +501,6 @@ do
     equal(absentButton, nil, "missing selected coating never creates the reported question-mark icon")
     local showSelf, showClass = Suite.db.missingBuffSelf, Suite.db.missingBuffClass
     Suite.db.missingBuffSelf, Suite.db.missingBuffClass = false, false; buffs:Refresh()
-    equal(#buffs.displayEntries, 0, "only unavailable supplies leave no visual action entries")
     equal(buffs.bar:IsShown(), false, "the reported single MH question-mark window is hidden when no action is available")
     for _, button in ipairs(buffs.buttons) do equal(button.attributes.type1, nil, "chat-only state releases stale secure actions") end
     Suite.db.missingBuffSelf, Suite.db.missingBuffClass = showSelf, showClass; buffs:Refresh()
@@ -510,7 +509,8 @@ do
     units.player.class, learned, enchants[0] = "SHAMAN", { 8232 }, {}
     buffs.bookDirty = true; buffs:Refresh()
     equal(Find("self", "imbue") ~= nil, true, "learned weapon buff is offered when selected item is unavailable")
-    equal(#buffs.chatEntries, 0, "available learned weapon buff prevents an unavailable-item chat fallback")
+    local _, chatEntries = buffs:Route(buffs.entries)
+    equal(#chatEntries, 0, "available learned weapon buff prevents an unavailable-item chat fallback")
     carried = availableOil; buffs.itemsDirty = true; buffs:Refresh()
     coating = Find("coating", "MH")
     equal(coating.item.id, 9001, "restocking restores the selected item action")
@@ -560,10 +560,12 @@ do
     extra.OnEvent = nativeEvent
     equal(dispatches, 1, "combat reminder dispatch runs once after preview cleanup")
     equal(extra.combatFrame:IsShown(), true, "native combat entry reveals passive missing-buff reminders")
-    equal(extra.combatEntries[1].spell.id, 6673, "selected Battle Shout is combat useful")
+    equal(extra.combatButtons[1].entry.spell.id, 6673, "selected Battle Shout is combat useful")
     buffs.itemsDirty = true; extra:RefreshCombat()
     local dirtyCoating = false
-    for _, item in ipairs(extra.combatEntries) do if item.kind == "coating" then dirtyCoating = true end end
+    for _, button in ipairs(extra.combatButtons) do
+        if button.entry and button.entry.kind == "coating" then dirtyCoating = true end
+    end
     equal(dirtyCoating, false, "combat inventory changes suppress stale coating availability without a bag scan")
     buffs.itemsDirty = false; extra:RefreshCombat()
     equal(extra.combatButtons[1].attributes.type1, nil, "combat icon has no secure action")
@@ -573,12 +575,12 @@ do
     equal(bookReads, spellReadsBefore, "combat refresh performs no spellbook discovery")
     equal(buffs.bar:IsShown(), false, "native secure driver keeps click-action bar hidden")
     combatAura = { name = "Battle Shout", spellId = 6673, duration = 120, expirationTime = clock + 16 }
-    extra:RefreshCombat(); equal(extra.combatEntries[1].kind, "coating", "covered shout is suppressed while coating can remain missing")
+    extra:RefreshCombat(); equal(extra.combatButtons[1].entry.kind, "coating", "covered shout is suppressed while coating can remain missing")
     clock = clock + 2; extra:RefreshCombat()
-    equal(extra.combatEntries[1].spell.id, 6673, "short shout warns at its fifteen-second boundary in combat")
+    equal(extra.combatButtons[1].entry.spell.id, 6673, "short shout warns at its fifteen-second boundary in combat")
     forbidden = true; local priorReads = combatReads; extra:RefreshCombat()
     equal(combatReads, priorReads, "per-spell secrecy blocks targeted aura reads")
-    equal(extra.combatEntries[1].kind, "coating", "restricted aura is omitted instead of invented missing")
+    equal(extra.combatButtons[1].entry.kind, "coating", "restricted aura is omitted instead of invented missing")
     forbidden = secret; priorReads = combatReads; extra:RefreshCombat()
     equal(combatReads, priorReads, "secret predicate result fails closed")
     local predicate = C_Secrets.ShouldSpellAuraBeSecret
@@ -589,9 +591,9 @@ do
     equal(combatReads, priorReads, "general aura policy cannot substitute for a missing per-spell predicate")
     C_Secrets.ShouldSpellAuraBeSecret = predicate
     forbidden = false; combatAura = secret; extra:RefreshCombat()
-    equal(extra.combatEntries[1].kind, "coating", "restricted aura result is omitted")
+    equal(extra.combatButtons[1].entry.kind, "coating", "restricted aura result is omitted")
     combatAura = { name = "Different aura", spellId = 9005 }; extra:RefreshCombat()
-    equal(extra.combatEntries[1].kind, "coating", "mismatched targeted aura data is rejected")
+    equal(extra.combatButtons[1].entry.kind, "coating", "mismatched targeted aura data is rejected")
     Suite.db.missingBuffWeapons = false; extra:RefreshCombat()
     equal(extra.combatFrame:IsShown(), false, "coating opt-out immediately suppresses cached combat coatings")
     Suite.db.missingBuffWeapons = true

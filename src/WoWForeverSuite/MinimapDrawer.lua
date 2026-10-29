@@ -143,7 +143,7 @@ function Drawer:Library()
             if type(lib[method]) == "function" then hooksecurefunc(lib, method, function() self:Schedule() end) end
         end
         if type(lib.ShowOnEnter) == "function" then
-            hooksecurefunc(lib, "ShowOnEnter", function(_, name, value)
+            hooksecurefunc(lib, "ShowOnEnter", function(_, name)
                 if self.changing or not Read(name, "string") then return end
                 for button, record in pairs(self.records) do
                     if record.libraryName == name and Read(button.showOnMouseover, "boolean") then

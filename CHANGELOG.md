@@ -2,9 +2,17 @@
 
 ## 1.0.0 — Initial release (planned November 4, 2026)
 
+- Remove unused runtime fields and callback arguments; simplify buff-border creation and test visible buff/chat behavior directly.
 - Establish the accepted 0.2.104 feature set as the planned Forever launch release.
 - Include the modular Suite settings, profiles and setup guide; inventory and gear tools; window, minimap, chat and combat tools; vendor helpers; readable journey journal; and built-in class/weapon training planner.
-- Preserve existing preferences, session history and optional feature defaults. No gameplay behavior changes from 0.2.104.
+- Preserve existing preferences, session history and optional feature defaults.
+- Prefer seasonal food/water after mage supplies, including Hallow's End candy for health and mana.
+- Show blocked or failed macro updates in red and confirmed saves in teal.
+- Let explicit Update apply the preview to previously owned, manually edited macros; preserve background and food-picker edit protection.
+- Keep macro Create/Update and automatic-update buttons above the copyable preview input layer.
+- Feed pets using the chosen food's exact localized name, with separate combat/dead/absent guards for item targeting.
+- Apply deliberate pet-food changes to existing owned macros even when automatic updates are off; retain reagent-bag ingredient support.
+- Add an optional combat start/end indicator with persistent display, saved movement, click-through lock, preview and reset.
 
 
 ## 0.2.104

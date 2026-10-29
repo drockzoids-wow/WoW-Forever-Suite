@@ -7,6 +7,7 @@ Action keybind abbreviations and the heavier size/shadow treatment also follow i
 Following the Windows audio device uses Retail ZoidsTools as a behavior reference with an original Suite implementation.
 Profession modifier actions, castbar controls and zone reputation use prior ZoidsTools behavior review as references; their Suite implementations are original.
 Quest pickup uses Retail ZoidsTools quest-data readiness as a behavior reference with an original Suite implementation.
+Combat start/end alerts use its Combat Banner behavior as a reference, with original Suite code and styling.
 Its class and shared-bank icons use artwork provided by the WoW client.
 
 ZoidsTools license:

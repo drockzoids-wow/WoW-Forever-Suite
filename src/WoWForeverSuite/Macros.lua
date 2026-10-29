@@ -1,13 +1,13 @@
 local _, Suite = ...
-local Macros = { statuses = {} }
+local Macros = { statuses = {}, statusErrors = {} }
 Suite.Macros = Macros
 table.insert(Suite.modules, Macros)
 local Items = Suite.MacroItems
 local Number, Text = Items.Number, Items.Text
 
 Macros.recipes = {
-    { key = "food", name = "FS Food", title = "Food / Health", help = "Eat outside combat. Optionally use a Healthstone and healing potion in combat." },
-    { key = "water", name = "FS Drink", title = "Drink / Mana", help = "Drink outside combat. Optionally use a mana potion in combat." },
+    { key = "food", name = "FS Food", title = "Food / Health", help = "Eat outside combat: mage food, then event food, then regular food. Optional combat Healthstone and healing potion." },
+    { key = "water", name = "FS Drink", title = "Drink / Mana", help = "Drink outside combat: mage water, then event drinks, then regular water. Optional combat mana potion." },
     { key = "bandage", name = "FS Bandage", title = "Bandage", help = "Use your strongest carried bandage on yourself. Native bandage rules still apply." },
     { key = "mainhand", name = "FS Main Hand", title = "Main-hand coating", slot = 16,
         help = "Match an ordinary stone to your weapon, or choose an oil or poison. Apply outside combat." },
@@ -242,11 +242,19 @@ function Macros:Generate(entry, snapshot)
         if snapshot.carriedIncomplete then return nil, "Carried item names are loading. Existing text is kept.", true end
         local revive, mend, feed = SpellName(982), SpellName(136), SpellName(6991)
         if not revive or not mend or not feed then return nil, "Pet spell information is unavailable in this client.", true end
+        local food = snapshot.carriedByID and snapshot.carriedByID[entry.item]
+        local foodName = food and food.name
+        if not food and C_Item and type(C_Item.GetItemInfo) == "function" then
+            local ok, name = pcall(C_Item.GetItemInfo, entry.item)
+            if ok then foodName = name end
+        end
+        if not Text(foodName) or #foodName == 0 or #foodName > 128 or foodName:find("[%c|;%[%]]") then
+            return nil, "Food name is loading or unavailable. Existing text is kept.", true
+        end
         local body = "#showtooltip\n/cast [@pet,dead][nopet,mod:shift] " .. revive
             .. "\n/cast [combat,@pet,exists,nodead] " .. mend .. "; [nocombat,@pet,exists,nodead] " .. feed
-            .. "\n/use [nocombat,@pet,exists,nodead] item:" .. entry.item
+            .. "\n/stopmacro [combat][nopet][@pet,dead]\n/use " .. foodName
         if not ValidBody(body) then return nil, "These spell names exceed the game's macro text limit.", true end
-        local food = snapshot.carriedByID and snapshot.carriedByID[entry.item]
         if not food then return body, "Chosen food is not carried. Restock it or choose another food; the macro keeps your choice.", false, true end
         local accepted, problem = Items:PetCanEat(entry.item)
         if accepted ~= true then
@@ -386,17 +394,19 @@ local function EditorOpen()
     end
     return false
 end
-function Macros:Owned(entry)
+function Macros:Owned(entry, replaceEdited)
     local index, problem, old = self:Find(entry.name)
     if problem then return nil, problem end
     if index then
         local owned = Suite.db.macroOwnership[entry.name]
         if not owned then return nil, "That General macro name is already in use. Rename it in Blizzard's Macros window." end
-        if not SameBody(old, owned) then return nil, "Edited in Blizzard's Macros window. Automatic changes are paused for this macro." end
+        if not SameBody(old, owned) and replaceEdited ~= true then
+            return nil, "Edited outside Suite. Automatic updates paused. Click Update macro to replace it with the preview."
+        end
     end
     return index, nil, old
 end
-function Macros:Write(entry, body, explicit)
+function Macros:Write(entry, body, explicit, replaceEdited)
     if InCombatLockdown() then return false, "Create or update after combat." end
     if not self:Applicable(entry) then return false, "This recipe is for another class." end
     if EditorOpen() then return false, "Close Blizzard's Macros window before updating." end
@@ -404,7 +414,7 @@ function Macros:Write(entry, body, explicit)
     if type(CreateMacro) ~= "function" or type(EditMacro) ~= "function" or type(GetNumMacros) ~= "function" then
         return false, "Macro creation is unavailable in this client."
     end
-    local index, problem, old = self:Owned(entry)
+    local index, problem, old = self:Owned(entry, replaceEdited)
     if problem then return false, problem end
     if not index and not explicit then return false, "Macro missing. Click Create to make it again." end
     if index and SameBody(old, body) then entry.created = true; return true, "Current in General macros." end
@@ -438,9 +448,11 @@ function Macros:Refresh()
         for _, entry in ipairs(Suite.macroDB.entries) do
             if entry.created and self:Applicable(entry) then
                 local body, note, pending, ready = self:Generate(entry, self.snapshot)
+                self.statusErrors[entry] = pending == true
                 if not pending and body then
                     local detail = note
                     local ok, status = self:Write(entry, body, false)
+                    self.statusErrors[entry] = not ok
                     note = ok and self.byRecipe[entry.recipe].foodChoice and detail or ok and not ready and self.byRecipe[entry.recipe].slot
                         and "Waiting for a suitable weapon and carried coating." or status
                 end
@@ -480,14 +492,16 @@ function Macros:Status()
     end
     if count == 0 then Suite.Print("No created macros are tracked on this character.") end
 end
-function Macros:Save(entry)
-    if InCombatLockdown() then self.statuses[entry] = "Click Create / update after combat."; self:Notify(); return false end
+function Macros:Save(entry, existingOnly)
+    if InCombatLockdown() then self.statusErrors[entry] = true; self.statuses[entry] = "Click Create / update after combat."; self:Notify(); return false end
     self.snapshot = Items:Scan()
     local body, note, pending, ready = self:Generate(entry, self.snapshot)
     local detail = note
     local ok = false
     if self:CanSave(entry, body, pending, ready) then
-        ok, note = self:Write(entry, body, true)
+        -- Only Create/Update explicitly approves replacing previously owned text.
+        -- Food-picker saves and background work retain external-edit protection.
+        ok, note = self:Write(entry, body, existingOnly ~= true, existingOnly ~= true)
         if ok and self.byRecipe[entry.recipe].foodChoice then note = note .. " " .. detail end
         if ok and not ready then
             if self.byRecipe[entry.recipe].slot then
@@ -497,6 +511,7 @@ function Macros:Save(entry)
         end
     end
     self.statuses[entry] = note
+    self.statusErrors[entry] = not ok
     self:Notify()
     return ok
 end

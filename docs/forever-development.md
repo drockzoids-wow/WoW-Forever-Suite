@@ -1,5 +1,74 @@
 # WoW Forever addon development reference
 
+## Pre-release code cleanup — October 28, 2026
+
+Audited the 67 Lua files for unused bindings, method references, write-only fields, unreachable statements and package inputs. Removed confirmed unused state and callback arguments, including test-only buff/chat bookkeeping; tests now inspect active button entries and actual feedback. Preserve native widget properties, namespace module exports, deferred-work keys and SavedVariables migrations. No API or feature behavior change is intended. Lua 5.1 syntax, identical TOCs and 23,407 substitute assertions pass. Native smoke testing remains pending. See [the cleanup review](cleanup-review-2026-10-28.md).
+
+## Primary development location — October 25, 2026
+
+The user selected `C:\Games\Development\GitHub Repos\WoW Forever Suite` as the primary and canonical checkout, superseding the earlier P: requirement. Perform development and checks here. Historical P: references below retain their original context. Optional standalone Lua 5.5 tools are available at `P:\lua-5.5.0_Win64_bin`; they do not replace the project's Lua 5.1 compatibility checks. The user continues to manage the game junction.
+
+## Macro status colors — October 23, 2026
+
+Make blocked/failed macro saves and combat/data-loading pauses red so the reason for an unchanged macro is visible. Track write outcomes separately from status wording; confirmed current/saved outcomes use Suite teal and ordinary recipe guidance stays muted. Reapply the color on every refresh to clear previous errors when a save succeeds or another recipe is selected. Food picker changes clear the previous outcome. Preserve all existing save/ownership behavior.
+
+Canonical P: source and local 1.0.0 package only. Substitute checks cover red external-edit/editor/combat failures and clearing red on a successful GUI save. Native visual check remains pending: reload, provoke an editor-open or external-edit block, confirm readable red text, then complete Update and verify teal; switch recipes and confirm normal guidance is muted. Record actual build/Interface. Evidence: .cache/macro-status-color-20261023.
+
+
+## Explicit macro Update replaces owned edits — October 23, 2026
+
+Reviewed the user's 35-second recording (2026-10-23 10-22-07.mp4). At approximately 10 seconds, the visible status reads: Edited in Blizzard's Macros window. Automatic changes are paused for this macro. User reports manually replacing the macro text in Blizzard's editor works. The external-edit guard, rather than the previously suspected preview overlap, explains why repeated explicit Update clicks do not save the generated preview. This recording does not establish which original edit caused the ownership mismatch.
+
+Separate deliberate Create/Update from existing-only picker saves and background work. Explicit Update may replace edited text only when the unique General macro has a prior Suite ownership record; a same-name unowned macro remains protected. Only confirmed native readback updates ownership. Background updates, item selection, class availability, combat, duplicate names, editor-open checks, metadata/body limits and failed-write protections remain. Clarify the paused status with Click Update macro to replace it with the preview. The existing button's preview is the text the user chooses to apply; no additional confirmation is needed.
+
+A regression first failed against the old guard. All 67 Lua files and 23,405 substitute checks now pass, including the visible GUI Update of edited pet text to the exact food-name preview, continued picker/background protection, visible saved status, class recipe replacement and ownership/editor/combat boundaries. Source/package changes stay exclusively in P:/GitHub Repos/WoW Forever Suite. The user manages the game junction. Rebuild and verify the local 1.0.0 package; native validation of the corrected button remains pending. Evidence: .cache/macro-video-20261023.
+
+In-game smoke: load this P: source and reload; close Blizzard's macro editor; select Pet care and click Update. Confirm Saved in General macros, then reopen FS Pet Care to inspect the exact /use food-name line. Test feeding a living pet outside combat and record consumption/cursor/error and actual build/Interface. Repeat after a manual edit: background changes must pause, explicit Update must apply the preview, and open editor/combat/unowned or ambiguous names must still block writing. The user's manually edited feeding workaround is reported working; it does not certify the revised Suite save path.
+
+
+## Macro action input correction — October 23, 2026
+
+User reports Update macro produces no visible response while the saved FS Pet Care retains its old item-ID body. Source layout reveals the 240px multiline preview extends below its 93px scroll viewport across both action rows. Raise Create/Update and the automatic-update toggle above the preview's input frame, preserving selection/copy/scroll and all existing ownership, editor, combat and readback safeguards. No macro is executed by clicking these controls.
+
+Substitute regression models the overlapping frames' input priority for both controls and checks that GUI saving displays its result. Native hit testing and pet feeding remain unverified. In game: reload this P: source, close Blizzard's macro editor, click Update, and record the status above the preview. Reopen FS Pet Care and confirm the exact food-name /use line; then test feeding a living pet outside combat, including raw fish in the reagent bag. Record actual build/Interface and any error or ownership-block status. Evidence: .cache/macro-button-input-20261023.
+
+
+## Feed Pet item targeting correction — October 23, 2026
+
+User screenshot after the earlier save fix still shows the Feed Pet cursor waiting for a bag item. The prior change fixed selected-versus-saved text but did not establish live feeding success. Generate the chosen item's validated exact localized name on a plain /use line, rather than item:ID with an explicit pet unit target. Precede it with /stopmacro [combat][nopet][@pet,dead], preserving combat, absent/dead-pet guards while leaving the final use command to satisfy the item-targeting cursor. Revive and Mend branches stay unchanged. No bag-slot macro, direct protected API call, automatic feed, insecure execution or alternate food selection is added. Reagent bag remains included in carried discovery.
+
+Resolve names from guarded carried metadata, or guarded cached C_Item.GetItemInfo for a depleted choice. Missing/restricted or unsafe names pause generation and preserve existing text; validate byte limit after constructing the localized body. Item IDs remain saved choices. Deliberate picker changes still update only existing confirmed owned macros even with automatic updates off; editor, external edit, missing macro and combat protections remain.
+
+Native exact-build SecureTemplates.lua and earlier cached SlashCommands.lua show /use passes its parsed target to item use; they do not expose the engine internals that failed here. A publisher's Forever release notes independently report changing Feed Pet to exact item names; no third-party implementation was read or copied. The name/target correction is a source-informed compatibility fix and still needs the user's live retest.
+
+All 67 Lua files and 23,357 substitute checks pass. New command-contract tests check plain food-name use and combat/dead/absent stop guards; existing reagent-bag and explicit-choice regressions remain. They do not prove the native item cursor resolves. Version stays 1.0.0; only P: source/local package changes. Load that source, /reload, pick food again or click Update macro. Verify the saved FS Pet Care ends with the stopmacro guard and /use followed by the exact food name, then press outside combat with a living pet. Record consumption, cursor disappearance, errors and actual build/Interface. Recheck raw fish in reagent versus ordinary bags, Revive/Mend, depletion, localization and user edits. Earlier full-feed success remains unverified. Evidence: .cache/pet-targeting-20261023.
+
+
+## Pet food selection refresh — October 23, 2026
+
+User reports newly chosen Raw Bristle Whisker Catfish in the reagent bag would not feed. Reproduced a separate selection/write gap: with macroUpdates off, the picker changed the chosen item and preview without rewriting the existing General macro. Deliberate pet-food changes now call the existing Save path in existing-only mode. Preserve default-off automatic updates, class/combat/editor guards, confirmed ownership and externally edited text. Missing macros are not recreated; first-time choices explicitly ask the user to Create. No item/spell use or native macro execution is added.
+
+The carried-item scan already includes reagent bag 5 and ingredients without use spells. New substitutes exercise raw fish there, combined carried counts, immediate saved-text refresh with automatic updates off, missing macros and custom edits. They do not prove native Feed Pet targeting or establish a reagent-bag engine bug. The generated pet-care commands remain unchanged. Exact-build SecureTemplates.lua is cached as reference only; no protected calls are invoked directly.
+
+All 67 Lua 5.1 files and 23,352 substitute checks pass; TOCs remain identical and version stays 1.0.0. Only the canonical P: checkout and its local package are updated; the user manages the game junction. After loading this source, /reload, choose the fish again, confirm the saved FS Pet Care item ID matches the preview, and test a living summoned pet outside combat. Repeat raw fish in reagent bag versus ordinary bag, combat Mend, dead/absent pet, editor-open/custom-edited/missing macro safeguards and reload persistence. Record actual build/Interface, feeding cursor/error and consumption before calling the live feeding issue verified. Evidence: .cache/pet-food-20261023.
+
+
+## Canonical completeness review — October 23, 2026
+
+Reviewed recorded feature history, available project-chat latest turns, Git/module/test integration and source packaging. No additional missing runtime implementation found: 67 loaded Lua modules, all 58 registered test files, 28 settings pages and 23,342 passing assertions. Corrected the README omissions for the newest features and the stale ZIP checksum sidecar. Saved app project still opens outside P: and needs its folder corrected in the app; actual edits remain P:-only. Native smoke results remain pending. See [the completeness report](completeness-review-2026-10-23.md) and .cache/completeness-audit-20261023.
+
+## Canonical food/water and combat indicator update — October 23, 2026
+
+Both requested changes are now applied to the canonical P:/GitHub Repos/WoW Forever Suite 1.0.0 source. Earlier work in this chat went to alternate C: copies and missed P:. Preserve all newer canonical features, profiles, accepted equipped-item fixes, defaults and history. From this correction onward, only P: is updated; the user retains game-junction management. No further deployment or junction change occurs.
+
+Automatic food/water prefers mage supplies, then a curated 17-ID set of seasonal recovery supplies, then ordinary supplies. Within a tier retain restoration, item level, quality and ID ordering. Hallow's End Lollipop 20388, Candy Corn 20389 and Candy Bar 20390 use consumable subclass 8 and restore a percentage of both health and mana. Include those in both recovery recipes and the explicit picker; pending/restricted metadata preserves existing text. The list also includes plain Harvest Festival, Winter Veil and Lunar Festival supplies. Still require readable use-spell/tooltip data, usable level and no buff; ordinary same-name candy, buff foods and non-restoring treats receive no automatic priority. Explicit overrides and English-only automatic tooltip classification remain. No resource query, calendar polling or automatic consumption is added.
+
+The default-off Combat Indicator has gold IN COMBAT and green COMBAT ENDED messages lasting four seconds, optional full-fight visibility, lock/click-through, normalized saved placement, preview and reset. Open /wfs combat or Combat > Combat Indicator. One anonymous UIParent-owned display/event frame and one cancellable alert timer handle native combat/world/logout events; there is no idle updater. Construction/input/layout wait through combat; prepared presentation requires readable ordinary frame protection/forbidden predicates. Interrupted drags restore prior anchors after combat without saving the interrupted position. Preview works while disabled and ends on timeout, combat, navigation/close, world exit or logout.
+
+Retail ZoidsTools CombatBanner.lua was reviewed read-only as a behavior reference; code and Suite styling are original and the MIT attribution is retained. The public Forever mirror now identifies exact executable build 70532 at ca8368f2f2380cbe696854f7f2646387c278a61b. Seven narrow generated API references and seasonal client-item source records are retained under .cache/canonical-food-combat-20261023. The older full source cache keeps its previous identity. Installed executable was 1.60.1.70532; actual running build/Interface, native rendering, item consumption, persistence and taint remain unreported.
+
+Canonical baseline checks: 66 Lua files and 23,006 substitute assertions pass. Final canonical result: all 67 Lua 5.1 files and 23,342 assertions pass; all 28 settings pages remain covered and both TOCs are identical. Package receipt is retained with this correction's evidence. Keep version 1.0.0 as the planned initial release, rebuild its local source-only package, and publish nothing. Native smoke tests remain required.
+
 ## Initial launch release baseline - 1.0.0, October 22, 2026
 
 The user reports that everything appears to be working and designates the current build as the expected initial release for the user-provided November 4, 2026 launch target. Promote accepted 0.2.104 to planned 1.0.0 in canonical P:/GitHub Repos/WoW Forever Suite. Only Core/TOC version metadata changes in addon code. Preserve all features, defaults, SavedVariables schemas/history and prior pending source changes. Build and retain the matching local package and SHA256 file manifest. Do not publish, push a release tag, schedule publication, deploy or change the game junction as part of this preparation.

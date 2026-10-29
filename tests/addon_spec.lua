@@ -1591,4 +1591,5 @@ assert(loadfile("tests/chat_history_spec.lua"))(Suite, equal, Frame, function(va
 assert(loadfile("tests/theme_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/journey_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/training_catalog_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/combat_indicator_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 print("Behavior checks passed: " .. checks)

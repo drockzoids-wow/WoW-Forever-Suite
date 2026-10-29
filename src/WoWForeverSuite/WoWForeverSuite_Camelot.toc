@@ -31,6 +31,7 @@ BuffBorders.lua
 Keybinds.lua
 UnitFrames.lua
 TargetThreat.lua
+CombatIndicator.lua
 Vendor.lua
 MerchantKnown.lua
 Quests.lua

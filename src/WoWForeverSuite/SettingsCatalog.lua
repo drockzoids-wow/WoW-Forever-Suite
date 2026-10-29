@@ -2,7 +2,7 @@ local _, Suite = ...
 local Catalog = { groups = {
     { key = "overview", label = "Home", pages = { { "overview", "Overview" }, { "characters", "Characters" }, { "leveling", "Leveling" }, { "training", "Training Planner" } } },
     { key = "inventory", label = "Bags & Gear", pages = { { "bags", "Bags & Bank" }, { "items", "Gear Details" }, { "tooltips", "Tooltips" }, { "professions", "Professions" } } },
-    { key = "combat", label = "Combat", pages = { { "actionbars", "Action Bars" }, { "unitframes", "Unit Frames" },
+    { key = "combat", label = "Combat", pages = { { "combat", "Combat Indicator" }, { "actionbars", "Action Bars" }, { "unitframes", "Unit Frames" },
         { "buffs", "Missing Buffs" }, { "meters", "Damage Meters" }, { "castbars", "Castbars" } } },
     { key = "layout", label = "Interface", pages = { { "appearance", "Appearance" }, { "minimap", "Minimap" }, { "worldmap", "World Map" }, { "windows", "Windows" }, { "bars", "Bars & Buttons" }, { "chat", "Chat" }, { "audio", "Audio" } } },
     { key = "everyday", label = "Everyday", pages = { { "quests", "Quests & Loot" }, { "vendor", "Vendor" }, { "mail", "Mail" }, { "camping", "Camping" }, { "macros", "Macros" } } },
@@ -11,6 +11,7 @@ local Catalog = { groups = {
 } }
 Suite.SettingsCatalog = Catalog
 Catalog.sections = {
+    combat = { [1] = "Combat Indicator", [4] = "Position & Preview" },
     overview = { [1] = "Maps & Layout", [4] = "Gear Details" },
     minimap = { [1] = "Launcher & Addon Buttons", [3] = "Map Appearance", [4] = "Stats & Information" },
     windows = { [1] = "Window Layout" },
@@ -78,6 +79,9 @@ local synonyms = { characterDashboard = "recorded characters dashboard alts mone
     bagSpaceAlert = "trash discard delete destroy gray grey white slots full bags",
     reverseCombinedBags = "reverse combined all in one bag order backpack bottom ammo quiver",
     reverseBagSlots = "reverse sort order direction slots within bag hearthstone bottom right backpack",
+    combatIndicator = "combat banner indicator start end entering leaving alert notification",
+    combatIndicatorPersistent = "combat banner indicator persistent stay visible entire fight",
+    combatIndicatorLocked = "combat banner indicator lock unlock click through drag move",
     targetThreat = "target threat indicator aggro percent percentage rectangle translucent blizzard buffs top bottom",
     levelingBar = "xp experience gold per hour net leveling session time next level eta estimate movable vertical tracker top left",
     levelingLock = "lock unlock click through hover tracker", levelingMinimize = "minimize collapse expand header tracker",
@@ -129,7 +133,7 @@ function Catalog:Configure(pages)
     pages.overview.note = "Every tool is optional. Your existing settings are kept; changes save automatically."
     local seen = {}
     -- Prefer dedicated pages over duplicated Overview shortcuts when finding a setting.
-    local order = { "characters", "training", "professions", "bags", "items", "tooltips", "minimap", "worldmap", "windows", "actionbars", "bars", "unitframes",
+    local order = { "characters", "training", "professions", "bags", "items", "tooltips", "minimap", "worldmap", "windows", "combat", "actionbars", "bars", "unitframes",
         "buffs", "meters", "quests", "vendor", "leveling", "camping", "audio", "mail", "chat", "macros" }
     local function Add(entry)
         if seen[entry.key] then return end

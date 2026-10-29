@@ -435,7 +435,6 @@ cursorX, cursorY = 10, 10; first.OnMouseDown(first, "LeftButton")
 equal(chat.copyRecord, record, "pressing chat keeps copy mode active when the native callback is wrapped")
 cursorX, cursorY = 80, 10; first:Release("LeftButton", "Selected chat text", 18)
 equal(nativeClipboard, "Selected chat text", "native release copy result is modeled independently of addon code")
-equal(record.copyResult, "copied", "positive native copy count is acknowledged")
 equal(messages[#messages], "Chat text copied to clipboard.", "success feedback follows the native result")
 equal(TimerCount(), 0, "native copying needs no addon gesture verification timer")
 equal(created, beforeGestureFrames, "copy gestures create no extra frames")
@@ -455,19 +454,17 @@ for _, count in ipairs({ 0, { secret = true }, -1, 0.5, math.huge }) do
     local clipboard = nativeClipboard
     cursorX, cursorY = 10, 10; first.OnMouseDown(first, "LeftButton")
     cursorX = 80; first:Release("LeftButton", "selected", count)
-    equal(record.copyResult, "failed", "zero/unknown native results never claim copying succeeded")
+    equal(messages[#messages], "The game did not confirm copying that selection to the clipboard.", "zero/unknown native results never claim copying succeeded")
     equal(TimerCount(), 0, "native failure callbacks create no gesture checks")
     if count == 0 then equal(nativeClipboard, clipboard, "native zero-copy leaves previous clipboard contents intact") end
 end
 equal(ownerCalls, 5, "the original owner's callback remains chained")
 equal(forwardedText, "selected", "owner callback arguments are preserved without Suite retaining text")
 cursorX, cursorY = 10, 10; first.OnMouseDown(first, "LeftButton")
-record.copyResult=nil
 local beforeSilentMessages=#messages
 cursorX = 80; first:Release("LeftButton", "selected", nil)
 equal(TimerCount(), 0, "missing native callback cannot schedule addon work ahead of copying")
 Flush()
-equal(record.copyResult, nil, "no native callback produces no invented copy result")
 equal(#messages,beforeSilentMessages,"Suite does not infer clipboard results from a mouse gesture")
 local beforeClickMessages = #messages
 cursorX, cursorY = 10, 10; first.OnMouseDown(first, "LeftButton"); first:Release("LeftButton", nil, nil)

@@ -656,13 +656,12 @@ function Buffs:Refresh()
     if self.bar and self.cancelMove then self:StopMoving(self.bar) end
     if not Enabled() or not self:Context() then
         if self.bar then self:StopMoving(self.bar); self.bar:Hide() end
-        self.entries, self.displayEntries, self.chatEntries = {}, {}, {}
+        self.entries = {}
         if not Enabled() then self.notices = {} end
         return
     end
     local collected = self:Collect(); self.entries = collected
     local entries, notices = self:Route(collected)
-    self.displayEntries, self.chatEntries = entries, notices
     self:Notify(notices)
     if #entries == 0 then
         for _, button in ipairs(self.buttons) do

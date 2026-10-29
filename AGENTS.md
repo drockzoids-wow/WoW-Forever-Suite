@@ -2,8 +2,9 @@
 
 ## Required working directory
 
-- User instruction, October 16, 2026: make all Forever Suite updates only in `P:\GitHub Repos\WoW Forever Suite`. This is the canonical working copy for code, documentation, artwork, checks and release configuration in every Forever Suite chat.
-- If a chat starts in another directory, direct file edits and command working directories to this canonical checkout and read its project instructions before continuing. Do not update or synchronize changes back to `C:\Games\Development\WoW Forever Suite` or another copy.
+- User instruction, October 25, 2026: use `C:\Games\Development\GitHub Repos\WoW Forever Suite` as the primary and canonical working copy for code, documentation, artwork, checks and release configuration in every Forever Suite chat. This supersedes the October 16 P: checkout requirement.
+- If a chat starts in another directory, direct file edits and command working directories to this canonical checkout and read its project instructions before continuing. Do not synchronize changes to other copies unless requested. Historical P: references in development records describe earlier work, not the current destination.
+- Optional standalone Lua tools are available at `P:\lua-5.5.0_Win64_bin`. These are Lua 5.5 tools; retain the project's Lua 5.1 syntax checks for WoW compatibility.
 - The user will manage the junction into the game's AddOns folder. Do not deploy or change that junction unless the user later requests it.
 
 Build a personal, modular addon for WoW Forever. The user wants selected QoL features and an original GUI. Treat Enhance QoL as a feature reference; do not copy its implementation, assets, layouts or visual identity. Its upstream LICENSE is all rights reserved.
