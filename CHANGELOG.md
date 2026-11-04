@@ -1,5 +1,10 @@
 # Forever Suite
 
+## 1.0.1
+
+- Collect the ForeverWoW.gg BiS minimap button even though its icon texture is private.
+- Make Square minimap expand the shorter side to match the longer side, retaining Edit Mode scale and position. Disabling restores the latest native dimensions; combat defers resizing. No new map icons or controls.
+
 ## 1.0.0 — Initial release (planned November 4, 2026)
 
 - Remove unused runtime fields and callback arguments; simplify buff-border creation and test visible buff/chat behavior directly.

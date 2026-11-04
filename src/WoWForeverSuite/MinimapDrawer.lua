@@ -4,6 +4,9 @@ Suite.MinimapDrawer = Drawer
 table.insert(Suite.modules, Drawer)
 local SIZE, GAP, PADDING = 24, 4, 4
 local CELL = SIZE + GAP
+-- Confirmed custom launchers whose artwork is private rather than exposed as
+-- icon/Icon or a normal texture. Keep this exact-name list narrow to avoid pins/HUD controls.
+local privateIconLaunchers = { ForeverWoWBiSMinimapButton = true }
 local ignored = {
     AddonCompartmentFrame = true, GameTimeFrame = true, TimeManagerClockButton = true,
     ExpansionLandingPageMinimapButton = true, GarrisonLandingPageMinimapButton = true,
@@ -56,7 +59,8 @@ function Drawer:Candidate(button)
     if not Suite.IsReadable(icon) then return end
     if icon == nil then icon = button.Icon end
     if not Suite.IsReadable(icon) then return end
-    if not name:match("^LibDBIcon10_") and type(icon) ~= "table" and type(icon) ~= "userdata" then
+    if not name:match("^LibDBIcon10_") and not privateIconLaunchers[name]
+        and type(icon) ~= "table" and type(icon) ~= "userdata" then
         local texture = button.GetNormalTexture and button:GetNormalTexture()
         if not Suite.IsReadable(texture) or texture == nil then return end
     end

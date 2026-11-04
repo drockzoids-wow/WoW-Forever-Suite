@@ -1,5 +1,23 @@
 # WoW Forever addon development reference
 
+## ForeverWoWBiS minimap collection — November 4, 2026
+
+The user's screenshot shows the ForeverWoW.gg BiS launcher left on the map while the drawer is open. Read-only inspection of the installed `C:/Games/World of Warcraft/_forever_/Interface/AddOns/ForeverWoWBiS/Minimap.lua` confirms `ForeverWoWBiSMinimapButton` is a direct Minimap child with a private artwork texture, no icon/Icon field and no normal texture. The drawer's icon-evidence filter rejected it. Add this exact frame name to a narrow private-icon launcher list; retain size, forbidden/protected/restricted, active-update, anchor and combat checks. No third-party implementation or artwork is copied or changed.
+
+The private-texture regression failed before the fix. `node scripts/check-addon.cjs` now passes 67 Lua 5.1 files, matching TOCs and 23,452 substitute assertions. Coverage includes collection, tooltip/click behavior, right-click remaining open, left-click dismissal, restoration of parent/scale/position/dragging, and continued exclusion of unknown iconless controls. Actual running build/Interface and native visual/taint retest remain pending. No deployment, junction change or publication.
+
+## Square minimap dimensions — 1.0.1, October 31, 2026
+
+The user supplied a Retail screenshot only as a shape reference and requested a less narrow Forever map; do not add its icons or controls. The existing square setting changed only the mask and header. It now expands the shorter native map dimension to the longer dimension, leaving Minimap's parent, anchors, scripts, Edit Mode scale, native coordinates/CVar and pin APIs under their existing ownership. Retain the latest readable native SetSize/SetWidth/SetHeight requests separately from the temporary square. Restore that geometry on disable, including native updates arriving after a combat-deferred disable. Reject restricted, nonfinite, zero or implausibly large dimensions; skip stale restoration after unreadable owner requests. Setter hooks share the existing cancellable layout worker and do not resize unchanged geometry.
+
+Installed executable observed at 1.60.1.70707; running build/Interface remains unreported. Public forever branch is still ca8368f2f2380cbe696854f7f2646387c278a61b, build 70532. Its Mainline/Minimap.xml centers the map in MinimapContainer; Camelot/Minimap.lua sizes the surrounding container/artwork, and EditModeSystemTemplates.lua changes minimap scale through SetEditModeScale. This is earlier source evidence, not proof of build 70707 geometry or rendering. References and hashes are recorded in docs/sources.json and .cache/minimap-square-20261031; no reference files ship.
+
+A 198-by-240 regression failed before the fix. All 67 Lua 5.1 files, matching TOCs and 23,436 substitute assertions pass after the change. Tests cover tall/wide maps, repeated applies, separate setters, latest native dimensions, parent/anchor/scale retention, combat-deferred restoration and invalid/restricted data. Native shape, map projection, pin/cursor alignment, Edit Mode, zoom/rotation and taint still need the smoke test. No game-junction change or publication.
+
+## GitHub release token correction — October 29, 2026
+
+The current v1.0.0 tag reached GitHub at 5a96baa. Run 40972219585 logged a successful CurseForge upload but silently skipped GitHub releases because GH_API_TOKEN is unsupported by BigWigsMods/packager. Map the automatic token to GITHUB_OAUTH and verify the uploaded ZIP/release.json after publication. See [publishing](publishing.md) for evidence and recovery boundaries. This local workflow correction does not itself publish or move the existing tag.
+
 ## Pre-release code cleanup — October 28, 2026
 
 Audited the 67 Lua files for unused bindings, method references, write-only fields, unreachable statements and package inputs. Removed confirmed unused state and callback arguments, including test-only buff/chat bookkeeping; tests now inspect active button entries and actual feedback. Preserve native widget properties, namespace module exports, deferred-work keys and SavedVariables migrations. No API or feature behavior change is intended. Lua 5.1 syntax, identical TOCs and 23,407 substitute assertions pass. Native smoke testing remains pending. See [the cleanup review](cleanup-review-2026-10-28.md).

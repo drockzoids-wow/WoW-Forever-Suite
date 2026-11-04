@@ -1,4 +1,35 @@
 {
+  "squareMinimap20261031": {
+    "date": "2026-10-31",
+    "version": "1.0.1",
+    "canonicalRoot": "C:/Games/Development/GitHub Repos/WoW Forever Suite",
+    "request": "Make the existing square minimap truly square; Retail image supplies shape only, no extra icons or controls.",
+    "source": {
+      "commit": "ca8368f2f2380cbe696854f7f2646387c278a61b",
+      "mirrorBuild": "1.60.1.70532",
+      "observedExecutable": "1.60.1.70707",
+      "runtimeBuildInterface": "Unreported",
+      "qualification": "Earlier public source, not an exact-build match. Native projection, pins, rendering and taint still require smoke tests."
+    },
+    "references": [
+      {
+        "file": ".cache/minimap-square-20261031/Blizzard_Minimap_Mainline_Minimap.xml",
+        "sha256": "e9eb053e60aeffe7d1ca8e8a7b19a5948e246af396b84450cc2f823009cec8dc",
+        "url": "https://raw.githubusercontent.com/Gethe/wow-ui-source/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_Minimap/Mainline/Minimap.xml"
+      },
+      {
+        "file": ".cache/minimap-square-20261031/Blizzard_Minimap_Camelot_Minimap.lua",
+        "sha256": "d39271ca321dcb8102c23f331bd50fb09a2a7affc8f19e34126612b4f25c90bb",
+        "url": "https://raw.githubusercontent.com/Gethe/wow-ui-source/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_Minimap/Camelot/Minimap.lua"
+      },
+      {
+        "file": ".cache/minimap-square-20261031/Blizzard_EditMode_Shared_EditModeSystemTemplates.lua",
+        "sha256": "5829d140e6194952e76dd33fdb9e9530640651f1711ad6a476427ac8b558cac8",
+        "url": "https://raw.githubusercontent.com/Gethe/wow-ui-source/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_EditMode/Shared/EditModeSystemTemplates.lua"
+      }
+    ],
+    "validation": "67 Lua 5.1 files; matching TOCs; 23,436 substitute assertions. Native verification pending. No deployment or publication."
+  },
   "canonicalFoodCombat20261023": {
     "date": "2026-10-23",
     "canonicalRoot": "P:/GitHub Repos/WoW Forever Suite",

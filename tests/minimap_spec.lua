@@ -316,6 +316,70 @@ do
     for _, method in ipairs(untouched) do Minimap[method] = previous[method] end
 end
 
+-- A rectangular native map needs real dimensions, not just a square texture mask.
+do
+    local nativeWidth, nativeHeight = Minimap:GetWidth(), Minimap:GetHeight()
+    local nativePoint, nativeParent, nativeScale = Minimap.point, Minimap:GetParent(), Minimap:GetScale()
+    Minimap:SetSize(198, 240)
+    Suite.db.squareMinimap = true; map:Apply()
+    equal(Minimap:GetWidth(), 240, "square mode expands the narrow native map to its taller side")
+    equal(Minimap:GetHeight(), 240, "square mode retains the native map height")
+    equal(Minimap.point, nativePoint, "squaring retains native minimap anchors")
+    equal(Minimap:GetParent(), nativeParent, "squaring retains native minimap ownership")
+    equal(Minimap:GetScale(), nativeScale, "squaring leaves Edit Mode scale unchanged")
+    map:Apply(); Suite.db.squareMinimap = false; map:Apply()
+    equal(Minimap:GetWidth(), 198, "repeated square apply restores the original narrow width")
+    equal(Minimap:GetHeight(), 240, "disabling restores the original native height")
+    Suite.db.squareMinimap = true; map:Apply()
+    Minimap:SetSize(210, 260); Flush()
+    equal(Minimap:GetWidth(), 260, "native size changes are squared by the coalesced layout worker")
+    Suite.db.squareMinimap = false; map:Apply()
+    equal(Minimap:GetWidth(), 210, "disabling restores the latest native size request")
+    equal(Minimap:GetHeight(), 260, "latest native height is restored")
+    Suite.db.squareMinimap = true; map:Apply()
+    Minimap:SetWidth(300); Minimap:SetHeight(220); Flush()
+    equal(Minimap:GetHeight(), 300, "individual native size setters retain a square display")
+    Suite.db.squareMinimap = false; map:Apply()
+    equal(Minimap:GetWidth(), 300, "width-only owner requests are restored")
+    equal(Minimap:GetHeight(), 220, "height-only owner requests are restored")
+    Minimap:SetSize(280, 190)
+    Suite.db.squareMinimap = true; map:Apply()
+    equal(Minimap:GetWidth(), 280, "wide maps retain their native width")
+    equal(Minimap:GetHeight(), 280, "wide maps expand their shorter side")
+    SetCombat(true); Suite.db.squareMinimap = false; map:Apply()
+    equal(Minimap:GetHeight(), 280, "combat defers native dimension restoration")
+    -- Native secure work may change dimensions after the user queued disabling.
+    Minimap:SetSize(290, 200)
+    SetCombat(false)
+    local reconcile = Suite.pending.minimap; Suite.pending.minimap = nil
+    if reconcile then reconcile() end
+    equal(Minimap:GetHeight(), 200, "combat exit preserves a newer native height after disabling")
+    equal(Minimap:GetWidth(), 290, "combat exit preserves a newer native width after disabling")
+    local previousWrites = 0
+    hooksecurefunc(Minimap, "SetSize", function() previousWrites = previousWrites + 1 end)
+    Suite.db.squareMinimap = true; map:Apply()
+    local squareWrites = previousWrites
+    for _ = 1, 20 do map:Apply() end
+    equal(previousWrites, squareWrites, "unchanged square layouts do not repeatedly resize the native map")
+    Suite.db.squareMinimap = false; map:Apply()
+    local getter = Minimap.GetWidth
+    for _, invalid in ipairs({ 0, -1, math.huge, { secret = true } }) do
+        Minimap.GetWidth = function() return invalid end
+        local writes = previousWrites
+        map:ApplySize(true)
+        equal(previousWrites, writes, "invalid or restricted map dimensions never reach SetSize")
+        equal(map.mapSize, nil, "invalid or restricted map dimensions are not snapshotted")
+    end
+    Minimap.GetWidth = getter
+    Suite.db.squareMinimap = true; map:Apply()
+    map.mapSize.width = nil
+    local invalidWrites = previousWrites
+    Suite.db.squareMinimap = false; map:Apply()
+    equal(previousWrites, invalidWrites, "unreadable owner size requests do not restore a stale native size")
+    equal(map.mapSize, nil, "disabling releases an invalid size snapshot")
+    Minimap:SetSize(nativeWidth, nativeHeight); Flush()
+end
+
 local restricted = Frame()
 restricted.GetWidth = function() return { secret = true } end
 equal(map:Remember(restricted), false, "restricted widget dimensions cannot enter a layout snapshot")

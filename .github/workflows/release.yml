@@ -97,5 +97,29 @@ jobs:
         with:
           args: -p 1749120 -g forever
         env:
-          GH_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
           CF_API_TOKEN: ${{ secrets.CF_API_KEY }}
+
+      - name: Verify GitHub release assets
+        if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node --input-type=module <<'NODE'
+          const tag = process.env.GITHUB_REF_NAME;
+          const url = `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/releases/tags/${encodeURIComponent(tag)}`;
+          const response = await fetch(url, {
+            headers: {
+              Accept: 'application/vnd.github+json',
+              Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+              'X-GitHub-Api-Version': '2022-11-28',
+            },
+          });
+          if (!response.ok) throw new Error(`GitHub release lookup failed (HTTP ${response.status}).`);
+          const release = await response.json();
+          const names = new Set((release.assets || []).filter(asset => asset.state === 'uploaded').map(asset => asset.name));
+          if (release.tag_name !== tag || release.draft || !names.has(`WoWForeverSuite-${tag}-forever.zip`) || !names.has('release.json')) {
+            throw new Error('GitHub release is missing its published addon archive or release metadata.');
+          }
+          console.log(`Verified GitHub release: ${release.html_url}`);
+          NODE

@@ -1,5 +1,27 @@
 # Forever Suite in game testing
 
+## ForeverWoWBiS drawer compatibility — November 4, 2026
+
+The private-texture BiS launcher regression failed before the fix; 67 Lua 5.1 files, matching TOCs and 23,452 substitute assertions now pass. Native compatibility remains unverified; record the actual running build/Interface with `/wfs status`.
+
+1. Load this source, reload with ForeverWoWBiS enabled, and enable the addon button drawer. Confirm the purple BiS star leaves the map edge and appears inside the drawer with its normal tooltip.
+2. Left-click BiS: its panel must open and the drawer close. Reopen and right-click BiS: its link action must work and the drawer remain open. Test hiding/showing the button through its owner's settings.
+3. Disable the drawer: confirm the original BiS position, size, tooltip, clicks and map-edge dragging return. Re-enable/reload and repeat at your usual UI scale. Test entering/leaving combat and toggling the drawer setting during combat; no blocked action or Lua error should occur, and layout changes must wait until combat ends.
+
+## Square minimap dimensions — 1.0.1, October 31, 2026
+
+The new rectangular-map regression failed before implementation. All 67 Lua 5.1 files, identical TOCs/version metadata and 23,436 substitute assertions pass after implementation. This does not certify native map projection, visual shape or taint safety. Installed Wow.exe is 1.60.1.70707; record the running build/Interface separately using `/wfs status`.
+
+1. Load this source and reload. Open `/wfs` > Minimap and enable Square map and header. Confirm the actual map body has equal width and height and expands its shorter side. The supplied Retail screenshot is a shape reference only: no additional icons or controls should appear. Confirm terrain looks correct and the player arrow stays centered.
+2. Move and resize the minimap through native Edit Mode; save the layout, reopen it and change scale again. Confirm the map stays square, the header follows its width, the clock stays readable, and native coordinates remain below the map without duplication. Check the Suite stats row, drawer, minimap launcher, tracking, calendar and existing third-party icons at several scales and screen edges.
+3. Pan the character through terrain and compare player, tracking and quest markers at several zoom levels. Test click-to-ping and zoom controls; toggle Rotate minimap and change zones/instances. Confirm pin placement, quest boundaries, hit areas and tooltip behavior remain correct; record any apparent stretching or clipping. These engine behaviors cannot be proven by substitute tests.
+4. Disable square mode and confirm the latest native rectangle/round mask, native header and original scale/position return. Re-enable, change native settings, disable again and reload. Stats-only mode must not resize the map. Repeat with other minimap addons disabled to separate conflicting size ownership.
+5. Enter combat with square mode on; toggle the option off and on while fighting. Dimensions and protected layout must wait until combat ends, with the final selected option winning. Confirm no blocked action/Lua error, stale restore or repeating layout work. Record actual build/Interface and screenshots before calling this feature verified.
+
+## Release workflow correction — October 29, 2026
+
+The v1.0.0 workflow passed checks and logged CurseForge upload success, while GitHub publication was silently skipped by an unsupported token variable. The corrected workflow uses GITHUB_OAUTH and checks for uploaded ZIP/release.json assets. All three embedded JavaScript blocks pass syntax validation; mocked API checks accept the complete release and reject HTTP failure, missing assets, drafts, wrong tags and assets not yet uploaded. Token mapping and whitespace checks pass. Confirm both public assets on the next publishing run. This change has no addon runtime or in-game behavior impact. See [publishing](publishing.md).
+
 ## Pre-release cleanup — October 28, 2026
 
 Offline validation: 67 Lua 5.1 files, identical TOCs and 23,407 substitute assertions pass. The pre-cleanup baseline passed 23,410; three redundant assertions of removed internal state were eliminated, with retained behavior checks using user feedback, active button entries, hidden bars and cleared secure attributes. All 58 test files are reachable from the test runner; all 76 package inputs have an expected source, asset or license role. See [the cleanup review](cleanup-review-2026-10-28.md).

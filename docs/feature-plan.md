@@ -1,5 +1,17 @@
 # Forever Suite feature plan
 
+## ForeverWoWBiS drawer compatibility — November 4, 2026
+
+Collect the confirmed `ForeverWoWBiSMinimapButton` despite its private icon texture. Use a narrow exact-name compatibility entry instead of accepting arbitrary iconless minimap controls. Keep the original button, native click/tooltip behavior, safety guards and disable restoration. Implemented locally with a failing-before/passing-after regression; native smoke test remains pending.
+
+## Square minimap dimensions — 1.0.1, October 31, 2026
+
+Extend the existing default-off Square minimap option to make the actual map width and height equal by expanding the shorter side. Use the Retail attachment only for shape; add no icons, artwork or controls. Keep native placement and Edit Mode scale, reuse the current coalesced layout worker and restore the latest native dimensions when disabled. Protected resizing waits through combat. Version 1.0.1 prepares this change locally; the earlier publishing-workflow correction remains separate and uncommitted. See the new minimap smoke test for native validation still required.
+
+## GitHub release publishing — October 29, 2026
+
+Correct the packager's GitHub token mapping and fail the tagged workflow if the expected public release assets are missing. Preserve successful CurseForge upload behavior and default non-publishing manual runs. Existing v1.0.0 reached GitHub and CurseForge upload acceptance; public availability is separate. See [publishing](publishing.md).
+
 ## Pre-release code cleanup — October 28, 2026
 
 Complete a behavior-preserving cleanup in the canonical C: checkout: remove unused layout/profile/widget state, callback arguments and duplicate buff/chat bookkeeping. Keep all features, migrations, compatibility checks and version 1.0.0. Preserve earlier uncommitted feature changes. No deployment or junction changes. See [the cleanup review](cleanup-review-2026-10-28.md) for scope and validation.

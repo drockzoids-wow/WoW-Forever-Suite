@@ -1,10 +1,10 @@
 # Forever Suite
 
-**Planned initial release: 1.0.0 — November 4, 2026.** This includes the accepted 0.2.104 feature set and the October 23 food/water and combat-indicator additions prepared for the user’s launch target. See [release notes](docs/release-1.0.0.md).
+**Current source: 1.0.1.** Square minimap now expands the shorter side for an equal-width-and-height map, preserving native position and Edit Mode scale. Turning it off restores the native dimensions. The initial 1.0.0 feature baseline is described in the [release notes](docs/release-1.0.0.md).
 
 **Known vendor items:** enable `/wfs vendor` → **Known Items → Highlight already-known vendor items** for green highlights/checkmarks on learned recipes and collected items. Ordinary items in your bags do not count as learned. Missing data remains unmarked. This feature starts off and does not enable vendor automation. See the [smoke test](docs/testing.md#known-vendor-items---02102).
 
-The official source is **C:\Games\Development\GitHub Repos\WoW Forever Suite** (user-selected October 25, 2026). Version **1.0.0** includes the readable journey journal, default training catalog and earlier quality fixes alongside the newer vendor highlights. Restart after loading this source; the footer should show **1.0.0**.
+The official source is **C:\Games\Development\GitHub Repos\WoW Forever Suite** (user-selected October 25, 2026). Version **1.0.1** includes the readable journey journal, default training catalog and earlier quality fixes alongside the newer vendor highlights. Reload after loading this source; the footer should show **1.0.1**.
 
 Open /wfs leveling > **Session journal** for six labeled cards and **Summary, Loot, Reputation, Levels and History**. New tracking adds deaths, loot estimates, ordinary reputation, level milestones and confirmed Suite sales/repairs. Old XP/gold/time remains; details not collected earlier show **Not recorded**. No EverCore history is imported. See the [smoke checklist](docs/testing.md#readable-journal-and-default-training-catalog---02103-october-22-2026).
 

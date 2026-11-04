@@ -16,6 +16,58 @@ local function Number(value)
     return Suite.IsReadable(value) and type(value) == "number" and value == value and math.abs(value) < math.huge
 end
 
+local function Dimension(value)
+    return Number(value) and value > 0 and value <= 4096
+end
+
+function Map:ApplySize(enabled)
+    if InCombatLockdown() or not Available(Minimap) or type(Minimap.SetSize) ~= "function" then return end
+    local width, height = Minimap:GetWidth(), Minimap:GetHeight()
+    if not Dimension(width) or not Dimension(height) then
+        if not enabled then self.mapSize = nil end
+        return
+    end
+    local original = self.mapSize
+    if enabled and not original then
+        original = { width = width, height = height }
+        self.mapSize = original
+    end
+    if not original then return end
+    if Dimension(original.width) and Dimension(original.height) then
+        local targetWidth, targetHeight = original.width, original.height
+        if enabled then
+            -- Expand the shorter side in map units; Edit Mode still owns scale and anchors.
+            local side = math.max(original.width, original.height)
+            targetWidth, targetHeight = side, side
+        end
+        if width ~= targetWidth or height ~= targetHeight then
+            self.changingSize = true
+            Minimap:SetSize(targetWidth, targetHeight)
+            self.changingSize = false
+        end
+    end
+    if not enabled then self.mapSize = nil end
+end
+
+function Map:WatchSize()
+    for _, method in ipairs({ "SetSize", "SetWidth", "SetHeight" }) do
+        if type(Minimap[method]) == "function" then
+            hooksecurefunc(Minimap, method, function(_, width, height)
+                local original = self.mapSize
+                if self.changingSize or not original then return end
+                -- Retain native/owner requests, not our temporary square dimensions.
+                -- Unreadable requests invalidate restoration rather than restoring stale geometry.
+                if method == "SetHeight" then original.height = Dimension(width) and width or nil
+                else
+                    original.width = Dimension(width) and width or nil
+                    if method == "SetSize" then original.height = Dimension(height) and height or nil end
+                end
+                self:Schedule()
+            end)
+        end
+    end
+end
+
 function Map:ApplyQuestRing(enabled)
     if not Available(Minimap) or type(Minimap.SetQuestBlobRingScalar) ~= "function" then return end
     if not self.questRing then
@@ -318,6 +370,7 @@ end
 function Map:Initialize()
     if self.initialized or not Available(Minimap) then return end
     self.initialized = true
+    self:WatchSize()
     self.border = CreateFrame("Frame", nil, Minimap, "BackdropTemplate")
     self.border.ignoreInLayout = true
     self.border:SetPoint("TOPLEFT", -1, 1)
@@ -444,6 +497,7 @@ function Map:Apply()
         if not self.initialized and (Suite.db.squareMinimap or Suite.db.minimapStats) then self:Initialize() end
         if not self.initialized then return end
         self.changing = true
+        self:ApplySize(Suite.db.squareMinimap)
         self:ApplyClamping(Suite.db.squareMinimap)
         self:ApplyQuestRing(Suite.db.squareMinimap)
         self.events:UnregisterAllEvents()

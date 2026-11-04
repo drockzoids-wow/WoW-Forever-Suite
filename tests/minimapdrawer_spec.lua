@@ -419,6 +419,38 @@ Suite.MinimapButton:Apply()
 equal(settings.point[2], Minimap, "ordinary Suite positioning resumes after drawer disable")
 alpha:SetPoint("BOTTOM", Minimap, "BOTTOM", 0, 2); lib:Show(); Flush()
 equal(TimerCount(), 0, "disabled retained hooks and library callbacks do no work")
+-- ForeverWoWBiS uses a private artwork texture, with no icon field or normal texture.
+local bis = Launcher("ForeverWoWBiSMinimapButton", Minimap, 31)
+bis.icon = nil
+bis.GetNormalTexture = function() return nil end
+local bisPoint = { unpack(bis.point) }
+local bisEnter, bisDrag = bis.OnEnter, bis.OnDragStart
+local noIcon = Launcher("UnknownMinimapButton"); noIcon.icon = nil
+noIcon.GetNormalTexture = function() return nil end
+Suite.db.minimapDrawer = true; drawer:Apply(); Flush()
+equal(bis:GetParent(), drawer.panel, "private-texture BiS launcher is collected")
+equal(drawer.records[noIcon], nil, "unknown iconless controls remain excluded")
+equal(bis.OnDragStart, nil, "BiS map dragging is suppressed while collected")
+equal(bis.OnEnter, bisEnter, "BiS tooltip handler is retained")
+drawer:Toggle(); bis.OnEnter(bis)
+equal(GameTooltip.owner, bis, "BiS tooltip still belongs to its original button")
+local bisClicks = #nativeClicks
+bis.OnClick(bis, "RightButton"); Flush()
+equal(nativeClicks[bisClicks + 1], "RightButton", "BiS right click reaches its original handler")
+equal(drawer.panel:IsShown(), true, "BiS link action keeps the drawer open")
+bis.OnClick(bis, "LeftButton"); Flush()
+equal(nativeClicks[bisClicks + 2], "LeftButton", "BiS left click reaches its original handler")
+equal(drawer.panel:IsShown(), false, "BiS left click dismisses the drawer after its action")
+Suite.db.minimapDrawer = false; drawer:Apply(); Flush()
+equal(bis:GetParent(), Minimap, "disabling drawer restores BiS map parent")
+equal(bis:GetScale(), 1, "disabling drawer restores BiS scale")
+equal(bis.point[4], bisPoint[4], "disabling drawer restores BiS horizontal position")
+equal(bis.point[5], bisPoint[5], "disabling drawer restores BiS vertical position")
+equal(bis.OnDragStart, bisDrag, "disabling drawer restores BiS dragging")
+bis.OnClick(bis, "LeftButton")
+equal(nativeClicks[bisClicks + 3], "LeftButton", "disabled drawer retains BiS click behavior")
+equal(TimerCount(), 0, "disabled BiS click leaves no drawer work")
+bis:Hide()
 Suite.db.minimapDrawer = true; drawer:Apply(); Flush()
 equal(#UISpecialFrames, 1, "re-enable reuses Escape registration")
 equal(drawer.panel:IsShown(), false, "re-enable starts collapsed")

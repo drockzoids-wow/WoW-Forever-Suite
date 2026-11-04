@@ -57,7 +57,7 @@ local pages = {
         note = "Switches reload the UI. Gear weights, macros, inventory and contacts stay separate.\nNative Edit Mode layouts, keybindings and the character leveling tracker keep their own settings." },
     setup = { title = "Setup guide", description = "Choose your tools in five steps, then review and apply.", rows = {} },
     overview = { title = "A little less friction.", description = "Choose the tools that belong in your everyday setup.\nStart with Setup guide for a tour of the main choices.", rows = {
-        { key = "squareMinimap", label = "Square minimap", help = "Area and subzone header with a clock inside the map.\nMove closer to screen edges in Edit Mode, then save the layout." },
+        { key = "squareMinimap", label = "Square minimap", help = "Equal-width-and-height map with an area and subzone header.\nUse Edit Mode to change its overall size and position." },
         { key = "minimapStats", label = "Minimap stats", help = "FPS and home/world latency below Blizzard's coordinates.\nClick the stats row to open this panel; customize it in Minimap." },
         { key = "windowTools", label = "Window tools", help = "Drag a header to move. Ctrl+scroll to resize.\nCtrl+right-click the header to reset position and size." },
         { key = "itemLevels", label = "Item levels on icons", help = "Show quality-colored levels at the top right of gear icons.\nEnable tooltip item levels separately in Items or Tooltips." },
@@ -67,7 +67,7 @@ local pages = {
     minimap = { title = "Minimap", description = "A compact header, a clear map, and room for Blizzard's coordinates.", rows = {
         { key = "minimapButton", label = "Minimap button", help = "Show the Suite settings button. /wfs works when hidden." },
         { key = "minimapDrawer", label = "Addon button drawer", help = "Click the grid button to open addons; drag it around the map." },
-        { key = "squareMinimap", label = "Square map and header", help = "Area and subzone header, with the clock inside. Move it in Edit Mode.\nHides the checkered quest ring; keeps the quest boundary." },
+        { key = "squareMinimap", label = "Square map and header", help = "Expand the shorter side for a square map. Size and move it in Edit Mode.\nKeeps the header and clock; turning this off restores the native shape." },
         { key = "minimapStats", label = "Stats row", help = "A slim row below the coordinates. Click to open Forever Suite." },
         { key = "showFPS", label = "Frame rate", help = "Show frames per second in the enabled stats row." },
         { key = "showLatency", label = "Home and world latency", help = "Show H: home and W: world response times in milliseconds." },
