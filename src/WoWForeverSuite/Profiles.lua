@@ -191,6 +191,7 @@ function Profiles:Review(id,personal)
     local layoutLabels = {windowPositions="Window positions and sizes",guiPosition="Suite panel position",
         meterWindows="Meter layout and appearance",meterDock="Meter docking",castbars="Castbar sizes",
         campingPosition="Camping bar position",missingBuffPosition="Buff bar position",
+        procAlertPosition="Proc popup position",combatIndicatorPosition="Combat indicator position",
         questItemPosition="Quest item position",bagSpacePosition="Bag alert position",
         missingBuffChoices="Buff choices",missingBuffCustom="Custom buff spells"}
     for _,key in ipairs(self:Keys()) do

@@ -1,5 +1,271 @@
 # Forever Suite in game testing
 
+## Final code review and release candidate — November 5, 2026
+
+Current rebuilt ZIP SHA256: 0A7C98039ED174EBBC8BB12A14387A0D9D13B99E348D214D39C721B760B756F1. All 80 archive files match source; no extras. All 71 Lua 5.1 files, identical TOCs/Core version 1.0.3 and 26,561 substitute assertions pass. Removed /wfs castbarstatus and its four diagnostic assertions now that the visual issue is resolved, plus an unused proc-size cache. Existing castbar appearance is unchanged. Earlier diagnostic and ZIP instructions below are historical.
+
+User says they have tried the latest proc/dungeon behavior and think it works, but have not watched closely. Preserve that positive casual observation; focused Overpower opportunities and dungeon combat-buff checks are still not established. No new live error is reported in this reply. Actual running build/Interface remains unreported. Before full release, give those paths a focused pass along with equipment-set Toggle/Save persistence, chat Refresh/selection/scrolling and disable/re-enable/reload/profile behavior. See release-review-1.0.3.md for scope, results and remaining release steps.
+
+
+## User accepts resized castbar appearance — November 5, 2026
+
+User confirms the remaining fixed-height strip is resolved and supplies Fishing screenshots with the resized text, spark and edge effects. User notes a slight apparent edge overhang and explicitly accepts the appearance as-is. Leave geometry unchanged. This confirms the reported visual correction in the supplied Fishing test; it does not establish comprehensive casting/channeling, crafting/finish-effect, combat/taint or target/focus coverage. Actual running build/Interface remains unreported. No runtime source or ZIP change for this acceptance.
+
+
+## Cast-edge shadow/highlight clipping correction — November 5, 2026
+
+Current rebuilt 1.0.3 ZIP SHA256: `7C6E81EE371CB203165CF020B7921C6B45FBD19DBC707B8FA5512F6EAA797142`. All 80 packaged files match source by SHA256, no extras. Earlier hashes below are historical.
+
+User returned 206 x 30, original height 11.000000953674; Border/Background/TextBorder configured dimensions are zero with native atlases. Forward Hearthstone also shows the patch. Complete native XML identifies fixed-height ChannelShadow, StandardGlow/CraftGlow and BorderMask beyond the original report. These four layers now follow the bar-height delta, with original heights restored on disable/Edit Mode. No native progress/position/visibility reads or atlas-slicing changes. All 71 Lua 5.1 files, matching TOCs/version and 26,565 substitute assertions pass. Actual running build/Interface remains unreported; visual correction is a candidate until native retest.
+
+After reload, repeat Fishing and Hearthstone at height 30 and thinner/thicker settings. The shadow/highlight around the moving edge should span the resized bar without the original-height stripe. Also check crafting, interruption and completion effects, which share the mask. Check disable and Edit Mode restore native appearance and combat changes wait safely. If the patch persists, retain the expanded /wfs castbarstatus report (now eight lines including StandardGlow, CraftGlow, ChannelShadow and BorderMask).
+
+## Remaining dark-strip artwork report — November 5, 2026
+
+User confirms the spark-height change is much better, but close-ups show an original-height dark strip beside/behind it. No further visual fix yet. Outside combat after reload, run `/wfs castbarstatus` with the custom height still enabled and retain its four lines: player bar/original height, Border, Background and TextBorder sizes/asset metadata. These identify fixed versus stretched artwork; do not treat the screenshot alone as proof of which native layer is responsible. Actual running build/Interface is still unreported. Diagnostic checks pass: 71 Lua 5.1 files, matching TOCs/version and 26,547 assertions. No protected progress/state read or new timer; current ZIP remains the prior spark candidate until a visual correction is prepared.
+
+## Resized cast-progress marker — November 5, 2026
+
+Current rebuilt 1.0.3 ZIP SHA256: `5E5541665844538687F4557B8379E02BAD4B608F901D5B557135F6EF1716F816`. Earlier archive hashes below are historical.
+
+User confirms the centered/larger Fishing text looks better and circles the short progress marker. Its height now follows the configured bar-height delta while width, native anchors and progress movement stay unchanged. Offline checks pass: 71 Lua 5.1 files, matching TOCs/version and 26,543 assertions, covering readable/unavailable metadata, independent bars, preserved opaque spark position/width, look resets, combat deferral and disable/Edit Mode restoration. Actual running build/Interface remains unreported; new marker appearance remains unverified in game.
+
+After reload, repeat Fishing at the screenshot height and thinner/thicker settings. The fill-edge marker should span the resized bar appropriately and move normally as channel progress changes. Check regular casts, channels, interruptions and target/focus bars, including a native look change. Disable custom sizing and enter/exit Edit Mode: original marker height should return alongside native text/bar geometry. Combat changes must wait for the safe refresh and produce no blocked action. Record actual build/Interface and visual result.
+
+## Resized castbar centered/scaled text — November 5, 2026
+
+Current rebuilt 1.0.3 ZIP SHA256: `ACF828D230387943033E0D4D81E69F329122BE1BD8CD2B42C8D34DDC8FCB70DF`. All 80 packaged files match current source by SHA256, with no extras. Earlier archive hashes below are historical.
+
+User Fishing screenshots show a working resized bar with text that stays small/low. Custom sizing now centers the native spell label in full-height bounds and scales its font from configured height (half height, 8–28px), retaining font face/flags. All 71 Lua 5.1 files, matching TOCs/Core version and 26,531 substitute assertions pass, including player/target/focus independence, native SetLook resets, unreadable font/anchor metadata, combat deferral and disable/Edit Mode/font-object restoration. Native visual result remains pending; actual running build/Interface is unreported.
+
+After reload, test Fishing at the screenshot size and several thinner/thicker heights. Expect centered spell words that grow with height and retain readable native styling. Repeat ordinary casts/channels, interruptions and long names; check that native timing/fill/spark behavior and bar anchors remain intact. Check player/target/focus independently, changing native look/target between tests. Enter combat while settings change: no font/anchor mutation or blocked action should occur until the safe refresh. Disable custom sizing and open/close Edit Mode: original label position/font and dimensions should return, then custom text should follow re-enabled sizing. Record actual build/Interface and screenshots.
+
+## Copy-window Refresh and Suite style — November 5, 2026
+
+Rebuilt current 1.0.3 ZIP SHA256: `2EE6BF40A7965C74F98521F9FAC2D64B53D3194A4F396304A08B4F59F99714EA`. Earlier hashes below refer to superseded candidates.
+
+User confirms the color-preserving copy window works great. Add requested bottom-right Refresh and matching slate/teal GUI treatment. Offline checks: 71 Lua 5.1 files, matching TOCs/version and 26,502 assertions pass, including refreshing fresh messages from the original tab after the selected tab changes, frame reuse/preserved position, unavailable source retention and closed/combat rejection. New styling/Refresh are not yet native-verified; running build/Interface remains unreported.
+
+After reload, open Copy chat and compare header, slate surfaces, border, scrollbar, close icon and Refresh feedback with Suite settings. Receive/send another message, click Refresh, and confirm it appears with its original colors and usable Ctrl+C selection. Drag the window first and select another native chat tab before refreshing: it must stay in place and refresh its original source. Check the status and Refresh never overlap, header/close/Refresh hit targets remain above the text box, and scrollbar arrows/dragging/wheel/selection still work. Test unavailable/closed sources, close/reopen, combat during dragging/refresh, another UI scale and shared border-color changes. Record actual build/Interface, appearance, paste and input results.
+
+## Color-preserving copy window — November 5, 2026
+
+Rebuilt 1.0.3 color-update ZIP SHA256: `137A8F0957136A666981C611110E38C478E9B7BE94257DEEBCFF6455A4F677C3`. Earlier archive hashes below describe superseded snapshots.
+
+User confirms the new Suite copy window works great, then requests native colors. Actual running build/Interface is unreported. The ordinary replacement-copy attempt is user-confirmed successful; full scrolling/selection/combat coverage is not inferred.
+
+Preserve inline class/item colors and native message RGB, restoring the channel color after inline resets and isolating each line. Offline checks pass: 71 Lua 5.1 files, matching TOCs/version and 26,485 assertions, including channel/class/item spans, restricted/nonfinite/out-of-range RGB fallback, zero channels and empty messages. After reload, reopen Trade/General using paper or /wfs copychat and compare names, item links and following message text with native chat. Check yellow skill/system text and successive differently colored lines. Copy a subsection and all text with Ctrl+C; verify pasted text remains usable without unwanted markup. Hidden/unavailable messages must stay omitted. Native color/paste retest pending.
+
+## Replacement chat copy window — November 5, 2026
+
+Current 1.0.3 package: all 80 files match source by SHA256, no extras. ZIP SHA256 `AD53BEA8618DA583A8ABFDFD8EBFE062AC380632FFFE3C31C3140B5923B5A89D`. Earlier archive hashes below are historical.
+
+User authorizes abandoning direct-selection copying and reports installed ChatCopyPaste works. Suite now implements its own separate Ctrl+C copy window. **All earlier direct-copy/copytest/probe instructions below are historical and superseded.** No confirmed fix for the old protected clipboard call is claimed; that path is removed from Suite.
+
+Offline checks pass: 71 Lua 5.1 files, matching TOCs/Core version and 26,475 substitute assertions. New tests cover bounded native getter calls and output, chronological recent messages/plain links, unavailable/hidden-name/oversized text, invalid/throwing APIs, untouched native selection/font/input, paper/tab/slash routing, selected/focused read-only text, reuse, clear-on-hide/Escape and combat guards. The changed assertion total reflects removed obsolete native-selection tests. No in-game verification of the Suite replacement has occurred.
+
+1. Reload to unload old selection hooks/diagnostics. Enable Suite chat styling and click its paper button. Expect the Suite Copy chat window with recent messages. Select the Test/player/skill/loot/Trade text from the previous failures, press Ctrl+C, and paste outside WoW. Check Ctrl+A/Ctrl+C and a selected subsection. No protected CopyToClipboard error should be triggered by Suite's former selection path. Record actual running build/Interface and delivery result.
+2. Copy from General and another chat tab, including a temporary whisper window. Each paper button must use its own tab. `/wfs copychat` uses the selected tab and also works with styling/history disabled. Links should show readable labels; textures/colors should not pollute pasted text. Unavailable or hidden-name text must be omitted with the window notice. Do not try to recover those omitted names/messages. Check empty history, fresh lines, more than 500 messages and long wrapped lines; scroll to top and bottom and select across lines.
+3. Type accidentally in the copy box: the snapshot must remain intact. Close with X or Escape while focused; reopen for fresh content. Drag the header, then enter combat during an open/dragged window: it must close, clear text/focus and create no new widgets. Combat open attempts must be rejected. Recheck ordinary chat links/click-through, typing drafts, history enabled/disabled, disable/re-enable styling, reload and coexistence with ChatCopyPaste. Check header/close hit targets above the edit box at normal and another UI scale.
+
+## Plain baseline failed; QuestieTrace export review — November 5, 2026
+
+User reports Suite-attributed native clipboard failure for fresh Test 5/Trade text after plain `/wfs copytest`. Do not proceed to attribute the failure to the untested font-only change; plain success is not reproducible yet. Native direct chat copying remains unresolved. QuestieTrace source review shows a separate single-line EditBox populated with its own export data and highlighted for Ctrl+C, not native chat-selection copying. No CopyToClipboard/native copy-setting implementation was found. No runtime change or additional offline run for this read-only review.
+
+## Lifecycle candidate failed; paired plain/font comparison — November 5, 2026
+
+Rebuilt current diagnostic archive `dist/WoWForeverSuite-1.0.3.zip`: SHA256 `3C4D7A2225EB29A60DDBBAD2925695575FCCA2A122B0741E56C0FC926AE9380B`. Earlier archive hashes below refer to superseded candidates.
+
+User reports two further Suite-attributed native CopyToClipboard failures after the show/hide candidate. That candidate is unsuccessful; no normal-copy fix is established. All 70 Lua 5.1 files, matching TOCs/version and 26,536 substitute assertions pass for the new font-only diagnostic and existing features.
+
+Controlled comparison: keep QuestieTrace disabled; turn Suite chat styling and history off, then reload so neither Chat records nor history hooks are installed. Run `/wfs copytest` and copy/paste fresh ordinary text. If that works, run `/wfs copytest` again to stop, then `/wfs copytest font` and copy/paste the same text. Report clipboard delivery and error for each mode. The second mode only adds the configured native message-font size to the plain path. It installs no styling hooks/widgets, input layout changes or copied-result callback. Repeat `/wfs copytest` to restore the captured font/input, or reload to finish. If the plain baseline also fails, do not attribute that session's result to the font change. A font-only failure would narrow the reproduction; it would not establish the full native taint mechanism.
+
+## Native chat show/hide isolation candidate — November 5, 2026
+
+Current rebuilt 1.0.3 archive SHA256: `FE0E053E026CF2F78FB3859BDC64D44EF1771E6A9D97307600AEAE7695F4D9F0`. All 79 packaged files match current source; this supersedes earlier hashes below.
+
+User reports CopyToClipboard blocked again, now attributed to Suite, after QuestieTrace loader verification and disable instructions. A live `false` loader result was not supplied. Do not attribute the whole failure to QuestieTrace. Earlier plain `/wfs copytest` ordinary-text copying succeeded; normal and styled-copy attempts have failed. No native fix is established.
+
+Remove Suite's native chat-frame OnShow/OnHide hooks, which precede intrinsic rendered-text refresh/selection reset. Native window helpers and selected-tab notifications queue appearance through the existing worker; owned paper-button hiding retains copy cleanup. Offline checks pass: 70 Lua 5.1 files, matching TOCs/version, 26,523 assertions, including exact native lifecycle script identities and deferred new/reopened-window layout. Substitutes cannot prove the native taint mechanism or clipboard permission.
+
+Retest with the same setup: leave QuestieTrace disabled, Suite styling on and history off; `/reload`, `/wfs copytest styled`, then select and paste a fresh `/say Test 4` line without clicking paper. Reload is required to remove previously installed hooks. If that works, reload again and test normal paper mode before separately enabling history. Also check new/reopened chat windows, native tab switching, hidden-toolbar/window cleanup and combat input restoration; font/input alignment can settle on the next queued turn. Record actual running build/Interface and results.
+
+## Repeated attribution; verify live addon load state — November 5, 2026
+
+User supplies a fresh one-count QuestieTrace-attributed CopyToClipboard failure after the requested isolation steps. Do not presume the disable step was omitted. Read-only disk configuration still lists QuestieTrace enabled for Drockhilda-Battleborn; disk state may lag the running session. Questie lists QuestieTrace as optional, and the searched Questie Lua contains no explicit LoadAddOn/EnableAddOn request for QuestieTrace. Ask for `/run print(C_AddOns.IsAddOnLoaded("QuestieTrace"))` before another copy attempt. This checks loaded state, not whether the trace capture is active. No runtime or installed-addon change made.
+
+## Styled-copy failure with QuestieTrace attribution — November 5, 2026
+
+User reports two native CopyToClipboard blocked actions, now naming QuestieTrace, following the styled comparison request. Screenshot shows crafted-item, skill and player-chat text. This is still a failed copy, not a Suite fix or established QuestieTrace cause. Current local taint.log remains unchanged; running build/Interface remains unreported.
+
+Next comparison: disable only QuestieTrace (Questie itself can stay enabled), retain Suite chat styling and history off, then `/reload`. Run `/wfs copytest styled`, create a fresh `/say Test 2` line and copy only that line. Paste outside WoW and report actual text delivery and any error/addon attribution. Do not use the paper button in this comparison. Leave installed addon files and SavedVariables intact. No new runtime patch or offline test run was needed for this evidence-only update.
+
+## Paper-button candidate failed; styled comparison — November 5, 2026
+
+Current rebuilt 1.0.3 diagnostic candidate ZIP: SHA256 `62D2F38000E5A240DFA46543C0741E400FF84B522A9B19B024FBABBAEB89FEE1`. All 79 files match current source; this supersedes the archive hashes in earlier entries below.
+
+User reports two Suite-attributed CopyToClipboard blocked actions at native ScrollingMessageFrame.lua:403 and no copied text. Screenshot shows ordinary player chat, a skill increase and a loot message. The input-setter candidate below did not fix normal copying. The earlier successful `/wfs copytest` ordinary-text capture remains a distinct result; actual running build/Interface is unreported.
+
+Next comparison: keep Suite chat styling enabled and chat history off, `/reload`, then run `/wfs copytest styled`. Do not click the paper button for this test. Select the same fresh ordinary messages and try pasting elsewhere. Record whether the clipboard actually changes and any error. This mode leaves styling installed but uses the minimal native selection setup without Suite's copied-result callback; lack of a Suite success notification is expected. `/wfs copytest`, the paper button or another reload ends the diagnostic. If it works, normal paper-mode logic is the next isolation target; if it fails, styled-frame changes/observers remain implicated. Do not infer a specific initiating taint write from either result alone.
+
+Offline checks pass: 70 Lua 5.1 files, identical TOCs/Core version and 26,518 assertions. These validate the diagnostic's setup/restoration and unchanged preferences, not clipboard permission. Styled native result remains pending.
+
+## Successful isolated copy and next normal-path retest — November 5, 2026
+
+Rebuilt `dist/WoWForeverSuite-1.0.3.zip` after this candidate: all 79 files match source SHA256 with no extras. Current archive SHA256: `23FB37816FCD0DCD78B8AF514E771F2B4B9DE0C6CD4483C49F423C1F47CCEB2E`. This supersedes the initial review archive hash below.
+
+User captured and pasted ordinary General chat after activating `/wfs copytest`. Mark that isolated ordinary-text attempt successful; standalone probe, normal paper button, addon-generated text and running build/Interface remain unconfirmed. Do not rerun the standalone probe as a prerequisite to this next step.
+
+Remove the remaining native click/hyperlink setter hooks as a controlled normal-path difference. Offline checks: 70 Lua 5.1 files, matching TOCs/Core version and 26,506 substitute assertions pass, including native setter identity, ownership changes at ordinary refresh and preserving changed input on explicit exit. No native result for this candidate yet.
+
+Retest: enable Suite chat styling, keep chat history off, then `/reload` to remove previous session hooks and diagnostic mode. Record `/wfs status`. Use the paper button (without `/wfs copytest`) to select a fresh ordinary chat line and paste it elsewhere. Check whether the clipboard changes, whether Suite prints a confirmed-copy message, whether paper mode ends and whether an error occurs. Then try addon-generated text separately. If ordinary paper copying works, enable history and reload to test it independently. Also verify explicit cancel, normal links/click-through, typing, hiding, combat cleanup and changes by another chat owner. Retain errors and exact entry point if it fails.
+
+## Chat silent-copy symptom clarification — November 5, 2026
+
+User distinguishes ordinary chat from addon-generated text: ordinary text produces no Lua error but does not reach the clipboard, despite appearing to copy; addon-generated text can still error. The tested entry point (Suite paper button, /wfs copytest or standalone /wfscopyprobe with Suite disabled) remains unspecified and was requested. Do not infer that the standalone probe succeeded or failed, or that message origin establishes causation. Native OnPostMouseUp resets selection after the copy attempt independently of a positive copied count, so disappearing highlights alone do not confirm success. Local taint.log remains the earlier 36,412-byte capture. No runtime change or successful native copy established.
+
+## Release-candidate user feedback — November 5, 2026
+
+User reports everything looks good except persistent chat-copy problems. Treat this as general positive feedback, not individual feature/build/taint certification; actual running build/Interface and exact test coverage remain unspecified. Chat copying remains a reported native failure. Read-only recheck finds the same 36,412-byte taint.log last written at 02:20:31, rather than a new trace. Requested the current symptom and whether the existing standalone WFSClipboardProbe reproduces with Suite disabled. No further speculative chat runtime change; probe result remains pending.
+
+## Release review — 1.0.3, November 5, 2026
+
+Offline review and cleanup: **70 Lua 5.1 files, identical TOCs/Core version and 26,499 substitute assertions pass**. `git diff --check` passes. `scripts/Package.ps1` produced `dist/WoWForeverSuite-1.0.3.zip`; all 79 archive files match the source by SHA256 with no extra files. Archive SHA256: `296887FD61886B8ACFF0C20FBCD655D15E713872B1734F478BE5DB294F324D5C`.
+
+Removed the superseded NativeBuffTest prototype and `/wfs bufftest`; older prototype instructions below are historical and no longer apply. Removed empty buff-caption widgets and their preview metadata, unused alternate placement code, duplicate inventory hover artwork and a redundant close callback. The prototype fixture's removal explains the reduction in assertions. Production combat-buff tests remain; caption regressions now require absent widgets. Existing migrations, optional modules and diagnostics supporting unresolved issues remain.
+
+**Native verification is still open.** Before upload, record `/wfs status` and the actual running build/Interface, then retest direct chat copy/paste (previous blocked-action failures remain unresolved), dungeon combat/expiry buff rendering and roster changes, Overpower/proc consumption/expiry/click-through, selected-set slot toggling/manual Save, Training search/hints, GUI feedback/recovery and reload/profile persistence. Use the detailed feature checklists below. These offline results do not establish taint safety, native appearance or server behavior. See [the release review](release-review-1.0.3.md) for findings and release constraints. No in-game result, deployment or upload was performed.
+
+## GUI text-button feedback — November 5, 2026
+
+Record running build/Interface. After reload, hover and press Training's Class/Weapons, Costs, Previous/Next, All levels/By level and Settings. Expect a subtle theme-colored wash on hover and a stronger wash while held; release outside must not activate. At page boundaries, disabled navigation must be dim and inactive with no hover/press wash. Change pages and close/reopen while hovering or holding; no state should stick.
+
+Repeat on settings rows/sidebar/search results, setup cards/navigation, appearance, journal controls, castbar/progress/keybind/meter settings, macros, profiles, gear/buff settings, character/inventory browser controls, inventory results, mail and meter menus. Existing selected backgrounds, labels, tooltips, actions and disabled states must remain intact. Repeat with custom/class border colors, another UI scale and combat transitions. Offline checks pass (71 Lua 5.1 files, identical TOCs, 26,551 substitute assertions); native visual/input and taint checks remain pending.
+
+## GUI close, clear and remove controls — November 5, 2026
+
+Record `/wfs status`, running build/Interface and screenshots. Native results remain pending; offline checks pass (71 Lua 5.1 files, identical TOCs, 24,567 substitute assertions).
+
+1. Reload and open settings and Training Planner. Inspect the centered cross at normal and another UI scale. Hover each close and search clear: a subtle tinted square and accent cross should identify the full target; tooltip names the action. Hold left mouse for stronger feedback, then release outside: no action. Moving away or closing/reopening must remove stale hover/tooltip state.
+2. Close and reopen each panel. Clear settings search and both Class/Weapons searches; existing results/navigation and hint behavior must remain intact. Training clear remains inert in combat. Search clears retain no separate outline or resting background.
+3. Open inventory search results and damage details. Check the same close treatment, tooltip and dismissal. In Mail, hover recipient removal for warm feedback; removal must retain confirmation, and the current character's disabled removal must stay dim/inert. Check no overlap with nearby titles or row actions.
+4. Repeat available hover/close actions in combat, and enter combat while hovering/pressing. Check for errors, blocked actions and stale highlights. Offline substitutes do not establish native line rendering, visual quality or taint safety.
+
+## Borderless search X — November 5, 2026
+
+User approves the placeholder correction. After reload, check Class and Weapons: the X should sit directly on the search bar background without a separate border/plate. Click it after typing and confirm the existing clear behavior and text spacing. Record actual build/Interface with native results; this visual refinement remains pending.
+
+## Training search placeholder overlap retest — November 5, 2026
+
+User screenshot establishes a native placeholder overlap failure. After reload, open Class then Weapons: focus the search box and type a matching, unmatched and whitespace-only query. Hint must disappear immediately on focus and stay absent while any text exists, including after Enter/Escape or another refresh. Click X/delete all text: an unfocused empty box shows its hint; a focused empty box keeps it hidden. Repeat in combat: placeholder behavior must still work while typed searches leave page navigation paused. Close/reopen and switch tabs to check focus cleanup. Record actual running build/Interface and results; native retest pending.
+
+Offline checks pass: 71 Lua 5.1 files, identical TOCs and 24,585 assertions, including combat hint updates, whitespace, focus gain/loss and intervening refresh. The combat early-return defect is reproduced offline; the user's exact live trigger remains unconfirmed.
+
+## Training Planner alignment and search X — November 5, 2026
+
+After reload, inspect Class, Weapons, Costs, footer and close-button text at normal and another UI scale: labels should sit centrally in both directions. Search text and placeholder should center vertically. Type a long query and confirm it stays clear of the right-side X. In Class, click X after matching and unmatched queries: full spell list and placeholder return. In Weapons, X clears query/amber state without changing the selected trainer page. Repeat tab switches and Enter/Escape/hide focus checks. Combat X clicks must leave query/navigation unchanged. Record actual running build/Interface and visual/input/taint results; native results remain pending.
+
+Offline checks: 71 Lua 5.1 files, identical TOCs and 24,578 assertions pass, including Class/Weapons clear-button callbacks and combat rejection. Substitute text-change dispatch models the native EditBox event; it does not verify rendered alignment or native mouse input.
+
+## Fixed proc click-through policy — November 5, 2026
+
+User requires unconditional click-through for live proc popups and movement only in preview; there is no click-through option. With live icons above a world target or action button, left/right-click, drag and scroll over each icon, label, sparkle border and gap. Underlying UI/world input must work and popup placement must stay unchanged. Repeat at 24/128 px and with multiple procs. Open a preview outside combat and drag it; end preview by navigation/closing settings and repeat the live checks. Enter combat during preview/drag: preview input must disappear and live icons stay passive. Native results/build remain pending.
+
+Offline checks pass: 71 Lua 5.1 files, matching TOCs and 24,573 assertions. Added assertions cover root/cell mouse-wheel pass-through, preview-only mouse capture, cleanup and enforced pass-through even before combat clears stale preview state. They do not establish native hit testing or taint safety.
+
+## Proc icon size slider — November 5, 2026
+
+After reload, open `/wfs actionbars` and find Proc popup icon size beneath the main popup controls. Drag from 24 to 128 px and use the wheel for one-pixel changes. The live preview should open, show the chosen pixel size and keep its saved position; detection must stay off if previously off. Confirm the icon, sparkle border and name remain readable, and moving the preview still saves placement. Close/navigate settings to end it. Search for Proc popup icon size and verify the slider is revealed.
+
+Enable procs, test a large Overpower popup and simultaneous icons. Border artwork must stay centered, neighboring glows/labels must not overlap, and all live icons remain passive. Reload and switch profiles to confirm saved size/position. Enter combat with the slider open: it must disable, preview must end, and slider input must not change the saved size. After combat the control should enable again. Repeat at another UI scale. Record actual running build/Interface, visuals and any Lua/blocked-action errors; native results pending.
+
+Offline `node scripts/check-addon.cjs` passes: 71 Lua 5.1 files, identical TOCs and 24,552 assertions. New checks cover defaults/range/rounding/restricted values, live resizing and border proportion, anchor preservation, wheel input, combat input rejection/deferred geometry, profile inclusion/search and multi-icon centering/spacing. These do not prove native appearance, persistence or taint safety.
+
+## Dungeon combat-buff forbidden title anchor retest — November 5, 2026
+
+User reports six ClearAllPoints forbidden-object errors at CombatBuffs.lua:357 during a dungeon. Fix initializes title-mask anchors before native button restrictions apply and rebuilds masks for changed public layout. Offline checks pass: 71 Lua 5.1 files, identical TOCs and 24,521 substitute assertions. The stricter fixture fails before correction and covers persistent post-initialization restrictions, reuse, two rows, family reorder/removal, expiry masking and failed setup. Actual running build/Interface and native result remain pending.
+
+1. Reload with combat buff reminders and expiry warnings enabled. Record `/wfs status` and actual running build/Interface. Repeat dungeon pulls as Warrior with Battle Shout tracking party members; cast/refresh Shout and let it approach expiry and expire. Confirm reminders and their shared title appear only when due, with correct affected names on hover.
+2. Between pulls, allow ordinary aura refreshes, change party membership and change reminder icon size/scale. Include several buff families where available. Confirm centered rows and the single title location survive rebuilding, and healthy coverage hides both icons and title.
+3. Cross combat boundaries repeatedly, close/reopen settings, disable/re-enable the feature and finish another pull. Confirm no ClearAllPoints/SetPoint forbidden-object errors or blocked actions. Retain any new stack and build details; offline checks do not prove native taint safety.
+
+## Training Planner Class search — November 5, 2026
+
+Record `/wfs status` and running build/Interface. Native results are pending. Supersedes the older weapon-only search visibility expectations below.
+
+1. Open Class: confirm Search spells has the same size/position as Search weapons. Type a partial name such as `rend`, including mixed case and surrounding spaces. Only matching ranks should remain. Each result must show its level requirement plus its original page in the unfiltered catalog. Compare a result after clearing search; confirm the full catalog page and requirement agree.
+2. Page through a spell with more than six ranks, then repeat in By level. Filtered pages should contain matching ranks and preserve original group-page references. Check both Costs modes and saved/server-only offerings. Search with no match or literal `[%` must show No matching spells and no stale rows. Clear search to restore the full list from page one.
+3. Switch Class/Weapons: input should clear, hint should change, and the header geometry should stay fixed. Weapon search must still jump to a matching trainer. Confirm Enter/Escape release focus, hiding releases focus, and search does not steal focus on open. Enter combat while typing and check no page navigation, errors or blocked actions; edit again after combat.
+
+Offline `node scripts/check-addon.cjs`: 71 Lua 5.1 files, identical TOCs and 24,322 assertions pass, including all Rend ranks, original pages/requirements, filtered pagination, grouped levels, no-match/clear and tab scope. No in-game verification performed.
+
+## Equipment toggle missing-button retest — November 5, 2026
+
+User's selected-set screenshot confirms the initial button was not visible; initial visual verification failed. Raise the Suite control above native model level 50 and item layer 100. Add selected-existing-set-only visibility; the earlier new-set support below is superseded. Offline checks pass: 71 Lua 5.1 files, identical TOCs, 24,282 assertions. Native retest remains pending.
+
+After `/reload` with Equipment set slot toggle enabled, open Equipment Manager and select an existing set. Confirm the 24px X/+ button appears at the lower-right of the character equipment area, just left of the set-list divider, above the background and clear of equipment slots. Check hovering/clicking and both directions without changing weapons/offhand/ranged/ammo. Clear selection or start New Set: button must disappear, leaving native model navigation available. Create and explicitly select a set: button returns. Delete the selected set, switch sidebar tabs, close/reopen Character, and repeat at another UI scale. Retain the Save/reload and combat checks below; record actual running build/Interface and any blocked actions.
+
+## Training Planner compact controls and weapon search — November 5, 2026
+
+Record `/wfs status` and actual running build/Interface. Native results remain pending.
+
+1. Open `/wfs training` and choose Weapons. At normal and another UI scale, confirm compact centered Class/Weapons labels, both Costs labels fitting without clipping, and Search weapons occupying the remaining row width without overlap. Check centered footer and close-button labels as well. Class should hide weapon search.
+2. Type `axe`, mixed-case `AxE`, and a partial name with surrounding spaces. The first matching faction trainer page must appear with the matching weapon visible. Try another weapon and a recorded trainer offering beyond its first six rows. Normal Previous/Next and wheel scrolling must remain available after searching.
+3. Search an absent name or literal `[%`: input turns amber and the page stays put. Clear the text: the hint returns without resetting the page. Search must not steal focus on open; Enter and Escape release focus, and hiding/switching to Class must release typing. Reopen and repeat with Base/Recorded costs and the trainer/spellbook companion.
+4. Enter combat while typing: search must not change pages or anchors. Leave combat and edit/search again. Check for Lua errors and blocked actions; do not count substitutes as native taint verification.
+
+Offline `node scripts/check-addon.cjs`: 71 Lua 5.1 files, identical TOCs and 24,273 assertions pass, including search navigation, recorded offscreen matches, case/whitespace, literal matching, clearing, view visibility and combat guards.
+
+## Equipment manager bulk ignore/include — November 5, 2026
+
+Enable **Bags & Gear → Gear Details → Equipment set slot toggle** (`/wfs items`), which defaults off. Record `/wfs status` and actual running build/Interface. Native results are pending.
+
+1. Open Character → Equipment Manager. Check the small X/+ button at the lower-right of the character equipment area, left of the set list divider. It must avoid native slots, flyout arrows and Save/Equip/New Set at normal and changed UI scales. Switching away from Equipment Manager or closing Character must hide it. Hover explains its action and exclusions.
+2. Select a disposable set with mixed ignored/included armor, jewelry, shirt and tabard. Give main hand, offhand, ranged and ammo a mixture of include/ignore states where available. Click X once: every non-weapon slot must become ignored, including empty slots, while those four fields retain their exact state. Save must become available; no equip or save occurs automatically. Click +: all eligible slots become included, with the same exclusions unchanged. Toggle an individual slot through its native flyout and confirm the bulk action follows the resulting mixed/all-ignored state.
+3. Use native Save and its confirmation, switch sets and return, then reload: saved ignore selections must persist. Changes to one set must not affect another. With no selection, including in New Set, the control must be hidden. Create and explicitly select a set before repeating. Cancelling/closing should follow native unsaved-change behavior.
+4. Enter combat with the pane open and try the bulk button: no slot change, save, equip or delayed replay may occur. First enabling during combat defers construction. Disable during combat and leave combat: button must hide without modifying choices. Re-enable outside combat, reload and check errors/blocked actions with the user's usual addons.
+
+Offline `node scripts/check-addon.cjs`: 71 Lua 5.1 files, identical TOCs, 24,256 behavior assertions pass. Equipment tests cover defaults, first combat enable, mixed/all-ignored direction, all sixteen eligible markers, exclusion preservation, Save, zero set ID, new-set editor, hidden/disabled state and missing/restricted APIs/widgets. API substitutes do not establish native rendering, permissions or taint safety.
+
+## Intermittent Overpower reliability retest — November 5, 2026
+
+User reports the earlier corrected implementation still misses some Overpower opportunities. Dodge direction, stance and resources have already been confirmed. Added finite event retries, readable cooldown-end wakeups, event-authoritative GCD classification and additional public refresh notifications; no guessed dodge window. Installed executable still reports 1.60.1.70790, but record `/wfs status` for the actual running build/Interface. Native fix remains unverified.
+
+1. Reload with Ability proc popups enabled. Compare repeated enemy-dodge opportunities with the ordinary Overpower button and actual casting in Battle Stance with sufficient rage. Include a dodge during the GCD, near the end of Overpower/Revenge's cooldown, immediately after a stance/target change, and while gaining sufficient rage. Each server-usable opportunity should appear, then clear on use or expiry. Test with and without other proc addons active.
+2. Fight beside a party member attacking the same target. Their attacks/dodges must not independently cause a Suite proc; public server availability remains required. Test target switching, idle combat after a proc, combat/world exit, and disabling during a pending cooldown or retry. No popup may return from cancelled work. Verify native highlights on a class without one of Suite's five legacy reactive skills too.
+3. If an opportunity is missed, finish that fight and run `/wfs procstatus` before the next pull. Retain all output alongside whether the native Overpower button was usable and the spell could actually be cast. It reports learned IDs, icon-data readiness and a bounded public readiness-reason history, retained until the next combat begins. It does not print restricted values or identify dodging units. Do not treat the diagnostic itself as proof of successful casting.
+
+Offline `node scripts/check-addon.cjs` passes: 70 Lua 5.1 files, matching TOCs and 24,139 assertions. New timing regressions advance a simulated clock: readiness changes after the initial 30ms check without a second event; cooldown expires with no further event; initial native-highlight query is false then becomes true; authoritative public GCD flag remains usable despite restricted times; real cooldown updates clear it. Tests also cover coalescing, unrelated units, ignored restricted combat/action payloads, resource/cast notifications, bounded workers, other-class native procs, cancellation and diagnostic routing. They do not prove live event delivery, appearance, taint safety or consistent Overpower detection.
+
+## Overpower missing-popup retest — November 5, 2026
+
+User reports that Overpower did not appear “after I dodged.” Follow-up confirms the enemy dodged their attack, Battle Stance and at least 5 rage. The reported failure cannot be dismissed as wrong dodge direction or those unmet requirements. Corrected the readiness gate to accept readable inactive cooldown status even when duration/startTime are restricted, rejecting on-hold cooldowns first. All 70 Lua 5.1 files, identical TOCs and 24,102 assertions pass, including the failing-before public-status/restricted-times case. This is a code correction, not proof of the live cause or a successful in-game result. Native button usability/cast outcome and the post-correction retest remain unreported.
+
+After reload, confirm Ability proc popups is enabled. With learned Overpower, Battle Stance and at least 5 rage, let the enemy dodge your attack and compare the normal action-bar button's availability with Suite's popup. Record whether the native button was usable, whether Overpower could actually be cast, and the running build/Interface. A player dodge alone is not the tooltip's Overpower trigger. Native retest remains pending.
+
+## Sparkly proc-border smoke test — November 5, 2026
+
+After reload, open `/wfs actionbars` → Preview proc popups. Confirm the ability icon has a continuously moving, sparkly border, with the spell artwork and label readable. Drag the preview and inspect at normal/smaller UI scales: the glow must stay centered and must not obscure neighboring icons. Close settings or navigate away and confirm the glow disappears. Trigger Overpower and a native class proc in combat: the same animation should run while the popup is present and stop when consumed, expired or combat ends. Repeated updates must not make it continually restart. Disable the feature during a proc and confirm no residual glow or Lua error/blocked action. Record actual running build/Interface and visuals; native results pending.
+
+Offline checks pass: 70 Lua 5.1 files, identical TOCs and 24,097 behavior assertions. Animation substitutes verify the one-second 30-frame repeat, precombat construction, active/preview playback, stopped hidden/disabled cells, preserved playback through refresh and absence of a Lua OnUpdate worker. They do not verify native texture rendering or taint safety.
+
+## Move settings away from previews — November 5, 2026
+
+Open `/wfs`, show a preview and drag the Suite header past each screen edge. The GUI must slide beyond the screen, leaving the preview usable. Check partial-screen placement survives closing/reopening and reload when enough header remains accessible. Move the header entirely off screen, press Escape and reopen `/wfs`: it must return centered. Repeat at another UI scale and with a smaller resolution. Native windows and preview positions must remain independent. Native verification pending; record actual running build/Interface with results.
+
+Right-click the Suite minimap icon with settings hidden, visible and off screen: settings must open centered every time and save the reset. Left-click must still toggle normally; releasing a minimap drag must not reset or open settings. Hover must explain the new shortcut. In combat, right-click must defer reset/opening until combat ends. Repeat with the icon inside an addon button collector. Offline checks pass: 70 Lua 5.1 files, identical TOCs and 24,081 behavior assertions, including right-click centering/opening and combat deferral. Native interaction/visual results remain pending.
+
+## Ability proc popups — November 5, 2026
+
+Enable `/wfs actionbars` → Ability Proc Popups (default off). Use Preview proc popups outside combat, drag it and close settings. Live icons must pass mouse input through; only the preview accepts dragging. Reset proc popup position must restore above screen center. Missing-buff switches/position must be independent. Record `/wfs status` and the actual running build/Interface with results.
+
+1. Warrior: learn Overpower, enter the appropriate stance and obtain enough rage. After an enemy dodge, verify the correct learned icon/name appears when the client reports the ability usable. Cast with the ordinary keybind: the popup must clear; let another window expire without casting and verify it clears. Change target/stance/resources and confirm no stale readiness. Check Revenge separately. A GCD must not cause an otherwise available reactive skill to blink off. Readable cooldown/usable information is required; restricted results are omitted.
+2. Rogue/hunter: test learned Riposte, Mongoose Bite and Counterattack under their actual Forever conditions. On every other class, test native highlighted procs and verify matching spell names/icons appear and disappear alongside the native highlight. A native proc alert does not promise range/resources/cooldown readiness. Record missing procs by name, rank and whether the native action icon glowed; skills without native highlights and outside the listed reactive families are not yet covered.
+3. Test two simultaneous procs for distinct centered icons; repeated show events/ranks must not duplicate a name. Enable with a highlight already active, reload, relog, change zones and cross combat boundaries. No old proc should stick. Enter combat while dragging a preview: it must become passive and return to its saved placement afterward. Navigate/close settings to end previews, including while the feature is off.
+4. Disable with a popup visible and during queued refresh. Icons must disappear without returning, and preview must still work independently afterward. Test enabling first during combat: construction waits until combat ends. Check at normal/changed UI scales and with overlapping addons enabled for Lua errors and blocked actions.
+
+Offline `node scripts/check-addon.cjs` passes: 70 Lua 5.1 files, matching TOCs and 24,072 behavior assertions. Substitute checks cover combat deferral, highest-known ranks, availability/cooldown/GCD, generic class glows, restricted payloads and nested fields, deduplication, combat/world cleanup, cancelled callbacks, existing-glow recovery, asynchronous metadata and GUI preview cleanup. Native behavior, all-class coverage, appearance and taint safety remain unverified.
+
 ## Standalone clipboard probe — November 5, 2026
 
 User reports the native failure with only Suite and error reporters enabled during requested copytest. This excludes other third-party addons as required triggers, but not other Suite modules. Matching installed-build 70790 public source confirmed at eac30af597e5aaa43a60f6675ef5fdcea100375f, with unchanged scrolling Lua. Actual running build/Interface remains unreported.

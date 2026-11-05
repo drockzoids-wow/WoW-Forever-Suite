@@ -28,6 +28,41 @@ local function Native(width,height)
     f.IsForbidden=function()return false end; f.IsProtected=function()return false end
     f.SetSize=function(self,w,h)assert(not InCombatLockdown()); self.width,self.height=w,h end
     f.UpdateShownState=function(self)assert(not InCombatLockdown());self.shown=self.isInEditMode==true end
+    local text=Frame();f.Text=text
+    text.width,text.height,text.fontPath,text.fontSize,text.fontFlags=width-10,16,"Fonts\\FRIZQT__.TTF",10,"OUTLINE"
+    text.horizontal,text.vertical="LEFT","TOP"
+    text.IsForbidden=function()return false end
+    text.GetText=function()error("castbar sizing must never inspect native spell text")end
+    text.GetFont=function(self)return self.fontPath,self.fontSize,self.fontFlags end
+    text.GetJustifyH=function(self)return self.horizontal end;text.GetJustifyV=function(self)return self.vertical end
+    text.SetJustifyH=function(self,v)assert(not InCombatLockdown());self.horizontal=v end
+    text.SetJustifyV=function(self,v)assert(not InCombatLockdown());self.vertical=v end
+    text.SetFont=function(self,path,size,flags)assert(not InCombatLockdown());self.fontPath,self.fontSize,self.fontFlags=path,size,flags end
+    local point,size,clear=text.SetPoint,text.SetSize,text.ClearAllPoints
+    text.SetPoint=function(self,...)assert(not InCombatLockdown());point(self,...)end
+    text.SetSize=function(self,...)assert(not InCombatLockdown());size(self,...)end
+    text.ClearAllPoints=function(self)assert(not InCombatLockdown());clear(self)end
+    text:SetPoint("TOP",f,"TOP",0,-10)
+    local spark=Frame();f.Spark=spark;spark.height,spark.width=20,8
+    spark.IsForbidden=function()return false end
+    spark:SetPoint("CENTER",f,"LEFT",{secret=true},0)
+    spark.GetPoint=function()error("spark progress anchors must remain opaque")end
+    spark.GetWidth=function()error("spark thickness must remain native")end
+    spark.SetWidth=function()error("custom height must not widen the progress marker")end
+    spark.SetHeight=function(self,h)assert(not InCombatLockdown());self.height=h end
+    for key, height in pairs({ StandardGlow=12, CraftGlow=12, ChannelShadow=11, BorderMask=13 }) do
+        local effect=Frame();f[key]=effect;effect.width,effect.height=37,height
+        effect.IsForbidden=function()return false end
+        effect.GetPoint=function()error("cast effect progress anchors must remain opaque")end
+        effect.SetHeight=function(self,h)assert(not InCombatLockdown());self.height=h end
+    end
+    f.SetLook=function(self)
+        self.Text:ClearAllPoints();self.Text:SetPoint("TOP",self,"TOP",0,-10)
+        self.Text:SetFont("Fonts\\FRIZQT__.TTF",10,"OUTLINE")
+        self.Spark:SetHeight(20)
+        self.StandardGlow:SetHeight(12);self.CraftGlow:SetHeight(12)
+        self.ChannelShadow:SetHeight(11);self.BorderMask:SetHeight(13)
+    end
     return f
 end
 UIParent=Native(1000,800)
@@ -93,9 +128,59 @@ Suite.db.modifierDisenchant=false;helper:Apply()
 equal(helper.button:IsShown(),false,"disable hides the helper")
 equal(helper.button.attributes["target-slot"],nil,"disable clears targeting attributes")
 bars:Set("player","width",400)
+local sparkPoint=PlayerCastingBarFrame.Spark.point
+local sparkHeightGetter=PlayerCastingBarFrame.Spark.GetHeight
+local incompleteSparkRecord={height=21}
+PlayerCastingBarFrame.Spark.GetHeight=function()return {secret=true}end
+bars:LayoutSpark(PlayerCastingBarFrame,incompleteSparkRecord,{height=40})
+equal(incompleteSparkRecord.spark,nil,"restricted native spark height cannot enter resize arithmetic")
+equal(PlayerCastingBarFrame.Spark.height,20,"unavailable spark dimensions leave the native marker untouched")
+PlayerCastingBarFrame.Spark.GetHeight=sparkHeightGetter
+do
+    local shadow=PlayerCastingBarFrame.ChannelShadow
+    local getter,record=shadow.GetHeight,{height=21}
+    shadow.GetHeight=function()return {secret=true}end
+    bars:LayoutEffects(PlayerCastingBarFrame,record,{height=40})
+    equal(record.effects.ChannelShadow,nil,"restricted shadow height cannot enter resize arithmetic")
+    equal(shadow.height,11,"unreadable shadow remains native")
+    shadow.GetHeight=getter
+    local before=PlayerCastingBarFrame.BorderMask.height
+    SetCombat(true);bars:LayoutEffects(PlayerCastingBarFrame,{height=21},{height=60});SetCombat(false)
+    equal(PlayerCastingBarFrame.BorderMask.height,before,"effect layout defers all combat mutations")
+    -- Return the other effect fixtures to their native baselines after the isolated call.
+    PlayerCastingBarFrame:SetLook()
+end
 equal(PlayerCastingBarFrame.width,260,"size preferences alone do not enable a native override")
 bars:Set("player","enabled",true)
 equal(PlayerCastingBarFrame.width,400,"enabled player override applies the chosen width")
+equal(PlayerCastingBarFrame.Text.point[1],"CENTER","resized spell label anchors at the bar center")
+equal(PlayerCastingBarFrame.Text.point[3],"CENTER","resized spell label follows the bar's center as height changes")
+equal(PlayerCastingBarFrame.Text.vertical,"MIDDLE","spell text is vertically centered within its full-height bounds")
+equal(PlayerCastingBarFrame.Text.horizontal,"CENTER","spell text remains horizontally centered")
+bars:Set("player","height",40)
+equal(PlayerCastingBarFrame.Text.fontSize,20,"a thicker castbar grows the spell font proportionally")
+equal(PlayerCastingBarFrame.Text.height,40,"spell label bounds follow the complete configured bar height")
+equal(PlayerCastingBarFrame.Spark.height,39,"progress spark grows with the bar while retaining native vertical clearance")
+equal(PlayerCastingBarFrame.ChannelShadow.height,30,"channel shadow grows with configured bar height")
+equal(PlayerCastingBarFrame.StandardGlow.height,31,"ordinary cast edge highlight grows with configured bar height")
+equal(PlayerCastingBarFrame.CraftGlow.height,31,"craft edge highlight grows with configured bar height")
+equal(PlayerCastingBarFrame.BorderMask.height,32,"effect clipping mask grows along with the visible effect")
+equal(PlayerCastingBarFrame.BorderMask.width,37,"effect mask retains its native width")
+equal(PlayerCastingBarFrame.Spark.width,8,"resizing keeps the progress marker thin")
+equal(PlayerCastingBarFrame.Spark.point,sparkPoint,"resizing preserves opaque engine-controlled spark position")
+equal(PlayerCastingBarFrame.Text.width,388,"spell label width follows the resized bar with side clearance")
+equal(PlayerCastingBarFrame.Text.fontFlags,"OUTLINE","text resizing retains native font flags")
+bars:Set("player","height",60)
+equal(PlayerCastingBarFrame.Text.fontSize,28,"very thick bars cap the font at a readable size")
+bars:Set("player","height",8)
+equal(PlayerCastingBarFrame.Text.fontSize,8,"thin bars retain a legible minimum font")
+bars:Set("player","height",40)
+PlayerCastingBarFrame:SetLook();Drain()
+equal(PlayerCastingBarFrame.Text.fontSize,20,"native look changes reapply the custom font through the existing worker")
+equal(PlayerCastingBarFrame.Spark.height,39,"native look changes reapply the spark height through the existing worker")
+equal(PlayerCastingBarFrame.ChannelShadow.height,30,"native look reset reapplies shadow height")
+equal(PlayerCastingBarFrame.BorderMask.height,32,"native look reset reapplies clipping height")
+equal(PlayerCastingBarFrame.Text.point[1],"CENTER","native look resets cannot leave thick-bar text at its old top offset")
 equal(TargetFrame.spellbar.width,150,"player settings do not change target castbar")
 -- Native target/focus size accessors can depend on their aura anchor. A resolved
 -- rectangle must not be required when the configured dimensions are readable.
@@ -105,19 +190,42 @@ bars:Set("target","width",300);bars:Set("target","enabled",true)
 equal(TargetFrame.spellbar.width,300,"target has independent sizing")
 bars:Set("target","height",36)
 equal(TargetFrame.spellbar.height,36,"target height applies despite restricted resolved aura geometry")
+equal(TargetFrame.spellbar.Text.fontSize,18,"target text follows its own configured height")
+equal(TargetFrame.spellbar.Spark.height,41,"target spark follows its independent configured height and native overhang")
 equal(bars.records[TargetFrame.spellbar].height,15,"target captures configured native height for restoration")
 equal(bars:SizeStatus("target"),nil,"successful target size is not reported unavailable")
 local targetHeight=TargetFrame.spellbar.GetHeight
 TargetFrame.spellbar.GetHeight=function()return {secret=true}end
 bars:Set("target","enabled",false)
 equal(TargetFrame.spellbar.height,15,"target disabling restores the captured native height")
+equal(TargetFrame.spellbar.Text.fontSize,10,"target disable restores the original spell font")
+equal(TargetFrame.spellbar.Spark.height,20,"target disable restores original spark height")
+equal(TargetFrame.spellbar.Text.point[1],"TOP","target disable restores native text anchors")
+equal(TargetFrame.spellbar.Text.point[5],-10,"target disable restores the native top offset")
+equal(TargetFrame.spellbar.Text.vertical,"TOP","target disable restores original vertical justification")
+equal(TargetFrame.spellbar.Text.width,140,"target disable restores original label dimensions")
 bars:Set("target","enabled",true)
 equal(TargetFrame.spellbar.height,15,"restricted configured dimensions never authorize a guessed override")
 equal(bars:SizeStatus("target"),"Native size is unavailable; custom size has not been applied.","unavailable dimensions explain why size is not applied")
 TargetFrame.spellbar.GetHeight=targetHeight;bars:Apply()
 equal(TargetFrame.spellbar.height,36,"target override resumes when configured size is readable")
+local focusFont={path="Fonts\\FRIZQT__.TTF",size=10,flags="OUTLINE"}
+FocusFrame.spellbar.Text.GetFontObject=function()return focusFont end
+FocusFrame.spellbar.Text.SetFontObject=function(self,object)
+    assert(not InCombatLockdown());self.restoredFontObject=object
+    self.fontPath,self.fontSize,self.fontFlags=object.path,object.size,object.flags
+end
+local playerFontGetter=PlayerCastingBarFrame.Text.GetFont
+PlayerCastingBarFrame.Text.GetFont=function()return {secret=true},10,""end
+equal(bars:CaptureText(PlayerCastingBarFrame.Text),nil,"unreadable font metadata cannot create a text restoration record")
+PlayerCastingBarFrame.Text.GetFont=playerFontGetter
+local playerPointGetter=PlayerCastingBarFrame.Text.GetPoint
+PlayerCastingBarFrame.Text.GetPoint=function()return "CENTER",PlayerCastingBarFrame,"CENTER",{secret=true},0 end
+equal(bars:CaptureText(PlayerCastingBarFrame.Text),nil,"restricted anchor offsets cannot be cached or used in layout")
+PlayerCastingBarFrame.Text.GetPoint=playerPointGetter
 bars:Set("focus","height",30);bars:Set("focus","enabled",true)
 equal(FocusFrame.spellbar.height,30,"focus has independent sizing")
+equal(FocusFrame.spellbar.Text.fontSize,15,"focus text has independent sizing")
 bars:Set("player","width",{secret=true});equal(PlayerCastingBarFrame.width,400,"restricted size input is ignored")
 equal(bars:Preview("target"),true,"native target preview is available while idle and visible")
 equal(TargetFrame.spellbar.isInEditMode,true,"preview uses native castbar visibility state")
@@ -130,16 +238,36 @@ equal(bars.preview~=nil,true,"combat defers native preview cleanup")
 SetCombat(false);Suite.pending.castbarPreview();equal(bars.preview,nil,"preview cleanup completes after combat")
 EditModeManagerFrame.shown=true;bars:Refresh()
 equal(PlayerCastingBarFrame.width,260,"Edit Mode releases custom dimensions to native management")
+equal(PlayerCastingBarFrame.Text.point[1],"TOP","Edit Mode restores the native spell-text layout")
+equal(PlayerCastingBarFrame.Text.fontSize,10,"Edit Mode restores the native spell font")
+equal(PlayerCastingBarFrame.Spark.height,20,"Edit Mode restores original spark height")
+equal(PlayerCastingBarFrame.ChannelShadow.height,11,"Edit Mode restores original shadow height")
+equal(PlayerCastingBarFrame.BorderMask.height,13,"Edit Mode restores original clipping mask height")
 EditModeManagerFrame.shown=false;bars:Refresh()
 equal(PlayerCastingBarFrame.width,400,"custom dimensions return after Edit Mode")
+equal(PlayerCastingBarFrame.Text.fontSize,20,"custom text size returns after Edit Mode")
+equal(PlayerCastingBarFrame.Spark.height,39,"custom spark height returns after Edit Mode")
+equal(PlayerCastingBarFrame.BorderMask.height,32,"effect mask custom height returns after Edit Mode")
 SetCombat(true);bars:Set("player","enabled",false)
 equal(PlayerCastingBarFrame.width,400,"disabling in combat does not mutate protected geometry")
+equal(PlayerCastingBarFrame.Text.fontSize,20,"combat disable defers font and anchor restoration too")
+equal(PlayerCastingBarFrame.Spark.height,39,"combat disable also defers spark geometry changes")
+equal(PlayerCastingBarFrame.ChannelShadow.height,30,"combat disable defers shadow restoration")
 SetCombat(false);Suite.pending.castbars();Suite.pending.castbars=nil
 equal(PlayerCastingBarFrame.width,260,"disable restores original player width")
 equal(PlayerCastingBarFrame.height,21,"disable restores original player height")
+equal(PlayerCastingBarFrame.Text.fontSize,10,"disable restores original player spell font")
+equal(PlayerCastingBarFrame.Spark.height,20,"disable restores original player spark height")
+equal(PlayerCastingBarFrame.ChannelShadow.height,11,"disable restores original channel shadow height")
+equal(PlayerCastingBarFrame.StandardGlow.height,12,"disable restores ordinary edge highlight height")
+equal(PlayerCastingBarFrame.CraftGlow.height,12,"disable restores craft edge highlight height")
+equal(PlayerCastingBarFrame.BorderMask.height,13,"disable restores original effect clipping height")
+equal(PlayerCastingBarFrame.Text.point[1],"TOP","disable restores original player text anchor")
+equal(PlayerCastingBarFrame.Text.height,16,"disable restores original native label height")
 bars:Set("target","enabled",false);bars:Set("focus","enabled",false)
 equal(TargetFrame.spellbar.width,150,"target restoration keeps native dimensions")
 equal(FocusFrame.spellbar.height,16,"focus restoration keeps native dimensions")
+equal(FocusFrame.spellbar.Text.restoredFontObject,focusFont,"disable restores native font-object inheritance when available")
 equal(rep:Desired(),47,"localized native zone identifies Ironforge reputation")
 subzone="Ratchet";equal(rep:Desired(),470,"town reputation takes priority over the larger zone");subzone=""
 side="Horde";zone="Durotar";equal(rep:Desired(),76,"Horde zone maps to its own home faction")

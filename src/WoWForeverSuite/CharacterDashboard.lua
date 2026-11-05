@@ -194,6 +194,7 @@ function Dashboard:Build(parent)
     self.viewTabs = {}
     for index, entry in ipairs({ { "characters", "Characters" }, { "inventory", "Inventory" } }) do
         local tab = CreateFrame("Button", nil, root, "BackdropTemplate")
+        Suite.Theme:ButtonFeedback(tab)
         tab:SetPoint("TOPLEFT", (index - 1) * 396, 0); tab:SetSize(384, 28)
         tab:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" })
         tab.label = Label(tab, 11, teal, 10, -8, 364); tab.label:SetText(entry[2])
@@ -214,6 +215,7 @@ function Dashboard:Build(parent)
     search:SetScript("OnEnterPressed", function(box) box:ClearFocus() end)
     local function Button(x, y, width, text, callback)
         local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
+        Suite.Theme:ButtonFeedback(button)
         button:SetSize(width, 26); button:SetPoint("TOPLEFT", x, y)
         button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" }); button:SetBackdropColor(0.1, 0.2, 0.21)
         button.label = Label(button, 11, teal, 8, -7, width - 16); button.label:SetText(text)
@@ -231,6 +233,7 @@ function Dashboard:Build(parent)
     self.empty = Label(panel, 12, muted, 0, -115, 780); self.empty:SetWordWrap(true); self.empty:SetHeight(40)
     for index = 1, PAGE_SIZE do
         local row = CreateFrame("Button", nil, panel, "BackdropTemplate"); self.buttons[index] = row
+        Suite.Theme:ButtonFeedback(row)
         row:SetSize(780, 52); row:SetPoint("TOPLEFT", 0, -108 - (index - 1) * 56)
         row:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" }); row:SetBackdropColor(0.07, 0.095, 0.11)
         row.accent = row:CreateTexture(nil, "ARTWORK"); row.accent:SetPoint("TOPLEFT", 0, -5)

@@ -1,4 +1,37 @@
 {
+  "castbarEffects20261105": {
+    "date": "2026-11-05",
+    "references": [
+      "https://raw.githubusercontent.com/Gethe/wow-ui-source/forever/Interface/AddOns/Blizzard_UIPanels_Game/Mainline/CastingBarFrame.xml",
+      "https://raw.githubusercontent.com/Gethe/wow-ui-source/forever/Interface/AddOns/Blizzard_UIPanels_Game/Shared/CastingBarFrame.lua"
+    ],
+    "finding": "Fixed 12px StandardGlow/CraftGlow, 11px ChannelShadow and shared 13px BorderMask remain separate from anchored Background/Border/TextBorder and the already resized Spark.",
+    "implementation": "Original Suite reversible height-delta adjustment of native effects and mask; native movement, widths, atlases and animation retained. No atlas slicing changes.",
+    "native": "User report: 206 x 30, original 11.000000953674; anchored layers configured 0 x 0; forward Hearthstone and reverse Fishing patch. Candidate retest and actual running build/Interface pending."
+  },
+  "castbarText20261105": {
+    "date": "2026-11-05",
+    "request": "Fishing label remains small/low after increasing custom castbar height.",
+    "references": [
+      "https://raw.githubusercontent.com/Gethe/wow-ui-source/forever/Interface/AddOns/Blizzard_UIPanels_Game/Mainline/CastingBarFrame.xml",
+      "https://raw.githubusercontent.com/Gethe/wow-ui-source/forever/Interface/AddOns/Blizzard_UIPanels_Game/Shared/CastingBarFrame.lua"
+    ],
+    "finding": "Native Text uses fixed-height/top-offset geometry; SetLook resets native text font and anchors.",
+    "implementation": "Original Suite reversible font/anchor capture, centered full-height text bounds and proportional 8–28px font size using only configured bar dimensions; existing safe refresh hooks retained.",
+    "runningBuildInterface": "Unreported; public source is supporting evidence, not an established exact-client match.",
+    "native": "Fishing screenshots establish the requested defect. Updated native appearance/taint retest pending."
+  },
+  "chatCopyWindow20261105": {
+    "date": "2026-11-05",
+    "reference": "Installed ChatCopyPaste 1.41 by Novaspark/Venomisto",
+    "files": [
+      "ChatCopyPaste.lua:128-203"
+    ],
+    "finding": "On-demand GetNumMessages/GetMessageInfo snapshot into InputScrollFrameTemplate EditBox, skipping secret lines; keyboard Ctrl+C copies from the separate window.",
+    "adaptation": "Original Suite implementation and theme; no reference code, assets, URL filters, libraries or configuration copied. No standalone source license present in installed root; behavior reference only.",
+    "restrictions": "Guard readability before all text operations; omit hidden-name text rather than resolving identities; bound native reads and text size; no direct clipboard calls or native selection mutation.",
+    "native": "User confirms installed ChatCopyPaste works; Suite replacement native retest pending; actual running build/Interface unreported."
+  },
   "clipboardProbe20261105": {
     "date": "2026-11-05",
     "sourceCommit": "eac30af597e5aaa43a60f6675ef5fdcea100375f",

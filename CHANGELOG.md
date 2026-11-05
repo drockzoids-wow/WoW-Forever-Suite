@@ -1,31 +1,24 @@
 # Forever Suite
 
-## Unreleased
+## 1.0.3 — Release candidate (November 5, 2026)
 
-- Exit chat selection mode after a confirmed native copy. Add temporary `/wfs copytest` to investigate clipboard failure independently of Suite chat styling/history; the direct-copy failure remains unresolved.
-- Leave native chat message font setters unwrapped as a further clipboard-taint mitigation candidate. Observe font changes during normal refresh/restoration; native copying retest remains pending.
-- Strip inline tooltip colors and normalize wrapped text before matching food/drink restoration, including buff food such as Brilliant Smallfish.
-- Leave native chat copy-setting methods unwrapped as a mitigation candidate for the reported clipboard blocked action; in-game confirmation remains pending.
-- Center combat weapon reminders on a separate row beneath native aura reminders. Weapon slots no longer shift Battle Shout or other native aura rows sideways.
-- Stop reserving combat buff-bar slots for unavailable weapon coatings and outside-combat coating-selection prompts, which could push a lone aura icon off-center.
-- Include health-restoring buff food in automatic FS Food selection, retaining mage and seasonal supply priority. Specific buff foods can also be selected manually.
-- Center Missing Buffs title text on the icon-row axis independently of the lock mark. Combat still reserves hidden healthy slots rather than inspecting restricted aura visibility.
-- Remove the leftover combat weapon-reminder box and hand/status captions. Display weapon reminders alongside aura icons in the shared row, with matching icon styling and a passive floating title.
-- Combine self and party recipients of the same missing buff into one icon/tooltip, remove all below-icon labels, and show a small floating Missing Buffs title without a panel. Locking makes the title click-through; combat title visibility follows native missing/expiry masks.
-- Remove the live missing-buff bar's outer panel/title and the Self caption in both normal and combat displays. Use the normal preview header to move the shared position.
-- Preserve dragged buff-bar placement when locking at non-default scale. Make locked headers/borders click-through and replace the locked text suffix with a subtle open/closed lock mark.
-- Add shared icon-size (24–64 px) and scale (70–150%) sliders, with normal/combat icon previews outside combat. Both versions use the same appearance settings.
-- Stop assigning blocked OnHide handlers beneath native aura buttons; clean up combat buff tooltips through their ordinary Suite-owned cells.
-- Guard item discovery/refresh against secret visibility and access results, and skip native aura widgets before querying their visibility.
-- Fix the combat buff layout anchoring error by positioning weapon reminders independently of the native aura host.
-- Reapply damage-meter layout on world entry after reload so enabled windows restore without starting the test display.
-- Match combat buff icon size, inset and placement to the normal bar; center compact, text-sized tooltips beneath each icon.
-- Count armor in every built-in gear comparison profile, including Automatic for all classes, so armor-only improvements can receive an upgrade +. Preserve preferred-armor colors and custom weights.
-- Extend passive combat reminders to learned class/custom buffs on you and eligible party/raid members: one icon per buff, affected names in its tooltip, and no visible panel for healthy buffs. Optional near-expiry warnings use native rendering; weapon reminders retain guarded enchant checks.
-- Keep gossip menus open when multiple non-chat services are listed. Auto gossip can advance a sole shop or home-binding service beside informational chat; home confirmation remains manual.
-- Save the Training Planner's By level / All levels choice per character across reloads and logins.
-- Add a session-only `/wfs bufftest` prototype for native Battle Shout rendering during combat; reload or repeat the command to stop it. Native client testing is pending.
-- Keep the quest tracker fill below All Objectives so it cannot darken native quest timers above the header.
+- Center and scale spell labels, progress markers, cast-edge effects and clipping masks with custom castbar height. Restore native geometry when custom sizing is disabled or Edit Mode opens.
+- Replace direct chat selection with a Suite copy window using ordinary Ctrl+C. Preserve native message/class/item colors, add a bottom-right Refresh button and match Suite styling. Paper opens its own chat tab; /wfs copychat uses the selected tab. Unavailable/hidden-name text is omitted; closing/combat clears the snapshot. Remove the retired selection, copytest and probe paths.
+- Add optional combat ability proc popups with animated borders, saved placement, a 24–128 px size control and an outside-combat preview. Live popups always pass mouse input through. Native Overpower consistency and other-class coverage remain under test.
+- Add an optional equipment-manager control to ignore/include non-weapon slots for an existing selected set. Save remains manual; weapons and ammo stay unchanged.
+- Add Class spell search and Weapons trainer search to the Training Planner, with compact controls, centered labels and a borderless clear button. Class matches retain their original page references.
+- Add consistent theme-colored hover/press feedback and shared close, clear and recipient-removal controls throughout Suite windows.
+- Allow settings to move beyond screen edges; right-click the minimap launcher to center and open settings again.
+- Establish combat buff title-mask anchors before native descendants become forbidden, fixing the reported dungeon anchor-error path in substitute tests. Native dungeon verification remains pending.
+- Combine recipients of the same missing buff in one icon/tooltip. Keep a floating title and icon-only reminders, shared size/scale controls and normal/combat previews; locked title space passes clicks through.
+- Center combat weapon reminders on their own row beneath native aura reminders. Unavailable coatings no longer reserve empty combat space. Native aura slots remain reserved when healthy; full visible-icon compaction is not implemented.
+- Restore enabled damage-meter windows on world entry after reload.
+- Include armor in built-in gear comparisons, preserving custom weights and preferred-armor colors.
+- Preserve multiple-service gossip menus and the Training Planner's saved All levels / By level choice.
+- Include health-restoring buff food in automatic FS Food selection and normalize tooltip colors/wrapping during recovery-item classification, preserving mage and seasonal priority.
+- Remove the superseded session-only Battle Shout prototype and its slash command, empty buff-caption widgets, duplicate inventory hover artwork and a redundant damage-detail close callback.
+- Remove the resolved temporary castbar artwork report and an unused proc-size cache.
+- Align Core and both TOCs at 1.0.3, avoiding existing local release tags. Offline checks and packaging do not establish in-game compatibility or taint safety.
 
 ## 1.0.1
 

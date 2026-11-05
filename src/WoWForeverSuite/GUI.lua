@@ -94,6 +94,7 @@ local pages = {
         { action = "upgradePreference", label = "Prefer", help = "Click to prefer Stats or Item level. Stats includes role weights and DPS.\nWeapon comparisons include the hands being replaced." },
         { action = "preset", label = "Comparison profile", help = "Ready-made class and role presets work without editing.\nChoose Automatic, a role, or your own saved weights for this character." },
         { action = "weights", label = "Details & custom weights", help = "See how scores are calculated and choose tooltip detail.\nOptionally create or edit your own weights; built-in presets stay intact." },
+        { key = "equipmentSetToggle", label = "Equipment set slot toggle", help = "Show a small button when an existing equipment set is selected.\nIgnore or include non-weapon slots; weapons and ammo stay unchanged. Use Save to keep changes." },
     }, note = "Special effects, set bonuses and weapon abilities need your judgment.\nHigher item level can still be worse for your build." },
     tooltips = { title = "Useful details, right on hover.", description = "A few additions to the tooltips you already use.", rows = {
         { key = "itemTooltipLevels", label = "Item level", help = "Show item levels for equipment and weapons, including comparisons." },
@@ -132,6 +133,9 @@ local pages = {
     actionbars = { title = "Your buttons, Suite style.", description = "Slate and teal to match your meters and minimap.", rows = {
         { key = "fullButtonRange", label = "Full button range indicator", help = "Turn the whole action icon red when your target is out of range.\nButtons return to their normal colors when range clears." },
         { key = "actionBarSkin", label = "Suite action bar skin", help = "Square icons, slate backgrounds and fine Suite borders.\nIncludes pet and stance buttons; removes the main bar's ornamental art." },
+        { key = "procAlerts", label = "Ability proc popups", help = "Show spell icons and names in combat when class procs light up.\nIncludes reactive skills such as Overpower. Use your normal keybind to cast." },
+        { action = "procPreview", label = "Preview proc popups", help = "Drag the preview to choose a position. Closing settings ends it.\nLive popups let mouse clicks pass through." },
+        { action = "procReset", label = "Reset proc popup position", help = "Return ability popups above the center of the screen." },
     }, note = "Arrange Blizzard bars in Edit Mode. Bindings, cooldowns, glows and clicks stay native.\nSkin and font changes wait until combat ends; disabling them restores the native look." },
     bars = { title = "The finishing touches.", description = "Slate surfaces and fine Suite borders for your other bars.", rows = {
         { key = "statusBarSkin", label = "XP, honor and reputation bars", help = "Give your progress bars a slate background and thin Suite outline.\nKeep native fill colors, rested XP, text and tooltips." },
@@ -220,6 +224,8 @@ function GUI:Action(action)
     elseif action == "buffPreview" then Suite.MissingBuffs:SetPreview(not (Suite.MissingBuffs.preview and Suite.MissingBuffs.preview:IsShown()))
     elseif action == "buffReset" then Suite.MissingBuffs:ResetPosition()
     elseif action == "buffChoices" then Suite.MissingBuffs:ResetChoices()
+    elseif action == "procPreview" then Suite.ProcAlerts:SetPreview(not Suite.ProcAlerts.preview)
+    elseif action == "procReset" then Suite.ProcAlerts:ResetPosition()
     elseif action == "repairSource" then
         Suite.Set("repairSource", Suite.db.repairSource == "personal" and "guild" or "personal"); self:Select("vendor")
     elseif action == "junkMode" then
@@ -230,6 +236,7 @@ end
 function GUI:GetRow(index)
     if self.rows[index] then return self.rows[index] end
     local row = CreateFrame("Button", nil, self.content, "BackdropTemplate")
+    Suite.Theme:ButtonFeedback(row)
     row:SetSize(CONTENT_WIDTH, 66)
     row:SetPoint("TOPLEFT", 0, -88 - (index - 1) * 72)
     row.label = Text(row, 13, palette.text)
@@ -320,6 +327,7 @@ function GUI:Select(key)
     Suite.Macros:SetVisible(key == "macros" and self.frame:IsShown())
     Suite.Camping:SetSettingsVisible(key == "camping" and self.frame:IsShown())
     Suite.MissingBuffs:SetSettingsVisible(key == "buffs" and self.frame:IsShown())
+    if key ~= "actionbars" then Suite.ProcAlerts:SetPreview(false) end
     if key ~= "combat" then Suite.CombatIndicator:StopPreview() end
     local offset, sectionIndex, sectionStart, collapsed = 0, 0, nil, false
     local column, lineHeight, pairedRow = 0, 0, nil
@@ -442,6 +450,36 @@ function GUI:FitToScreen()
     if self.frame:GetScale() ~= scale then self:StopScrollDrags(); self.frame:SetScale(scale) end
 end
 
+function GUI:RecoverPosition()
+    if not self.frame or InCombatLockdown() then return end
+    local position = Suite.Windows:CapturePosition(self.frame)
+    if not position then return end
+    local width, height = UIParent:GetWidth(), UIParent:GetHeight()
+    -- CapturePosition validates the screen geometry and scale before arithmetic.
+    local x, y = (position.x + 0.5) * width, (position.y + 0.5) * height
+    local halfWidth, halfHeight = WINDOW_WIDTH * position.scale / 2, WINDOW_HEIGHT * position.scale / 2
+    local top = y + halfHeight
+    -- Reopening recovers an unreachable header; dragging itself remains unrestricted.
+    if x + halfWidth < 80 or x - halfWidth > width - 80 or top < 24 or top - 76 * position.scale > height - 24 then
+        self.frame:ClearAllPoints()
+        self.frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+        Suite.db.guiPosition = {}
+    end
+end
+
+function GUI:ResetPosition()
+    if not Suite.db then return end
+    Suite.AfterCombat("guiResetPosition", function()
+        self:Initialize()
+        self.frame:StopMovingOrSizing()
+        Suite.db.guiPosition = {}
+        self.frame:ClearAllPoints()
+        self.frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+        self.frame:Show()
+        self.frame:Raise()
+    end)
+end
+
 function GUI:BuildHome()
     if self.homePanel then return end
     local panel = CreateFrame("Frame", nil, self.content)
@@ -461,6 +499,7 @@ function GUI:BuildHome()
     }
     for index, entry in ipairs(entries) do
         local card = CreateFrame("Button", nil, panel, "BackdropTemplate")
+        Suite.Theme:ButtonFeedback(card)
         card:SetSize(382, 100); card:SetPoint("TOPLEFT", ((index - 1) % 2) * 398, -66 - math.floor((index - 1) / 2) * 112)
         card:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
         card:SetBackdropColor(unpack(palette.row)); Suite.Theme:Backdrop(card, 0.35)
@@ -497,6 +536,7 @@ function GUI:BuildLevelingLog()
     end
     local function Button(label, x, y, w, callback)
         local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
+        Suite.Theme:ButtonFeedback(button)
         button:SetSize(w, 30); button:SetPoint("TOPLEFT", x, y)
         button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
         button:SetBackdropColor(unpack(palette.row)); Suite.Theme:Backdrop(button, 0.5)
@@ -575,6 +615,7 @@ function GUI:BuildLevelingLog()
     end
     for index = 1, 6 do
         local row = CreateFrame("Button", nil, panel, "BackdropTemplate")
+        Suite.Theme:ButtonFeedback(row)
         row:SetSize(width, 54); Fill(row, palette.row); row.cells = {}
         for cell = 1, 4 do row.cells[cell] = Label(row, 12, palette.text, 12, -8, 100, 18); row.cells[cell]:SetWordWrap(false) end
         row.detail = Label(row, 10, palette.muted, 12, -31, width - 24, 16); row.detail:SetWordWrap(false)
@@ -759,6 +800,7 @@ function GUI:BuildAppearance()
     for index, choice in ipairs({ { "default", "Default teal" }, { "class", "My class" }, { "custom", "Custom" } }) do
         local mode = choice[1]
         local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
+        Suite.Theme:ButtonFeedback(button)
         button:SetSize(choiceWidth, 38); button:SetPoint("TOPLEFT", (index - 1) * (choiceWidth + 12), -76)
         button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
         button.label = Text(button, 12, palette.text)
@@ -769,6 +811,7 @@ function GUI:BuildAppearance()
         self.borderModeControls[mode] = button
     end
     local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
+    Suite.Theme:ButtonFeedback(button)
     self.borderColorButton = button
     button:SetSize(206, 38); button:SetPoint("TOPLEFT", 0, -136)
     button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
@@ -818,6 +861,7 @@ function GUI:BuildSetup()
     self.setupPanel, self.setupCards, self.setupSteps = panel, {}, {}
     local function Button(x, y, width, label, callback)
         local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
+        Suite.Theme:ButtonFeedback(button)
         button:SetSize(width, 26)
         button:SetPoint("TOPLEFT", x, y)
         Fill(button, palette.row)
@@ -853,6 +897,7 @@ function GUI:BuildSetup()
     for _, page in ipairs(Suite.Setup.pages) do capacity = math.max(capacity, #page.options) end
     for i = 1, capacity do
         local card = CreateFrame("Button", nil, choiceChild, "BackdropTemplate")
+        Suite.Theme:ButtonFeedback(card)
         card:SetSize(cardWidth, 66)
         card:SetPoint("TOPLEFT", (i - 1) % 2 * (cardWidth + 8), -math.floor((i - 1) / 2) * 70)
         Fill(card, palette.row)
@@ -993,6 +1038,7 @@ function GUI:BuildCastbars()
     panel:SetSize(514, 254)
     local function Button(x, y, width, label, callback)
         local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
+        Suite.Theme:ButtonFeedback(button)
         button:SetPoint("TOPLEFT", x, -y); button:SetSize(width, 32); Fill(button, palette.row)
         button.label = Text(button, 12, palette.accent); button.label:SetPoint("LEFT", 10, 0); button.label:SetText(label)
         button:SetScript("OnClick", callback); return button
@@ -1073,6 +1119,7 @@ function GUI:BuildProgress()
     heading:SetPoint("TOPLEFT"); heading:SetText("Progress bar options")
     local function Button(key, label, x, y, callback)
         local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
+        Suite.Theme:ButtonFeedback(button)
         self.progressControls[key] = { button = button, label = label }
         button:SetPoint("TOPLEFT", x, -y); button:SetSize(244, 34); Fill(button, palette.row)
         button.label = Text(button, 12, palette.accent)
@@ -1150,15 +1197,61 @@ function GUI:RefreshProgress()
     self.progressSyncing = nil
 end
 
+function GUI:BuildProcSize(panel)
+    local heading = Text(panel, 14, palette.text)
+    heading:SetPoint("TOPLEFT"); heading:SetText("Proc popup icon size")
+    self.procSizeLabel = Text(panel, 13, palette.accent)
+    self.procSizeLabel:SetPoint("TOPRIGHT", -10, 0)
+    local slider = CreateFrame("Slider", nil, panel)
+    self.procSizeSlider = slider
+    slider:SetPoint("TOPLEFT", 0, -30); slider:SetSize(504, 20)
+    slider:SetOrientation("HORIZONTAL"); slider:SetMinMaxValues(24, 128)
+    slider:SetValueStep(1); slider:SetObeyStepOnDrag(true)
+    slider:EnableMouse(true); slider:EnableMouseWheel(true)
+    slider:SetThumbTexture("Interface\\Buttons\\WHITE8X8")
+    local thumb = slider:GetThumbTexture()
+    if thumb then thumb:SetSize(10, 16); thumb:SetColorTexture(unpack(palette.accent)) end
+    local track = slider:CreateTexture(nil, "BACKGROUND")
+    track:SetPoint("LEFT", 5, 0); track:SetPoint("RIGHT", -5, 0)
+    track:SetHeight(3); track:SetColorTexture(0.17, 0.25, 0.29)
+    slider:SetScript("OnValueChanged", function(_, value)
+        if self.procSizeSyncing or InCombatLockdown() or not Suite.IsReadable(value) or type(value) ~= "number"
+            or value ~= value or math.abs(value) == math.huge then return end
+        Suite.ProcAlerts:SetPreview(true)
+        Suite.ProcAlerts:SetIconSize(value)
+        self:RefreshProcSize()
+    end)
+    slider:SetScript("OnMouseWheel", function(_, direction)
+        if InCombatLockdown() or not Suite.IsReadable(direction) or type(direction) ~= "number"
+            or direction ~= direction or math.abs(direction) == math.huge then return end
+        slider:SetValue(math.max(24, math.min(128, Suite.ProcAlerts:IconSize() + direction)))
+    end)
+    local help = Text(panel, 10, palette.muted)
+    help:SetPoint("TOPLEFT", 0, -62); help:SetWidth(504)
+    help:SetText("24–128 px. Adjust to show a preview, then drag it into place.\nThe border and spacing follow your size. Adjust outside combat.")
+end
+
+function GUI:RefreshProcSize()
+    if not self.procSizeSlider or not Suite.db then return end
+    local size = Suite.ProcAlerts:IconSize()
+    self.procSizeLabel:SetText(size .. " px")
+    self.procSizeSyncing = true; self.procSizeSlider:SetValue(size); self.procSizeSyncing = nil
+    self.procSizeSlider:SetEnabled(not InCombatLockdown())
+end
+
 function GUI:BuildKeybinds()
     if self.keybindPanel then return end
-    local panel = CreateFrame("Frame", nil, self.content)
-    self.keybindPanel, self.keybindControls = panel, {}
-    panel:SetPoint("TOPLEFT", 0, -238); panel:SetSize(514, 276)
+    local container = CreateFrame("Frame", nil, self.content)
+    self.keybindPanel, self.keybindControls = container, {}
+    container:SetPoint("TOPLEFT", 0, -238); container:SetSize(514, 388)
+    self:BuildProcSize(container)
+    local panel = CreateFrame("Frame", nil, container)
+    panel:SetPoint("TOPLEFT", 0, -112); panel:SetSize(514, 276)
     local heading = Text(panel, 14, palette.text)
     heading:SetPoint("TOPLEFT"); heading:SetText("Keybind labels")
     local function Button(key, x, y, callback)
         local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
+        Suite.Theme:ButtonFeedback(button)
         self.keybindControls[key] = button
         button:SetPoint("TOPLEFT", x, -y); button:SetSize(244, 34); Fill(button, palette.row)
         button.label = Text(button, 12, palette.accent)
@@ -1219,6 +1312,7 @@ function GUI:BuildKeybinds()
     help:SetText("Click a font or outline to cycle. Font controls use Custom font.\nBold adds a little size and a stronger shadow; preview your choices above.")
 end
 function GUI:RefreshKeybinds()
+    self:RefreshProcSize()
     if not self.keybindPanel then return end
     local module, controls = Suite.Keybinds, self.keybindControls
     local font, size, outline, bold = module:Options()
@@ -1337,6 +1431,7 @@ function GUI:BuildChat()
     Field("chatFontSize", "Default text size", 0, 10, 24, false)
     Field("chatOpacity", "Background opacity", 112, 0, 100, true)
     local apply = CreateFrame("Button", nil, panel, "BackdropTemplate")
+    Suite.Theme:ButtonFeedback(apply)
     self.chatApply = apply
     apply:SetPoint("TOPLEFT", 0, -235); apply:SetSize(504, 34); Fill(apply, palette.row)
     apply.label = Text(apply, 12, palette.accent); apply.label:SetPoint("CENTER")
@@ -1352,6 +1447,7 @@ function GUI:BuildChat()
     help:SetText("Remember up to 250 recent main-chat lines for this character. Restore automatically after reload or login, with either chat style.")
     local function HistoryButton(field, x, width, callback)
         local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
+        Suite.Theme:ButtonFeedback(button)
         self[field] = button
         button:SetPoint("TOPLEFT", x, -426); button:SetSize(width, 34); Fill(button, palette.row)
         button.label = Text(button, 12, palette.accent); button.label:SetPoint("CENTER")
@@ -1388,6 +1484,7 @@ function GUI:GetSection(index)
     self.sections = self.sections or {}
     if not self.sections[index] then
         local header = CreateFrame("Button", nil, self.content, "BackdropTemplate")
+        Suite.Theme:ButtonFeedback(header)
         header:SetSize(CONTENT_WIDTH, 22)
         header:RegisterForClicks("LeftButtonUp")
         header.label = Text(header, 11, palette.accent)
@@ -1697,10 +1794,9 @@ function GUI:BuildSettingsSearch(header)
     search:SetBackdropColor(unpack(palette.row)); Suite.Theme:Backdrop(search, 1)
     search.placeholder = Text(search, 11, palette.muted)
     search.placeholder:SetPoint("LEFT", 11, 0); search.placeholder:SetText("Search settings…")
-    local clear = CreateFrame("Button", nil, search)
+    local clear = Suite.Theme:IconButton(search, "Clear search", function() self:ClearSearch() end)
+    self.searchClear = clear
     clear:SetSize(25, 26); clear:SetPoint("RIGHT", -2, 0)
-    clear.label = Text(clear, 12, palette.muted); clear.label:SetPoint("CENTER"); clear.label:SetText("×")
-    clear:SetScript("OnClick", function() self:ClearSearch() end)
     local popup = CreateFrame("Frame", nil, self.frame, "BackdropTemplate")
     self.searchPopup, self.searchRows = popup, {}
     popup:SetWidth(350); popup:SetPoint("TOPRIGHT", search, "BOTTOMRIGHT", 0, -5)
@@ -1712,6 +1808,7 @@ function GUI:BuildSettingsSearch(header)
     self.searchEmpty:SetPoint("TOPLEFT", 12, -34); self.searchEmpty:SetText("No matching settings. Try a shorter phrase.")
     for index = 1, 6 do
         local button = CreateFrame("Button", nil, popup, "BackdropTemplate")
+        Suite.Theme:ButtonFeedback(button)
         button:SetSize(334, 42); button:SetPoint("TOPLEFT", 8, -25 - (index - 1) * 45); Fill(button, palette.row)
         button.label = Text(button, 12, palette.text); button.label:SetPoint("TOPLEFT", 9, -6); button.label:SetWidth(316)
         button.context = Text(button, 10, palette.muted); button.context:SetPoint("TOPLEFT", 9, -23); button.context:SetWidth(316)
@@ -1722,6 +1819,7 @@ function GUI:BuildSettingsSearch(header)
     end
     local function PageButton(x, label, delta)
         local button = CreateFrame("Button", nil, popup)
+        Suite.Theme:ButtonFeedback(button)
         button:SetSize(30, 24); button:SetPoint("BOTTOMRIGHT", x, 2)
         local text = Text(button, 13, palette.accent); text:SetPoint("CENTER"); text:SetText(label)
         button:SetScript("OnClick", function() self.searchPage = (self.searchPage or 1) + delta; self:PaintSearch() end)
@@ -1753,7 +1851,7 @@ function GUI:Initialize()
     frame:SetFrameStrata("DIALOG")
     -- Let native focus raise the complete window when any child is clicked.
     frame:SetToplevel(true)
-    frame:SetClampedToScreen(true)
+    frame:SetClampedToScreen(false)
     frame:SetMovable(true)
     frame:EnableMouse(true)
     frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
@@ -1786,27 +1884,11 @@ function GUI:Initialize()
     subtitle:SetWidth(420);subtitle:SetWordWrap(false);self.profileSubtitle=subtitle
     Suite.ProfileSettings:RefreshCaption()
     -- Keep the button above the mouse-enabled drag header so the header cannot swallow clicks.
-    local close = CreateFrame("Button", nil, header, "BackdropTemplate")
+    local close = Suite.Theme:IconButton(header, "Close settings", function() frame:Hide() end)
     self.closeButton = close
     close:SetSize(30, 30)
     close:SetPoint("TOPRIGHT", -14, -22)
     close:SetFrameLevel(header:GetFrameLevel() + 1)
-    close:EnableMouse(true)
-    close:RegisterForClicks("LeftButtonUp")
-    local closeText = Text(close, 16, palette.muted)
-    closeText:SetPoint("CENTER")
-    closeText:SetText("X")
-    close:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-    local function PaintClose(hovered)
-        close:SetBackdropColor(unpack(hovered and { 0.09, 0.13, 0.145 } or palette.row))
-        Suite.Theme:Backdrop(close, hovered and 1 or 0.45)
-        closeText:SetTextColor(unpack(hovered and palette.accent or palette.muted))
-    end
-    PaintClose(false)
-    close:SetScript("OnEnter", function() PaintClose(true) end)
-    close:SetScript("OnLeave", function() PaintClose(false) end)
-    close:SetScript("OnHide", function() PaintClose(false) end)
-    close:SetScript("OnClick", function() frame:Hide() end)
     self:BuildSettingsSearch(header)
     local rule = header:CreateTexture(nil, "ARTWORK")
     rule:SetHeight(1)
@@ -1824,6 +1906,7 @@ function GUI:Initialize()
     for i, entry in ipairs(Catalog.groups) do
         local key, label = entry.key, entry.label
         local tab = CreateFrame("Button", nil, sidebar, "BackdropTemplate")
+        Suite.Theme:ButtonFeedback(tab)
         tab:SetSize(SIDEBAR_WIDTH - 24, 36)
         tab:SetPoint("TOPLEFT", 12, -18 - (i - 1) * 42)
         tab.label = Text(tab, 13, palette.muted)
@@ -1855,6 +1938,7 @@ function GUI:Initialize()
             for _, entry in ipairs(group.pages) do
                 local key = entry[1]
                 local tab = CreateFrame("Button", nil, sidebar, "BackdropTemplate")
+                Suite.Theme:ButtonFeedback(tab)
                 tab:SetSize(SIDEBAR_WIDTH - 40, 27)
                 tab.label = Text(tab, 12, palette.muted); tab.label:SetPoint("LEFT", 14, 0)
                 tab.label:SetWidth(SIDEBAR_WIDTH - 62); tab.label:SetWordWrap(false); tab.label:SetText(entry[2])
@@ -1884,6 +1968,7 @@ function GUI:Initialize()
     self.note:SetJustifyV("BOTTOM")
     frame:SetScript("OnShow", function()
         self:FitToScreen()
+        self:RecoverPosition()
         Suite.CharacterDashboard:RefreshView()
         Suite.Macros:SetVisible(self.page == "macros")
         Suite.Camping:SetSettingsVisible(self.page == "camping")
@@ -1903,10 +1988,12 @@ function GUI:Initialize()
         Suite.Macros:SetVisible(false)
         Suite.Camping:SetSettingsVisible(false)
         Suite.MissingBuffs:SetSettingsVisible(false)
+        Suite.ProcAlerts:SetPreview(false)
         Suite.CombatIndicator:StopPreview()
         if self.macroPreview then self.macroPreview:ClearFocus() end
     end)
     frame:SetScript("OnEvent", function(_, event)
+        if event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" then self:RefreshProcSize(); return end
         if event == "DISPLAY_SIZE_CHANGED" or event == "UI_SCALE_CHANGED" then self:FitToScreen(); return end
         if event ~= "GLOBAL_MOUSE_DOWN" or not self.searchPopup:IsShown() then return end
         local function Over(widget)
@@ -1924,6 +2011,8 @@ function GUI:Initialize()
     if valid then pcall(frame.RegisterEvent, frame, "GLOBAL_MOUSE_DOWN") end
     pcall(frame.RegisterEvent, frame, "DISPLAY_SIZE_CHANGED")
     pcall(frame.RegisterEvent, frame, "UI_SCALE_CHANGED")
+    frame:RegisterEvent("PLAYER_REGEN_DISABLED")
+    frame:RegisterEvent("PLAYER_REGEN_ENABLED")
     self:FitToScreen()
     local saved = Suite.db.guiPosition
     if type(saved.x) == "number" and type(saved.y) == "number" then
@@ -2072,6 +2161,7 @@ function GUI:BuildMeters()
     panel:SetPoint("TOPLEFT", 0, -154); panel:SetSize(514, 504)
     local function Button(name, x, y, width, callback)
         local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
+        Suite.Theme:ButtonFeedback(button)
         button:SetSize(width, 30); button:SetPoint("TOPLEFT", x, -y); Fill(button, palette.row)
         button.label = Text(button, 11, palette.text); button.label:SetPoint("LEFT", 10, 0); button.label:SetWidth(width - 20)
         button:SetScript("OnClick", function() self:FinishMeterInputs(); callback() end); self.meterButtons[name] = button
@@ -2239,6 +2329,7 @@ end
 
 local function MacroButton(parent, x, y, width, label, callback)
     local button = CreateFrame("Button", nil, parent, "BackdropTemplate")
+    Suite.Theme:ButtonFeedback(button)
     button:SetPoint("TOPLEFT", x, y)
     button:SetSize(width, 28)
     Fill(button, palette.row)

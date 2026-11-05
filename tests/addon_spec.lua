@@ -93,6 +93,12 @@ local function Frame(name)
         SetBackdropColor = function(self, r, g, b, a) self.backdropAlpha = a end,
         SetBackdropBorderColor = function(self, ...) self.borderColor = { ... } end, SetColorTexture = function() end,
         SetTexture = function(self, texture) self.texture = texture end,
+        SetHighlightTexture = function(self, texture) self.highlightTexture = texture end,
+        SetPushedTexture = function(self, texture) self.pushedTexture = texture end,
+        SetThickness = function(self, thickness) self.thickness = thickness end,
+        SetStartPoint = function(self, ...) self.startPoint = { ... } end,
+        SetEndPoint = function(self, ...) self.endPoint = { ... } end,
+        SetAllPoints = function(self, target) self.allPoints = target or true end,
         AddMaskTexture = function(self, mask) self.maskTexture = mask end,
         SetToplevel = function(self, enabled) assert(not InCombatLockdown(), "top-level setup defers in combat"); self.topLevel = enabled end,
         Raise = function(self) assert(not InCombatLockdown(), "window raising defers in combat"); self.raises = (self.raises or 0) + 1 end,
@@ -111,6 +117,7 @@ local function Frame(name)
         return text
     end
     frame.CreateTexture = function() return Frame() end
+    frame.CreateLine = function() return Frame() end
     frame.CreateMaskTexture = function() return Frame() end
     frame.SetOrientation = function(self, orientation) self.orientation = orientation end
     frame.SetMinMaxValues = function(self, low, high) self.low, self.high = low, high end
@@ -1330,6 +1337,22 @@ equal(Suite.GUI.frame:IsShown(), guiWasShown, "drag release does not accidentall
 launcher.button.OnMouseDown()
 launcher.button.OnClick()
 equal(Suite.GUI.frame:IsShown(), not guiWasShown, "ordinary launcher click toggles settings")
+Suite.db.guiPosition = { x = 2, y = 2 }
+launcher.button.OnClick(launcher.button, "RightButton")
+equal(next(Suite.db.guiPosition), nil, "right-click launcher clears saved GUI position")
+equal(Suite.GUI.frame.point[1], "CENTER", "right-click centers GUI anchor")
+equal(Suite.GUI.frame.point[4], 0, "right-click resets horizontal GUI offset")
+equal(Suite.GUI.frame.point[5], 0, "right-click resets vertical GUI offset")
+equal(Suite.GUI.frame:IsShown(), true, "right-click opens settings instead of toggling them closed")
+equal(Suite.GUI.frame.clamped, false, "Suite settings may slide beyond screen edges")
+combat = true
+Suite.db.guiPosition = { x = 2, y = 2 }
+launcher.button.OnClick(launcher.button, "RightButton")
+equal(Suite.db.guiPosition.x, 2, "combat reset waits without changing saved placement")
+equal(type(Suite.pending.guiResetPosition), "function", "combat reset queues until safe")
+combat = false
+Suite.pending.guiResetPosition(); Suite.pending.guiResetPosition = nil
+equal(next(Suite.db.guiPosition), nil, "queued reset clears placement after combat")
 combat = true
 local savedAngle = Suite.db.minimapButtonAngle
 launcher.button.OnMouseDown()
@@ -1558,6 +1581,7 @@ assert(loadfile("tests/offlinebank_spec.lua"))(Suite, equal, Frame, function(val
 assert(loadfile("tests/minimapdrawer_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/mail_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/chat_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/chat_copy_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/items_spec.lua"))(Suite, equal)
 assert(loadfile("tests/upgrade_spec.lua"))(Suite, equal, Frame)
 assert(loadfile("tests/armor_upgrade_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
@@ -1573,7 +1597,6 @@ assert(loadfile("tests/worldmap_spec.lua"))(Suite, equal, Frame, function(value)
 assert(loadfile("tests/settings_spec.lua"))(Suite, equal, Frame, function(value) combat = value end, frames[1])
 assert(loadfile("tests/setup_spec.lua"))(Suite, equal, Frame, function(value) combat = value end, frames[1])
 assert(loadfile("tests/missing_buffs_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
-assert(loadfile("tests/native_buff_test_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/combat_buffs_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/inventorysearch_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/dashboard_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
@@ -1594,4 +1617,6 @@ assert(loadfile("tests/theme_spec.lua"))(Suite, equal, Frame, function(value) co
 assert(loadfile("tests/journey_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/training_catalog_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/combat_indicator_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/proc_alerts_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/equipment_sets_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 print("Behavior checks passed: " .. checks)

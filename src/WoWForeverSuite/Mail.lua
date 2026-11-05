@@ -121,6 +121,7 @@ end
 
 local function Button(parent, width, label, callback)
     local button = CreateFrame("Button", nil, parent, "BackdropTemplate")
+    Suite.Theme:ButtonFeedback(button)
     button:SetSize(width, 24)
     Fill(button)
     button.label = Text(button, 10, colors.accent)
@@ -510,13 +511,17 @@ function Mail:Create()
     end
     for index = 1, PAGE_SIZE do
         local row = CreateFrame("Button", nil, frame, "BackdropTemplate")
+        Suite.Theme:ButtonFeedback(row)
         self.rows[index] = row
         row:SetSize(260, 42); row:SetPoint("TOPLEFT", 14, -135 - (index - 1) * 45)
         Fill(row)
         row.name = Text(row, 12); row.name:SetPoint("TOPLEFT", 10, -7); row.name:SetWidth(186)
         row.ruleset = Text(row, 9, colors.muted); row.ruleset:SetPoint("TOPLEFT", 10, -25); row.ruleset:SetWidth(208)
         row.level = Text(row, 10, colors.muted); row.level:SetPoint("TOPRIGHT", -30, -9)
-        row.remove = Button(row, 20, "x", function() if row.entry then self:ConfirmRemove(row.entry.key) end end)
+        row.remove = Suite.Theme:IconButton(row, "Remove saved recipient", function()
+            if row.entry then self:ConfirmRemove(row.entry.key) end
+        end, true)
+        row.remove:SetSize(20, 24)
         row.remove:SetPoint("RIGHT", -4, 0)
         row:SetScript("OnClick", function() if row.entry then self:Choose(row.entry.key) end end)
         row:SetScript("OnEnter", function() row:SetBackdropColor(0.1, 0.17, 0.19) end)
@@ -572,7 +577,7 @@ function Mail:Refresh()
             row.level:SetText(entry.level and tostring(entry.level) or "—")
             row:SetEnabled(not entry.current and not self.sendPending)
             row.remove:SetEnabled(not entry.current)
-            row.remove.label:SetTextColor(unpack(entry.current and colors.muted or colors.accent))
+            row.remove:RefreshIcon()
             Fill(row, entry.key == self.selected and { 0.1, 0.2, 0.21 } or colors.row)
         end
     end

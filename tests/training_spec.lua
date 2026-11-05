@@ -580,6 +580,62 @@ classTextures["Delayed class skill"] = 135060
 training.frame:OnEvent("SPELL_DATA_LOAD_RESULT", 99001, true); Flush()
 equal(training.frame.rows[1].icon.texture, 135060, "matching public name metadata replaces the old-list class placeholder")
 training.frame:Hide(); training.db.snapshot = classIconSnapshot
+-- Weapon search navigates complete trainer pages and brings offscreen matches into view.
+training:Open(); training:SelectView("weapons")
+local search = training.frame.search
+local function Search(text) search:SetText(text); search:OnTextChanged() end
+equal(search:IsShown(), true, "weapon directory exposes search")
+equal(training.frame.classTab.label.justifyH, "CENTER", "Class tab label is centered")
+equal(training.frame.weaponsTab.label.justifyH, "CENTER", "Weapons tab label is centered")
+Search("  aXe  ")
+equal(training.page, 2, "case-insensitive partial search jumps to the first faction axe trainer")
+local foundAxe = false
+for _, row in ipairs(training.frame.rows) do
+    if row:IsShown() and row.data.name:lower():find("axe", 1, true) then foundAxe = true end
+end
+equal(foundAxe, true, "matching weapon is visible after navigation")
+equal(training.frame.searchHint:IsShown(), false, "typed search hides its hint")
+local searchVisits = training.db.weapons
+local searchRows = {}
+for index = 1, 9 do searchRows[index] = { name = "Practice " .. index, state = "available", cost = 100 } end
+searchRows[9].name = "Practice Axe"
+training.db.weapons = { { trainer = "Practice master", faction = "Alliance", rows = searchRows } }
+Search("practice axe")
+equal(training.page, #training:WeaponGroups(), "search includes recorded trainer offerings")
+equal(training.offset, 3, "search scrolls to reveal a match beyond the first six rows")
+equal(training.frame.rows[6].data.name, "Practice Axe", "offscreen search result becomes visible")
+local matchedPage = training.page
+Search("[%")
+equal(training.page, matchedPage, "unmatched literal pattern characters preserve the current page")
+equal(search.textColor[1], 1, "no match gives search text an amber cue")
+training.frame.searchClear:GetScript("OnClick")()
+equal(search:GetText(), "", "weapon search X clears the query")
+search:OnTextChanged() -- Native EditBox SetText dispatches this event.
+equal(training.page, matchedPage, "clearing search preserves navigation")
+equal(training.frame.searchHint:IsShown(), true, "clearing search restores the hint")
+SetCombat(true); Search("axe")
+equal(training.frame.searchHint:IsShown(), false, "combat typing still hides the placeholder")
+Search("   ")
+equal(training.frame.searchHint:IsShown(), false, "whitespace input cannot overlap the placeholder")
+Search("")
+equal(training.frame.searchHint:IsShown(), true, "empty combat input restores the placeholder")
+search:GetScript("OnEditFocusGained")()
+equal(training.frame.searchHint:IsShown(), false, "focus hides the placeholder before typing in combat")
+training:Refresh()
+equal(training.frame.searchHint:IsShown(), false, "refresh cannot restore a focused placeholder")
+search:GetScript("OnEditFocusLost")()
+equal(training.frame.searchHint:IsShown(), true, "empty unfocused input restores the placeholder")
+Search("axe")
+search:GetScript("OnEditFocusGained")(); search:GetScript("OnEditFocusLost")()
+equal(training.frame.searchHint:IsShown(), false, "focus loss with text cannot restore the placeholder")
+training.frame.searchClear:GetScript("OnClick")()
+equal(search:GetText(), "axe", "combat clear clicks leave the query untouched")
+equal(training.page, matchedPage, "typing in combat cannot move trainer pages")
+SetCombat(false)
+training:SelectView("class")
+equal(search:IsShown(), true, "Class view keeps the same search layout")
+equal(training.frame.searchHint.text, "Search spells", "Class search names its spell scope")
+training.db.weapons = searchVisits; Search(""); training.frame:Hide()
 Suite.db.trainingPlanner = false; training:Apply()
 training.level, training.levelNotice, training.levelWork = nil, nil, nil
 Suite.db, Suite.pending, training.db = oldDB, oldPending, oldTrainingDB

@@ -28,6 +28,12 @@ local function Clip(parent)
     frame:SetClipsChildren(true); frame:EnableMouse(false)
     return frame
 end
+local function TitleOffsets(total, index, size)
+    local row = math.floor(index / 8)
+    local rowCount = math.min(8, total - row * 8)
+    return (rowCount * (size + 9) - 9 - 110) / 2 - index % 8 * (size + 9),
+        24 + row * (size + 14)
+end
 
 function Combat:IndexRanks()
     if self.rankNames then return end
@@ -136,8 +142,6 @@ function Combat:Chip(parent, record, anchor)
     icon:SetVertexColor(1, 1, 1, 1)
     -- A family can contain both missing and expiring members. Do not invent a
     -- Lua-derived summary/severity for their native-composited union.
-    local caption = Label(chip, "", 9)
-    caption:SetPoint("TOP", chip, "BOTTOM", 0, 12)
     chip:EnableMouse(false)
     if chip.SetMouseClickEnabled and chip.SetMouseMotionEnabled then
         chip:SetMouseClickEnabled(false); chip:SetMouseMotionEnabled(true)
@@ -146,7 +150,7 @@ function Combat:Chip(parent, record, anchor)
     chip:SetScript("OnLeave", function() record.tooltip:Hide() end)
     -- Expiry chips inherit secret Shown from native aura buttons. OnHide and
     -- OnShow are forbidden there; public cell context owns visibility cleanup.
-    return chip, plate, icon, caption
+    return chip, plate, icon
 end
 
 function Combat:SetPreview(show)
@@ -179,7 +183,7 @@ function Combat:UpdatePreview()
     for index, entry in ipairs(entries) do
         local sample = self.previewSamples[index]
         if not sample then
-            sample = { descriptor = { spell = entry.spell, members = { { unit = entry.scope == "Self" and "player" or "party1" } } }, size = size }
+            sample = { descriptor = { spell = entry.spell }, size = size }
             sample.cell = CreateFrame("Frame", nil, self.previewRoot, CLIP)
             sample.tooltip = CreateFrame("Frame", nil, sample.cell, "BackdropTemplate," .. CLIP)
             sample.tooltip:SetSize(160, 36); sample.tooltip:SetPoint("TOP", sample.cell, "BOTTOM", 0, -6)
@@ -189,7 +193,7 @@ function Combat:UpdatePreview()
             local text = Label(sample.tooltip, "Preview only", 10); text:SetPoint("CENTER", sample.tooltip, "CENTER", 0, 0)
             sample.tooltip:Hide()
             sample.cell:SetScript("OnHide", function() sample.tooltip:Hide() end)
-            sample.chip, sample.plate, sample.icon, sample.caption = self:Chip(sample.cell, sample, sample.cell)
+            sample.chip, sample.plate, sample.icon = self:Chip(sample.cell, sample, sample.cell)
             self.previewSamples[index] = sample
         end
         sample.size = size
@@ -197,7 +201,7 @@ function Combat:UpdatePreview()
         sample.cell:SetPoint("TOPLEFT", self.previewRoot, "TOPLEFT", (width - (#entries * stride - 9)) / 2 + (index - 1) * stride, -25)
         sample.chip:SetSize(size, size); sample.plate:SetSize(size, size)
         sample.icon:SetSize(size - 4, size - 4); sample.icon:SetTexture(entry.spell.icon)
-        sample.caption:SetText(""); sample.cell:Show()
+        sample.cell:Show()
     end
     for index = #entries + 1, #self.previewSamples do self.previewSamples[index].cell:Hide() end
     Suite.MissingBuffs:Place(self.previewRoot); self.previewRoot:Show()
@@ -216,10 +220,19 @@ end
 -- healthy coverage hides the title too, without Lua testing aura visibility.
 function Combat:Title(record, parent, source, soon)
     local clip = Clip(parent)
+    local x, y = record.titleX, record.titleY
+    -- Native button descendants become forbidden when initializeFrame returns,
+    -- including outside combat. Establish these anchors only during creation.
+    if soon then
+        clip:SetPoint("TOPLEFT", source, "TOPLEFT", x, y)
+        clip:SetPoint("BOTTOMRIGHT", source, "BOTTOMRIGHT", x, y)
+    else
+        clip:SetPoint("TOPLEFT", source, "TOPRIGHT", x, y)
+        clip:SetPoint("BOTTOMRIGHT", record.cell, "TOPLEFT", x + 110, y - 21)
+    end
     local title = Label(clip, "Missing Buffs", 10)
     title:SetTextColor(0.88, 0.91, 0.93)
     title:SetPoint("TOP", self.frame, "TOP", 0, -6)
-    record.titles[#record.titles + 1] = { clip = clip, source = source, soon = soon }
 end
 
 function Combat:Container(record, member, row, soon)
@@ -280,8 +293,8 @@ function Combat:Container(record, member, row, soon)
     container:SetEnabled(true)
 end
 
-function Combat:Build(descriptor, size)
-    local record = { descriptor = descriptor, size = size, containers = {}, titles = {} }
+function Combat:Build(descriptor, size, titleX, titleY)
+    local record = { descriptor = descriptor, size = size, containers = {}, titleX = titleX, titleY = titleY }
     record.cell = CreateFrame("Frame", nil, self.frame, CLIP)
     record.cell:Hide(); record.cell:SetSize(size, size + 14)
     local tooltip = CreateFrame("Frame", nil, record.cell, "BackdropTemplate," .. CLIP)
@@ -342,6 +355,14 @@ function Combat:Place()
     -- Their public capacity must not shift native aura cells or the title.
     local total = self.count or 0
     local width, height, size, stride, rowStride = Suite.MissingBuffs:BarLayout(total)
+    for index, key in ipairs(self.order or {}) do
+        local record = self.records[key]
+        local x, y = TitleOffsets(total, index - 1, size)
+        if record.size ~= size or record.titleX ~= x or record.titleY ~= y then
+            self:Prepare()
+            return
+        end
+    end
     self.frame:SetSize(width, height)
     local index = 0
     for _, key in ipairs(self.order or {}) do
@@ -352,17 +373,6 @@ function Combat:Place()
         local cellX, cellY = (width - rowWidth) / 2 + index % 8 * stride, -25 - row * rowStride
         record.cell:ClearAllPoints()
         record.cell:SetPoint("TOPLEFT", self.frame, "TOPLEFT", cellX, cellY)
-        local x, y = (width - 110) / 2 - cellX, -1 - cellY
-        for _, title in ipairs(record.titles) do
-            title.clip:ClearAllPoints()
-            if title.soon then
-                title.clip:SetPoint("TOPLEFT", title.source, "TOPLEFT", x, y)
-                title.clip:SetPoint("BOTTOMRIGHT", title.source, "BOTTOMRIGHT", x, y)
-            else
-                title.clip:SetPoint("TOPLEFT", title.source, "TOPRIGHT", x, y)
-                title.clip:SetPoint("BOTTOMRIGHT", record.cell, "TOPLEFT", x + 110, y - 21)
-            end
-        end
         index = index + 1
     end
     Suite.MissingBuffs:Place(self.frame)
@@ -390,19 +400,27 @@ function Combat:Prepare()
         self.frame:SetFrameStrata("MEDIUM"); self.frame:Hide(); self.frame:EnableMouse(false)
     end
     local _, size = Suite.MissingBuffs:DisplayOptions()
-    local seen, index = {}, 0
-    self.order = {}
+    local plans = {}
     for _, descriptor in ipairs(descriptors) do
         local signature = Signature(descriptor, size)
+        if not self.failed[signature] then
+            plans[#plans + 1] = { descriptor = descriptor, signature = signature }
+        end
+    end
+    local seen, index, failed = {}, 0, false
+    self.order = {}
+    for slot, plan in ipairs(plans) do
+        local descriptor, signature = plan.descriptor, plan.signature
+        local titleX, titleY = TitleOffsets(#plans, slot - 1, size)
         local record = self.records[descriptor.key]
-        if record and record.signature ~= signature then
+        if record and (record.signature ~= signature or record.titleX ~= titleX or record.titleY ~= titleY) then
             record.cell:Hide()
             for _, container in ipairs(record.containers) do container:SetEnabled(false) end
             record = nil
         end
         if not record and not self.failed[signature] then
-            record = self:Build(descriptor, size)
-            if not record then self.failed[signature] = true end
+            record = self:Build(descriptor, size, titleX, titleY)
+            if not record then self.failed[signature] = true; failed = true end
         end
         if record then
             self.records[descriptor.key], record.signature = record, signature
@@ -420,6 +438,9 @@ function Combat:Prepare()
         end
     end
     self.count = index
+    -- Exclude newly failed families before final layout. Each retry removes at
+    -- least one failed signature, so unavailable native groups cannot loop.
+    if failed then self:Prepare(); return end
     self:Place()
 end
 

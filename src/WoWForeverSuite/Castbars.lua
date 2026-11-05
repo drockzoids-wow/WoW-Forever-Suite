@@ -43,9 +43,102 @@ function Bars:EditMode()
     if not EditModeManagerFrame then return false end
     return Read(EditModeManagerFrame.IsShown, EditModeManagerFrame) ~= false
 end
+function Bars:CaptureText(text)
+    if not self:Accessible(text) then return end
+    if text.IsAnchoringRestricted and Read(text.IsAnchoringRestricted, text) ~= false then return end
+    for _, method in ipairs({ "GetFont", "GetPoint", "GetNumPoints", "GetWidth", "GetHeight", "GetJustifyH", "GetJustifyV",
+        "SetFont", "ClearAllPoints", "SetPoint", "SetSize", "SetJustifyH", "SetJustifyV" }) do
+        if type(text[method]) ~= "function" then return end
+    end
+    local ok, face, size, flags = pcall(text.GetFont, text)
+    if not ok or not Suite.IsReadable(face) or type(face) ~= "string" or face == ""
+        or not Number(size, 1, 100) or not Suite.IsReadable(flags) or flags ~= nil and type(flags) ~= "string" then return end
+    local width, height = Read(text.GetWidth, text, true), Read(text.GetHeight, text, true)
+    local horizontal, vertical = Read(text.GetJustifyH, text), Read(text.GetJustifyV, text)
+    local count = Read(text.GetNumPoints, text)
+    if not Number(width, 0, 5000) or not Number(height, 0, 5000) or not Number(count, 0, 8) or count % 1 ~= 0
+        or type(horizontal) ~= "string" or type(vertical) ~= "string" then return end
+    local points = {}
+    for index = 1, count do
+        local ready, point, relative, relativePoint, x, y = pcall(text.GetPoint, text, index)
+        if not ready or not Suite.IsReadable(point) or type(point) ~= "string" or not Suite.IsReadable(relative)
+            or not Suite.IsReadable(relativePoint) or type(relativePoint) ~= "string"
+            or not Number(x, -1000000, 1000000) or not Number(y, -1000000, 1000000) then return end
+        points[index] = { point, relative, relativePoint, x, y }
+    end
+    local fontObject = Read(text.GetFontObject,text)
+    if type(fontObject) ~= "table" and type(fontObject) ~= "userdata" and type(fontObject) ~= "string" then fontObject = nil end
+    return { object=text, font={face,size,flags or ""}, fontObject=fontObject,
+        width=width, height=height, horizontal=horizontal, vertical=vertical, points=points }
+end
+function Bars:LayoutText(frame, record, settings)
+    if InCombatLockdown() or not Suite.IsReadable(frame.Text) then return end
+    record.text = record.text or self:CaptureText(frame.Text)
+    local style = record.text
+    if not style or style.object ~= frame.Text or not self:Accessible(style.object) then return end
+    local text = style.object
+    if text.IsAnchoringRestricted and Read(text.IsAnchoringRestricted, text) ~= false then return end
+    -- Only public configured dimensions drive text geometry. Native spell names
+    -- and casting/channel state remain untouched, including secret text values.
+    local size = math.max(8, math.min(28, math.floor(settings.height * 0.5 + 0.5)))
+    text:SetFont(style.font[1], size, style.font[3])
+    text:ClearAllPoints(); text:SetPoint("CENTER", frame, "CENTER", 0, 0)
+    text:SetSize(settings.width - 12, settings.height)
+    text:SetJustifyH("CENTER"); text:SetJustifyV("MIDDLE")
+end
+function Bars:RestoreText(style)
+    if InCombatLockdown() or not style or not self:Accessible(style.object) then return end
+    local text = style.object
+    if text.IsAnchoringRestricted and Read(text.IsAnchoringRestricted, text) ~= false then return end
+    if style.fontObject and type(text.SetFontObject) == "function" then text:SetFontObject(style.fontObject)
+    else text:SetFont(unpack(style.font)) end
+    text:ClearAllPoints(); text:SetSize(style.width, style.height)
+    for _, point in ipairs(style.points) do text:SetPoint(unpack(point, 1, 5)) end
+    text:SetJustifyH(style.horizontal); text:SetJustifyV(style.vertical)
+end
+function Bars:LayoutSpark(frame, record, settings)
+    if InCombatLockdown() or not Suite.IsReadable(frame.Spark) then return end
+    local spark = frame.Spark
+    if not self:Accessible(spark) or type(spark.SetHeight) ~= "function" then return end
+    if not record.spark then
+        local height = Read(spark.GetHeight, spark, true)
+        if not Number(height, 1, 5000) then return end
+        record.spark = { object=spark, height=height }
+    end
+    if record.spark.object ~= spark then return end
+    -- Preserve the native vertical overhang. Never read or change the moving
+    -- spark's anchors, visibility, texture, width or cast-progress position.
+    spark:SetHeight(math.max(1, settings.height + record.spark.height - record.height))
+end
+function Bars:LayoutEffects(frame, record, settings)
+    if InCombatLockdown() then return end
+    record.effects = record.effects or {}
+    -- Native moving highlights/shadows are clipped by a separate fixed-height
+    -- mask. Resize both; retain native widths, anchors, visibility and animation.
+    for _, key in ipairs({ "StandardGlow", "CraftGlow", "ChannelShadow", "BorderMask" }) do
+        local object = frame[key]
+        if self:Accessible(object) and type(object.SetHeight) == "function" then
+            local saved = record.effects[key]
+            if not saved then
+                local height = Read(object.GetHeight, object, true)
+                if Number(height, 1, 5000) then
+                    saved = { object=object, height=height }; record.effects[key] = saved
+                end
+            end
+            if saved and saved.object == object then
+                object:SetHeight(math.max(1, settings.height + saved.height - record.height))
+            end
+        end
+    end
+end
 function Bars:Restore(frame, record)
-    if not self:Accessible(frame) then return end
+    if InCombatLockdown() or not self:Accessible(frame) then return end
     frame:SetSize(record.width, record.height)
+    self:RestoreText(record.text)
+    if record.spark and self:Accessible(record.spark.object) then record.spark.object:SetHeight(record.spark.height) end
+    for _, saved in pairs(record.effects or {}) do
+        if self:Accessible(saved.object) then saved.object:SetHeight(saved.height) end
+    end
     self.records[frame] = nil
 end
 function Bars:Refresh()
@@ -72,7 +165,12 @@ function Bars:Refresh()
                         record = { width=width, height=height }; self.records[frame] = record
                     end
                 end
-                if record then frame:SetSize(settings.width, settings.height) end
+                if record then
+                    frame:SetSize(settings.width, settings.height)
+                    self:LayoutText(frame, record, settings)
+                    self:LayoutSpark(frame, record, settings)
+                    self:LayoutEffects(frame, record, settings)
+                end
                 if not self.hooked[frame] then
                     for _, method in ipairs({ "SetSize", "SetWidth", "SetHeight" }) do
                         hooksecurefunc(frame, method, function() if not self.changing then self:Queue() end end)

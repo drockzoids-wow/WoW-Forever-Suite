@@ -110,6 +110,7 @@ function Meters:CreateMenus()
         ui.backdrop(frame, ui.palette.background, 0.98)
         for index = 1, CAPACITY do
             local button = CreateFrame("Button", nil, frame)
+            Suite.Theme:ButtonFeedback(button)
             panel.rows[index] = button
             button:SetSize(WIDTH - 8, ROW); button:SetPoint("TOPLEFT", 4, -4 - (index - 1) * ROW)
             button:EnableMouse(true); button:EnableMouseWheel(true); button:RegisterForClicks("LeftButtonUp")

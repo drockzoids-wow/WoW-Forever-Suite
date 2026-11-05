@@ -1,5 +1,147 @@
 # Forever Suite feature plan
 
+## Final review preserves the accepted feature set — November 5, 2026
+
+No new functional blocker identified. Remove the resolved castbarstatus diagnostic and unused proc-size cache; retain accepted chat/castbar behavior and existing optional features. Static references, Lua 5.1, 26,561 substitute assertions and 80-file archive/source integrity pass. Latest casual proc/dungeon feedback is positive, while focused verification and actual running build remain unreported. Local candidate is prepared for final smoke and subsequent release preparation; no commit/tag/upload performed. Current assessment: release-review-1.0.3.md.
+
+
+## Resized castbar appearance accepted — November 5, 2026
+
+User confirms the original-height strip is resolved in Fishing screenshots and accepts the slight apparent edge overhang. Keep the current text, spark, edge-effect and clipping-mask sizing as-is. Broader native smoke coverage remains tracked in testing; no additional castbar styling change requested.
+
+
+## Cast-edge shadow/highlight and mask follow custom height — November 5, 2026
+
+Live report is 206 x 30 with original height about 11; the three original artwork layers have zero configured sizes and native atlases. Full native XML reveals a separate 11px ChannelShadow, 12px StandardGlow/CraftGlow and shared 13px BorderMask. Resize these heights with the bar-height delta while retaining native movement, animation and widths; restore on disable/Edit Mode and defer combat. This supersedes the pending fixed-border investigation below. Source implementation and 26,565 substitute assertions pass; Fishing/Hearthstone appearance and native build confirmation remain pending.
+
+## Diagnose remaining fixed-height castbar shading — November 5, 2026
+
+User accepts the larger spark but identifies a remaining original-height dark strip. Compare live static Border/Background/TextBorder geometry with configured bar size through `/wfs castbarstatus` outside combat before changing another layer. Preserve the accepted text/spark fixes and native progress ownership. Diagnostic implemented with restricted-value/combat guards; visual correction remains pending live layer evidence.
+
+## Cast-progress marker follows resized height — November 5, 2026
+
+User accepts the improved cast text and requests the circled native progress marker grow with the thicker bar. Apply the configured bar-height delta to the native spark's captured height, preserving width, progress movement and original clearance. Restore on disable/Edit Mode and defer in combat; skip unreadable/missing spark metadata. No extra preference or polling. Substitute checks pass; native Fishing appearance retest pending.
+
+## Resized castbar text alignment and scale — November 5, 2026
+
+Center native spell names vertically/horizontally inside custom-sized player/target/focus castbars, with proportional 8–28px font sizing as height changes. Preserve native font family/flags, restore original font/anchors on disabling or Edit Mode, and defer changes in combat. Use existing native look/size/show refresh paths; no extra setting or updater. Implemented with substitute regressions; Fishing/native appearance retest pending.
+
+## Copy-window footer Refresh and matching Suite style — November 5, 2026
+
+User confirms colored copying works and requests a bottom-right Refresh button plus consistent GUI styling. Add manual same-tab refresh with shared button feedback and preserved dragged position. Match slate header/body/footer, title/status hierarchy, themed rules/viewport and native scrollbar artwork while retaining the working native edit/scroll handlers. Keep message colors and guarded snapshots; no automatic refresh or new preference. Closed/combat callbacks are inert. Native appearance/Refresh retest pending.
+
+## Native chat colors in the copy window — November 5, 2026
+
+User confirms the new copy workflow works and requests matching colors. Retain supplied class/item inline colors and native message/channel RGB, resetting to the channel color after colored spans and ending each line cleanly. Guard unavailable/malformed RGB and preserve the existing restricted-message omissions. No identity lookup, new preference or copy-mechanism change. Substitute tests pass; native color/paste retest pending.
+
+## ChatCopyPaste-style copy window replaces direct selection — November 5, 2026
+
+User changes direction: abandon direct copying from the chat window and follow the installed working ChatCopyPaste workflow. Implement an original Suite copy window for up to 500 recent readable messages, plain link labels, selected/focused text, scrolling, Ctrl+C/Ctrl+A and close/Escape. Paper button opens its own tab; /wfs copychat opens the selected tab. Skip unavailable and hidden-name messages; no identity recovery, clipboard calls, native selection mutation, persistent recording or new saved preference. Close/release snapshot on hide/combat. Retire direct selection, all copytest modes and standalone probe tooling. Prior troubleshooting entries below are historical. Substitute checks pass; Suite-native paste/visual/scroll/input tests remain pending.
+
+## QuestieTrace uses an export EditBox, not chat selection — November 5, 2026
+
+Installed QuestieTrace's copy UI highlights its own generated export string in an ordinary EditBox for Ctrl+C; it does not implement native chat copying. This review does not supply a direct-selection fix. User's latest plain `/wfs copytest` also failed, so the font-only comparison has no successful current baseline. Preserve the prior direct-selection preference; no copy-window implementation or further mitigation added.
+
+## Isolate native message-font changes after lifecycle failure — November 5, 2026
+
+User confirms the native lifecycle candidate still fails copying. Add `/wfs copytest font` as a clean-session diagnostic that only adds the configured native message-font size to plain native selection, preserving no-hook/no-widget/no-callback behavior and restoring original font/input on exit. Compare actual plain and font-only paste results within one clean session. No confirmed clipboard fix; no further speculative runtime mitigation.
+
+## Leave native chat lifecycle scripts untouched — November 5, 2026
+
+Suite attribution returns after QuestieTrace loader isolation instructions; the clipboard failure remains unresolved. Remove native chat OnShow/OnHide observers before intrinsic text refresh/selection reset. Queue new/reopened-window appearance through existing window/tab notifications, retaining owned paper-button hiding cleanup and saved settings. Exact native lifecycle identities and queued appearance pass substitutes; same styled-copy native retest remains pending. No confirmed fix claimed.
+
+## QuestieTrace attribution in styled-copy failure — November 5, 2026
+
+Copying still fails at native CopyToClipboard, now with QuestieTrace attribution. Do not equate attribution with a proven initiating cause. Read-only inspection finds item-data hooks and chat reminder output but no direct chat-copy hook. Compare `/wfs copytest styled` after disabling only QuestieTrace and reloading, with Suite styling retained and history off. Preserve Questie, installed files and saved data. No further runtime change before that comparison.
+
+## Failed paper-button retest and styled isolation — November 5, 2026
+
+User confirms the remaining-input-setter candidate still blocks CopyToClipboard twice on ordinary player/game chat. Add session-only `/wfs copytest styled` to retain styling while using the successful minimal selection setup without normal paper-mode ownership/result callback. Keep history off across reload, saved appearance unchanged and plain copytest's original isolation guard. Native comparison pending; no copy fix claimed.
+
+## Successful `/wfs copytest` baseline — November 5, 2026
+
+User confirms actual ordinary-chat clipboard capture and pastes the result after activating `/wfs copytest`. Use that successful native path as the baseline. Remove normal Chat's remaining click/hyperlink setter wrappers; check external input ownership on ordinary refresh/exit instead. Preserve appearance, history, result callbacks and native selection. Substitute checks pass; normal paper-button retest with history off across reload is pending, followed by a separate history/addon-message test. Do not call this a confirmed fix or a standalone-probe result.
+
+## Distinguish silent and erroring chat-copy failures — November 5, 2026
+
+Ordinary chat silently fails to reach the clipboard; addon-generated text can also produce an error, per user clarification. Capture the tested entry point before attributing this to Suite or the standalone native path. Native selection cleanup is not copy confirmation. Both symptoms remain unresolved.
+
+## Candidate feedback and remaining chat failure — November 5, 2026
+
+User reports the candidate looks good overall, with definite continuing chat-copy problems. Keep chat copying open; seek the current symptom and standalone probe result with Suite disabled. General feedback does not supply a running build/Interface or certify each pending feature test. No further runtime mitigation without new evidence.
+
+## Release cleanup and review — 1.0.3, November 5, 2026
+
+Prepare version 1.0.3 without reusing local v1.0.1/v1.0.2 tags. Remove the superseded session-only Battle Shout prototype and `/wfs bufftest`, permanently empty buff captions/preview metadata, unused alternate placement branch, duplicate inventory hover layer and redundant close callback. Retain optional features, native restoration/migration paths and diagnostics supporting unresolved issues. Consolidate release notes around final behavior. Offline checks and ZIP/source integrity pass; native chat copying, combat-buff dungeon behavior, proc reliability and recent UI changes still require the smoke tests in docs/testing.md. See [release review](release-review-1.0.3.md). Historical prototype instructions below are superseded.
+
+## GUI button hover and press feedback — November 5, 2026
+
+Extend consistent feedback to Training Planner tabs, Costs, Previous/Next, All levels/By level and Settings, plus custom controls throughout settings, setup, profiles, gear/buff configuration, journal, character/inventory browsers, mail and meter menus. Use theme-colored native hover and pressed textures; preserve selected backgrounds, labels, tooltips and callbacks. Training pagination dims when disabled. Native button state management adds no timers, polling or Lua mouse handlers. Native visual/input checks pending.
+
+## Consistent GUI dismiss controls — November 5, 2026
+
+Use one compact, font-independent cross for settings/Training Planner close and search-clear controls, inventory results dismissal, damage detail closure and saved mail recipient removal. Borderless at rest, with a tinted hover surface, accent cross, pressed feedback and action tooltip. Removal uses warm coral feedback and retains its confirmation and disabled-current-character behavior. Preserve existing click targets, layout, search handling and combat guards. Native-style bank portrait controls and the equipment manager's semantic Ignore/Include toggle retain their existing visual systems. Native appearance/input retest pending.
+
+## Integrated search clear X — November 5, 2026
+
+Remove the search clear X's background and border so it sits directly inside the search bar in Class and Weapons. Preserve the existing click target and clear behavior. User approves the previous placeholder correction; this visual refinement needs native retest.
+
+## Training search placeholder correction — November 5, 2026
+
+Correct reported placeholder/input overlap: hide the hint on focus and any nonempty raw input, updating cosmetic visibility even while combat pauses navigation. Restore only when empty and unfocused; refresh preserves that rule. Substitute regressions pass; native input retest pending.
+
+## Training Planner centered text and quick clear — November 5, 2026
+
+Center planner button text vertically as well as horizontally, including header/footer/close controls. Center search hint/input and provide an inset right-side X in both Class and Weapons. Clear restores full Class results and retains Weapons navigation; reserve text space for X. Combat clicks are ignored. Offline checks pass; native appearance/input retest pending.
+
+## Always-passive live proc popups — November 5, 2026
+
+Make click-through a fixed behavior, not a preference. Only the outside-combat placement preview accepts mouse dragging; live root, icons, labels, glow and empty space pass input through. Wheel input stays passive in both contexts. Enforce this during every paint, including before combat preview cleanup. Implemented with substitute coverage; native input smoke test pending.
+
+## Proc popup size slider — November 5, 2026
+
+Add the requested adjustable icon size under Combat → Action Bars: 24–128 px, default 42. Adjusting opens a live preview without enabling procs, while the sparkle border, labels and centered spacing follow the chosen size. Preserve saved position and animation progress. Save with settings profiles, support wheel nudges and settings search, and defer external changes/reject slider input during combat. Implemented with substitute checks; native appearance, persistence and combat verification pending.
+
+## Dungeon combat-buff forbidden title anchors — November 5, 2026
+
+Fix the reported CombatBuffs:Place ClearAllPoints failure by establishing native title-mask anchors during initialization, before button descendants become forbidden. Reuse unchanged layouts and rebuild affected records for public slot/size changes; exclude failed native groups before final layout. Preserve native missing/expiry masking without inspecting restricted state. A stricter native-access fixture reproduces the previous failure; offline checks pass. Dungeon, layout/tooltip and taint retests remain pending.
+
+## Training Planner Class search — November 5, 2026
+
+The same header search is now visible in Class as Search spells. Typing filters to matching spell ranks; each result shows its level requirement and original full-list page. All levels and By level retain pagination through matches. Empty results are explicit; clearing restores the full list, and tab changes clear query/focus. Weapon search behavior is preserved. Supersedes weapon-only visibility below. Offline checks pass; native rendering/input verification pending.
+
+## Equipment toggle selected-set visibility correction — November 5, 2026
+
+User reports the enabled button missing. Correct its draw level above the native character model/equipment layers, retaining the lower-right anchor. Per clarification, show it only for an existing selected set; no selection and the unselected New Set editor hide it completely. This supersedes initial new-set-editor support below. Offline regressions pass; native visibility and saved-set behavior require retest.
+
+## Training Planner compact controls and weapon search — November 5, 2026
+
+Implemented compact Class/Weapons tabs with centered labels, a compact Costs button fitting its Recorded label, and a weapon search box filling the rest of that row. Typing a partial weapon name such as `axe` jumps to the first matching faction trainer page and reveals the matching row, including recorded visits. Search preserves full trainer context; clearing or no match leaves the page in place, with amber text for no match. Class hides weapon search. Offline checks pass; native layout/input smoke test pending.
+
+## Equipment manager bulk ignore/include — November 5, 2026
+
+Implemented independent default-off **Equipment set slot toggle** in Bags & Gear → Gear Details. A small button at the lower-right of the native character equipment area toggles slots 1–15 plus tabard between Ignore and Include, preserving main hand, offhand, ranged and ammo exactly. Mixed state goes to all ignored first; next click includes all eligible slots. Works with a selected set or new-set editor, updates native slot markers and enables Save without automatically saving/equipping. Combat clicks are rejected. Offline checks pass; native placement, set persistence and taint smoke test pending.
+
+## Consistent reactive availability refresh — November 5, 2026
+
+User reports intermittent Overpower after the prior correction and asks for comparison with successful addons. Add finite event follow-ups and public cooldown-end wakeups, informed by primary proc-addon research, while retaining independent Suite implementation and server-confirmed availability. Refresh from combat activity, action usability, spell uses and player power/casts without reconstructing dodge windows. Sample public GCD classification only during its cooldown event; retain native highlight candidates through delayed query readiness. Add bounded `/wfs procstatus` observations for any remaining live miss. Substitute regressions pass; native consistency remains unverified and prior live failure is not closed.
+
+## Overpower native failure follow-up — November 5, 2026
+
+User reports missing Overpower after a dodge and confirms the enemy dodged their attack while they were in Battle Stance with at least 5 rage. Correct the reactive readiness gate to honor public inactive cooldown status before requiring potentially restricted numeric durations, while rejecting disabled/on-hold cooldowns. Covered with substitute regressions. Native root cause and successful Overpower detection remain unconfirmed; retest after reload is pending. Do not report class coverage as verified.
+
+## Animated proc borders — November 5, 2026
+
+Add the requested sparkly animation to active ability popup borders, also visible in Preview proc popups. Use built-in Blizzard proc artwork with the native animation engine, independently of WeakAuras and native action-button management. Hidden icons stop animating; repeated availability refreshes retain loop progress. Plain icons remain if the atlas is unavailable. Implemented with substitute checks; native appearance and combat verification pending.
+
+## Unrestricted settings window dragging — November 5, 2026
+
+Let the Suite GUI slide beyond screen edges so it can be moved away from preview boxes. Preserve saved partial-screen placement and automatic scale fitting. Add the requested right-click on the Suite minimap icon to center and open settings, with combat deferral and tooltip help. Recover an inaccessible header by centering on reopening; Escape then `/wfs` remains another recovery route. Implemented; native drag, reset and preview smoke test pending.
+
+## Ability proc popups — November 5, 2026
+
+Implement the requested combat ability reminders as an independent default-off switch in Combat → Action Bars. Passive teal-bordered spell icons and names support native class proc highlights, supplemented by readable availability for learned Overpower, Revenge, Riposte, Mongoose Bite and Counterattack ranks. Show up to eight distinct names; hide on consumption/expiry or combat exit. Separate draggable preview/reset saves position without altering the missing-buff bar. Class procs lacking native highlights need explicit future support; do not claim universal aura/proc detection. Event-driven implementation and substitute tests complete; native dodge-to-Overpower, other-class coverage, appearance and taint checks pending.
+
 ## Standalone native clipboard reproduction — November 5, 2026
 
 Minimal-addon `/wfs copytest` still reports Suite-attributed failure. Other third-party addons are not required, but other Suite code remains loaded. Prepare a separately packaged two-file native probe outside release inputs so user can test with Suite completely disabled. Matching installed-build 70790 source is now available at eac30af597e5aaa43a60f6675ef5fdcea100375f; scrolling implementation is unchanged from prior cache. No client-level diagnosis or direct-copy fix confirmed; standalone native result pending.

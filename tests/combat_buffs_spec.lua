@@ -14,7 +14,7 @@ Suite.db.missingBuffs, Suite.db.missingBuffCombat, Suite.db.missingBuffExpiry = 
 local roster = { { unit = "player", guid = "one", name = "Caster", class = "MAGE", level = 60, party = true },
     { unit = "party1", guid = "two", name = "Friend", class = "PRIEST", level = 60, party = true } }
 local widgets, containers, snapshots, made = {}, {}, {}, 0
-local reject, dead, resting = false, false, false
+local reject, rejectUnit, dead, resting = false, nil, false, false
 local blockedHandlers = 0
 local selectedSpell, selectedName, known = 1461, "Intellect", true
 local function NoRead() error("Lua must never inspect native aura display state") end
@@ -45,11 +45,15 @@ New = function(kind, name, parent, template)
     end
     frame.layoutOptIn = template and template:find("DisableUntrustedLayoutScriptsTemplate", 1, true) ~= nil or parent and parent.layoutOptIn or false
     frame.SetPoint = function(self, point, relative, relativePoint, x, y)
+        assert(not self.forbidden, "Attempt to access forbidden object from code tainted by an AddOn")
         assert(not relative or not relative.layoutOptIn or self.layoutOptIn,
             "Anchoring disallowed as dependent object would inherit forbidden aspects: UntrustedLayoutScriptExecution")
         Outside(); self.points[point] = { relative, relativePoint, x or 0, y or 0 }
     end
-    frame.ClearAllPoints = function(self) Outside(); self.points = {} end
+    frame.ClearAllPoints = function(self)
+        assert(not self.forbidden, "Attempt to access forbidden object from code tainted by an AddOn")
+        Outside(); self.points = {}
+    end
     frame.SetAllPoints = function(self, relative)
         self:SetPoint("TOPLEFT", relative, "TOPLEFT", 0, 0)
         self:SetPoint("BOTTOMRIGHT", relative, "BOTTOMRIGHT", 0, 0)
@@ -74,7 +78,7 @@ New = function(kind, name, parent, template)
         frame.SetAuraProcessingPolicy = function() Outside() end
         frame.SetUnit = function(self, unit) Outside(); self.unit = unit end
         frame.AddAuraGroup = function(self, _, filter, options)
-            Outside(); if reject then error("rejected native setup") end
+            Outside(); if reject or self.unit == rejectUnit then error("rejected native setup") end
             equal(filter, "HELPFUL", "only helpful auras can cover reminders")
             equal(options.maxFrameCount, 1, "one native match per member/family")
             self.options, self.buttons = options, {}
@@ -86,6 +90,15 @@ New = function(kind, name, parent, template)
                     gate.GetText, gate.GetWidth, gate.GetHeight = NoRead, NoRead, NoRead
                 end
                 options.initializeFrame(button)
+                -- The native provider applies access restrictions after the
+                -- initializer returns; descendants remain forbidden after combat.
+                for _, widget in ipairs(widgets) do
+                    local ancestor = widget
+                    while ancestor do
+                        if ancestor == button then widget.forbidden = true; break end
+                        ancestor = ancestor.parent
+                    end
+                end
                 self.buttons[index] = button
                 button.IsShown, button.GetWidth, button.GetHeight, button.GetPoint = NoRead, NoRead, NoRead, NoRead
                 button.shown = false
@@ -317,6 +330,49 @@ Suite.BuffSettings.sliding = nil; combat:Prepare()
 equal(combat.records["CUSTOM:9005"].size, 64, "slider release commits the shared enlarged native icon size")
 equal(combat.layoutPending, nil, "native layout deferral clears after release")
 Suite.BuffSettings.sliding = oldSliding
+do
+    local originalDescriptors = combat.Descriptors
+    local descriptor = combat.records["CUSTOM:9005"].descriptor
+    local layouts = {}
+    for index = 1, 9 do
+        layouts[index] = { key = "layout:" .. index, spell = descriptor.spell, members = descriptor.members }
+    end
+    combat.Descriptors = function() return layouts end
+    Suite.db.missingBuffExpiry = true
+    -- Include expiry descendants, not just ordinary presence-title clips.
+    local member = descriptor.members[1]
+    local expiryMember = { unit = member.unit, guid = member.guid, name = member.name, ids = member.ids, warning = 15 }
+    for _, layout in ipairs(layouts) do layout.members = { expiryMember } end
+    combat:Prepare()
+    equal(combat.count, 9, "native layout supports a second row with already-forbidden title descendants")
+    equal(combat.records["layout:9"].titleY, 24 + 64 + 14, "second-row title mask aligns to the shared header")
+    local unchanged, first = made, combat.records["layout:1"]
+    combat:Prepare(); combat:Place()
+    equal(made, unchanged, "repeated dungeon refreshes reuse immutable native title masks")
+    equal(combat.records["layout:1"], first, "unchanged layout preserves its native record")
+    layouts = { layouts[9], layouts[1] }
+    combat:Prepare()
+    equal(combat.count, 2, "removing and reordering families recomposes the public layout")
+    equal(combat.records["layout:1"] ~= first, true, "changed title offset rebuilds rather than re-anchors forbidden descendants")
+    equal(combat.records["layout:9"].titleY, 24, "former second-row title returns to the shared first-row header")
+    SetCombat(true); combat:RefreshVisibility()
+    Aura(member.unit, true, 120)
+    equal(TitleDrawn(), false, "rebuilt title masks stay hidden for healthy coverage")
+    Aura(member.unit, true, 15)
+    equal(TitleDrawn(), true, "rebuilt expiry masks reveal the shared title")
+    SetCombat(false)
+    rejectUnit = "rejected"
+    layouts[2] = { key = "layout:rejected", spell = descriptor.spell, members = {
+        { unit = rejectUnit, guid = "rejected", name = "Rejected", ids = member.ids, warning = 15 } } }
+    combat:Prepare()
+    equal(combat.count, 1, "a native setup failure is excluded from the final layout")
+    equal(combat.records["layout:9"].titleX, (64 - 110) / 2, "surviving title mask is rebuilt for a centered lone slot")
+    unchanged = made; combat:Prepare()
+    equal(made, unchanged, "failed layouts are not retried and successful layouts stay reusable")
+    rejectUnit = nil
+    combat.Descriptors = originalDescriptors
+    combat:Prepare()
+end
 known = false; buffs.bookDirty = true; combat:Prepare()
 equal(combat.count, 0, "another player's capabilities never authorize a buff the caster does not know")
 Suite.db.missingBuffs = false; combat:Prepare()

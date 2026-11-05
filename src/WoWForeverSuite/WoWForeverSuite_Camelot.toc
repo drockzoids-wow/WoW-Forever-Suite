@@ -3,7 +3,7 @@
 ## Notes: A personal collection of optional tools for WoW Forever.
 ## Author: Drockzoids
 ## IconTexture: Interface\AddOns\WoWForeverSuite\Media\ForeverSuiteIcon.tga
-## Version: 1.0.1
+## Version: 1.0.3
 ## Bindings: Bindings.xml
 ## SavedVariables: WoWForeverSuiteDB
 ## SavedVariablesPerCharacter: WoWForeverSuiteCharDB
@@ -32,6 +32,7 @@ Keybinds.lua
 UnitFrames.lua
 TargetThreat.lua
 CombatIndicator.lua
+ProcAlerts.lua
 Vendor.lua
 MerchantKnown.lua
 Quests.lua
@@ -46,11 +47,13 @@ ZoneReputation.lua
 QuestTrackerSkin.lua
 Loot.lua
 Mail.lua
+ChatCopy.lua
 Chat.lua
 ChatHistory.lua
 Audio.lua
 Items.lua
 Character.lua
+EquipmentSets.lua
 Inventory.lua
 CharacterDashboard.lua
 InventorySearch.lua
@@ -68,7 +71,6 @@ BuffCatalog.lua
 MissingBuffs.lua
 BuffReminders.lua
 CombatBuffs.lua
-NativeBuffTest.lua
 DamageMeters.lua
 MeterParity.lua
 DamageMeterMenus.lua

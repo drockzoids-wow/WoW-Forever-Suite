@@ -14,6 +14,7 @@ local function Label(parent, text, x, y, width, size, color)
 end
 local function Button(parent, text, x, y, width, callback)
     local button = CreateFrame("Button", nil, parent, "BackdropTemplate")
+    Suite.Theme:ButtonFeedback(button)
     button:SetPoint("TOPLEFT", x, y); button:SetSize(width, 28)
     button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
     button:SetBackdropColor(unpack(colors.row)); Suite.Theme:Backdrop(button, 1)

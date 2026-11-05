@@ -9,9 +9,8 @@ local oldDB, oldPending, oldPrint = Suite.db, Suite.pending, Suite.Print
 local messages = {}
 Suite.Print = function(message) messages[#messages + 1] = message end
 Suite.db, Suite.pending = Suite.InitializeDB(nil), {}
-local inCombat, created, inputCalls, copied, nativeCalls = false, 0, 0, 0, 0
+local inCombat, created, inputCalls, nativeCalls = false, 0, 0, 0
 local timers, regions = {}, {}
-local cursorX, cursorY, nativeClipboard = 0, 0, "old clipboard"
 GetCursorPosition = function() error("Suite must leave native chat mouse gestures untouched") end
 local function Combat(value) inCombat = value; SetCombat(value) end
 local function LeaveCombat()
@@ -188,7 +187,7 @@ local function Native(index)
         self.textCopiedCallback = callback and function(...) return callback(...) end or nil
     end
     frame.GetOnTextCopiedCallback = function(self) return self.textCopiedCallback end
-    frame.GetMessageInfo = function() error("Suite must not read messages or secret history") end
+    frame.GetMessageInfo = function() error("chat presentation must not read native messages") end
     frame.visibleLines = { secret = true }
     frame:SetScript("OnMouseDown", function(self)
         nativeCalls = nativeCalls + 1
@@ -196,17 +195,6 @@ local function Native(index)
     frame:SetScript("OnMouseUp", function(self)
         nativeCalls = nativeCalls + 1
     end)
-    local nativeDown,nativeUp=frame.OnMouseDown,frame.OnMouseUp
-    -- Model XML intrinsicOrder="postcall": extrinsic hooks run first, then native copy/reset/callback.
-    frame.Release = function(self, mouse, text, count)
-        assert(self.OnMouseDown==nativeDown and self.OnMouseUp==nativeUp,
-            "addon mouse hooks must not run ahead of the native protected copy action")
-        self.OnMouseUp(self, mouse)
-        if mouse == "LeftButton" and self.copyable and self.mouseEnabled and text ~= nil then
-            if type(count) == "number" and count > 0 then nativeClipboard = text; copied = copied + 1 end
-            if count ~= nil and self.textCopiedCallback then self.textCopiedCallback(self, text, count) end
-        end
-    end
     frame:SetScript("OnHyperlinkClick", function() nativeCalls = nativeCalls + 1 end)
     frame:SetScript("OnUpdate", function() end)
     frame:SetScript("OnHide", function() nativeCalls = nativeCalls + 1 end)
@@ -215,6 +203,7 @@ local function Native(index)
 end
 local first, tab, input = Native(1)
 local nativeCopySetter, nativeCallbackSetter = first.SetTextCopyable, first.SetOnTextCopiedCallback
+local nativeMouseSetter, nativeLinkSetter = first.SetMouseClickEnabled, first.SetHyperlinksEnabled
 local nativeFontSetter, nativeFontObjectSetter = first.SetFont, first.SetFontObject
 local second = Native(2); second:Hide()
 local unsafe = Native(3); unsafe.protected = true
@@ -223,6 +212,7 @@ forbidden.GetName = function() error("forbidden frame must not be inspected") en
 local restricted = Native(5); restricted.GetFont = function() return { secret = true }, 12, "" end
 CHAT_FRAMES = { "ChatFrame1", "ChatFrame2", "ChatFrame3", "ChatFrame4", "ChatFrame5", { secret = true }, "SomeOtherChat" }
 local nativeMouseDown, nativeMouseUp, nativeHyperlink, nativeUpdate = first.OnMouseDown, first.OnMouseUp, first.OnHyperlinkClick, first.OnUpdate
+local nativeShow, nativeHide = first.OnShow, first.OnHide
 local scrollAction, scrollParent, originalPoint = first.ScrollToBottomButton.OnClick, first.ScrollBar.parent, first.point
 local tabClick, tabDrag, labelPoint = tab.OnClick, tab.OnDragStart, tab.Text.point
 local inputChange, inputEnter, inputParent = input.OnTextChanged, input.OnEnterPressed, input.parent
@@ -243,29 +233,6 @@ equal(Suite.db.chatStyle, false, "chat presentation starts off independently")
 equal(created, 0, "disabled chat creates no frames")
 equal(first.fontSize, nil, "disabled chat leaves original font untouched")
 equal(first.Background.alpha, 0.6, "disabled chat leaves native background untouched")
-Combat(true); chat:NativeCopyTest()
-equal(chat.nativeCopyTest, nil, "native copy isolation cannot start in combat")
-Combat(false)
-Suite.db.chatHistory = true; chat:NativeCopyTest()
-equal(chat.nativeCopyTest, nil, "native copy isolation requires history disabled")
-Suite.db.chatHistory = false
-local beforeCopyTestFrames = created
-SlashCmdList.WOWFOREVERSUITE("copytest")
-equal(chat.nativeCopyTest.frame, first, "copytest command enables main-chat native selection")
-equal(first.copyable, true, "isolated copy test enables native copyability")
-equal(first.mouseEnabled, true, "isolated copy test enables native selection clicks")
-equal(first.hyperlinks, false, "isolated selection disables hyperlinks")
-equal(first:GetOnTextCopiedCallback(), nil, "isolated copy test installs no result callback")
-equal(first.OnMouseDown, nativeMouseDown, "isolated copy test preserves native press script")
-equal(first.OnMouseUp, nativeMouseUp, "isolated copy test preserves native release script")
-equal(first.SetTextCopyable, nativeCopySetter, "isolated copy test leaves native copy setter untouched")
-equal(created, beforeCopyTestFrames, "isolated copy test creates no UI")
-equal(TimerCount(), 0, "isolated copy test creates no timer")
-chat:NativeCopyTest()
-equal(chat.nativeCopyTest, nil, "repeated copytest stops isolation")
-equal(first.copyable, false, "isolated copy cleanup restores copyability")
-equal(first.mouseEnabled, false, "isolated copy cleanup restores mouse input")
-equal(first.hyperlinks, true, "isolated copy cleanup restores hyperlinks")
 local clean = Suite.InitializeDB({ chatStyle = { secret = true }, chatFontSize = { secret = true }, chatOpacity = 0 / 0 })
 equal(clean.chatStyle, false, "restricted enable preference is rejected")
 equal(clean.chatFontSize, 14, "restricted font preference uses default")
@@ -282,6 +249,10 @@ Suite.db.chatStyle = true; chat:Apply()
 local record = chat.records[first]
 equal(first.SetTextCopyable, nativeCopySetter, "copyability secure mixin entry point is never wrapped")
 equal(first.SetOnTextCopiedCallback, nativeCallbackSetter, "copied callback secure mixin entry point is never wrapped")
+equal(first.SetMouseClickEnabled, nativeMouseSetter, "native click setter stays identical to the successful isolated path")
+equal(first.SetHyperlinksEnabled, nativeLinkSetter, "native hyperlink setter stays identical to the successful isolated path")
+equal(first.OnShow, nativeShow, "native show script stays untouched before intrinsic text refresh")
+equal(first.OnHide, nativeHide, "native hide script stays untouched before intrinsic selection reset")
 equal(first.SetFont, nativeFontSetter, "message font secure mixin entry point is never wrapped")
 equal(first.SetFontObject, nativeFontObjectSetter, "message font-object secure mixin entry point is never wrapped")
 equal(record ~= nil, true, "native chat window is managed")
@@ -414,6 +385,14 @@ equal(second:IsShown(), false, "styling does not show hidden native tabs")
 equal(input.text, "unsent draft", "styling preserves typed input")
 equal(record.button:GetWidth(), 27, "copy button matches native toolbar face width")
 equal(record.button:GetHeight(), 26, "copy button matches native toolbar face height")
+local originalCopyOpen, copySource = Suite.ChatCopy.Open, nil
+Suite.ChatCopy.Open = function(_, source) copySource = source end
+record.button.OnClick()
+equal(copySource, first, "paper button opens the copy window for its own native chat tab")
+equal(first.copyable, false, "paper button never enables native drag-selection copying")
+equal(first.mouseEnabled, false, "paper button preserves native chat click-through")
+equal(first.hyperlinks, true, "paper button leaves native hyperlinks enabled")
+Suite.ChatCopy.Open = originalCopyOpen
 equal(record.button.parent, first.buttonFrame, "copy button shares native toolbar visibility and ownership")
 equal(record.button.point[1], "TOP", "copy control uses its own slot below the native toolbar")
 equal(record.button.point[2], first.buttonFrame, "copy control follows the native toolbar instead of the scrollbar")
@@ -442,6 +421,7 @@ equal(record.tabPane.backdropColor[2] > inactiveTint, true, "hover brightens the
 tab.OnLeave(tab)
 equal(record.tabPane.backdropColor[2], inactiveTint, "leaving the tab restores its inactive tint")
 FCFTab_UpdateColors(tab, true)
+Flush()
 equal(record.indicator:IsShown(), true, "selected native tab gains Suite underline")
 equal(record.tabPane.backdropColor[2] > inactiveTint, true, "selected tab is brighter than an inactive tab")
 tab.Text:SetWidth(75) -- Native rename/dock layout, including fixed-width secret whisper tabs.
@@ -449,106 +429,6 @@ equal(record.tabPane.points.RIGHT[2], tab.Text, "native label width changes reta
 equal(tab.Text:GetWidth(), 75, "Suite does not override native label width")
 tab.Text:SetFont("Fonts\\ARIALN.TTF", 15, ""); Flush()
 equal(record.tabPane:GetHeight(), 23, "tab chrome follows a later native font size")
-record.button.OnClick()
-equal(chat.copyRecord, record, "copy icon enters selection mode on this chat window")
-equal(first.copyable, true, "native text copying is enabled")
-equal(first.mouseEnabled, true, "native selection receives mouse clicks")
-equal(first.motionEnabled, true, "copy mode leaves mouse-motion configuration alone")
-equal(first.hyperlinks, false, "selection does not open clicked links")
-equal(first.OnMouseDown,nativeMouseDown,"Suite preserves the exact native press script when copying")
-equal(first.OnMouseUp,nativeMouseUp,"Suite preserves the exact native release script before protected copying")
-equal(record.copyPane, nil, "copy mode never creates the rejected text overlay")
-equal(record.copyEdit, nil, "copy mode retains direct chat selection without an editor")
-local beforeGestureFrames = created
-cursorX, cursorY = 10, 10; first.OnMouseDown(first, "LeftButton")
-equal(chat.copyRecord, record, "pressing chat keeps copy mode active when the native callback is wrapped")
-cursorX, cursorY = 80, 10; first:Release("LeftButton", "Selected chat text", 18)
-equal(nativeClipboard, "Selected chat text", "native release copy result is modeled independently of addon code")
-equal(messages[#messages], "Chat text copied to clipboard.", "success feedback follows the native result")
-equal(TimerCount(), 0, "native copying needs no addon gesture verification timer")
-equal(created, beforeGestureFrames, "copy gestures create no extra frames")
-equal(copied, 1, "the native intrinsic alone owns clipboard copying")
-equal(record.button.borderColor[4], 0.45, "confirmed copy returns the paper button to its inactive appearance")
-equal(chat.copyRecord, nil, "confirmed copy automatically returns to normal chat")
-equal(first.copyable, false, "previous copyability is restored")
-equal(first.mouseEnabled, false, "previous click-through behavior is restored")
-equal(first.hyperlinks, true, "normal hyperlinks are restored")
-equal(first:GetOnTextCopiedCallback(), nil, "leaving copy mode restores the prior callback")
-
-local ownerCalls, forwardedText = 0, nil
-local owner = function(_, text) ownerCalls = ownerCalls + 1; forwardedText = text end
-first:SetOnTextCopiedCallback(owner); record.button.OnClick()
-for _, count in ipairs({ 0, { secret = true }, -1, 0.5, math.huge }) do
-    local clipboard = nativeClipboard
-    cursorX, cursorY = 10, 10; first.OnMouseDown(first, "LeftButton")
-    cursorX = 80; first:Release("LeftButton", "selected", count)
-    equal(messages[#messages], "The game did not confirm copying that selection to the clipboard.", "zero/unknown native results never claim copying succeeded")
-    equal(TimerCount(), 0, "native failure callbacks create no gesture checks")
-    if count == 0 then equal(nativeClipboard, clipboard, "native zero-copy leaves previous clipboard contents intact") end
-end
-equal(ownerCalls, 5, "the original owner's callback remains chained")
-equal(forwardedText, "selected", "owner callback arguments are preserved without Suite retaining text")
-cursorX, cursorY = 10, 10; first.OnMouseDown(first, "LeftButton")
-local beforeSilentMessages=#messages
-cursorX = 80; first:Release("LeftButton", "selected", nil)
-equal(TimerCount(), 0, "missing native callback cannot schedule addon work ahead of copying")
-Flush()
-equal(#messages,beforeSilentMessages,"Suite does not infer clipboard results from a mouse gesture")
-local beforeClickMessages = #messages
-cursorX, cursorY = 10, 10; first.OnMouseDown(first, "LeftButton"); first:Release("LeftButton", nil, nil)
-Flush()
-equal(#messages, beforeClickMessages, "a click without a drag produces no false copy failure")
-equal(first.OnMouseDown,nativeMouseDown,"native press remains unchanged after repeated selections")
-equal(first.OnMouseUp,nativeMouseUp,"native release remains unchanged after repeated selections")
-record.button.OnClick()
-local restoredOwner = first:GetOnTextCopiedCallback()
-equal(type(restoredOwner), "function", "copy exit restores the prior owner's callback behavior")
-restoredOwner(first, "restored", 8)
-equal(ownerCalls, 6, "native rewrapping during restoration retains the prior callback")
-record.button.OnClick()
-local replacement = function() end
-first:SetOnTextCopiedCallback(replacement)
-local replacementProxy = first:GetOnTextCopiedCallback()
-first.OnMouseDown(first, "LeftButton")
-equal(chat.copyRecord, record, "callback changes add no work to the native press gesture")
-chat:Apply()
-equal(chat.copyRecord, nil, "an ordinary refresh yields to a new callback owner")
-equal(first:GetOnTextCopiedCallback(), replacementProxy, "cleanup preserves the newer callback owner")
-first:SetOnTextCopiedCallback(nil)
-record.button.OnClick()
-first:SetTextCopyable(false)
-chat:Apply()
-equal(chat.copyRecord, nil, "an ordinary refresh respects externally disabled copyability")
-equal(first.copyable, false, "cleanup retains the newer disabled copyability")
-record.button.OnClick()
-cursorX, cursorY = 10, 10; first.OnMouseDown(first, "LeftButton")
-cursorX = 80; first:Release("LeftButton", "selected", nil)
-local beforeCancelMessages = #messages
-record.button.OnClick(); Flush()
-equal(#messages, beforeCancelMessages, "exiting copy mode creates no synthetic release report")
-record.button.OnClick()
-first.buttonFrame:Hide(); record.button.OnHide() -- Native inherited OnHide when toolbar is hidden.
-equal(chat.copyRecord, nil, "hiding native toolbar ends selection when the copy control disappears")
-equal(first.hyperlinks, true, "toolbar hiding restores native link input")
-equal(first.buttonFrame:IsShown(), false, "selection cleanup does not force the native toolbar visible")
-first.buttonFrame:Show()
-second:Show(); Flush()
-record.button.OnClick(); chat.records[second].button.OnClick()
-equal(chat.copyRecord, chat.records[second], "switching windows ends the previous copy mode")
-equal(first.copyable, false, "previous window resumes normal interaction")
-second:Hide()
-equal(chat.copyRecord, nil, "hiding a native chat window ends its copy mode")
-record.button.OnClick(); input:Hide(); input:Show()
-equal(chat.copyRecord, nil, "starting native typing ends chat selection")
-equal(input.text, "unsent draft", "copy mode never changes the draft")
-record.button.OnClick(); first:SetHyperlinksEnabled(true)
-equal(chat.copyRecord, nil, "new native input changes end Suite selection")
-equal(first.hyperlinks, true, "new native hyperlink preference is honored")
-first.mouseEnabled = { secret = true }
-local beforeRestricted = inputCalls; record.button.OnClick()
-equal(inputCalls, beforeRestricted, "restricted input state prevents changes")
-equal(chat.copyRecord, nil, "restricted input state cannot enter copy mode")
-first.mouseEnabled = false
 first:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
 equal(first.fontSize, 11, "native font changes run without Suite setter callbacks")
 chat:Apply()
@@ -568,10 +448,11 @@ equal(input.points.TOPLEFT, alignedLeft, "chat movement and resizing follow anch
 local beforeCreated = created
 local late = Native(6); CHAT_FRAMES[#CHAT_FRAMES + 1] = "ChatFrame6"
 FCF_OpenTemporaryWindow()
-equal(late.fontSize, 16, "new whisper appearance settles before the first timer")
-equal(chat.records[late] and chat.records[late].applied, true, "new whisper pane is styled before rendering")
-equal(_G.ChatFrame6EditBox.points.TOPLEFT[2], late.Background, "new whisper input is aligned before rendering")
+equal(late.fontSize, nil, "native window creation finishes before queued Suite styling")
+equal(chat.records[late], nil, "native creation hook does not synchronously inspect the new window")
 Flush()
+equal(chat.records[late] and chat.records[late].applied, true, "new whisper pane is styled on the queued turn")
+equal(_G.ChatFrame6EditBox.points.TOPLEFT[2], late.Background, "queued styling aligns new whisper input")
 equal(chat.records[late] ~= nil, true, "late native whisper window is discovered")
 equal(late.fontSize, 16, "late window receives the account default")
 equal(created > beforeCreated, true, "late window gets its own decorations")
@@ -579,21 +460,18 @@ late:Hide()
 _G.ChatFrame6EditBox:ClearAllPoints()
 _G.ChatFrame6EditBox:SetPoint("TOPLEFT", late, "BOTTOMLEFT", -5, -8)
 late:Show()
-equal(_G.ChatFrame6EditBox.points.TOPLEFT[2], late.Background, "reopened native chat aligns before a timer runs")
+equal(_G.ChatFrame6EditBox.points.TOPLEFT[2], late, "native reopening retains its input layout until the queued refresh")
+FCFTab_UpdateColors(_G.ChatFrame6Tab, true)
 Flush()
-record.button.OnClick(); Combat(true)
+equal(_G.ChatFrame6EditBox.points.TOPLEFT[2], late.Background, "native tab notification queues reopened input alignment")
+Combat(true)
 chat.events.OnEvent(chat.events, "PLAYER_REGEN_DISABLED")
-equal(chat.copyRecord, nil, "combat entry ends native selection mode")
-equal(TimerCount(), 0, "combat leaves no copy gesture workers")
-equal(first.mouseEnabled, false, "combat entry restores unprotected native input")
+equal(TimerCount(), 0, "combat leaves no chat worker")
 local combatInputBorder = record.inputPane.borderColor
 input:SetTextColor(0.25, 1, 0.25)
 input:SetTextColor(1, 0.5, 1)
 equal(record.inputPane.borderColor, combatInputBorder, "combat queues channel tint without repainting")
 equal(TimerCount(), 0, "combat tint changes use the existing deferred worker without timers")
-local combatInputs = inputCalls
-record.button.OnClick()
-equal(inputCalls, combatInputs, "combat cannot start a new copy gesture")
 chat:SetOption("chatFontSize", 18); chat:SetOption("chatOpacity", 0.2)
 equal(first.fontSize, 16, "combat defers font changes")
 equal(record.panes[1].backdropAlpha, 0.45, "combat defers background changes")
@@ -666,10 +544,6 @@ equal(first.fontSize, 12, "unreadable current font is not overridden during refr
 equal(record.fonts[1].font, rememberedFont, "unreadable font refresh retains the previous restoration snapshot")
 first.GetFont = fontGetter
 first:SetFont("Fonts\\ARIALN.TTF", 13, "")
-record.button.OnClick(); first.forbidden = true; chat:StopCopy()
-equal(chat.copyRecord, record, "forbidden copy owner is left untouched without recursive retries")
-first.forbidden = false; chat:StopCopy()
-equal(chat.copyRecord, nil, "copy state restores when its owner becomes available")
 Suite.db.chatStyle = false; chat:Apply()
 equal(first.insets[4], -36, "re-enable captures the latest native clamp for restoration")
 equal(first.fontSize, 13, "re-enable snapshots current native size for later restoration")

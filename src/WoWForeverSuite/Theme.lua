@@ -84,6 +84,73 @@ function Theme:Backdrop(object, alpha, color) self:Register(object, "SetBackdrop
 function Theme:Texture(object, alpha) self:Register(object, "SetColorTexture", alpha) end
 function Theme:Vertex(object, alpha) self:Register(object, "SetVertexColor", alpha) end
 
+-- Native button states handle hover, press, release and disabling without Lua
+-- mouse handlers. Keep existing selection colors, labels and tooltip scripts.
+function Theme:ButtonFeedback(button)
+    if button.suiteButtonFeedback then return end
+    button.suiteButtonFeedback = true
+    local hover = button:CreateTexture(nil, "HIGHLIGHT")
+    hover:SetAllPoints(); self:Texture(hover, 0.13)
+    button:SetHighlightTexture(hover, "BLEND")
+    local pressed = button:CreateTexture(nil, "ARTWORK")
+    pressed:SetAllPoints(); self:Texture(pressed, 0.24)
+    button:SetPushedTexture(pressed, "BLEND")
+end
+
+-- Suite-owned dismiss/remove controls: a font-independent cross with a quiet,
+-- borderless hit target. Callers retain their own placement and action guards.
+function Theme:IconButton(parent, caption, callback, destructive)
+    local button = CreateFrame("Button", nil, parent)
+    button:SetSize(24, 24)
+    button:EnableMouse(true); button:RegisterForClicks("LeftButtonUp")
+    local wash = button:CreateTexture(nil, "BACKGROUND")
+    wash:SetAllPoints(); wash:SetColorTexture(0.41, 0.84, 0.75, 0)
+    local strokes = {}
+    for index = 1, 2 do
+        local stroke = button:CreateLine(nil, "ARTWORK")
+        local y = index == 1 and 4 or -4
+        stroke:SetThickness(1.5)
+        stroke:SetStartPoint("CENTER", button, -4, y)
+        stroke:SetEndPoint("CENTER", button, 4, -y)
+        strokes[index] = stroke
+    end
+    local hovered, pressed = false, false
+    local function Enabled()
+        return not button.IsEnabled or button:IsEnabled()
+    end
+    local function Paint()
+        local active = hovered and Enabled()
+        local r, g, b = 0.55, 0.65, 0.7
+        if active then
+            if destructive then r, g, b = 1, 0.48, 0.44
+            else r, g, b = self:RGB() end
+        end
+        wash:SetColorTexture(r, g, b, active and (pressed and 0.25 or 0.13) or 0)
+        for _, stroke in ipairs(strokes) do
+            stroke:SetColorTexture(r, g, b, Enabled() and 1 or 0.35)
+        end
+    end
+    local function HideTooltip()
+        if GameTooltip and GameTooltip.IsOwned and GameTooltip:IsOwned(button) then GameTooltip:Hide() end
+    end
+    button:SetScript("OnEnter", function()
+        hovered = true; Paint()
+        if Enabled() and GameTooltip and GameTooltip.SetOwner and GameTooltip.SetText then
+            GameTooltip:SetOwner(button, "ANCHOR_RIGHT"); GameTooltip:SetText(caption); GameTooltip:Show()
+        end
+    end)
+    button:SetScript("OnLeave", function() hovered, pressed = false, false; Paint(); HideTooltip() end)
+    button:SetScript("OnMouseDown", function(_, mouse) if mouse == "LeftButton" then pressed = true; Paint() end end)
+    button:SetScript("OnMouseUp", function() pressed = false; Paint() end)
+    button:SetScript("OnHide", function() hovered, pressed = false, false; Paint(); HideTooltip() end)
+    button:SetScript("OnDisable", function() hovered, pressed = false, false; Paint(); HideTooltip() end)
+    button:SetScript("OnEnable", Paint)
+    button:SetScript("OnClick", callback)
+    button.RefreshIcon = Paint
+    Paint()
+    return button
+end
+
 function Theme:Refresh()
     Suite.AfterCombat("borderTheme", function()
         for object, style in pairs(self.borders) do self:Paint(object, style) end

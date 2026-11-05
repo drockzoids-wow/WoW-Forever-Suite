@@ -1,10 +1,22 @@
 # Forever Suite
 
-**Current source: 1.0.1.** Square minimap now expands the shorter side for an equal-width-and-height map, preserving native position and Edit Mode scale. Turning it off restores the native dimensions. The initial 1.0.0 feature baseline is described in the [release notes](docs/release-1.0.0.md).
+**Current source: 1.0.3.** Square minimap now expands the shorter side for an equal-width-and-height map, preserving native position and Edit Mode scale. Turning it off restores the native dimensions. The initial 1.0.0 feature baseline is described in the [release notes](docs/release-1.0.0.md).
+
+**Release candidate:** offline review and packaging checks pass; chat copying now uses a separate Ctrl+C window, and the replacement and recent combat/UI changes need native retesting. See the [1.0.3 review and remaining checks](docs/release-review-1.0.3.md).
+
+Optional **Ability proc popups** are under `/wfs actionbars` → **Ability Proc Popups**. Native highlighted class procs and supported reactive skills such as Overpower show a passive spell icon/name during combat. Use **Preview proc popups** outside combat to drag them into place. The feature starts off; cast through your normal keybind/action bar. Native class coverage and appearance still need in-game testing.
+
+Use **Proc popup icon size** on that page to choose **24–128 px**. Adjusting shows a live preview; the sparkly border and spacing follow the size. Scroll over the slider for one-pixel adjustments. Size saves with your settings profile.
+
+Live proc popups are **always click-through**. Only the outside-combat placement preview can be dragged; no click-through setting is needed.
+
+If a proc popup is missed, run `/wfs procstatus` after the fight and before the next pull to report the latest availability checks. Overpower consistency is still undergoing in-game testing.
+
+Drag the settings window past screen edges to get it out of the way of previews. **Right-click the Suite minimap icon** to center and open settings again; during combat this waits until combat ends.
 
 **Known vendor items:** enable `/wfs vendor` → **Known Items → Highlight already-known vendor items** for green highlights/checkmarks on learned recipes and collected items. Ordinary items in your bags do not count as learned. Missing data remains unmarked. This feature starts off and does not enable vendor automation. See the [smoke test](docs/testing.md#known-vendor-items---02102).
 
-The official source is **C:\Games\Development\GitHub Repos\WoW Forever Suite** (user-selected October 25, 2026). Version **1.0.1** includes the readable journey journal, default training catalog and earlier quality fixes alongside the newer vendor highlights. Reload after loading this source; the footer should show **1.0.1**.
+The official source is **C:\Games\Development\GitHub Repos\WoW Forever Suite** (user-selected October 25, 2026). Version **1.0.3** includes the readable journey journal, default training catalog and earlier quality fixes alongside the newer vendor highlights. Reload after loading this source; the footer should show **1.0.3**.
 
 Open /wfs leveling > **Session journal** for six labeled cards and **Summary, Loot, Reputation, Levels and History**. New tracking adds deaths, loot estimates, ordinary reputation, level milestones and confirmed Suite sales/repairs. Old XP/gold/time remains; details not collected earlier show **Not recorded**. No EverCore history is imported. See the [smoke checklist](docs/testing.md#readable-journal-and-default-training-catalog---02103-october-22-2026).
 
@@ -251,7 +263,7 @@ See the [native smoke test](docs/testing.md#class-aware-buff-reminders-and-contr
 | Quick loot | Immediate auto-loot pass respecting the game's Auto Loot setting/modifier; native rolls and bind confirmations |
 | Audio | Optional following of the Windows default playback device, coalesced sound refreshes and Sync now; pauses during movies/cinematics |
 | Mail | Searchable class-colored character/recipient list beside Send Mail, sorting/paging, saved contacts and optional successful-send recipient memory |
-| Chat | Slate chat with compact colored tabs, account-wide text size/background opacity and direct rendered-text selection/copying |
+| Chat | Slate chat with compact colored tabs, account-wide text size/background opacity and a recent-message Ctrl+C copy window |
 
 Features start off, apart from the minimap settings launcher. Enable each feature in the control panel after disabling the overlapping feature in another addon. Window support covers ordinary named Blizzard panels and registered UI panels; protected HUD elements remain under Blizzard Edit Mode. Weapon and special-effect comparisons are outside the initial stat model.
 
@@ -283,9 +295,9 @@ Version 0.1.50 removes an incorrect region limit that stopped inventory tracking
 
 ## Run it
 
-Version 0.2.57 also removes Suite mouse-press/release monitoring from native chat selection after a reported protected CopyToClipboard error. Click the same paper button, select text and release; only Blizzard's native handlers perform the gesture/copy, with feedback from its result callback. Reload is required to remove old hooks. Actual clipboard copying and absence of the reported error need the [focused retest](docs/testing.md#hidden-bank-panel-and-native-chat-copy--0257).
+After updating, run /reload to remove the old direct-selection hooks. Open /wfs chat, choose **Default text size** and **Background opacity**, and click **Use Suite chat**. These defaults apply account-wide. **Restore Blizzard chat** returns native presentation/input placement and Edit Mode boundaries while retaining the two defaults.
 
-Use `/reload` for these changes if Chat is already loaded; otherwise restart WoW, open `/wfs chat`, choose **Default text size** and **Background opacity**, and click **Use Suite chat**. Enter Blizzard Edit Mode, place chat at the bottom left and save; the selection includes the full typing box plus a tiny margin. These defaults apply account-wide, including new characters. Click the paper button below the native chat bubble, drag across text and release to copy directly; click it again for normal chat. Blizzard's scroll-to-current control stays available. **Restore Blizzard chat** returns native presentation/input placement and Edit Mode boundaries while retaining the two defaults. Native copying, appearance/clamping, layout/account persistence and taint still need the [chat smoke test](docs/testing.md#chat--0170).
+Click the paper button below the native chat bubble to open **Copy chat** for that tab, or run /wfs copychat for the selected tab. The separate scrollable window contains up to 500 recent readable messages with links shown as text, preserving native message, class-name and item colors. Select a passage and press **Ctrl+C**, or use **Ctrl+A** to select all. **Refresh** at the bottom right updates messages from that same chat tab without moving the window. Escape or the close button dismisses it; entering combat closes it. Unavailable messages and hidden-name text are omitted. Copying is on demand and does not require saved chat history. The window does not change native chat selection or call the protected clipboard function. The user confirms colored copying works; the new Refresh control and Suite-themed presentation still need a native visual/input retest.
 
 The addon is already linked into `C:\Games\World of Warcraft\_classic_beta_\Interface\AddOns\WoWForeverSuite`. The junction points at this workspace, so `/reload` picks up later source edits. Only this new addon entry was added.
 

@@ -35,8 +35,13 @@ local function Surface(frame)
 end
 local function Button(parent, text, x, y, width, callback)
     local button = CreateFrame("Button", nil, parent, "BackdropTemplate"); Surface(button)
+    Suite.Theme:ButtonFeedback(button)
     button:SetSize(width, 26); button:SetPoint("TOPLEFT", x, y)
-    button.label = Label(button, 12, 8, -6, width - 12); button.label:SetText(text)
+    button.label = Label(button, 12, 6, 0, width - 12)
+    button.label:ClearAllPoints(); button.label:SetPoint("TOPLEFT", 6, 0); button.label:SetPoint("BOTTOMRIGHT", -6, 0)
+    button.label:SetJustifyH("CENTER"); button.label:SetJustifyV("MIDDLE"); button.label:SetText(text)
+    button:SetScript("OnDisable", function() button.label:SetTextColor(0.4, 0.47, 0.51) end)
+    button:SetScript("OnEnable", function() button.label:SetTextColor(0.88, 0.91, 0.93) end)
     button:SetScript("OnClick", callback)
     return button
 end
@@ -212,6 +217,43 @@ end
 function Training:WeaponGroups()
     return Suite.TrainingCatalog:WeaponGroups(self, self.recordedCosts)
 end
+function Training:SearchQuery()
+    local query = self.frame and self.frame.search:GetText()
+    return Read(query, "string") and query:match("^%s*(.-)%s*$"):lower() or ""
+end
+function Training:UpdateSearchHint()
+    local frame = self.frame
+    if not frame or not frame.searchHint then return end
+    local text = frame.search:GetText()
+    -- Cosmetic input feedback must run even when combat pauses list navigation.
+    frame.searchHint:SetShown(Read(text, "string") and text == "" and not frame.searchFocused)
+end
+function Training:Search()
+    -- Weapons navigate trainer pages; Class narrows ranks while retaining page references.
+    self:UpdateSearchHint()
+    if InCombatLockdown() then return end
+    local frame = self.frame
+    if not frame or not frame:IsShown() then return end
+    local query = self:SearchQuery()
+    frame.search:SetTextColor(0.88, 0.91, 0.93)
+    if self.view ~= "weapons" then
+        self.page, self.offset, self.groupTitle = 1, 0, nil
+        self:Refresh()
+        return
+    end
+    if query == "" then return end
+    for page, group in ipairs(self:WeaponGroups()) do
+        for index, row in ipairs(group.rows) do
+            if Text(row.name) and row.name:lower():find(query, 1, true) then
+                self.page, self.groupTitle = page, group.title
+                self.offset = math.min(index - 1, math.max(0, #group.rows - 6))
+                self:Refresh()
+                return
+            end
+        end
+    end
+    frame.search:SetTextColor(1, 0.65, 0.4)
+end
 function Training:SelectView(view)
     if not Read(view, "string") or view ~= "class" and view ~= "weapons" then return end
     self.levelWork, Suite.pending.trainingLevelUp = nil, nil
@@ -221,6 +263,7 @@ function Training:SelectView(view)
         self.viewWork = nil
         self.view, self.page, self.offset, self.groupTitle = view, 1, 0, nil
         self.levelNotice = nil
+        if self.frame then self.frame.search:ClearFocus(); self.frame.search:SetText("") end
         self:Refresh()
     end)
 end
@@ -249,6 +292,28 @@ function Training:Groups(snapshot, level, project)
     for _, required in ipairs(levels) do groups[#groups + 1] = byLevel[required] end
     if #other.rows > 0 then groups[#groups + 1] = other end
     return groups
+end
+function Training:FilterClassGroups(groups, snapshot)
+    local query = self:SearchQuery()
+    if query == "" then self.frame.search:SetTextColor(0.88, 0.91, 0.93); return groups end
+    local filtered = {}
+    for page, group in ipairs(groups) do
+        local result = { title = group.title, rows = {} }
+        for index, row in ipairs(group.rows) do
+            if Text(row.name) and row.name:lower():find(query, 1, true) then
+                local match = Suite.Copy(row)
+                match.searchPage = snapshot and snapshot.catalog and self.allLevels ~= false and math.ceil(index / 6) or page
+                result.rows[#result.rows + 1] = match
+            end
+        end
+        if #result.rows > 0 then filtered[#filtered + 1] = result end
+    end
+    if #filtered == 0 then
+        self.frame.search:SetTextColor(1, 0.65, 0.4)
+        return { { title = "Search results", rows = {} } }
+    end
+    self.frame.search:SetTextColor(0.88, 0.91, 0.93)
+    return filtered
 end
 function Training:Budget(rows, money, partial)
     local total, covered, offers = 0, 0, 0
@@ -368,6 +433,7 @@ function Training:Refresh()
     local snapshot = Suite.TrainingCatalog:Snapshot(self.db and self.db.snapshot, self:CurrentLevel(), self.recordedCosts)
     local currentVisit = self.live and self.fresh and self.visitKind == "class"
     local groups = self.view == "weapons" and self:WeaponGroups() or self:Groups(snapshot, self:CurrentLevel(), not currentVisit)
+    if self.view ~= "weapons" then groups = self:FilterClassGroups(groups, snapshot) end
     self.page = math.max(1, math.min(self.page, #groups))
     local group = groups[self.page]
     if self.view == "weapons" then
@@ -380,6 +446,9 @@ function Training:Refresh()
     local allLevels = not weapons and snapshot and snapshot.catalog and self.allLevels ~= false
     self.catalogPaging = allLevels
     frame.levels:SetShown(not weapons)
+    frame.search:Show()
+    frame.searchHint:SetText(weapons and "Search weapons" or "Search spells")
+    self:UpdateSearchHint()
     frame.levels.label:SetText(allLevels and "By level" or "All levels")
     frame.prices.label:SetText(self.recordedCosts and "Costs: Recorded" or "Costs: Base")
     local compact = weapons and not (snapshot and snapshot.unavailable == true)
@@ -417,7 +486,8 @@ function Training:Refresh()
     if weapons then frame.group:SetTextColor(0.88, 0.91, 0.93)
     else frame.group:SetTextColor(0.41, 0.84, 0.75) end
     frame.pageText:SetText(self.page .. " / " .. #groups)
-    frame.empty:SetText(#group.rows == 0 and (self.page == 1 and #groups > 1 and "Nothing available now. Next shows upcoming levels." or "No offerings in this group.") or "")
+    frame.empty:SetText(#group.rows == 0 and (not weapons and self:SearchQuery() ~= "" and "No matching spells."
+        or self.page == 1 and #groups > 1 and "Nothing available now. Next shows upcoming levels." or "No offerings in this group.") or "")
     local weaponNames = weapons and not reference and self:WeaponNames()
     if not InCombatLockdown() then self.classIconNames = not weapons and {} or nil end
     for index, widget in ipairs(frame.rows) do
@@ -453,6 +523,7 @@ function Training:Refresh()
             elseif weapons and row.weaponID then
                 widget.state:SetText("L" .. row.level .. " · " .. Suite.TrainingCatalog:WeaponState(row.weaponID))
             end
+            if row.searchPage then widget.state:SetText(widget.state:GetText() .. " · Page " .. row.searchPage) end
             widget.cost:SetText(Money(row.cost))
             widget.cost:SetTextColor(row.state == "available" and 0.88 or 0.65, 0.91, 0.75)
         end
@@ -590,7 +661,8 @@ function Training:Build()
     end)
     header:SetScript("OnDragStop", function() self:StopDrag(true) end)
     frame.header = header
-    Button(frame, "X", 460, -6, 28, function() self.autoPending = nil; frame:Hide() end)
+    frame.close = Suite.Theme:IconButton(frame, "Close Training Planner", function() self.autoPending = nil; frame:Hide() end)
+    frame.close:SetSize(28, 26); frame.close:SetPoint("TOPLEFT", 460, -6)
     frame:SetScript("OnShow", function() frame:RegisterEvent("SPELL_DATA_LOAD_RESULT"); frame:RegisterEvent("SPELLS_CHANGED") end)
     frame:SetScript("OnEvent", function(_, event, id, success)
         if event == "SPELLS_CHANGED" then self:QueueIcons(); return end
@@ -608,15 +680,35 @@ function Training:Build()
         frame:UnregisterAllEvents(); self:CancelIcons(); Suite.pending.trainingHeader = nil
         self.autoPending, self.spellbookOwner = nil, nil; self:StopDrag(false)
     end)
-    frame.classTab = Button(frame, "Class", 14, -42, 110, function() self:SelectView("class") end)
-    frame.weaponsTab = Button(frame, "Weapons", 130, -42, 110, function() self:SelectView("weapons") end)
+    frame.classTab = Button(frame, "Class", 14, -42, 58, function() self:SelectView("class") end)
+    frame.weaponsTab = Button(frame, "Weapons", 78, -42, 80, function() self:SelectView("weapons") end)
     frame.compactHeader = false
     frame.context = Label(frame, 11, 14, -80, 472); frame.context:SetWordWrap(false)
     frame.status = Label(frame, 11, 14, -101, 472); frame.status:SetHeight(34); frame.status:SetWordWrap(true)
     frame.group = Label(frame, 14, 14, -140, 330)
-    frame.prices = Button(frame, "Costs: Base", 254, -42, 232, function()
+    frame.prices = Button(frame, "Costs: Base", 164, -42, 126, function()
         self.recordedCosts = not self.recordedCosts; self:Refresh()
     end)
+    frame.search = CreateFrame("EditBox", nil, frame, "BackdropTemplate"); Surface(frame.search)
+    frame.search:SetSize(190, 26); frame.search:SetPoint("TOPLEFT", 296, -42)
+    frame.search:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+    frame.search:SetTextInsets(8, 28, 0, 0); frame.search:SetAutoFocus(false); frame.search:SetMaxLetters(80)
+    frame.search:SetJustifyV("MIDDLE")
+    frame.searchHint = Label(frame.search, 11, 8, 0, 154); frame.searchHint:SetText("Search weapons")
+    frame.searchHint:SetHeight(26); frame.searchHint:SetJustifyV("MIDDLE")
+    frame.searchHint:SetTextColor(0.55, 0.65, 0.7)
+    frame.searchClear = Suite.Theme:IconButton(frame.search, "Clear search", function()
+        if InCombatLockdown() then return end
+        frame.search:SetText("")
+    end)
+    frame.searchClear:SetSize(20, 20); frame.searchClear:ClearAllPoints(); frame.searchClear:SetPoint("RIGHT", -3, 0)
+    frame.search:SetScript("OnTextChanged", function() self:Search() end)
+    frame.search:SetScript("OnEditFocusGained", function() frame.searchFocused = true; self:UpdateSearchHint() end)
+    frame.search:SetScript("OnEditFocusLost", function() frame.searchFocused = nil; self:UpdateSearchHint() end)
+    frame.search:SetScript("OnEnterPressed", function(box) self:Search(); box:ClearFocus() end)
+    frame.search:SetScript("OnEscapePressed", function(box) box:ClearFocus() end)
+    frame.search:SetScript("OnHide", function(box) box:ClearFocus(); frame.searchFocused = nil; self:UpdateSearchHint() end)
+    frame.search:SetText("")
     frame.rows = {}
     for index = 1, 6 do
         local row = CreateFrame("Frame", nil, frame); row:SetSize(472, 37); row:SetPoint("TOPLEFT", 14, -166 - (index - 1) * 38)

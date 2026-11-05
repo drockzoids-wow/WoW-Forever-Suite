@@ -102,7 +102,7 @@ function Launcher:Initialize()
     button.ignoreInLayout = true
     button:SetSize(BUTTON_SIZE, BUTTON_SIZE)
     button:EnableMouse(true)
-    button:RegisterForClicks("LeftButtonUp")
+    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     button:RegisterForDrag("LeftButton")
     -- Native AssignedSpec uses an 18-unit circular icon and a 38-unit padded ring on a 22-unit frame.
     local ringScale = BUTTON_SIZE / 22
@@ -121,9 +121,11 @@ function Launcher:Initialize()
     button.border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
     Suite.Theme:Vertex(button.border, 1)
     button:SetScript("OnMouseDown", function() self.suppressClick = false end)
-    button:SetScript("OnClick", function()
+    button:SetScript("OnClick", function(_, mouseButton)
         if self.suppressClick then self.suppressClick = false; return end
-        if Suite.db.minimapButton then Suite.GUI:Toggle() end
+        if not Suite.db.minimapButton or not Suite.IsReadable(mouseButton) then return end
+        if mouseButton == "RightButton" then self:HideTooltip(); Suite.GUI:ResetPosition()
+        else Suite.GUI:Toggle() end
     end)
     button:SetScript("OnDragStart", function()
         self.suppressClick = true
@@ -140,6 +142,7 @@ function Launcher:Initialize()
         GameTooltip:SetOwner(button, "ANCHOR_LEFT")
         GameTooltip:AddLine("Forever Suite", 0.41, 0.84, 0.75)
         GameTooltip:AddLine(self:OnMinimap() and "Click to open settings. Drag to reposition." or "Click to open settings.", 0.85, 0.9, 0.92)
+        GameTooltip:AddLine("Right-click to center and open settings.", 0.85, 0.9, 0.92)
         GameTooltip:AddLine("Hide this button in Minimap settings.", 0.55, 0.65, 0.7)
         GameTooltip:Show()
     end)

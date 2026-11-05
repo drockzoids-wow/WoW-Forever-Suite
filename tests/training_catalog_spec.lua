@@ -100,6 +100,51 @@ equal(training:Build(),true,"planner builds while recording disabled")
 training.frame:Show(); training:Refresh()
 equal(training.frame.context.text,"Built-in catalog · Levels 1–60","default window explains catalog")
 equal(training.frame.rows[1].data.spellID,6673,"new character can review first skill")
+-- Class search keeps every matching rank, its required level and original catalog page.
+local searchBox = training.frame.search
+local function Search(text) searchBox:SetText(text); searchBox:GetScript("OnTextChanged")() end
+local rendPages, rendCount = {}, 0
+for index, row in ipairs(catalog:Snapshot(nil, 1).rows) do
+    if row.name:lower():find("rend", 1, true) then
+        rendPages[row.spellID] = math.ceil(index / 6); rendCount = rendCount + 1
+    end
+end
+Search("  ReNd  ")
+equal(training.frame.searchHint:IsShown(), false, "class query hides search placeholder")
+equal(training.frame.range.text:find("of " .. rendCount, 1, true) ~= nil, true, "all matching ranks survive filtering")
+for _, widget in ipairs(training.frame.rows) do
+    if widget:IsShown() then
+        equal(widget.data.name:lower():find("rend", 1, true) ~= nil, true, "class search removes unrelated spells")
+        equal(widget.data.searchPage, rendPages[widget.data.spellID], "result preserves its original unfiltered page")
+        equal(widget.state.text:find("L" .. widget.data.level, 1, true) ~= nil, true, "result displays required level")
+        equal(widget.state.text:find("Page " .. widget.data.searchPage, 1, true) ~= nil, true, "result displays original page")
+    end
+end
+training.frame.next:GetScript("OnClick")()
+equal(training.frame.rows[1].data.spellID, 11574, "filtered pagination reaches highest Rend rank")
+equal(training.frame.rows[1].data.level, 60, "highest Rend rank retains level 60 requirement")
+Search("[%")
+equal(training.frame.empty.text, "No matching spells.", "literal unmatched query explains empty results")
+equal(training.frame.rows[1]:IsShown(), false, "unmatched search hides stale rows")
+training.frame.searchClear:GetScript("OnClick")()
+equal(searchBox:GetText(), "", "Class search X clears the query")
+searchBox:GetScript("OnTextChanged")() -- Native EditBox SetText dispatches this event.
+equal(training.frame.rows[1].data.spellID, 6673, "clearing class search restores complete catalog")
+equal(training.frame.searchHint:IsShown(), true, "clearing class search restores placeholder")
+training.frame.levels:GetScript("OnClick")()
+Search("rend")
+local filteredGroups = training:FilterClassGroups(training:Groups(catalog:Snapshot(nil, 1), 1), catalog:Snapshot(nil, 1))
+equal(#filteredGroups, rendCount, "grouped search retains each matching level group")
+equal(training.frame.rows[1].data.level, 4, "grouped search starts at first matching requirement")
+training.frame.next:GetScript("OnClick")()
+equal(training.frame.rows[1].data.level, 10, "grouped filtered pages advance through required levels")
+Search(""); training.frame.levels:GetScript("OnClick")()
+training:SelectView("weapons")
+equal(searchBox:IsShown(), true, "search stays visible in Weapons")
+equal(training.frame.searchHint.text, "Search weapons", "switching tabs updates search scope")
+Search("axe"); training:SelectView("class")
+equal(searchBox:GetText(), "", "switching tabs clears the other view's query")
+equal(training.frame.searchHint.text, "Search spells", "returning to Class restores spell hint")
 if WFS_JOURNAL_PREVIEW then
     local frame, rows = training.frame, {}
     for _, widget in ipairs(frame.rows) do if widget.data then rows[#rows + 1] = {

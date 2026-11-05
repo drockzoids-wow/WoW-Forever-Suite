@@ -450,9 +450,8 @@ function Buffs:Notify(entries)
     if #lines > 0 then Suite.Print("Missing buffs: " .. table.concat(lines, "; ") .. ".") end
 end
 
-function Buffs:Place(frame, belowHeight)
+function Buffs:Place(frame)
     if InCombatLockdown() then return end
-    if not Number(belowHeight) or belowHeight < 0 then belowHeight = nil end
     local saved = Suite.db.missingBuffPosition
     local scale = self:DisplayOptions()
     frame:SetScale(scale)
@@ -461,10 +460,8 @@ function Buffs:Place(frame, belowHeight)
     local ratio = effective / parentScale
     frame:ClearAllPoints()
     if Read(saved, "table") and Number(saved.x) and Number(saved.y) and math.abs(saved.x) <= 0.5 and math.abs(saved.y) <= 0.5 then
-        if belowHeight then
-            frame:SetPoint("TOP", UIParent, "CENTER", saved.x * UIParent:GetWidth() / ratio, saved.y * UIParent:GetHeight() / ratio - belowHeight / 2 - 8)
-        else frame:SetPoint("CENTER", UIParent, "CENTER", saved.x * UIParent:GetWidth() / ratio, saved.y * UIParent:GetHeight() / ratio) end
-    else frame:SetPoint("TOP", UIParent, "TOP", 0, -140 / ratio - (belowHeight and belowHeight + 8 or 0)) end
+        frame:SetPoint("CENTER", UIParent, "CENTER", saved.x * UIParent:GetWidth() / ratio, saved.y * UIParent:GetHeight() / ratio)
+    else frame:SetPoint("TOP", UIParent, "TOP", 0, -140 / ratio) end
 end
 
 function Buffs:StopMoving(frame)
@@ -651,7 +648,6 @@ function Buffs:Button(index)
     button:RegisterForClicks("AnyUp", "AnyDown"); button:SetAttribute("useOnKeyDown", false)
     button.icon = button:CreateTexture(nil, "ARTWORK")
     button.icon:SetPoint("TOPLEFT", 2, -2); button.icon:SetPoint("BOTTOMRIGHT", -2, 2); button.icon:SetTexCoord(0.06, 0.94, 0.06, 0.94)
-    button.caption = Label(button, 9); button.caption:SetPoint("TOP", button, "BOTTOM", 0, -2)
     button:SetScript("OnEnter", function() self:Tooltip(button) end)
     button:SetScript("OnLeave", function() HideTooltip(button) end)
     button:SetScript("OnHide", function() HideTooltip(button) end)
@@ -752,7 +748,6 @@ function Buffs:Refresh()
             button:SetAttribute("type1", "macro"); button:SetAttribute("macrotext1", "/use item:" .. entry.item.id .. "\n/use " .. entry.slot)
         end
         button.icon:SetTexture(entry.spell.icon)
-        button.caption:SetText("")
         if entry.kind == "incoming" then Suite.Theme:Backdrop(button, 0.9)
         else Suite.Theme:Backdrop(button, 0.8) end
         button:Show()
@@ -849,12 +844,11 @@ function Buffs:SetPreview(show)
             sample.icon = sample:CreateTexture(nil, "ARTWORK")
             sample.icon:SetPoint("TOPLEFT", 2, -2); sample.icon:SetPoint("BOTTOMRIGHT", -2, 2)
             sample.icon:SetTexCoord(0.06, 0.94, 0.06, 0.94)
-            sample.caption = Label(sample, 9); sample.caption:SetPoint("TOP", sample, "BOTTOM", 0, -2)
             self.preview.samples[index] = sample
         end
         sample:SetSize(size, size); sample:ClearAllPoints()
         sample:SetPoint("TOPLEFT", self.preview, "TOPLEFT", (width - (#entries * stride - 9)) / 2 + (index - 1) * stride, -25)
-        sample.icon:SetTexture(entry.spell.icon); sample.caption:SetText(""); sample:Show()
+        sample.icon:SetTexture(entry.spell.icon); sample:Show()
     end
     for index = #entries + 1, #self.preview.samples do self.preview.samples[index]:Hide() end
     self:ApplyLock(self.preview); self:Place(self.preview); self.preview:Show()
@@ -866,18 +860,17 @@ function Buffs:PreviewEntries()
     for _, key in ipairs(native and native.order or {}) do
         local record = native.records[key]
         if record then
-            local members = record.descriptor.members
-            entries[#entries + 1] = { spell = record.descriptor.spell, scope = #members == 1 and members[1].unit == "player" and "Self" or "Group" }
+            entries[#entries + 1] = { spell = record.descriptor.spell }
         end
         if #entries == 3 then break end
     end
     if #entries == 0 then
         for _, entry in ipairs(self.entries or {}) do
-            if entry.spell then entries[#entries + 1] = { spell = entry.spell, scope = entry.kind == "self" and "Self" or "Group" } end
+            if entry.spell then entries[#entries + 1] = { spell = entry.spell } end
             if #entries == 3 then break end
         end
     end
-    if #entries == 0 then entries[1] = { spell = self:Spell(6673) or { name = "Sample buff", icon = 134400 }, scope = "Self" } end
+    if #entries == 0 then entries[1] = { spell = self:Spell(6673) or { name = "Sample buff", icon = 134400 } } end
     return entries
 end
 function Buffs:SetSettingsVisible(visible)

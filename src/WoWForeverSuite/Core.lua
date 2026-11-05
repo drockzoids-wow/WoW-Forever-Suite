@@ -1,6 +1,6 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "1.0.1"
+Suite.version = "1.0.3"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {
@@ -15,6 +15,7 @@ Suite.defaults = {
     windowTools = false, windowPositions = {}, guiPosition = {}, offlineBank = false,
     fullButtonRange = false, actionBarSkin = false, classHealthBars = false, targetThreat = false,
     combatIndicator = false, combatIndicatorPersistent = false, combatIndicatorLocked = false, combatIndicatorPosition = {},
+    procAlerts = false, procAlertPosition = {}, procAlertIconSize = 42,
     statusBarSkin = false, bagBarSkin = false, microBarSkin = false, playerBuffBorders = false,
     progressBarValues = false, progressBarCustomSize = false, progressBarWidth = 600, progressBarHeight = 14, progressBarSegments = false,
     shortKeybinds = false, keybindFontStyle = false, keybindFont = "default", keybindSize = 12,
@@ -27,7 +28,7 @@ Suite.defaults = {
     mailHelper = false, mailRememberRecipient = false,
     mailContacts = { schema = 2, entries = {}, removed = {} },
     chatHistory = false, chatStyle = false, chatFontSize = 14, chatOpacity = 0.5, audioSync = false,
-    itemLevels = false, itemTooltipLevels = false, characterItemLevel = false, upgradeHints = false,
+    itemLevels = false, itemTooltipLevels = false, characterItemLevel = false, upgradeHints = false, equipmentSetToggle = false,
     itemInventory = false, inventorySearch = false, characterDashboard = false, inventory = { schema = 1, characters = {}, accountBanks = {} },
     inventoryBrowser = { schema = 1, favorites = {} },
     scorePreset = "balanced", upgradePreference = "stats", playerItemLevel = false, classNames = false,
@@ -81,6 +82,7 @@ function Suite.InitializeDB(saved)
     db.inventoryBrowser = Suite.CharacterBrowser:InitializeOptions(db.inventoryBrowser)
     db.chatFontSize, db.chatOpacity = Suite.Chat:Options(db)
     db.keybindFont, db.keybindSize, db.keybindOutline, db.keybindBold = Suite.Keybinds:Options(db)
+    db.procAlertIconSize = Suite.ProcAlerts:IconSize(db)
     db.progressBarWidth, db.progressBarHeight = Suite.HUDSkin:Options(db)
     -- Retain the native text preference across reloads until Always show values releases it.
     local nativeText = db.progressBarTextRestore
@@ -195,9 +197,10 @@ local commandPages = {
 SlashCmdList.WOWFOREVERSUITE = function(message)
     local command = message:match("^%s*(%S*)"):lower()
     if command == "status" then Suite.Status()
-    elseif command == "copytest" then Suite.Chat:NativeCopyTest()
-    elseif command == "bufftest" then Suite.NativeBuffTest:Toggle()
+    elseif command == "copychat" or command == "chatcopy" then
+        Suite.ChatCopy:Open(SELECTED_CHAT_FRAME or DEFAULT_CHAT_FRAME)
     elseif command == "buffstatus" then Suite.CombatBuffs:Status()
+    elseif command == "procstatus" then Suite.ProcAlerts:Status()
     elseif command == "containerstatus" then
         local itemID = message:match("^%s*%S+%s+(%d+)%s*$")
         if itemID then Suite.AutoOpen:Status(tonumber(itemID))

@@ -35,3 +35,5 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Training catalog facts are adapted from fusionpit/WhatsTraining (MIT), Forever revision e0d52183bac0581464d91b3b859528d53afd4a0d. Its complete notice is included in TrainingCatalog-LICENSE.txt. Spell names/ranks are Blizzard game data. Suite journal and planner UI/runtime implementation are original.
+
+ChatCopyPaste 1.41 by Novaspark/Venomisto is a behavior reference for the on-demand chat copy window. Suite's implementation and presentation are original; no ChatCopyPaste source, assets or libraries are included.
