@@ -42,8 +42,9 @@ local function Button(parent, text, x, y, width, callback)
 end
 function Training:Enabled() return Suite.db and Suite.db.trainingPlanner == true end
 function Training:InitializeCharacter(value)
-    local db = { position = {}, weapons = {} }
+    local db = { position = {}, weapons = {}, allLevels = true }
     if Read(value, "table") then
+        if Read(value.allLevels, "boolean") then db.allLevels = value.allLevels end
         if Read(value.position, "table") and Read(value.position.x, "number") and Read(value.position.y, "number")
             and math.abs(value.position.x) <= 0.5 and math.abs(value.position.y) <= 0.5 then
             db.position = { x = value.position.x, y = value.position.y }
@@ -61,6 +62,7 @@ function Training:InitializeCharacter(value)
         end
     end
     self.db = db
+    self.allLevels = db.allLevels
     return db
 end
 function Training:Validate(value)
@@ -645,7 +647,9 @@ function Training:Build()
     frame.next = Button(frame, "Next", 114, -487, 92, function() if self.catalogPaging then self.offset = self.offset + 6 else self.page = self.page + 1 end; self:Refresh() end)
     frame.pageText = Label(frame, 12, 225, -494, 75)
     frame.levels = Button(frame, "By level", 300, -487, 80, function()
-        self.allLevels = self.allLevels == false; self.page, self.offset, self.groupTitle = 1, 0, nil; self:Refresh()
+        self.allLevels = self.allLevels == false
+        self.db.allLevels = self.allLevels
+        self.page, self.offset, self.groupTitle = 1, 0, nil; self:Refresh()
     end)
     frame.settings = Button(frame, "Settings", 388, -487, 98, function() Suite.GUI:OpenPage("training") end)
     frame:EnableMouseWheel(true); frame:SetScript("OnMouseWheel", function(_, delta)

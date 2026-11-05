@@ -112,21 +112,26 @@ function Quests:Request(key, callback, argument, fromList)
     return true
 end
 
-local function VendorOption(options)
+local function ServiceOption(options)
     -- The API exposes the base icon, not an NPC service type. Resolve the native
-    -- shop icon on this client instead of depending on text or a fixed file ID.
-    local icon = Read(GetFileIDFromPath, "Interface\\GossipFrame\\VendorGossipIcon")
-    if not ID(icon) then return end
-    local vendor
+    -- icons on this client instead of depending on localized text or fixed IDs.
+    local chat = Read(GetFileIDFromPath, "Interface\\GossipFrame\\GossipGossipIcon")
+    if not ID(chat) then return end
+    local service
     for _, option in ipairs(options) do
-        -- Unknown icons cannot rule out a second shop entry.
+        -- Every non-chat row counts, including an unfamiliar/locked service.
+        -- Unknown icons cannot establish that the other rows are merely chat.
         if not ID(option.icon) then return end
-        if option.icon == icon then
-            if vendor then return end
-            vendor = option
+        if option.icon ~= chat then
+            if service then return end
+            service = option
         end
     end
-    return vendor
+    if not service then return end
+    local vendor = Read(GetFileIDFromPath, "Interface\\GossipFrame\\VendorGossipIcon")
+    if ID(vendor) and service.icon == vendor then return service, "vendor" end
+    local binder = Read(GetFileIDFromPath, "Interface\\GossipFrame\\BinderGossipIcon")
+    if ID(binder) and service.icon == binder then return service, "binder" end
 end
 
 function Quests:Gossip()
@@ -151,7 +156,14 @@ function Quests:Gossip()
     if not Yes(Suite.db.autoVendor) and not Yes(Suite.db.autoGossip) then return end
     local options = List(Read(api.GetOptions))
     if not options then return end
-    local option = Yes(Suite.db.autoVendor) and VendorOption(options) or nil
+    local service, kind = ServiceOption(options)
+    local option
+    if service and (kind == "vendor" and Yes(Suite.db.autoVendor)
+        or Yes(Suite.db.autoGossip) and #active == 0 and #available == 0) then
+        -- A sole vendor/binder service may coexist with informational chat.
+        -- Selecting the binder opens its native prompt; never confirm it here.
+        option = service
+    end
     if not option then
         -- General conversation still preserves quest entries and deliberate menus.
         if not Yes(Suite.db.autoGossip) or #active > 0 or #available > 0

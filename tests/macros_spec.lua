@@ -19,6 +19,8 @@ local data = {
     [114] = { name = "Percent Food", sub = 5, description = "Restores 20% of your health over 20 seconds." },
     [115] = { name = "Uncached Reagent", class = 7, noUse = true },
     [116] = { name = "Stronger Bandage", sub = 7, required = 20, description = "Heals 400 damage over 8 seconds." },
+    [6290] = { name = "Brilliant Smallfish", sub = 5,
+        description = "Use: Restores 58 health over 18 sec. Must remain seated while eating. If you spend at least 10 sec eating, you will become well fed and gain 2 Attack Power for 15 min. Additionally, experience gained from kills is increased by 5%. (1 Sec Cooldown)" },
     [20388] = { name = "Lollipop", sub = 8, description = "Restores 3% of your health and mana per second for 25 sec. Must remain seated while eating." },
     [20389] = { name = "Candy Corn", sub = 8, description = "Restores 3% of your health and mana per second for 25 sec. Must remain seated while eating." },
     [20390] = { name = "Candy Bar", sub = 8, description = "Restores 3% of your health and mana per second for 25 sec. Must remain seated while eating." },
@@ -89,7 +91,7 @@ equal(snapshot.best.water.id, 103, "prefer conjured drink")
 equal(snapshot.byID[101].count, 4, "combine identical carried stacks")
 equal(snapshot.best.healing.id, 105, "sleep potions are excluded from automatic healing")
 equal(snapshot.best.mana.id, 106, "sleep potions are excluded from automatic mana")
-equal(snapshot.byID[102].flags.food, nil, "buff food does not replace ordinary recovery food")
+equal(snapshot.byID[102].flags.food, true, "health-restoring buff food is eligible for automatic food selection")
 equal(snapshot.byID[111].flags.water, false, "energy supplies are excluded from drinking")
 equal(snapshot.byID[109], nil, "recipes cannot be picked as consumables")
 equal(snapshot.byID[110], nil, "exclude supplies above player level")
@@ -98,6 +100,42 @@ equal(snapshot.best.food.health, 600, "restoration is read from item text")
 equal(snapshot.best.healing.health, 80, "range restoration uses its midpoint")
 local body = macros:Generate(food, snapshot)
 equal(body, "#showtooltip [nocombat] item:101\n/use [nocombat] item:101", "food stays outside combat by default")
+do
+    local savedBags, description = bags, data[6290].description
+    bags = { 6290 }
+    for _, text in ipairs({ description,
+        description:gsub("58", "|cffffffff58|r"),
+        description:gsub("58", "|cnNORMAL_FONT_COLOR:58|r"),
+        description:gsub("58 health", "58|nhealth"),
+        (description:gsub("58 health", "58\nhealth")) }) do
+        data[6290].description = text
+        local fish = supplies:Scan()
+        equal(fish.best.food and fish.best.food.id, 6290, "Smallfish buff-food tooltip is recognized with inline colors and wrapping")
+        equal(fish.byID[6290].health, 58, "visible Smallfish restoration is parsed without markup")
+        equal(macros:Generate(food, fish), "#showtooltip [nocombat] item:6290\n/use [nocombat] item:6290",
+            "Smallfish alone produces an automatic food macro")
+    end
+    bags, data[6290].description = savedBags, description
+end
+do
+    local savedBags = bags
+    bags = { 100, 102 }
+    local buffFood = supplies:Scan()
+    equal(buffFood.best.food.id, 102, "stronger buff food outranks ordinary food in the same tier")
+    equal(macros:Generate(food, buffFood), "#showtooltip [nocombat] item:102\n/use [nocombat] item:102",
+        "automatic food macro uses carried buff food outside combat")
+    food.item = 102
+    equal(macros:Generate(food, snapshot):find("item:102", 1, true) ~= nil, true,
+        "explicit buff food overrides automatic mage priority")
+    food.item = nil
+    bags = { 20516 }
+    equal(supplies:Scan().best.food.id, 20516, "percentage-restoring buff food works as the only food")
+    local description = data[102].description
+    data[102].description = "Increases your Stamina for 15 minutes."
+    equal(supplies:Read(102, nil, nil, level, true).flags.food, false,
+        "a buff without health restoration is not automatic recovery food")
+    data[102].description, bags = description, savedBags
+end
 do
     local savedBags = bags
     for _, id in ipairs({ 20388, 20389, 20390 }) do
@@ -129,12 +167,12 @@ do
     equal(seasonal.best.water.id, 21537, "Lunar Festival dumplings restore both resources")
     bags = { 100, 104, 7807, 20516, 20557 }
     seasonal = supplies:Scan()
-    equal(seasonal.best.food.id, 100, "ordinary candy names, seasonal buff food and non-restoring treats cannot displace recovery food")
+    equal(seasonal.best.food.id, 100, "ordinary candy names and percentage buff food retain existing restoration ranking")
     equal(seasonal.best.water.id, 104, "non-restoring event treats cannot displace water")
     local candyDescription = data[20390].description
     data[20390].description = candyDescription .. " You become well fed."
     bags = { 100, 104, 20390 }; seasonal = supplies:Scan()
-    equal(seasonal.best.food.id, 100, "a cataloged event ID never bypasses the buff-food exclusion")
+    equal(seasonal.best.food.id, 20390, "seasonal health-restoring buff food retains event priority")
     equal(seasonal.best.water.id, 104, "a cataloged event ID never bypasses the buff-drink exclusion")
     data[20390].description = candyDescription
     bags, unavailable = { 100, 104, 20390 }, 20390

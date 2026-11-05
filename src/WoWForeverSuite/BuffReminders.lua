@@ -130,8 +130,10 @@ function Extra:ChooseCoating(entry)
 end
 function Extra:Prepare()
     if InCombatLockdown() or not Enabled() then return end
+    self.combatSlots, self.combatSlotLabels = 0, {}
+    if Suite.CombatBuffs then Suite.CombatBuffs:Prepare() end
     local buffs = Suite.MissingBuffs
-    self.watches, self.coatings = nil, nil
+    self.watches, self.coatings, self.poisons = nil, nil, nil
     if not Suite.db.missingBuffCombat and not Suite.db.missingBuffWeapons then return end
     self.watches, self.coatings = {}, {}
     if Suite.db.missingBuffCombat then
@@ -141,9 +143,27 @@ function Extra:Prepare()
         if class then
             for _, family in ipairs(buffs:Families(class, buffs.learned or {})) do
                 local catalog = family.catalog
-                if family.spell and catalog.combat and not catalog.custom
+                if family.spell and (catalog.combat or catalog.weapon) and not catalog.custom
                     and ((not catalog.group or catalog.upkeep) and Suite.db.missingBuffClass or catalog.group and Suite.db.missingBuffSelf or catalog.group and Suite.db.missingBuffOutgoing) then
                     self.watches[#self.watches + 1] = family
+                    if catalog.weapon then family.weaponID = Call(GetInventoryItemID, "player", 16) end
+                end
+            end
+            if class == "ROGUE" and Suite.db.missingBuffClass then
+                local choices = buffs:PoisonChoices()
+                if #choices > 0 or C_SpellBook and Call(C_SpellBook.IsSpellKnown, 2842) == true then
+                    self.poisons = {}
+                    for _, hand in ipairs({ {16, "main", "MainHand", "MH"}, {17, "off", "OffHand", "OH"} }) do
+                        local weapon = Call(GetInventoryItemID, "player", hand[1])
+                        if ID(weapon) and buffs:Weapon(hand[1], Enum and Enum.WeaponSlot and Enum.WeaponSlot[hand[3]], true) ~= nil then
+                            local chosen
+                            local selected = Suite.db.missingBuffChoices["ROGUE:poison:" .. hand[2]]
+                            for _, item in ipairs(choices) do if item.id == selected then chosen = item end end
+                            chosen = chosen or choices[1]
+                            self.poisons[#self.poisons + 1] = { kind = "poison", slot = hand[1], hand = hand[4], weapon = weapon,
+                                spell = { name = chosen and chosen.name or "Poison", icon = ID(chosen and chosen.icon) and chosen.icon or 132273 }, names = { hand[4] } }
+                        end
+                    end
                 end
             end
         end
@@ -177,7 +197,30 @@ function Extra:Prepare()
             end
         end
     end
-    if Suite.db.missingBuffCombat then self:BuildCombat() end
+    if Suite.db.missingBuffCombat then
+        local coverage = Suite.CombatBuffs and Suite.CombatBuffs.coverage or {}
+        local slots = #(self.poisons or {})
+        for _, record in ipairs(self.poisons or {}) do
+            self.combatSlotLabels[#self.combatSlotLabels + 1] = record.hand .. " poison"
+        end
+        -- Selection/no-supply prompts are outside-combat only. AddCoatings
+        -- cannot display them in combat, so they must not displace aura icons.
+        for _, record in ipairs(self.coatings or {}) do
+            if record.item then
+                slots = slots + 1
+                self.combatSlotLabels[#self.combatSlotLabels + 1] = record.hand .. " " .. record.item.name
+            end
+        end
+        for _, family in ipairs(self.watches or {}) do
+            if not coverage[family.key] then
+                slots = slots + 1
+                self.combatSlotLabels[#self.combatSlotLabels + 1] = family.spell.name
+            end
+        end
+        self.combatSlots = math.min(8, slots)
+        self:BuildCombat()
+    end
+    self:PlaceCombat()
 end
 function Extra:AddCoatings(entries)
     if not Suite.db.missingBuffWeapons then return end
@@ -209,6 +252,21 @@ function Extra:CoatingClick(entry)
     local item = self:CoatingItem(snapshot, choice, entry.slot)
     return item and item.id == entry.item.id or false
 end
+function Extra:AddCombatPoisons(entries)
+    if not Suite.db.missingBuffClass then return end
+    for _, entry in ipairs(self.poisons or {}) do
+        local weapon = Call(GetInventoryItemID, "player", entry.slot)
+        if ID(weapon) and weapon == entry.weapon and not self:HasCoating(entry.slot) then
+            local present = Suite.MissingBuffs:Weapon(entry.slot, Enum and Enum.WeaponSlot and Enum.WeaponSlot[entry.slot == 16 and "MainHand" or "OffHand"], true)
+            local needed, remaining = self:CoatingState(entry)
+            if present == false or present == true and needed == true and remaining then
+                local reminder = {}; for key, value in pairs(entry) do reminder[key] = value end
+                reminder.remaining = present == true and remaining or nil
+                entries[#entries + 1] = reminder
+            end
+        end
+    end
+end
 function Extra:Cancel()
     self.token, self.combatToken = nil, nil
     if self.deadline then self.deadline:Cancel(); self.deadline = nil end
@@ -233,7 +291,7 @@ end
 function Extra:Tooltip(button, combat)
     local entry = button.entry
     if not entry or not GameTooltip then return end
-    GameTooltip:SetOwner(button, "ANCHOR_RIGHT"); GameTooltip:AddLine(entry.spell.name, 0.41, 0.84, 0.75)
+    GameTooltip:SetOwner(button, "ANCHOR_BOTTOM"); GameTooltip:AddLine(entry.spell.name, 0.41, 0.84, 0.75)
     GameTooltip:AddLine(entry.remaining and ((#entry.names > 1 and "Missing or expiring within " or "Expiring within ") .. math.ceil(entry.remaining) .. " seconds") or "Missing", 1, 0.82, 0.4)
     GameTooltip:AddLine(self:Names(entry), 1, 1, 1, true)
     GameTooltip:AddLine(combat and "Reminder only. Refresh from your action bar during combat."
@@ -245,8 +303,9 @@ function Extra:BuildCombat()
     if self.combatFrame or InCombatLockdown() then return end
     -- Independent, unprotected presentation. Never parent this to secure buff widgets.
     local frame = CreateFrame("Frame", nil, UIParent, "BackdropTemplate"); self.combatFrame = frame
-    frame:SetFrameStrata("LOW"); Surface(frame)
-    local title = Label(frame, 11); title:SetPoint("TOP", 0, -6); title:SetText("BUFF REMINDERS")
+    frame:SetFrameStrata("MEDIUM"); frame:EnableMouse(false)
+    local title = Label(frame, 10); title:SetPoint("TOP", 0, -6); title:SetText("Missing Buffs")
+    self.combatTitle = title
     for index = 1, 8 do
         local button = CreateFrame("Frame", nil, frame, "BackdropTemplate"); Surface(button); button:SetSize(34, 34)
         button:EnableMouse(true)
@@ -254,6 +313,7 @@ function Extra:BuildCombat()
         if button.SetMouseMotionEnabled then button:SetMouseMotionEnabled(true) end
         button.icon = button:CreateTexture(nil, "ARTWORK")
         button.icon:SetPoint("TOPLEFT", 2, -2); button.icon:SetPoint("BOTTOMRIGHT", -2, 2)
+        button.icon:SetTexCoord(0.06, 0.94, 0.06, 0.94)
         button.caption = Label(button, 9); button.caption:SetPoint("TOP", button, "BOTTOM", 0, -2)
         button:SetScript("OnEnter", function() self:Tooltip(button, true) end)
         button:SetScript("OnLeave", function() if GameTooltip and GameTooltip.IsOwned and GameTooltip:IsOwned(button) then GameTooltip:Hide() end end)
@@ -263,7 +323,18 @@ function Extra:BuildCombat()
     self:PlaceCombat(); frame:Hide()
 end
 function Extra:PlaceCombat()
+    if Suite.CombatBuffs then
+        if Suite.CombatBuffs.metadataDirty then Suite.CombatBuffs:Prepare()
+        else Suite.CombatBuffs:Place() end
+    end
     if not self.combatFrame or InCombatLockdown() then return end
+    local native = Suite.CombatBuffs
+    local count = native and native.count or 0
+    -- Match the native host's vertical center/height without depending on its
+    -- restricted geometry. Ordinary children extend into their own lower row.
+    -- Both hosts stay independently anchored to UIParent.
+    local width, height = Suite.MissingBuffs:BarLayout(count > 0 and count or (self.combatSlots or 0))
+    self.combatFrame:SetSize(width, height)
     Suite.MissingBuffs:Place(self.combatFrame)
 end
 function Extra:CombatAuras(family, unit)
@@ -307,6 +378,7 @@ function Extra:CombatUnits()
     return result
 end
 function Extra:RefreshCombat()
+    if Suite.CombatBuffs then Suite.CombatBuffs:RefreshVisibility() end
     if not self.combatFrame then return end
     if not ActiveCombat() or Call(UnitIsDeadOrGhost, "player") ~= false or (Call(IsResting) ~= false and Suite.db.missingBuffRested ~= true) then
         self.combatFrame:Hide(); return
@@ -315,14 +387,24 @@ function Extra:RefreshCombat()
     local entries, units = {}, self:CombatUnits()
     for _, family in ipairs(self.watches or {}) do
         local names, remaining = {}, nil
+        local native = Suite.CombatBuffs and Suite.CombatBuffs.coverage[family.key]
         for _, member in ipairs(units) do
             local catalog = family.catalog
             local selfFilter = (not catalog.group or catalog.upkeep) and Suite.db.missingBuffClass or catalog.group and Suite.db.missingBuffSelf
-            if Suite.MissingBuffs:Relevant(catalog,ClassForBuffs(member.unit),family.spell.root or family.spell.id) and (member.player and selfFilter or not member.player and catalog.group and Suite.db.missingBuffOutgoing)
+            if not native and Suite.MissingBuffs:Relevant(catalog,ClassForBuffs(member.unit),family.spell.root or family.spell.id) and (member.player and selfFilter or not member.player and catalog.group and Suite.db.missingBuffOutgoing)
                 and (not Suite.MissingBuffs:PartyOnly(catalog,family.spell.root or family.spell.id) or member.party) then
-                local auras = self:CombatAuras(family, member.unit)
+                local auras = not catalog.weapon and self:CombatAuras(family, member.unit) or nil
                 local present, seconds
-                if Suite.db.missingBuffExpiry then present, seconds = self:Presence(family, auras)
+                if catalog.weapon then
+                    if self:HasCoating(16) then present = true
+                    else
+                        present = Suite.MissingBuffs:Weapon(16, Enum and Enum.WeaponSlot and Enum.WeaponSlot.MainHand, true)
+                        if present == true and ID(family.weaponID) then
+                            local needed, remaining = self:CoatingState({ slot = 16, weapon = family.weaponID })
+                            if needed == true and remaining then present, seconds = false, remaining end
+                        end
+                    end
+                elseif Suite.db.missingBuffExpiry then present, seconds = self:Presence(family, auras)
                 elseif auras then
                     present = #auras.records > 0
                 end
@@ -332,23 +414,26 @@ function Extra:RefreshCombat()
         if #names > 0 then entries[#entries + 1] = { spell = family.spell, names = names, remaining = remaining } end
     end
     self:AddCoatings(entries)
-    local _,size=Suite.MissingBuffs:DisplayOptions()
-    local stride,rowStride=size+9,size+14
-    local count, width = math.min(#entries, 8), math.max(140, math.min(#entries, 8) * stride + 5)
-    self.combatFrame:SetSize(width, 28 + math.ceil(count / 8) * rowStride)
+    self:AddCombatPoisons(entries)
+    local count = math.min(#entries, self.combatSlots or 0, 8)
+    local nativeCount = Suite.CombatBuffs and Suite.CombatBuffs.count or 0
+    local width, _, size, stride, rowStride = Suite.MissingBuffs:BarLayout(nativeCount > 0 and nativeCount or (self.combatSlots or 0))
+    local nativeRows = math.ceil(nativeCount / 8)
     for index, button in ipairs(self.combatButtons) do
         local entry = index <= count and entries[index] or nil; button.entry = entry
         if entry then
-            local row = math.floor((index - 1) / 8); local rowCount = math.min(8, count - row * 8)
+            local slot = index - 1
+            local row = math.floor(slot / 8); local rowCount = math.min(8, count - row * 8)
             button:SetSize(size,size)
-            button:ClearAllPoints(); button:SetPoint("TOPLEFT", (width - (rowCount * stride - 9)) / 2 + (index - 1) % 8 * stride, -25 - row * rowStride)
-            button.icon:SetTexture(entry.spell.icon); button.caption:SetText(entry.hand or (entry.remaining and "Soon" or "Missing"))
+            button:ClearAllPoints(); button:SetPoint("TOPLEFT", (width - (rowCount * stride - 9)) / 2 + slot % 8 * stride, -25 - (nativeRows + row) * rowStride)
+            button.icon:SetTexture(entry.spell.icon); button.caption:SetText("")
         end
         button:SetShown(entry ~= nil)
     end
     self.combatFrame:SetShown(count > 0); self:Schedule()
 end
 function Extra:OnEvent(event)
+    if Suite.CombatBuffs then Suite.CombatBuffs:RefreshVisibility(event) end
     if not Enabled() then return end
     if event == "PLAYER_REGEN_ENABLED" then
         self:Cancel(); if self.combatFrame then self.combatFrame:Hide() end; return
@@ -389,7 +474,7 @@ function Extra:Apply()
     if self.combatFrame then self.combatFrame:Hide() end
     if not Enabled() then
         self:Cancel(); self.combatToken = nil
-        self.watches, self.coatings = nil, nil; Suite.pending.buffOptions = nil
+        self.watches, self.coatings, self.poisons = nil, nil, nil; Suite.pending.buffOptions = nil
         return
     end
     if not InCombatLockdown() then self:Prepare(); self:PlaceCombat(); self:Schedule()

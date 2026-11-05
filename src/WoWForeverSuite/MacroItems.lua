@@ -25,7 +25,7 @@ local healthstones = { [5512] = true, [5511] = true, [5509] = true, [5510] = tru
     [22105] = true, [224464] = true }
 
 -- Seasonal recovery supplies from client item data. Some use subclass 8 instead
--- of Food & Drink (5); still require a readable restorative tooltip and no buff.
+-- of Food & Drink (5); still require a readable restorative tooltip.
 local eventFoods = {
     [20388] = true, [20389] = true, [20390] = true, -- Hallow's End candy
     [19696] = true, [19994] = true, [19995] = true, [19996] = true, [19997] = true, -- Harvest Festival
@@ -60,7 +60,10 @@ local function Tooltip(id, bag, slot)
         end
     end
     if #words == 0 then return nil end
-    return table.concat(words, " "):lower()
+    -- Tooltip values can have their own inline colors and wrapped use text.
+    -- Match the visible words, not the formatting around restoration amounts.
+    return table.concat(words, " "):gsub("|cn[%w_]+:", ""):gsub("|c%x%x%x%x%x%x%x%x", "")
+        :gsub("|r", ""):gsub("|n", " "):gsub("%s+", " "):lower()
 end
 
 local function Restoration(description, resource)
@@ -106,7 +109,8 @@ function Items:Read(id, bag, slot, level, english)
         if class == 0 and (subclass == 5 or item.eventFood) then
             local buff = description:find("well fed", 1, true) or description:find("increases", 1, true)
                 or description:find("gain .- for ")
-            if not buff then item.flags.food, item.flags.water = restoresHealth, restoresMana end
+            item.flags.food = restoresHealth
+            if not buff then item.flags.water = restoresMana end
         elseif class == 0 and subclass == 1 then
             local special = lower:find("sleep", 1, true) or lower:find("wildvine", 1, true)
                 or description:find("asleep", 1, true)

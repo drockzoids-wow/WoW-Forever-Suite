@@ -96,7 +96,7 @@ local equipment, records = {}, {
     staff = { loc = "INVTYPE_2HWEAPON", level = 25, stats = { ITEM_MOD_INTELLECT_SHORT = 10, ITEM_MOD_DAMAGE_PER_SECOND_SHORT = 20 } },
 }
 C_Item = {
-    GetItemInfo = function(link) local r = records[link]; if r then return link, link, 2, r.level, 1, "Armor", "", 1, r.loc, 1, 0, 4, 1 end end,
+    GetItemInfo = function(link) local r = records[link]; if r then return link, link, 2, r.level, r.required or 1, "Armor", "", 1, r.loc, 1, 0, 4, r.subclass or 1 end end,
     GetDetailedItemLevelInfo = function(link) return records[link] and records[link].level end,
     IsUsableItem = function() return true end,
     GetItemStats = function(link) return records[link] and records[link].stats end,
@@ -105,6 +105,59 @@ C_PlayerInfo = nil
 UnitLevel = function() return 60 end
 GetInventoryItemLink = function(_, slot) return equipment[slot] end
 CanDualWield = function() return true end
+-- Armor-only improvements must work for every starter and through the real hint paths.
+do
+    records.recruitBoots = { loc = "INVTYPE_FEET", level = 1, subclass = 1, stats = { RESISTANCE0_NAME = 2 } }
+    records.chainBoots = { loc = "INVTYPE_FEET", level = 9, required = 4, subclass = 3, stats = { RESISTANCE0_NAME = 62 } }
+    equipment[8] = "recruitBoots"
+    Suite.db.upgradeHints = true
+    for _, preset in ipairs(scoring.order) do
+        equal(scoring.Compare(scoring.Score(records.chainBoots.stats, preset),
+            { scoring.Score(records.recruitBoots.stats, preset) }) ~= nil, true, preset .. " values an armor-only gain")
+    end
+    for _, class in ipairs({ "WARRIOR", "PALADIN", "HUNTER", "SHAMAN", "ROGUE", "DRUID", "MAGE", "PRIEST", "WARLOCK" }) do
+        scoring.class, scoring.automaticProfile = class, nil
+        scoring:InitializeCharacter(nil)
+        local profile = scoring:Profile()
+        equal(scoring.Compare(scoring.Score({ ITEM_MOD_ARMOR_SHORT = 62 }, profile),
+            { scoring.Score({ ITEM_MOD_ARMOR_SHORT = 2 }, profile) }) ~= nil, true, class .. " starter values armor via the alternate stat key")
+        equal(scoring.Score({ RESISTANCE0_NAME = hidden }, profile), nil, class .. " rejects unreadable weighted armor")
+    end
+    UnitClass = function() return "Warrior", "WARRIOR" end
+    UnitLevel = function() return 10 end
+    scoring.class, scoring.automaticProfile = "WARRIOR", nil
+    scoring:InitializeCharacter(nil)
+    local gain, detail = Suite.Items:UpgradeDelta("chainBoots", true)
+    equal(scoring.Format(gain, true), "+0.6", "62 armor mail upgrades equipped 2 armor cloth under default stats")
+    equal(detail.breakdown[1].key, "ARMOR", "armor gain is disclosed in the score breakdown")
+    local bootsButton, bootsRecord = Frame(), {}
+    bootsButton.GetItemLink = function() return "chainBoots" end
+    Suite.Items:Update(bootsButton, bootsRecord)
+    equal(bootsRecord.arrow.text, "+", "armor-only boots show a real bag upgrade marker")
+    equal(bootsRecord.arrow.textColor[1], 0.2, "preferred Warrior mail marker is green")
+    equal(bootsRecord.arrow.textColor[2], 1, "preferred Warrior mail marker keeps full green")
+    local bootsTip = Frame(); Suite.Tooltips:Item(bootsTip, { hyperlink = "chainBoots" })
+    equal(bootsTip.lines[1][1], "Possible stat upgrade · +0.6 (Automatic · Physical)", "armor tooltip and bag marker share scoring")
+    -- Armor preference colors a qualifying hint; it never overrides the score.
+    records.chainBoots.stats = { RESISTANCE0_NAME = 2 }
+    equal(Suite.Items:UpgradeDelta("chainBoots"), nil, "mail type alone does not invent an upgrade")
+    records.recruitBoots.stats = { RESISTANCE0_NAME = 2, ITEM_MOD_STRENGTH_SHORT = 2 }
+    records.chainBoots.stats = { RESISTANCE0_NAME = 62 }
+    equal(Suite.Items:UpgradeDelta("chainBoots"), nil, "modest armor weight does not outweigh stronger bonus stats")
+    records.recruitBoots.stats = { RESISTANCE0_NAME = 2 }
+    records.chainBoots.subclass = 1
+    Suite.Items:Update(bootsButton, bootsRecord)
+    equal(bootsRecord.arrow.text, "+", "usable nonpreferred armor can still improve the score")
+    equal(bootsRecord.arrow.textColor[1], 1, "nonpreferred Warrior cloth marker is yellow")
+    equal(bootsRecord.arrow.textColor[2], 0.82, "nonpreferred armor retains existing yellow guidance")
+    UnitLevel = function() return 3 end
+    equal(Suite.Items:UpgradeDelta("chainBoots"), nil, "armor gain does not bypass required level")
+    equal(scoring.Score(records.chainBoots.stats, Custom("Armor excluded")), 0, "custom weights can deliberately omit armor")
+    equipment[8] = nil
+    UnitClass = function() return "Hunter", "HUNTER" end
+    UnitLevel = function() return 60 end
+    scoring.class, scoring.automaticProfile = "MAGE", nil
+end
 state = scoring:InitializeCharacter(nil)
 id = scoring:SaveProfile(Custom("Detailed caster"))
 Suite.db.upgradeHints = true

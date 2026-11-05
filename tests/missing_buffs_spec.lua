@@ -38,6 +38,7 @@ CreateFrame = function(kind, name, parent, templates)
     frame.parent = parent; frame.protected = parent and parent.protected or templates and templates:find("Secure", 1, true) ~= nil or false
     frame.attributes, frame.refs, frame.registered = {}, {}, {}
     frame.SetTexCoord = function(self, ...) self.texCoords = { ... } end
+    frame.SetVertexColor = function(self, ...) self.vertex = { ... } end
     frame.SetAttribute = function(self, key, value) Mutate(self); self.attributes[key] = value end
     frame.SetFrameRef = function(self, key, value) Mutate(self); self.refs[key] = value end
     frame.RegisterEvent = function(self, event)
@@ -174,13 +175,17 @@ buffs.events:OnEvent("SPELLS_CHANGED"); Flush()
 equal(bookReads, initialBookReads + 1, "modern spellbook event invalidates and rediscovers learned buffs")
 equal(buffs.bar:IsShown(), true, "missing readable buffs reveal the optional bar")
 equal(buffs.controller.condition, "[combat] combat; peaceful", "native secure driver owns combat hiding")
-local intellect, intellectButton = Find("self", "intellect")
+local intellect, intellectButton = Find("group", "intellect")
+equal(Find("self", "intellect"),nil,"self and party recipients share one spell icon")
+equal(intellectButton.caption.text,"","live personal reminders omit the Self caption")
 equal(intellect.spell.id, 1461, "highest learned rank is selected through native learned levels")
 equal(intellectButton.attributes.spell1, 1461, "self action uses the actual learned spell ID")
 equal(intellectButton.attributes.unit, "player", "self buff does not change the player's target")
 local outgoing, outgoingButton = Find("group", "intellect")
-equal(#outgoing.names, 2, "outgoing intellect aggregates missing mana-using party members")
-equal(outgoingButton.attributes.unit, "party1", "outgoing action targets the first missing member")
+equal(#outgoing.names, 3, "outgoing intellect aggregates the player and missing mana-using party members")
+equal(outgoing.names[1],units.player.name,"combined tooltip includes the player first")
+equal(outgoingButton,intellectButton,"combined recipients have exactly one button")
+equal(outgoingButton.attributes.unit, "player", "outgoing action targets the first missing member including self")
 local incoming, incomingButton = Find("incoming", "fortitude")
 local function NoticeCount(text)
     local count = 0
@@ -191,7 +196,7 @@ local function NoticeCount(text)
 end
 equal(incoming.names[1], units.party1.name, "incoming suggestion retains its eligible provider")
 equal(incomingButton.attributes.type1,nil,"teammate buff icon never receives a cast action")
-equal(incomingButton.caption.text,"Group","incoming buffs have a distinct Group caption")
+equal(incomingButton.caption.text,"","incoming icons have no scope caption")
 equal(NoticeCount("Fortitude"), 1, "unavailable own buff is reported in local chat")
 equal(#messages, 0, "local reminders never broadcast to party or raid")
 equal(Find("incoming", "spirit") ~= nil,true,"Forever Divine Spirit is baseline at level thirty")
@@ -208,6 +213,17 @@ clock = clock + 60; buffs:Refresh()
 equal(NoticeCount("Fortitude"), 3, "a suppressed new loss can notify on a later normal update")
 intellectButton:PostClick("LeftButton", false); Flush()
 equal(#messages, 0, "casting an available spell never sends chat")
+auras.player={{name="Arkane Intelligenz",spellId=1461}};buffs:Refresh()
+local combined,combinedButton=Find("group","intellect")
+equal(#combined.names,2,"covering the player removes only their name from the combined tooltip")
+equal(combinedButton.attributes.unit,"party1","combined icon advances its cast target when the player is covered")
+equal(combinedButton.caption.text,"","combined icon has no number beneath it")
+auras.player={};buffs:Refresh()
+local intellectIcons=0
+for _,button in ipairs(buffs.buttons) do
+    if button.entry and button.entry.spell.id==1461 and button:IsShown() then intellectIcons=intellectIcons+1 end
+end
+equal(intellectIcons,1,"losing the player buff again retains a single icon for all recipients")
 units.party2.class = "MAGE"; Suite.db.missingBuffSelf = false; buffs:Refresh()
 equal(Find("incoming", "intellect"), nil, "turning off own buff icons never turns a learned spell into a chat reminder")
 units.player.class, learned, Suite.db.missingBuffSelf = "PRIEST", {}, true; buffs.bookDirty = true; buffs:Refresh()
@@ -233,7 +249,7 @@ units.party1.level = 10; buffs:Refresh()
 equal(Find("incoming", "shadow"), nil, "provider level gates baseline class suggestions")
 units.party1.level = 40
 units.party2.visible = false; units.party3.connected = false; buffs:Refresh()
-equal(#Find("group", "intellect").names, 1, "invisible and disconnected units are excluded")
+equal(#Find("group", "intellect").names, 2, "invisible and disconnected units are excluded while the player remains included")
 equal(Find("incoming", "mark"), nil, "invisible providers do not establish available buffs")
 units.party2.visible, units.party3.connected = true, true
 auras.player = { { name = "Arkane Intelligenz", spellId = 1460 }, { name = "Frost Armor", spellId = 168 } }
@@ -304,7 +320,7 @@ equal(Find("incoming", "aura"), nil, "incoming party auras do not infer coverage
 units.raid4.class, units.raid4.party = "PRIEST", true
 units.raid2.class,units.raid4.class="HUNTER","ROGUE"
 units.player.class, learned = "WARRIOR", { 6673 }; buffs.bookDirty = true; buffs:Refresh()
-equal(#Find("group", "shout").names, 2, "party-wide casts exclude other raid subgroups")
+equal(#Find("group", "shout").names, 3, "party-wide casts include self and exclude other raid subgroups")
 auras.player = { { name = "Battle Shout", spellId = 6673 } }; buffs:Refresh()
 local shout, shoutButton = Find("group", "shout")
 equal(shoutButton.attributes.unit, "player", "party-wide shout uses the native self cast")
@@ -377,7 +393,7 @@ buffs:Refresh(); buffs:Refresh()
 equal(Find("self", "intellect"), nil, "unavailable learned spell data does not fabricate a usable action")
 equal(requests[1461], 1, "unavailable public spell data is requested once without polling")
 spells[1461] = delayed; buffs.events:OnEvent("SPELL_DATA_LOAD_RESULT", 1461, true); Flush()
-equal(Find("self", "intellect").spell.id, 1461, "asynchronous spell data completion rebuilds learned actions")
+equal(Find("group", "intellect").spell.id, 1461, "asynchronous spell data completion rebuilds learned actions")
 equal(buffs:InitializeChoices(secret)["MAGE:armor"], nil, "secret choice tables are discarded")
 equal(buffs:InitializeChoices({ ["MAGE:armor"] = secret, bad = 42 })["MAGE:armor"], nil, "secret choices and unrecognized keys are discarded")
 equal(buffs:InitializeChoices({ ["MAGE:armor"] = 0 })["MAGE:armor"], 0, "hidden family choice survives normalization")
@@ -450,7 +466,8 @@ do
     equal(buffs:InitializeChoices(Suite.db.missingBuffChoices, Suite.db.missingBuffCustom)["CUSTOM:9005"], 0, "hidden custom choice survives saved-data normalization")
     Suite.db.missingBuffChoices["CUSTOM:9005"] = nil
     Suite.db.missingBuffCustom[1].group = true; buffs:Refresh()
-    equal(Find("group", "CUSTOM:9005").unit, "party1", "custom group opt-in targets a group member")
+    equal(Find("group", "CUSTOM:9005").unit, "player", "custom group opt-in includes the player as the first missing recipient")
+    equal(#Find("group", "CUSTOM:9005").names,2,"custom buff combines player and party names")
     learned = { 1461 }; buffs.bookDirty = true; buffs:Refresh()
     equal(Find("self", "CUSTOM:9005"), nil, "unlearned custom spells never become actions")
     equal(Find("group", "CUSTOM:9005"), nil, "unlearned custom group spells never become actions")
@@ -543,15 +560,43 @@ do
     weapons[16] = 50
     Suite.db.missingBuffCombat = true; units.player.class = "WARRIOR"; learned = { 6673 }; buffs.bookDirty = true
     auras.player, auras.party1 = {}, {}; buffs:Refresh()
+    local carriedCoatingSlots = extra.combatSlots
+    carried = {}; buffs.itemsDirty = true; buffs:Refresh()
+    equal(extra.combatSlots, carriedCoatingSlots - 1, "unavailable coating cannot reserve an invisible combat slot")
+    carried = { { id = 9002, name = "Alternative Oil", class = 0, subclass = 6 } }
+    buffs.itemsDirty = true; buffs:Refresh()
+    equal(extra.combatSlots, carriedCoatingSlots - 1, "outside-combat coating selection prompt cannot displace combat aura icons")
+    carried = availableOil; buffs.itemsDirty = true; buffs:Refresh()
+    equal(extra.combatSlots, carriedCoatingSlots, "restocking selected coating restores its usable combat slot")
     equal(extra.combatFrame.parent, UIParent, "passive combat panel has an independent ordinary parent")
     equal(extra.combatFrame.protected, false, "combat panel is explicitly independent of protected buttons")
     equal(#extra.combatButtons, 8, "combat icons are prepared once outside combat")
+    equal(extra.combatFrame.backdrop,nil,"combat weapon reminders have no separate background or border")
+    equal(extra.combatFrame.mouseEnabled,false,"empty weapon host passes input through")
+    equal(extra.combatTitle.text,"Missing Buffs","weapon reminders share the compact floating title")
+    equal(extra.combatTitle.point[2],0,"weapon title has no horizontal offset from the shared row center")
     local combatReads, forbidden = 0, false
     C_Secrets.ShouldSpellAuraBeSecret = function() return forbidden end
     local combatAura
     C_UnitAuras.GetAuraDataBySpellName = function(unit, name, filter)
         assert(InCombatLockdown(), "targeted combat getter is used only in combat")
         combatReads = combatReads + 1; return combatAura
+    end
+    do
+        local native = Suite.CombatBuffs
+        local oldCount = native.count
+        native.count = 1
+        extra:PlaceCombat()
+        local width, _, size, _, rowStride = buffs:BarLayout(1)
+        SetCombat(true); extra:RefreshCombat()
+        equal(extra.combatButtons[1].point[3], -25 - rowStride,
+            "fallback reminders start below the prepared native aura rows")
+        combatAura = { name = "Battle Shout", spellId = 6673, duration = 120, expirationTime = clock + 16 }
+        extra:RefreshCombat()
+        equal(extra.combatButtons[1].entry.kind, "coating", "single lower-row fixture retains the actual coating reminder")
+        equal(extra.combatButtons[1].point[2], (width - size) / 2,
+            "visible weapon reminder is centered independently of reserved capacity")
+        SetCombat(false); native.count = oldCount; combatAura = nil; extra:PlaceCombat()
     end
     local framesBefore, bagReadsBefore, spellReadsBefore = made, itemReads, bookReads
     local nativeEvent, dispatches = extra.OnEvent, 0
@@ -569,6 +614,7 @@ do
     equal(dirtyCoating, false, "combat inventory changes suppress stale coating availability without a bag scan")
     buffs.itemsDirty = false; extra:RefreshCombat()
     equal(extra.combatButtons[1].attributes.type1, nil, "combat icon has no secure action")
+    equal(extra.combatButtons[1].caption.text,"","combat fallback icons omit Missing and Soon captions")
     equal(extra.combatButtons[1].OnClick, nil, "combat icon cannot cast or use items")
     equal(made, framesBefore, "combat reminder updates create no frames")
     equal(itemReads, bagReadsBefore, "combat refresh performs no bag scans")
@@ -576,6 +622,10 @@ do
     equal(buffs.bar:IsShown(), false, "native secure driver keeps click-action bar hidden")
     combatAura = { name = "Battle Shout", spellId = 6673, duration = 120, expirationTime = clock + 16 }
     extra:RefreshCombat(); equal(extra.combatButtons[1].entry.kind, "coating", "covered shout is suppressed while coating can remain missing")
+    local weaponWidth, _, weaponSize = buffs:BarLayout(extra.combatSlots)
+    equal(extra.combatButtons[1].point[2], (weaponWidth - weaponSize) / 2,
+        "a lone ordinary reminder centers even when another ordinary slot is healthy")
+    equal(extra.combatButtons[1].caption.text,"","combat weapon coating omits its old MH label")
     clock = clock + 2; extra:RefreshCombat()
     equal(extra.combatButtons[1].entry.spell.id, 6673, "short shout warns at its fifteen-second boundary in combat")
     forbidden = true; local priorReads = combatReads; extra:RefreshCombat()
@@ -634,7 +684,7 @@ do
         equal(entry~=nil,true,class.." receives a mana-based Intellect suggestion")
         equal(button~=nil,true,class.." incoming Intellect remains visible on the bar")
         equal(button.attributes.type1,nil,"incoming icon cannot cast a teammate's spell")
-        equal(button.caption.text,"Group","incoming icon is labelled Group")
+        equal(button.caption.text,"","incoming icon has no scope label")
     end
     equal(powerReads,0,"temporary power/form never masks a class's Mana capability")
     for _,class in ipairs({"WARRIOR","ROGUE"}) do
@@ -699,16 +749,17 @@ do
         if item.spell.id==19740 then might=item elseif item.spell.id==19742 then wisdom=item end
     end end
     equal(wisdom.names[1],units.party1.name,"automatic outgoing blessing chooses learned Wisdom for a Mage")
-    equal(might.names[1],units.party2.name,"automatic outgoing blessing chooses learned Might for a Rogue")
+    equal(might.names[1],units.player.name,"automatic outgoing Might includes the missing caster")
+    equal(might.names[2],units.party2.name,"automatic outgoing blessing chooses learned Might for a Rogue")
     Suite.db.missingBuffChoices["PALADIN:blessing"]=19740;buffs:Refresh()
     local wrong=false;for _,item in ipairs(buffs.entries) do if item.kind=="group" and item.spell.id==19742 then wrong=true end end
     equal(wrong,false,"explicit alternative is respected rather than silently changed")
     -- Outgoing Intellect uses the same recipient model as incoming reminders.
     Suite.db.missingBuffChoices={};units.player.class="MAGE";units.party1.class="ROGUE";units.party2.class="HUNTER"
     Unit("party3","DRUID");learned={1459};buffs.bookDirty=true;buffs:Refresh()
-    equal(#Find("group","intellect").names,2,"outgoing Intellect includes Hunter and Druid, excluding Rogue")
+    equal(#Find("group","intellect").names,3,"outgoing Intellect includes self, Hunter and Druid, excluding Rogue")
     Suite.db.missingBuffSmart=false;buffs:Refresh()
-    equal(#Find("group","intellect").names,3,"class-aware defaults can be disabled deliberately")
+    equal(#Find("group","intellect").names,4,"class-aware defaults can be disabled deliberately")
     Suite.db.missingBuffSmart=true
     -- A visible hidden-family list restores exactly one family and retains unrelated choices.
     units.player.class="HUNTER";units.party1.class="MAGE";units.party2=nil;units.party3=nil;learned={};buffs.bookDirty=true
@@ -753,20 +804,89 @@ do
     units.player.class="HUNTER";learned={};manager:Open("display");buffs.bookDirty=true;buffs:Refresh()
     equal(Suite.db.missingBuffScale,1,"bar starts at normal scale")
     equal(Suite.db.missingBuffIconSize,34,"bar preserves readable original icon size")
-    manager.scale:OnClick();manager.size:OnClick();Flush()
+    manager.scale:SetValue(120);manager.size:SetValue(40);Flush()
     equal(buffs.bar:GetScale(),1.2,"scale control applies to the owned bar")
     entry,button=Find("incoming","intellect")
     equal(button:GetWidth(),40,"icon-size control updates actual buttons")
+    equal(manager.size.low,24,"icon slider exposes its lower size limit")
+    equal(manager.size.high,64,"icon slider supports larger reminders")
+    manager.size:SetValue(64);Flush()
+    entry,button=Find("incoming","intellect")
+    equal(button:GetWidth(),64,"slider applies the enlarged size to the normal bar")
+    manager.size:OnValueChanged(secret)
+    equal(Suite.db.missingBuffIconSize,64,"unreadable slider values cannot change icon size")
+    manager.scale:OnMouseDown();equal(manager.sliding,true,"slider drag postpones native reconstruction")
+    manager.scale:OnHide();equal(manager.sliding,nil,"hiding a dragged slider releases native reconstruction")
+    equal(Suite.InitializeDB({missingBuffIconSize=64}).missingBuffIconSize,64,"larger icon size survives settings validation")
+    manager.normalPreview:OnClick();Flush()
+    equal(buffs.preview:IsShown(),true,"appearance controls can preview normal icons")
+    equal(buffs.preview.samples[1]:GetWidth(),64,"normal preview uses the actual icon-size setting")
+    equal(buffs.preview.samples[1].attributes.type1,nil,"normal preview contains no casting action")
+    equal(buffs.preview.samples[1].caption.text,"","normal preview has no caption")
+    local normalWidth,normalHeight=buffs.preview:GetWidth(),buffs.preview:GetHeight()
+    manager.combatPreview:OnClick();Flush()
+    local combatView=Suite.CombatBuffs
+    equal(buffs.preview:IsShown(),false,"combat preview replaces the normal preview")
+    equal(combatView.previewRoot:IsShown(),true,"combat appearance can be previewed outside combat")
+    equal(combatView.previewRoot:GetWidth(),normalWidth,"combat preview shares normal preview width")
+    equal(combatView.previewRoot:GetHeight(),normalHeight,"combat preview shares normal preview height")
+    equal(combatView.previewSamples[1].plate:GetWidth(),64,"combat preview uses the normal icon dimensions")
+    equal(combatView.previewSamples[1].icon:GetWidth(),60,"combat preview preserves the normal artwork inset")
+    equal(combatView.previewSamples[1].caption.text,"","combat preview has no caption")
+    manager.scale:SetValue(135);Flush()
+    equal(combatView.previewRoot:GetScale(),1.35,"scale slider updates the active combat preview live")
+    equal(buffs.bar:IsShown(),false,"preview does not leave the real clickable bar underneath")
+    manager.combatPreview:OnClick();Flush()
+    equal(combatView.previewRoot:IsShown(),false,"combat preview can be stopped explicitly")
+    equal(buffs.bar:IsShown(),true,"stopping preview restores the actual missing-buff bar")
+    manager.scale:SetValue(120);manager.size:SetValue(40);Flush()
+    local originalCenterX,originalCenterY=buffs.bar.centerX,buffs.bar.centerY
+    local ratio=buffs.bar:GetEffectiveScale()/UIParent:GetEffectiveScale()
+    buffs.bar.centerX=(UIParent:GetWidth()/2+120)/ratio
+    buffs.bar.centerY=(UIParent:GetHeight()/2+80)/ratio
+    buffs.bar.moving=true
+    local widthBeforeLock=buffs.bar:GetWidth()
     manager.lock:OnClick();Flush()
     equal(Suite.db.missingBuffLocked,true,"movement lock saves")
+    equal(math.abs(buffs.bar.point[4]*ratio-120)<0.001,true,"locking preserves the dragged horizontal position at non-unit scale")
+    equal(math.abs(buffs.bar.point[5]*ratio-80)<0.001,true,"locking preserves the dragged vertical position at non-unit scale")
+    equal(buffs.bar:GetWidth(),widthBeforeLock,"lock state does not resize the buff header")
+    equal(buffs.header.caption.text,"Missing Buffs","floating title uses compact wording without a locked suffix")
+    equal(buffs.header.caption.point[4],0,"normal title centers its text over the row independently of the lock mark")
+    equal(buffs.header.mouseEnabled,false,"locked header is click-through")
+    equal(buffs.header:IsShown(),true,"live bar has a floating title header")
+    equal(buffs.bar.backdrop,nil,"live bar has no surrounding panel backdrop")
+    equal(buffs.bar.mouseEnabled,false,"empty buff border is click-through")
+    equal(buffs.header.lock.right:IsShown(),true,"closed superscript lock shows its right shackle")
     buffs.bar.moving=nil;buffs.header:OnDragStart()
     equal(buffs.bar.moving,nil,"locked header cannot move the bar")
     manager.lock:OnClick();Flush();buffs.header:OnDragStart()
-    equal(buffs.bar.moving,true,"unlocked header retains dragging")
+    equal(buffs.bar.moving,true,"unlocked live header can start a drag")
+    equal(buffs.header.mouseEnabled,true,"unlocked title supports movement")
+    equal(buffs.header.lock.right:IsShown(),false,"unlocked superscript icon opens the shackle")
     buffs.header:OnDragStop()
+    buffs.bar.centerX,buffs.bar.centerY=originalCenterX,originalCenterY
+    manager.normalPreview:OnClick();Flush()
+    equal(buffs.preview.buffHeader:IsShown(),true,"normal settings preview retains its visible movement handle")
+    buffs.preview.buffHeader:OnDragStart()
+    equal(buffs.preview.moving,true,"unlocked preview header retains dragging")
+    buffs.preview.buffHeader:OnDragStop()
+    buffs.preview.centerX=(UIParent:GetWidth()/2-90)/ratio
+    buffs.preview.centerY=(UIParent:GetHeight()/2+110)/ratio
+    buffs.preview.moving=true;manager.lock:OnClick();Flush()
+    equal(math.abs(buffs.preview.point[4]*ratio+90)<0.001,true,"locking the dragged preview keeps its horizontal placement")
+    equal(math.abs(buffs.preview.point[5]*ratio-110)<0.001,true,"locking the dragged preview keeps its vertical placement")
+    equal(buffs.preview.mouseEnabled,false,"locked preview background is also click-through")
+    equal(buffs.preview.buffHeader.mouseEnabled,false,"locked preview header cannot catch the mouse")
+    manager.lock:OnClick();Flush()
+    equal(buffs.preview.mouseEnabled,false,"preview empty space remains click-through even when unlocked")
+    manager.normalPreview:OnClick();Flush()
+    buffs.preview.centerX,buffs.preview.centerY=nil,nil
+    manager.combatPreview:OnClick();Flush()
     SetCombat(true);buffs.controller:RunState("combat")
     manager.panel:OnEvent("PLAYER_REGEN_DISABLED")
     equal(manager.scale.enabled,false,"display controls disable in combat")
+    equal(Suite.CombatBuffs.previewRoot:IsShown(),false,"combat entry always stops the visual preview")
     manager:Display("missingBuffScale",1.4)
     equal(Suite.db.missingBuffScale,1.2,"combat cannot change protected scale")
     equal(buffs.bar:IsShown(),false,"secure controller hides actionable and incoming icons in combat")
@@ -917,6 +1037,43 @@ do
     C_ChatInfo.SendChatMessage,IsInGroup,IsInRaid=saved.sender,saved.group,saved.isRaid
     buffs.requestTimes,buffs.lastRequestAt=saved.requestTimes,saved.last;spells[1459].name=saved.name
     buffs.bookDirty=true;buffs:Refresh()
+end
+
+-- Class weapon buffs keep guarded enchant reads instead of using aura filters.
+do
+    local prior = { class = units.player.class, learned = learned, main = weapons[16], off = weapons[17],
+        mainEnchant = enchants[0], offEnchant = enchants[1], combat = Suite.db.missingBuffCombat,
+        classEnabled = Suite.db.missingBuffClass, coatings = Suite.db.missingBuffWeapons }
+    local extra = Suite.BuffReminders
+    Suite.db.missingBuffCombat, Suite.db.missingBuffClass, Suite.db.missingBuffWeapons = true, true, false
+    units.player.class, learned = "ROGUE", {}
+    weapons[16], weapons[17], enchants[0], enchants[1] = 1, 99, {}, {}
+    buffs.bookDirty, buffs.itemsDirty = true, true; extra:Prepare()
+    SetCombat(true)
+    local reminders = {}; extra:AddCombatPoisons(reminders)
+    equal(#reminders, 1, "rogue combat poison reminder excludes a shield off hand")
+    equal(reminders[1].hand, "MH", "poison reminder identifies the equipped hand")
+    enchants[0] = { { hasEnchant = true, enchantType = 3 } }
+    reminders = {}; extra:AddCombatPoisons(reminders)
+    equal(#reminders, 0, "covered poison stays hidden")
+    enchants[0] = secret
+    reminders = {}; extra:AddCombatPoisons(reminders)
+    equal(#reminders, 0, "unreadable enchant state cannot authorize a poison reminder")
+    weapons[16] = 2; enchants[0] = {}
+    reminders = {}; extra:AddCombatPoisons(reminders)
+    equal(#reminders, 0, "weapon swap invalidates prepared poison metadata")
+    SetCombat(false)
+    units.player.class, learned, weapons[16] = "SHAMAN", {8232}, 1
+    buffs.bookDirty = true; extra:Prepare()
+    SetCombat(true); extra:RefreshCombat()
+    equal(extra.combatButtons[1].entry.spell.id, 8232, "learned shaman imbue can remind in combat")
+    enchants[0] = { { hasEnchant = true, enchantType = 3 } }; extra:RefreshCombat()
+    equal(extra.combatFrame:IsShown(), false, "covered shaman imbue stays hidden")
+    SetCombat(false)
+    units.player.class, learned, weapons[16], weapons[17] = prior.class, prior.learned, prior.main, prior.off
+    enchants[0], enchants[1] = prior.mainEnchant, prior.offEnchant
+    Suite.db.missingBuffCombat, Suite.db.missingBuffClass, Suite.db.missingBuffWeapons = prior.combat, prior.classEnabled, prior.coatings
+    buffs.bookDirty, buffs.itemsDirty = true, true; buffs:Refresh()
 end
 
 SlashCmdList.WOWFOREVERSUITE("buffs")

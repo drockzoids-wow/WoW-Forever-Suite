@@ -1,4 +1,60 @@
 {
+  "clipboardProbe20261105": {
+    "date": "2026-11-05",
+    "sourceCommit": "eac30af597e5aaa43a60f6675ef5fdcea100375f",
+    "publicBuild": "1.60.1.70790",
+    "installedExecutable": "1.60.1.70790",
+    "runningBuildInterface": "Unreported",
+    "cache": ".cache/chat-clipboard-20261105",
+    "scrollingLuaSha256": "8689319fdc78a7ccfcbde52a568840f0385c7ab1988c0ba0971960feadea7239",
+    "sourceUrl": "https://github.com/Gethe/wow-ui-source/tree/eac30af597e5aaa43a60f6675ef5fdcea100375f",
+    "finding": "Matching installed-build scrolling implementation equals prior cache; public copy setters are secure barriers, intrinsic mouse postcalls invoke restricted clipboard. Initiating taint writer remains unknown.",
+    "native": "copytest fails with minimal third-party addon set; other Suite modules remain loaded. Standalone probe result pending.",
+    "probeZip": "dist/diagnostics/WFSClipboardProbe.zip",
+    "probeZipSha256": "7b3ab5ecd354c4ba73b3b8f1c08223df0ee6ab74292619d82ce88655af94f20e",
+    "deployment": "None; user manages standalone probe installation."
+  },
+  "sharedCombatBuffs20261104": {
+    "date": "2026-11-04",
+    "request": "All learned buff families, missing/near-expiry only, self and eligible party/raid; one family icon and affected names in tooltip.",
+    "sourceCommit": "eac30af597e5aaa43a60f6675ef5fdcea100375f",
+    "observedExecutable": "1.60.1.70790",
+    "runningBuildInterface": "Unreported; source not established as an exact-build match",
+    "cache": ".cache/native-buff-display-20261104",
+    "references": [
+      "Interface/AddOns/Blizzard_AuraContainer/Blizzard_CustomAuraContainer.lua",
+      "Interface/AddOns/Blizzard_AuraContainer/Blizzard_CustomAuraButton.lua",
+      "Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerShared.lua",
+      "Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerUtil.lua",
+      "Interface/AddOns/Blizzard_APIDocumentationGenerated/NumericRuleFormatterAPIDocumentation.lua",
+      "Interface/AddOns/Blizzard_APIDocumentationGenerated/NumericRuleFormatterSharedDocumentation.lua",
+      "Interface/AddOns/Blizzard_APIDocumentationGenerated/DurationTextBindingSharedDocumentation.lua"
+    ],
+    "liveEvidence": "User confirmed native Battle Shout prototype apply and expiry transitions during combat. Shared inverse clips and expiry warnings not yet tested in client.",
+    "implementation": "Original display-only native clipping; no third-party code copied, no hidden-state inspection, prediction or polling. Rank facts from existing licensed training catalog plus guarded outside-combat identity metadata.",
+    "limits": "Covered tooltip rows reserve space; unknown total duration uses 15-second warning until observed; roster/settings changes defer through combat. Raid performance, UI and taint checks pending."
+  },
+  "nativeBuffDisplay20261104": {
+    "date": "2026-11-04",
+    "request": "Try native combat Battle Shout presentation without reading secret aura state or polling.",
+    "sourceCommit": "eac30af597e5aaa43a60f6675ef5fdcea100375f",
+    "observedExecutable": "1.60.1.70790",
+    "runningBuildInterface": "Unreported; source not established as an exact-build match",
+    "cache": ".cache/native-buff-display-20261104",
+    "primarySources": [
+      "https://github.com/Gethe/wow-ui-source/blob/eac30af597e5aaa43a60f6675ef5fdcea100375f/Interface/AddOns/Blizzard_AuraContainer/Blizzard_CustomAuraContainer.xml",
+      "https://github.com/Gethe/wow-ui-source/blob/eac30af597e5aaa43a60f6675ef5fdcea100375f/Interface/AddOns/Blizzard_AuraContainer/Blizzard_CustomAuraContainer.lua",
+      "https://github.com/Gethe/wow-ui-source/blob/eac30af597e5aaa43a60f6675ef5fdcea100375f/Interface/AddOns/Blizzard_AuraContainer/Blizzard_CustomAuraButton.lua",
+      "https://github.com/Gethe/wow-ui-source/blob/eac30af597e5aaa43a60f6675ef5fdcea100375f/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerFrameProviders.lua",
+      "https://github.com/Gethe/wow-ui-source/blob/eac30af597e5aaa43a60f6675ef5fdcea100375f/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerUtil.lua"
+    ],
+    "behaviorReferences": [
+      "https://github.com/opcow/BuffReminder/tree/forever",
+      "https://github.com/dldvlpr-addons-wow/Musca-Auras/blob/main/GUIDE.md"
+    ],
+    "implementation": "Original session-only test; no third-party implementation or reference source packaged. Native display only, no hidden-state recovery or prediction.",
+    "validation": "68 Lua 5.1 files; matching TOCs; 23,507 substitute assertions. Native rendering, taint and performance tests pending."
+  },
   "squareMinimap20261031": {
     "date": "2026-10-31",
     "version": "1.0.1",

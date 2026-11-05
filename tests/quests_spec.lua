@@ -367,8 +367,11 @@ local function Shop()
     Suite.db.autoQuestPickup, Suite.db.autoQuestTurnIn, Suite.db.autoGossip = false, false, false
     Suite.db.autoVendor = true
     GetFileIDFromPath = function(path)
-        equal(path, "Interface\\GossipFrame\\VendorGossipIcon", "shop icon resolves from the native interface path")
-        return 132060
+        local nativeIcons = { ["Interface\\GossipFrame\\VendorGossipIcon"] = 132060,
+            ["Interface\\GossipFrame\\GossipGossipIcon"] = 136243,
+            ["Interface\\GossipFrame\\BinderGossipIcon"] = 135982 }
+        equal(nativeIcons[path] ~= nil, true, "services resolve from native interface icon paths")
+        return nativeIcons[path]
     end
     forced = true
     options = { { gossipOptionID = 800, orderIndex = 7, status = 0, icon = 132060, name = Secret() },
@@ -378,7 +381,7 @@ local function Shop()
     quests:Apply()
 end
 Shop(); Show("gossip"); equal(#calls, 0, "shop opening waits for the native show handler"); Flush()
-equal(calls[1] and calls[1].action, "option", "vendor-only setting selects a shop beside other services and quests")
+equal(calls[1] and calls[1].action, "option", "vendor-only setting selects a shop beside informational chat and quests")
 equal(calls[1].value, 800, "vendor opening uses option ID, independent of localized text and row index")
 Fire("GOSSIP_SHOW"); Fire("GOSSIP_OPTIONS_REFRESHED"); Flush()
 equal(#calls, 1, "duplicate vendor events cannot repeat the shop request")
@@ -447,6 +450,40 @@ Shop(); Suite.db.autoQuestTurnIn = true; active[1].isComplete = true; Show("goss
 equal(calls[1].action, "active", "enabled ready turn-ins precede vendor opening")
 Shop(); Suite.db.autoQuestPickup = true; Show("gossip"); Flush()
 equal(calls[1].action, "available", "enabled quest pickup precedes vendor opening")
+-- Service choices at innkeepers must not be hidden by the vendor shortcut.
+Shop(); options[3] = { gossipOptionID = 802, status = 0, icon = 135982 }
+Show("gossip"); Flush()
+equal(#calls, 0, "vendor plus home-binding plus chat waits for player choice")
+Shop(); options[3] = { gossipOptionID = 802, status = 0, icon = 135982 }
+Suite.db.autoGossip = true; active, available = {}, {}; Show("gossip"); Flush()
+equal(#calls, 0, "general gossip cannot override a choice between two services")
+Shop(); options[3] = { gossipOptionID = 802, status = 0, icon = 136241 }
+Show("gossip"); Flush()
+equal(#calls, 0, "vendor beside another non-chat service stays manual")
+Shop(); Show("gossip"); options[3] = { gossipOptionID = 802, status = 0, icon = 135982 }; Flush()
+equal(#calls, 0, "new service appearing before deferred work prevents shop selection")
+Shop(); options[1].icon = 135982; Suite.db.autoGossip = true
+active, available = {}, {}; Show("gossip"); Flush()
+equal(calls[1] and calls[1].value, 800, "home-binding alone beside chat advances to its native prompt")
+Fire("GOSSIP_CONFIRM"); Flush()
+equal(#calls, 1, "home-binding confirmation remains entirely manual")
+Shop(); options[1].icon = 135982; Show("gossip"); Flush()
+equal(#calls, 0, "vendor setting alone does not authorize home-binding")
+Shop(); Suite.db.autoVendor = false; Suite.db.autoGossip = true
+active, available = {}, {}; Show("gossip"); Flush()
+equal(calls[1] and calls[1].value, 800, "general gossip advances a sole shop service beside chat")
+Shop(); options[1].icon = 135982; options = { options[1] }
+Suite.db.autoGossip = true; active, available = {}, {}; Show("gossip"); Flush()
+equal(calls[1] and calls[1].value, 800, "sole home-binding option advances without informational chat")
+Shop(); options[1].icon = 135982; Suite.db.autoGossip = true
+options[2].icon = Secret(); active, available = {}, {}; Show("gossip"); Flush()
+equal(#calls, 0, "unknown second icon cannot be assumed to be informational chat")
+Shop(); options[1].icon = 135982; Suite.db.autoGossip = true
+options[1].status = 1; active, available = {}, {}; Show("gossip"); Flush()
+equal(#calls, 0, "unavailable home-binding stays manual")
+Shop(); options[1].icon = 135982; Suite.db.autoGossip = true
+Show("gossip"); Flush()
+equal(#calls, 0, "general service shortcut retains unhandled quest entries")
 Fresh()
 
 Suite.GUI:OpenPage("quests")

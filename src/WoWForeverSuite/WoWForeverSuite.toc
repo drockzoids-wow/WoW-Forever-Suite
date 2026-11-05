@@ -67,6 +67,8 @@ Leveling.lua
 BuffCatalog.lua
 MissingBuffs.lua
 BuffReminders.lua
+CombatBuffs.lua
+NativeBuffTest.lua
 DamageMeters.lua
 MeterParity.lua
 DamageMeterMenus.lua

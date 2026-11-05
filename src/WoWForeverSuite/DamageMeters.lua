@@ -1169,7 +1169,9 @@ function Meters:Apply()
                     self:CancelResize()
                     if self.preview then self:SetPreview(false) end
                 elseif event == "CVAR_UPDATE" and name ~= "damageMeterEnabled" then return
-                elseif event == "DISPLAY_SIZE_CHANGED" or event == "UI_SCALE_CHANGED" then
+                elseif event == "PLAYER_ENTERING_WORLD" or event == "DISPLAY_SIZE_CHANGED" or event == "UI_SCALE_CHANGED" then
+                    -- Login/reload can lay out against preliminary UIParent geometry. Reapply
+                    -- saved anchors when the world is ready even if no size event follows.
                     self:CancelDrag()
                     self:CancelResize()
                     Suite.AfterCombat("meterLayout", function() if self:IsActive() then self:Layout(); self:Refresh() end end)

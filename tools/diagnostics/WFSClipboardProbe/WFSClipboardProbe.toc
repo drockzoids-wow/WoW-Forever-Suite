@@ -1,0 +1,6 @@
+## Interface: 16001
+## Title: WFS Clipboard Probe
+## Notes: Temporary native chat selection diagnostic. Disable Forever Suite for this test.
+## Version: 0.0.1
+
+Probe.lua

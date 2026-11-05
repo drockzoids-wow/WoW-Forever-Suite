@@ -1,5 +1,133 @@
 # Forever Suite feature plan
 
+## Standalone native clipboard reproduction — November 5, 2026
+
+Minimal-addon `/wfs copytest` still reports Suite-attributed failure. Other third-party addons are not required, but other Suite code remains loaded. Prepare a separately packaged two-file native probe outside release inputs so user can test with Suite completely disabled. Matching installed-build 70790 source is now available at eac30af597e5aaa43a60f6675ef5fdcea100375f; scrolling implementation is unchanged from prior cache. No client-level diagnosis or direct-copy fix confirmed; standalone native result pending.
+
+## Minimal direct-copy failure with changing attribution — November 5, 2026
+
+User's next error names QuestieTrace at the same native clipboard call. This does not establish its causal responsibility or a Suite fix. No direct chat-selection hook found in read-only installed QuestieTrace review. Next isolate `/wfs copytest` with only Suite and optional error reporters enabled, styling/history off across reload. Result pending; no new runtime change.
+
+## Continue direct selection; minimal native copy diagnostic — November 5, 2026
+
+User rejects a Ctrl+C window and requests continued direct-selection investigation. Font-hook mitigation still fails; highlight cleanup is not clipboard confirmation. Paper mode now exits after confirmed native copying. Add temporary `/wfs copytest`, available only after disabling styling/history and reloading, to enable native selection without Suite Chat hooks/callbacks/UI. Repeat or reload restores normal input. Offline checks pass; isolated native result and direct-copy fix remain unresolved.
+
+## History-independent clipboard failure; font-hook mitigation — November 5, 2026
+
+Native copying still fails after disabling history and reloading. Leave the native message-frame SetFont/SetFontObject methods unwrapped as a further mitigation candidate; observe font resets at ordinary refresh/restore and retain original font restoration. Input/tab observers remain. Offline checks pass; causal diagnosis and native clipboard resolution remain unverified.
+
+## Clipboard trace attributes failure to Suite — November 5, 2026
+
+Captured native taint log places ChatFrame1:IsSelectingText immediately before the Suite-attributed CopyToClipboard block. Initiating mutation/module is not shown. Preserve trace in ignored cache and isolate history off across reload while retaining Suite styling/copy input. No additional runtime fix or native success is claimed; isolation pending.
+
+## Chat clipboard retest still blocked — November 5, 2026
+
+User confirms clean reload, Suite paper button and fresh text beneath the session boundary. Normal Suite copying still fails after the mitigation; native taint trace remains needed.
+
+Follow-up report reaches the same native CopyToClipboard call with `*** ForceTaint_Strong ***` attribution. Previous mitigation is not a confirmed fix. Clean-reload procedure, selected text origin and initiating taint remain unknown; gather native reproduction/taint evidence before further implementation changes.
+
+## Normalize recovery tooltip formatting — November 5, 2026
+
+Strip inline hexadecimal/named color codes and normalize text wrapping before automatic food/drink/potion restoration classification. Cover the user's Brilliant Smallfish buff-food wording without a name-based exception. Preserve current tier ranking, explicit choices, language and safety guards. Implemented with substitute regressions; native empty-macro report still requires retest.
+
+## Chat clipboard taint mitigation candidate — November 5, 2026
+
+Follow up the reported native CopyToClipboard blocked action by leaving secure copy-setting entry points unwrapped. Move ownership-change detection to ordinary UI refresh/exit, preserving direct selection, callback restoration and input behavior. Implemented with substitute coverage; the cause and native fix remain unverified until reload/copy testing. No new setting or saved data.
+
+## Separate centered combat weapon row — November 5, 2026
+
+User approves replacing the shared combat aura/weapon row with independently centered rows. Native aura placement ignores weapon capacity; ordinary weapon/fallback icons appear below the prepared native rows, centered by current readable entry count. Preserve shared title axis, saved placement, size/scale and independent UIParent anchors. With only Battle Shout, a hidden sharpening-stone reminder can no longer shift it sideways. Multiple healthy native families can still leave native gaps. Implemented with substitute regressions; native retest pending. Supersedes earlier shared-row decisions below.
+
+## Remaining combat centering diagnosis — November 5, 2026
+
+User's follow-up screenshot still fails centering after impossible-coating-slot removal. Add prepared aura/fallback slot names to `/wfs buffstatus` to identify the live layout without restricted visibility reads. No further layout offset adjustment; live diagnostic output pending. Full visible-icon combat centering remains outstanding.
+
+## Exclude impossible combat coating slots — November 5, 2026
+
+Reserve combat coating space only for selected carried items. Unavailable supplies and outside-combat alternative-selection prompts cannot appear in combat and must not push native icons off-center. Implemented with substitute regressions; native screenshot retest pending. This fixes one source of empty space; automatic compaction of healthy native reminders remains outstanding.
+
+## Food macro includes buff food — November 5, 2026
+
+Include health-restoring buff food in automatic FS Food selection. Keep mage/conjured, seasonal and ordinary tiers and existing restoration/level/quality ranking within each tier; specific buff foods remain available through Choose item. Buff-only items without health restoration are not automatic recovery food. FS Drink retains its buff exclusion. This supersedes earlier food-macro buff exclusions below. Implemented with substitute checks; native execution retest pending.
+
+## Buff title center correction — November 5, 2026
+
+Follow-up screenshots: user accepts outside-combat alignment and confirms combat remains off-center. Visible combat-icon centering remains outstanding; the title-axis correction did not satisfy that requirement.
+
+Align title text directly to the shared row center in normal, previews, native combat and weapon fallback; retain the passive lock to the side. Implemented with substitute checks. Always centering only visible combat icons remains unresolved: native healthy slots are reserved and their restricted visibility must not be queried to compact the row. Native visual verification pending.
+
+## Match combat weapon reminders to the shared bar — November 4, 2026
+
+Remove the leftover BUFF REMINDERS box and MH/OH/Missing/Soon labels from the ordinary combat fallback. Reserve public precombat slots alongside native aura icons, with identical icon dimensions, saved root placement, passive floating title and below-icon tooltips. Keep independent UIParent anchors and native masking safeguards. This supersedes the earlier separate-below-native weapon row. Substitute checks pass; native visual/taint verification pending.
+
+## Unified missing-buff icons and floating title — November 4, 2026
+
+Combine self/party recipients of the same spell in one tooltip and icon, advancing the actionable target as recipients are covered. Remove all captions beneath icons. Restore small floating Missing Buffs words without an outer panel; unlocked normal title supports movement, locked title/empty space pass input through. Combat title uses the native missing/expiry masks and stays hidden when healthy; combat hover is confined to icons. This supersedes the icon-only/title removal and earlier group/hand-label decisions below. Implemented with substitute coverage; native smoke tests pending.
+
+## Icon-only live buff reminders — November 4, 2026
+
+Remove the normal live bar's outer panel/title and Self captions in both contexts, preserving icon coordinates, sizing and actions. Keep group/hand information and tooltip names. Move the shared bar through the normal settings preview header; live empty space stays click-through in either lock state. This supersedes the live header/lock artwork request below. Implemented with substitute checks; native appearance/input retest pending.
+
+## Buff lock placement, click-through and subtle icon — November 4, 2026
+
+Preserve the user's dragged position when locking at custom scale by applying the inverse scale conversion during placement. Keep MISSING BUFFS wording/width stable and show a passive superscript open/closed lock mark. Locked header and empty border pass mouse input through; buff icons retain their actions. Apply the same lock behavior to the normal preview. Implemented with a failing-before scaled placement regression; native placement/input/artwork retest pending.
+
+## Buff size/scale sliders and paired previews — November 4, 2026
+
+User wants larger icons and adjustment without fighting. Add shared 24–64 px icon-size and 70–150% scale sliders in Buff bar appearance. Provide mutually exclusive normal/combat previews outside combat, using the real icon dimensions/style and shared saved placement. Keep previews non-actionable, stop them on close/navigation/combat, and defer native aura reconstruction during slider drags. Existing preferences/defaults remain. Implemented with substitute checks; native appearance/input/scroll and combat application pending.
+
+## Native buff visibility-handler correction — November 4, 2026
+
+Fix the user-reported blocked OnHide assignment during aura button batch creation. Native descendants retain their secret visibility without visibility scripts; the ordinary Suite family cell owns context-hide tooltip cleanup. Preserve native masking and hover behavior. Implemented with an inherited-secret-aspect regression; live retest pending.
+
+## Secret-safe item widget discovery — November 4, 2026
+
+Fix the user-reported ScanVisible secret-boolean error on a native aura button. Check item-specific capabilities before visibility and guard access/visibility predicates across discovery, refresh and hook/container entry points. Leave restricted widgets alone while continuing to find ordinary item buttons. Implemented with a failing-before regression; native scan/overlay retest pending.
+
+## Independent combat reminder anchors — November 4, 2026
+
+Fix the user-reported UntrustedLayoutScriptExecution SetPoint rejection. Position the ordinary weapon-reminder panel below native aura slots through shared public saved-position/layout arithmetic, with each frame independently anchored to UIParent. Preserve native masking restrictions and layout spacing. Regression reproduced before the correction; native reload/scale retest pending.
+
+## Damage meter reload restoration — November 4, 2026
+
+Reapply enabled meter layouts on world entry using saved positions and current screen geometry, without requiring Test both windows. Reuse existing combat deferral and retain visibility, lock and docking preferences. Implemented with a failing-before/passing-after startup geometry regression; native reload/relog confirmation remains pending.
+
+## Matching combat buff placement and compact tooltips — November 4, 2026
+
+User requests similar icon position/size between normal and combat bars, with subtle tooltips underneath. Share the existing normal bar dimensions, header spacing, centered rows and icon insets/crop. Match full-color artwork and Self/Group scope labels while retaining invisible healthy slots. Center the tooltip below each icon and fit its backdrop to known text rather than the native masking plane. Implemented with layout regression coverage; native visual/hover/expiry checks pending.
+
+## Armor in every starter gear profile — November 4, 2026
+
+User's Loose Chain Boots (62 armor, item level 9) versus equipped Recruit's Boots (2 armor, item level 1) exposed armor being unweighted by all built-ins except Tank. Count armor across all classes: Balanced, Physical, Caster and Healer assign 0.01 points per armor; Tank retains 0.02. Automatic inherits its class starter. Preserve saved custom models, native equip/level eligibility and the existing green preferred/yellow other-usable armor hints. Armor type alone does not force an upgrade. Implemented with regression coverage; native boot-marker/tooltip retest pending.
+
+## Shared missing/expiring combat buffs — November 4, 2026
+
+User approved the working native Battle Shout display and requested broader coverage with healthy buffs hidden. Extend the regular combat reminder area to learned class/custom buffs on self and eligible party/raid members, honoring scope/relevance/party-only choices. One visible slot per family; tooltip lists affected names through native display masking, without exposing combat presence to Lua. No persistent active icon or empty backdrop. Optional expiry warnings use native formatting; known long buffs use the configured interval, short/unknown buffs 15 seconds. Guarded poison/imbue/coating checks remain separate from aura filtering. Implemented with substitute coverage; native shared/tooltip/expiry/performance checks remain pending. The /wfs bufftest card remains an explicit diagnostic only and is not required for normal reminders.
+
+## Innkeeper gossip service choice — November 4, 2026
+
+User requests a service-aware gossip shortcut. Informational chat does not count toward the service count. Shopping plus home-binding (or any second non-chat service) waits for player choice; either supported service alone can advance under its applicable preference. AutoVendor stays shop-only; autoGossip covers the sole binder prompt as well, retaining manual confirmation. Implemented locally with regression coverage; native retest pending.
+
+## Saved Training Planner grouping — November 4, 2026
+
+Persist the existing By level / All levels toggle in character training data. Restore either choice on initialization; older and fresh records retain the all-levels default. Reopening, automatic opening and switching Class/Weapons must preserve the choice. Grouping, costs and manual purchases retain their existing behavior. Implemented locally; native persistence smoke test pending.
+
+## Battle Shout native display experiment — November 4, 2026
+
+User requested a working trial. Add `/wfs bufftest` as an explicit session-only experiment with no saved preference: native player helpful-aura rendering overlays a red CHECK fallback with an ACTIVE icon/timer. Preserve the normal bar, defer setup/stop through combat, and disable native processing on stop. No polling or hidden-state inspection. Implemented and substitute-tested; live widget support/rendering and frame-time behavior remain unverified. Gate any permanent bar integration on the focused native smoke test.
+
+## Native combat buff presentation research — November 4, 2026
+
+Other Forever addons demonstrate native aura rendering layered with reminder art, so Lua need not identify secret buff presence. Investigate an original Suite-owned passive display configured outside combat; verify current-client native APIs and learned-rank coverage first. This is a potential improvement over the current permission-gated panel, not implemented or verified. Avoid icon/visibility polling, cached-state inference and third-party code copying. See the combat display research in forever-development.md for primary references and limits.
+
+## Quest timer fill overlap — November 4, 2026
+
+Keep the tracker fill below the native All Objectives header rather than relying on frame order to render beneath timers. Retain the NineSlice content bottom, native timer layout/input and existing outline. Implemented locally; regression and existing checks pass, with native retest pending. Recorded as Unreleased after v1.0.1.
+
+## Battle Shout combat limitation — November 4, 2026
+
+User's combat checks report both shout auras secret. Preserve the clickable bar's combat hiding and per-spell checks on the independent passive panel; missing-shout detection remains available outside combat. No workaround based on hidden or cached aura state. An unconditional combat reminder is a separate possible behavior, not currently requested or implemented.
+
 ## ForeverWoWBiS drawer compatibility — November 4, 2026
 
 Collect the confirmed `ForeverWoWBiSMinimapButton` despite its private icon texture. Use a narrow exact-name compatibility entry instead of accepting arbitrary iconless minimap controls. Keep the original button, native click/tooltip behavior, safety guards and disable restoration. Implemented locally with a failing-before/passing-after regression; native smoke test remains pending.

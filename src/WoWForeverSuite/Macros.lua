@@ -6,7 +6,7 @@ local Items = Suite.MacroItems
 local Number, Text = Items.Number, Items.Text
 
 Macros.recipes = {
-    { key = "food", name = "FS Food", title = "Food / Health", help = "Eat outside combat: mage food, then event food, then regular food. Optional combat Healthstone and healing potion." },
+    { key = "food", name = "FS Food", title = "Food / Health", help = "Eat outside combat: mage food, then event food, then regular food, including buff food. Optional combat Healthstone and healing potion." },
     { key = "water", name = "FS Drink", title = "Drink / Mana", help = "Drink outside combat: mage water, then event drinks, then regular water. Optional combat mana potion." },
     { key = "bandage", name = "FS Bandage", title = "Bandage", help = "Use your strongest carried bandage on yourself. Native bandage rules still apply." },
     { key = "mainhand", name = "FS Main Hand", title = "Main-hand coating", slot = 16,

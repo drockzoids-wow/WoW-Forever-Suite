@@ -1,5 +1,240 @@
 # Forever Suite in game testing
 
+## Standalone clipboard probe — November 5, 2026
+
+User reports the native failure with only Suite and error reporters enabled during requested copytest. This excludes other third-party addons as required triggers, but not other Suite modules. Matching installed-build 70790 public source confirmed at eac30af597e5aaa43a60f6675ef5fdcea100375f, with unchanged scrolling Lua. Actual running build/Interface remains unreported.
+
+Prepared `dist/diagnostics/WFSClipboardProbe.zip` with exactly two source-matching files under WFSClipboardProbe/. User extracts it into AddOns without overwriting existing addons, restarts if required for discovery, and enables only WFS Clipboard Probe plus optional error reporters, leaving Forever Suite disabled. Outside combat, run `/wfscopyprobe`, select a fresh message and verify clipboard by pasting. No paper button/result callback/chat output exists in this probe. Reload restores native input. Disable probe and restore the user's usual addon set afterward. See `tools/diagnostics/README.md`.
+
+Offline: full Suite checks pass (69 Lua files, identical TOCs, 24,006 assertions); standalone probe separately parses as Lua 5.1 and ZIP inventory verified. No deployment performed. A failed standalone test would show Suite code is not required; it would still not prove which native restriction/bug caused the failure. Native probe result pending.
+
+## Direct copy with minimal addon set — November 5, 2026
+
+Follow-up to requested copytest reports QuestieTrace-attributed CopyToClipboard forbidden action at ScrollingMessageFrame.lua:403. Current taint.log has not changed; attribution alone does not prove the initial cause. Read-only QuestieTrace review found no direct chat-selection hook.
+
+Temporarily enable only WoWForeverSuite plus optional !BugGrabber/BugSack in the AddOns menu. Keep Suite chat styling/history disabled, reload, run `/wfs copytest` and select a fresh main-chat line. Verify actual pasted contents and retain a fresh error if blocked. This isolates the active addon set; it does not disable other Suite modules. Result pending. User manages addon activation; no external addon files, settings, SavedVariables or junction are edited by this investigation.
+
+## Minimal native direct-copy isolation — November 5, 2026
+
+User reports font-hook mitigation failed: highlight clears but clipboard unchanged, paper remains active. User chooses direct selection investigation, declining a copy editor. New behavior exits ordinary paper mode only after a positive native copied-count callback. No callback means no inferred success or cleanup timer. Offline: 69 Lua 5.1 files, matching TOCs and 24,006 assertions pass; clipboard result remains pending.
+
+1. In `/wfs chat`, select Restore Blizzard chat and Disable chat history. `/reload` to discard previously installed Chat/history hooks. Keep other settings constant.
+2. Run `/wfs copytest`, drag-select a new main-chat message and verify by pasting. The command only enables native selection/click input and disables hyperlinks temporarily; no Suite result callback/observers are installed. There is no paper button or success feedback in this isolated test. Repeat `/wfs copytest` or reload to restore input. Record clipboard result and any fresh error.
+3. If native isolation succeeds, test ordinary Suite chat again; after a genuinely successful copy its paper button should turn off and native input/links restore. If isolation fails, record that normal Chat styling/history/callbacks were absent; other active code and client restrictions remain candidates. This diagnostic alone does not establish which remaining source is responsible.
+
+## Native font-hook clipboard candidate — November 5, 2026
+
+User confirms history-off/reload copying still fails, so history is not required. Remove native message-frame font setter hooks; offline checks pass: 69 Lua 5.1 files, identical TOCs and 23,990 assertions. Tests verify setter identity, ordinary-refresh font changes, latest-native-font restoration and unreadable-font preservation. Native taint is not emulated; no successful copy is claimed.
+
+Reload with history still disabled; use the paper button on a fresh message and verify pasted contents and absence of blocked actions. If successful, re-enable history, reload and repeat. Check message font defaults, native font changes followed by settings/window refresh, and Restore Blizzard chat retaining the latest native font. Native font changes now settle at the next ordinary refresh rather than synchronously in the setter. Record actual running build/Interface and result.
+
+## Clipboard trace and history isolation — November 5, 2026
+
+Native taint log collected after the requested procedure: at 02:20:14.745, ChatFrame1:IsSelectingText (ScrollingMessageFrame.lua:322), then CopyToClipboard blocked due to WoWForeverSuite (line 403). Preserve `.cache/chat-clipboard-20261105/taint.log`; no initiating mutation is recorded. Previous copy-setter mitigation remains failed. No code change or new offline test run for this evidence-only follow-up.
+
+Next test: `/wfs chat` → Disable chat history, then `/reload`, retaining Suite styling. Copy a newly received message via the paper button and verify paste/error result. Disabling without reload leaves the history post-hook installed, so reload is essential. Do not clear saved records. If copying works, investigate history hook/replay; if it still fails, history is not required for the reproduction. Result pending.
+
+## Chat clipboard follow-up still fails — November 5, 2026
+
+Clarified native result: after `/reload`, Suite paper button, newly received text below `--- Current session ---`; clipboard action still blocked. Setter-hook mitigation failed this reproduction. This does not rule out shared frame state from history replay. Native taint trace remains pending.
+
+User supplies the same native clipboard failure with `*** ForceTaint_Strong ***` attribution. No successful result is established. Confirm whether the attempt followed reload and used the Suite paper button versus a script/macro, and whether selected text was fresh or restored. Installed executable observed as 1.60.1.70790; running build/Interface remains unreported.
+
+For a useful trace: enter `/console taintLog 2`, then `/reload`; reproduce once through the paper button, enter `/console taintLog 0`, then `/reload` to flush. Inspect `C:/Games/World of Warcraft/_forever_/Logs/taint.log` (or a taint-named rotated file) for the first taint leading to CopyToClipboard. Do not use script commands to manipulate chat frames during this reproduction. No taint-named log existed at the read-only inspection. A changed attribution is not proof of a different root cause or a successful Suite fix.
+
+## Brilliant Smallfish food macro regression — November 5, 2026
+
+User reports an empty food macro while carrying Brilliant Smallfish (screenshot: 58 health over 18 sec, Well Fed Attack Power and kill-experience buff). Offline plain/inline-color/wrapped tooltip cases produce a nonempty food macro; 69 Lua 5.1 files, identical TOCs and 23,986 assertions pass. Actual running build/Interface and native result pending.
+
+1. Reload outside combat with the pictured fish in normal bags. Open `/wfs macros`, choose FS Food and Select automatically. With no higher-priority food carried, preview must name/use the fish. Also check Choose item lists it. Create / update with Blizzard's macro editor closed; confirm the saved General macro/action bar is usable outside combat and grants the native food effect.
+2. Remove/restock fish with automatic updates enabled, then repeat with updates off and explicit Create / update. Test mage/seasonal priority, specific fish selection and combat deferral. If still empty, retain `/wfs macrostatus`, preview/status text and whether Choose item lists the fish; visible tooltip wording alone does not establish raw item metadata or macro ownership/loading state.
+
+## Native chat clipboard blocked-action retest — November 5, 2026
+
+User reports Suite-attributed CopyToClipboard forbidden action in the native selection handler. Current mitigation removes post-hooks from native secure copy setters; its causal hypothesis and native result remain unverified. Offline: 69 Lua 5.1 files, identical TOCs and 23,971 substitute assertions pass, including setter identity, ownership handoff and existing gesture/input/combat tests.
+
+1. `/reload` to discard existing hooks and tainted state. Record `/wfs status`, actual running build/Interface and enabled addons. Enable Suite chat, click its paper button, select a fresh ordinary chat line and paste into a text field. Verify actual clipboard contents and absence of blocked actions; repeat with saved history, Suite output, Unicode, links and wrapped/multiple lines.
+2. Toggle copy off/on, switch chat windows, hide/show the toolbar, start typing, enter/leave combat and restore/re-enable Blizzard chat. Native links, click-through and drafts should restore. Repeat after reload with the usual addon setup.
+3. If it still fails, retain a fresh error plus enabled chat/history settings and identify whether the selected line was fresh, restored history or addon output. Capture a native taint log to identify the first taint source before claiming a confirmed root cause. Do not infer clipboard success from highlighting or substitute tests.
+
+## Separate centered combat weapon row — November 5, 2026
+
+User-approved design supersedes the shared-row expectations below. Offline: 69 Lua 5.1 files, identical TOCs and 23,971 substitute assertions pass. Native visual/taint verification pending; record actual running build/Interface.
+
+1. Reload with Battle Shout and MH Rough Sharpening Stone prepared, matching the supplied diagnostic. Keep the stone coating healthy and Shout missing; enter combat. Battle Shout must be centered directly under Missing Buffs. Let the stone coating expire: its reminder should appear centered on a separate row beneath Shout, without shifting the aura/title.
+2. Cover Shout while the stone is missing, then cover both, then let each approach expiry/expire independently. The weapon row retains its lower vertical position while native rows are reserved. No background/captions or duplicate title position should appear. Empty areas remain click-through and icon tooltips remain functional.
+3. Test two ordinary weapon reminders, then cover either one: remaining ordinary icons should center within their row. With no native families prepared, ordinary reminders should use the first row. Check default and saved positions, 150% bar scale, changed icon sizes, reload and combat transitions. Native icons must not move sideways or vertically solely because weapon capacity changes. Multiple native healthy-family gaps remain a known limitation.
+
+## Capture remaining combat offset — November 5, 2026
+
+Latest user screenshot still shows a lone combat icon left of the title after the coating-capacity fix. Do not mark that fix as resolving the reported centering issue. Reload, reproduce and run `/wfs buffstatus`; retain Aura slots and Additional slots reserved with actual build/Interface. These lines describe public prepared slots, not current native aura visibility. Diagnostic-only update passes 69 Lua 5.1 files, identical TOCs and 23,960 substitute assertions; live output pending.
+
+## Combat coating phantom-slot regression — November 5, 2026
+
+Offline: 69 Lua 5.1 files, identical TOCs, 23,958 substitute assertions pass. Native retest pending; record actual running build/Interface.
+
+1. Reload with only Battle Shout configured as a native combat aura reminder, weapon-coating reminders enabled, and no selected coating item carried. Enter combat with Shout missing: it should remain centered beneath Missing Buffs without a reserved empty coating slot.
+2. Repeat carrying only an unselected alternative coating. Its outside-combat selection prompt must not reserve combat space. Restock the selected coating: a genuine combat slot returns and both reminders can appear.
+3. Cover/apply each real reminder independently. Healthy eligible reminders still reserve native/fallback slots; this patch does not implement general visible-only combat centering. Check combat transitions for errors and preserve existing outside-combat alignment.
+
+## Food macro includes buff food — November 5, 2026
+
+Offline checks pass: 69 Lua 5.1 files, matching TOCs and 23,946 substitute assertions. Native retest pending. This supersedes earlier instructions to omit buff food from FS Food; FS Drink keeps its existing exclusion. Record `/wfs status` and actual running build/Interface.
+
+1. Open `/wfs macros` with only health-restoring buff food carried. Automatic FS Food should preview that item. Create/update and press outside combat; verify native eating and the buff after its required eating time.
+2. Carry stronger buff food and weaker ordinary food: buff food should win within the same tier. Add mage food, then seasonal food without mage food: existing tier priority must remain. Choose a specific buff food to override automatic selection. Test percentage-restoring buff food and food above your level.
+3. With Keep created macros current on, consume/remove/restock buff food and verify existing owned FS Food updates outside combat. With updates off, use Create / update. Confirm pending item data, combat, native macro editor visibility and external edits retain their safeguards; FS Drink and optional combat supplies behave as before.
+
+## Buff title center correction — November 5, 2026
+
+User screenshot follow-up: outside-combat alignment looks correct; during combat a lone Battle Shout icon is visibly left of the title center. Combat centering fails this visual check. Actual running build/Interface unreported. No runtime correction established by this follow-up.
+
+Check title text is centered on the icon-row axis in normal/preview/combat displays at different icon sizes/scales. Locking/unlocking must not shift the words or saved placement. The lock mark extends to the right independently. Substitute tests cover the corrected anchors; native retest is pending.
+
+Known limitation: visible combat icons can be off-center when other reserved native/fallback slots are healthy and hidden. This change does not compact restricted combat slots; do not mark always-centered combat visibility as implemented or verified.
+
+## Combat weapon reminders without the old box — November 4, 2026
+
+User screenshots establish the old separate boxed weapon fallback still appears on combat entry. Substitute regressions cover removal of backdrop/captions and shared layout; native retest remains pending. This supersedes prior expectations that weapon reminders appear below native aura slots.
+
+1. Reload with Battle Shout and a configured weapon coating missing. Enter combat: both icons should occupy the same shared row under a compact floating Missing Buffs title, without the old BUFF REMINDERS box or MH/status text. The independent IN COMBAT indicator retains its own settings/appearance.
+2. Hover each icon for the below-icon tooltip. Empty space/title must pass input through. Apply/expire the coating and shout separately: only needed icons should remain. Reserved native slots can stay empty when healthy; no persistent box/title should remain when all reminders are covered.
+3. Repeat at custom bar size/scale and a saved dragged position, with only a weapon reminder, with several weapon/aura families, and after a weapon swap. Check reload/combat transitions for Lua/taint errors. Record running build/Interface before marking verified.
+
+## Combined recipients and floating buff title — November 4, 2026
+
+This supersedes the title-removal and group/hand-caption expectations below. Substitute checks pass; native layout/input/taint retest and actual running build/Interface remain pending.
+
+1. In a party with Battle Shout missing on you and others, confirm one icon, no count/Group/Self caption, and one tooltip listing everyone including you. Cover yourself only, then another member: only uncovered names should remain. Repeat with a targeted buff such as Fortitude; outside-combat clicking advances through missing recipients. Test custom group buffs and recipient-specific blessing alternatives.
+2. Confirm small floating Missing Buffs words with no outer background/border outside combat and in both previews. Drag the normal title unlocked, lock it, stop preview and compare placement. Locked title and all empty space should pass input through; real normal icons keep click actions and below-icon tooltips. Combat icons keep hover tooltips and the title never captures input.
+3. Enter combat with missing recipients, cover everyone, let a buff approach expiry and then expire. The shared icon and combat title should appear only for missing/near-expiry coverage. Check several rows/families at alternate size/UI scale; title remains at one shared location, not repeated over each icon. Confirm no Lua/taint errors, polling or layout mutation in combat.
+
+## Icon-only normal/combat buff appearance — November 4, 2026
+
+Live appearance supersedes the header/lock checks below: no outer panel, title or Self caption. Substitute checks pass; actual running build/Interface and native retest remain pending.
+
+1. Reload with a missing personal buff. Confirm only its icon appears outside combat, with no enclosing panel/title or Self label. Enter combat and compare icon size and coordinates. Apply it, then let it expire; existing visibility behavior must remain intact.
+2. Open Buff bar appearance and the normal preview. Its temporary panel/header should support dragging when unlocked. Lock, stop preview and compare both live versions without a position jump. Live empty/header space must pass input through in both lock states; outside-combat buff icons retain casting and tooltips.
+3. Check group reminders and weapon reminders: group counts/scope and MH/OH labels remain useful, tooltip names still appear, and no Lua/taint errors occur during combat transitions or preview cleanup.
+
+## Buff movement locking and superscript lock mark — November 4, 2026
+
+User reports lock-time snapping and mouse interception by the locked header, and requests an open/closed superscript lock instead of / LOCKED. A 120%-scale drag/lock regression fails before the inverse scale correction. All 69 Lua 5.1 files, identical TOCs and 23,904 assertions pass afterward; native retest remains pending. Record actual build/Interface and UI scale.
+
+1. Reload, set bar scale to 120% or 135%, drag the ordinary bar to a new location and lock it through appearance controls. Confirm it stays at the placed coordinates. Repeat using the normal preview header, then stop preview and compare the live and combat bars. Unlock/relock, reload/relog, and change scale: the saved center should remain fixed. Check default/reset placement too.
+2. The title should stay MISSING BUFFS with a small passive lock above/after BUFFS: closed when locked, open when unlocked. No locked suffix, width jump or extra mouse target should appear. Check readability at normal and alternate UI scales.
+3. Locked title/header/empty borders must allow mouse hover and clicks to reach gameplay beneath. Live buff icons must still show tooltips and perform their normal outside-combat actions. Unlocking restores header dragging; a locked header must not drag or reset on Ctrl-right-click. Locked preview background is also click-through, while unlocked preview background safely absorbs clicks.
+4. Enter combat while dragging or while settings are open. Protected layout/input changes must remain deferred, normal bar combat hiding and passive checks must remain intact, and no blocked action or Lua error should occur. Verify weapon reminders stay correctly below native aura slots at custom scale.
+
+## Shared buff size sliders and previews — November 4, 2026
+
+All 69 Lua 5.1 files, matching TOCs and 23,887 substitute assertions pass. Tests cover 64-pixel settings retention, real normal icon sizing, paired preview size/scale/inset parity, non-actionable samples, restoration/combat cleanup and native rebuild deferral. Native GUI/layout/taint testing remains pending; record actual build/Interface and UI scale.
+
+1. Reload and open `/wfs buffs` > Buff bar appearance > Bar appearance. Drag Icon size from 24 to 64 px and Bar scale from 70% to 150%, including intermediate values. Controls/labels should stay within the scrollable panel; existing choices should be retained initially. Reset restores 34 px, 100% and unlocked movement.
+2. Preview normal bar: sample icons should match current size/scale/crop and never cast. Drag its header when unlocked. Switch to Preview combat icons: the normal sample disappears, with the same icon dimensions/scale/position shown in combat style. Resize while the combat preview is active. The real clickable bar should stay hidden underneath. Stop preview and confirm real reminders return normally.
+3. Switch manager tabs, close settings, navigate away and enter combat during a preview/slider drag. Samples must disappear without protected layout mutation or lingering preview. Controls disable during combat and recover afterward. Repeat with the real buff feature disabled; previews should remain usable outside combat and stop safely on combat entry.
+4. Release the slider at your chosen value, then check live missing/expiring combat reminders and tooltips. Native groups should reconstruct after release, not throughout the drag. Check large icons with several families and weapon reminders. Reload/relog to verify shared size/scale persistence. Record errors and visual results before marking the changes verified.
+
+## Secret Shown and combat tooltip cleanup — November 4, 2026
+
+User supplied 30 blocked OnHide handler assignments during native aura preallocation. A stricter inherited-Shown fixture reproduces the failure before correction. All 69 Lua 5.1 files, matching TOCs and 23,840 assertions pass after moving cleanup to the ordinary cell. Actual running build/Interface and native retest remain pending.
+
+1. Reload with combat reminders and expiry warnings enabled. Startup/refresh should produce no blocked SetScript OnHide errors. Toggle expiry warnings and the buff bar off/on outside combat to exercise native setup again.
+2. Enter combat, hover a missing icon, apply/refresh the buff and let it enter the expiry-warning window. Verify hover opens the below-icon tooltip, leaving closes it, and transition/end-of-combat cleanup does not leave stale tooltip art or generate errors.
+3. Test with party members and a setting/roster change that suspends combat bindings. Tooltips should disappear when Suite hides the public cell/context. Confirm normal item overlays and independent weapon-reminder anchors still work. Record any new stack separately.
+
+## Native aura widgets in item scans — November 4, 2026
+
+User reports four Items:ScanVisible secret-boolean failures on native aura-provider buttons. Regression rejects visibility access on a non-item native widget and fails against the old scan; all 69 Lua 5.1 files, matching TOCs and 23,838 assertions pass after the fix. Native retest pending; record actual build/Interface.
+
+1. Reload with item levels/upgrade hints and combat buff reminders enabled. Open bags, equipment and bank and confirm item overlays still appear and refresh. Newly loaded ordinary item buttons must remain discoverable.
+2. Enter/leave combat with native buff widgets active; apply/expire buffs and allow addon-load/after-combat scans to run. Confirm no secret-boolean or access error in Items:ScanVisible/Refresh/Track. Check the native buff display remains intact.
+3. Disable/re-enable item levels and hints, including while an item refresh is queued; repeat bag/equipment changes and reopen containers. No stale labels, deferred creation while disabled or blocked actions should appear. Report any new stack separately.
+
+## Combat buff forbidden-aspect anchor regression — November 4, 2026
+
+User reported Frame:SetPoint rejecting BuffReminders:PlaceCombat's dependency on the native aura host (UntrustedLayoutScriptExecution). A stricter anchor substitute reproduces the error before the fix; 69 Lua 5.1 files, matching TOCs and 23,826 assertions pass after independent UIParent anchoring. Native retest pending; record actual build/Interface.
+
+1. Reload the canonical source, open Missing Buffs settings, and enable combat buff/coating reminders. Let ordinary aura/inventory updates refresh the bar. Confirm no SetPoint/forbidden-aspect error recurs, including when no weapon reminder is currently needed.
+2. With aura and weapon reminders both visible, check their spacing at default placement, a saved dragged position, and changed bar scale/icon size. The weapon row should remain below native aura slots without overlap. Reset placement and repeat.
+3. Enter/exit combat, refresh/expire a buff, hover its tooltip, toggle settings during combat, and disable/re-enable afterward. Native masking, deferred layout and cleanup should remain functional without blocked actions or additional errors. Report any new stack separately.
+
+## Damage meters after reload — November 4, 2026
+
+User screenshots show enabled meters absent before Test and visible during preview. Installed saved settings specify both shown with always visibility, valid positions, lock and docking. New substitute regression reproduces stale completed startup geometry and fails before the world-entry layout fix. All 69 Lua 5.1 files, identical TOCs and 23,820 assertions pass; exact native cause and correction remain unverified. Record actual running build/Interface.
+
+1. Stop Test, enable both meters with visibility Always, place and lock them at the desired positions. Reload without opening Suite settings or starting Test: both headers and real data (or Waiting for combat data) must appear at the saved positions. Repeat reload, relog and a full restart, with docked and detached windows and another UI scale.
+2. Open/close settings, toggle Test on then off, and reload again. Test must remain off; saved dimensions, positions, lock and enabled windows must persist. Verify disabled windows stay hidden and Combat/Group visibility preferences retain their behavior.
+3. Cross a loading screen in combat where possible: positioning must defer until combat ends, with no blocked action. Confirm real damage/healing refresh normally afterward. If windows still disappear, capture the first Lua error and `/wfs status` before pressing Test.
+
+## Combat buff icon and tooltip alignment — November 4, 2026
+
+User screenshots confirm a missing combat icon renders but reveal differing ordinary/combat position and artwork bounds; tooltip placement is reported too wide and lateral. New layout regression fails before adjustment. All 69 Lua 5.1 files, identical TOCs and 23,814 substitute assertions pass afterward. Native appearance remains pending; record actual build/Interface and UI scale.
+
+1. Reload with a single buff missing. Compare its icon outside and inside combat at the default position: artwork size, crop, inset and center should match. Repeat with a saved custom bar position, lock state, scale and icon size. Combat should retain Self/Group scope wording and no permanent empty panel.
+2. Hover a missing combat icon: a compact slate tooltip should appear centered below the caption with a small gap. Check a short name, long buff title and several party members. Only affected names should be visible; covered rows may reserve space. Check at alternate scales and near screen edges.
+3. Buff/refresh in combat, enter the expiry-warning window, and let the buff expire. Icon and tooltip name masking must continue without sideways text, stale labels or visible empty tooltip backgrounds. Repeat with multiple families/rows and weapon-coating reminders. Healthy families retain their fixed native slots; compacting their positions from hidden state is not supported.
+
+## Armor-only gear upgrade hints — November 4, 2026
+
+Offline regression reproduced the original omission. All 69 Lua 5.1 files, matching TOCs and 23,749 substitute assertions pass. Native results pending; record `/wfs status`, running build/Interface and comparison settings.
+
+1. Reload, enable Possible upgrades in `/wfs gear`, select Prefer: Stats and Comparison profile: Automatic. On a level-4-or-higher Warrior with Recruit's Boots equipped, inspect Loose Chain Boots: expect a green + and a +0.6 Automatic Physical stat improvement. The breakdown should show +60 armor at 0.01 points each. Confirm bag icon and tooltip agree.
+2. Check armor-only gains under Balanced, Physical, Caster and Healer (+0.6 for +60 armor), and Tank (+1.2). Repeat Automatic on other classes with gear they can equip. Preferred armor stays green, other usable armor yellow; armor type alone must not create a positive score. At level 40, existing armor preferences should still switch appropriately.
+3. Check an armor gain that loses more weighted bonus stats: it should not be marked if the total score falls. Confirm an existing custom profile deliberately omitting armor retains its scoring, and Item level mode still compares levels. Unusable and too-high-level gear must remain unmarked. Record any missing marker with the complete item tooltips, active profile and running build.
+
+## Shared combat missing/expiry checks — November 4, 2026
+
+User's screenshots/results now confirm both combat transitions in the separate Battle Shout prototype: applying the buff reveals ACTIVE/countdown, expiry reveals CHECK. This does not yet verify the newly integrated inverse clips, shared icons, name tooltips or expiry-warning bindings. Record /wfs status, /wfs buffstatus, actual running build/Interface and UI scale.
+
+1. Reload to stop the session test card. Enable Missing buff bar and Combat buff reminders in /wfs > Missing Buffs; enable Warn before buffs expire to test early warnings. Use the existing self, class upkeep and party/raid scopes. During combat, confirm only missing/expiring checks appear at the saved bar position, with no BATTLE SHOUT / TEST panel, permanent ACTIVE icons or empty header/backdrop.
+2. As a warrior, enter combat without Battle Shout, cast it from the action bar, and remain fighting through expiry. Check should disappear on coverage and return on expiry. With expiry warnings enabled, check near the 15-second boundary; refreshing should hide it again. Verify partial clipping, stale glows/text or frozen chips are absent.
+3. In a party, have several eligible members missing the same buff. Expect one family icon. Hover: only missing/soon names should be readable; covered names should be blank, with reserved row space allowed. Buff one member, then all; verify names and icon update without duplicate icons. Check actual tooltip hover, position near screen edges, scale, and click-through to gameplay. Repeat in a raid, including another subgroup for party-only shouts/auras.
+4. Test additional learned class buffs and a custom learned reminder, multiple ranks, greater/prayer/group equivalents and smart-recipient relevance. Unlearned or hidden families must remain absent. Test permanent aspects/forms/auras without spurious expiry warnings. For a 30-minute buff observed outside combat, test the selected 30/60/120 warning; one first applied during combat may conservatively use 15 seconds until its total duration has been observed outside combat.
+5. Test rogue main/off-hand poisons, a shield/non-weapon off hand, shaman imbues and configured coatings. Missing/soon reminders should use guarded readable enchant data, remain passive and sit below aura slots. Apply/replace/remove enchants and swap weapons during combat: unknown or stale data must not invent a reminder. Verify normal out-of-combat poison/coating actions are unchanged.
+6. Change settings/scopes or roster/connection during combat: stale bindings should hide until combat ends. Change class characters, group size, choices, size/scale and saved position outside combat; reload and disable/re-enable. Native processing must stop when disabled, with no blocked action or Lua error. /wfs buffstatus should report prepared families and any setup/expiry-binding error.
+7. Compare solo, party and raid preparation time and frame-time stability with reminders off/on, particularly large priest/paladin buff sets. No addon polling was added, but native groups allocate/update per member and performance is not yet measured. Capture failures/screenshots before calling the integrated feature verified.
+
+## Innkeeper gossip service choice — November 4, 2026
+
+The mixed vendor/binder/chat regression failed against the old vendor shortcut. All 68 Lua 5.1 files, identical TOCs and 23,568 substitute assertions pass after the change; native behavior remains pending.
+
+1. Reload and talk to Innkeeper Belm with auto gossip and/or automatic vendor opening enabled. Shopping plus Make this inn your home must leave the menu open, regardless of the informational inn question. Verify both services can still be selected manually.
+2. With auto gossip enabled, test an NPC with only a home-setting service, with and without informational chat. Suite may select that option but the native home-binding confirmation must await your click. Cancel it and confirm the home location remains unchanged. With auto gossip off and autoVendor on alone, home-setting must remain manual.
+3. Test a sole shop service beside chat and an NPC with another non-chat service beside shopping. Only the former should open automatically. Repeat holding Shift, with a menu changing before deferred work, and entering combat: the existing bypass/cancellation behavior must remain intact. Record running build/Interface and results.
+
+## Saved Training Planner level view — November 4, 2026
+
+Record `/wfs status` and the actual running build/Interface. Native results pending. Final full offline check: 68 Lua 5.1 files, matching TOCs and 23,568 assertions pass, including the saved-toggle regressions.
+
+1. Open `/wfs training`, press By level and check grouped pages and the All levels button. Close/reopen, switch Weapons then Class, and open through enabled spellbook/trainer/level-up paths: grouped view should remain selected.
+2. Reload and relog: grouped view should persist. Press All levels and repeat; six-row all-level paging should persist and the button should offer By level.
+3. Use a second character with a different selection and return to the first; each should keep its own mode. Older/fresh records should default to all levels. Check saved trainer offerings/position, prices, navigation and Lua errors.
+
+## Native Battle Shout test card — November 4, 2026
+
+Session-only `/wfs bufftest` prototype: 68 Lua 5.1 files, identical TOCs and 23,507 substitute assertions pass. Installed Wow.exe observation is 1.60.1.70790; obtain actual running build/Interface with `/wfs status`. Native widget acceptance/rendering, restrictions, performance and taint remain unverified.
+
+User screenshot confirms the test widget was created and displayed ACTIVE with a three-minute Battle Shout timer. User explicitly has not yet checked Battle Shout during combat; combat refresh/expiry/absence transitions, actual build/Interface, performance and taint remain pending.
+
+1. On the warrior, reload and run `/wfs status`, then `/wfs bufftest` outside combat. Record any printed setup error verbatim. A separate BATTLE SHOUT / TEST card should appear below the usual default bar; normal buff reminders must remain unchanged.
+2. Without Battle Shout, check for a red CHECK fallback. Cast Battle Shout from the normal action bar: the card should show the native full-color icon, teal ACTIVE label and countdown. Remove the buff outside combat and confirm CHECK returns. Repeat using the current learned rank and a lower rank where available; report any mismatch.
+3. Enter combat with the buff active, refresh it from the action bar, and let it expire while remaining in combat. Confirm the native countdown follows the refresh and CHECK becomes visible on expiry. Enter combat without the buff and apply it during the fight; the native ACTIVE display should cover CHECK. Capture screenshots/video of both transitions and any error. Do not infer success from out-of-combat behavior alone.
+4. Repeat `/wfs bufftest` in combat: it must print that the change is queued, then stop after leaving combat. Re-enable outside combat and confirm it reuses the prepared display. Reload and verify the test stays off until explicitly invoked. No new casting button or modified Blizzard buff placement should appear. Stop the test when finished.
+5. Compare frame rate/frame-time stability with the card off/on under similar combat conditions. No network requests or addon polling are added, but actual rendering cost remains unmeasured. Return the status build, setup message, transition results and any errors before marking this prototype successful or integrating it into the regular bar.
+
+## Quest timer overlap recurrence — November 4, 2026
+
+User screenshot shows the October timer-layer fix did not prevent renewed dimming. New regression fails before implementation and passes with fill starting at All Objectives, below the timer area, while its bottom remains at NineSlice. All 67 Lua 5.1 files, matching TOCs and 23,455 substitute assertions pass. No native retest performed; record actual build/Interface.
+
+1. Reload the junction-linked canonical source with a timed quest active and tracker skin enabled. Quest Timers, its border and countdown must remain bright; compare skin On/Off. The slate fill should start at All Objectives, with no dark overlay in the timer area above it.
+2. Let the countdown advance, add/remove or finish a timer, and test a timer appearing after login. Check native hover/clicks, tracker movement/scale in Edit Mode, collapsed/empty/expanded contents and skin disable/re-enable. No stale fill or quest-content overlap should remain.
+3. Enter/exit combat with the timer visible and toggle the skin in combat. Native countdowns must continue while Suite layout/restoration defers. Record screenshots and any blocked action/Lua error before calling the fix verified.
+
+## Battle Shout combat diagnosis — November 4, 2026
+
+User reports the bar disappears on entering combat and returns on exit, with the Battle Shout warning absent only during combat. Their in-combat `C_Secrets.ShouldSpellAuraBeSecret` checks returned `true` for both Battle Shout and Commanding Shout. This confirms the permission guard suppresses that family in the passive combat panel on this client; it does not establish a visibility regression. Actual running build/Interface is still unreported. Existing checks pass 67 Lua 5.1 files, matching TOCs and 23,452 substitute assertions, including permitted combat display and suppression when per-spell permission is restricted or unreadable. No runtime change made.
+
 ## ForeverWoWBiS drawer compatibility — November 4, 2026
 
 The private-texture BiS launcher regression failed before the fix; 67 Lua 5.1 files, matching TOCs and 23,452 substitute assertions now pass. Native compatibility remains unverified; record the actual running build/Interface with `/wfs status`.

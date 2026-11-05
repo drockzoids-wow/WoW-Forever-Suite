@@ -185,7 +185,16 @@ end
 RestackFill(bodyLayer)
 equal(bodyLayer.strata, "BACKGROUND", "parent restacking cannot raise the fill over tracker labels or buttons")
 equal(bodyLayer.frameLevel, 0, "parent releveling cannot raise the fill over BACKGROUND quest timers")
-equal(skin.panels[tracker].textures[1].points[1][2], tracker.NineSlice, "body follows native content bounds rather than reserved tracker height")
+-- Timers can tie the fill at BACKGROUND level zero. Their reserved area is
+-- above All Objectives, but still inside NineSlice; frame order alone is insufficient.
+local fill = skin.panels[tracker].background
+equal(fill.points[1][2], tracker.Header, "body fill starts below the native timer area at All Objectives")
+equal(fill.points[1][4], -30, "body fill retains the native left margin")
+equal(fill.points[2][2], tracker.NineSlice, "body fill still ends at the native content bottom")
+local tops = { [tracker.NineSlice] = 700, [tracker.Header] = 600 }
+local timerBottom = 620
+equal(tops[fill.points[1][2]] + (fill.points[1][5] or 0) <= timerBottom, true,
+    "fill cannot cover a same-level timer above the main header")
 equal(skin.panels[first.Header].textures[1].parent, first.Header, "section panel follows native header visibility and parent")
 equal(#skin.panels[first.Header].textures, 1, "section header has only one underline")
 equal(skin.panels[first.Header].background, nil, "section header has no separate boxed background")

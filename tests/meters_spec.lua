@@ -239,6 +239,24 @@ equal(meters.layoutPending, false, "successful startup recovery clears pending l
 data = startupData; meters:Refresh()
 equal(#meters.windows, 2, "enable creates exactly two windows")
 local first, second = meters.windows[1], meters.windows[2]
+do
+    -- A completed login layout is not proof that UIParent has its final geometry.
+    local savedPositions = Suite.Copy(Suite.db.meterWindows)
+    first.frame:Hide(); second.frame:Hide()
+    UIParent.width, UIParent.height = 1200, 900
+    meters.events:OnEvent("PLAYER_ENTERING_WORLD")
+    equal(first.frame.point[4], savedPositions[1].position.x * 1200,
+        "world entry reapplies the saved horizontal anchor against settled geometry")
+    equal(second.frame.point[5], savedPositions[2].position.y * 900,
+        "world entry reapplies the saved vertical anchor against settled geometry")
+    equal(first.frame:IsShown(), true, "reload world entry restores the enabled damage window without preview")
+    equal(second.frame:IsShown(), true, "reload world entry restores the enabled healing window without preview")
+    equal(first.empty.text, "", "world entry immediately restores actual session rows")
+    equal(meters.preview, nil, "world entry restoration never enables test data")
+    UIParent.width, UIParent.height = 1000, 800
+    Suite.db.meterWindows = savedPositions
+    meters:Layout(); meters:Refresh()
+end
 equal(#first.rows, 8, "default first meter allocates only its eight visible rows")
 equal(#second.rows, 8, "default second meter allocates only its eight visible rows")
 do

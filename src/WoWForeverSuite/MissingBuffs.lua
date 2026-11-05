@@ -98,6 +98,7 @@ function Buffs:Auras(unit)
         if aura == nil then return present end
         if not Read(aura, "table") or not Text(aura.name) or not ID(aura.spellId) then return end
         present.names[aura.name], present.ids[aura.spellId] = true, true
+        if Suite.CombatBuffs then Suite.CombatBuffs:Observe(unit, aura) end
         if Suite.db.missingBuffExpiry then present.records[#present.records + 1] = Suite.BuffReminders:AuraRecord(aura) end
     end
     -- A truncated scan cannot establish that a buff is absent.
@@ -234,7 +235,7 @@ function Buffs:DisplayOptions(db)
     db=db or Suite.db or {}
     local scale,size=db.missingBuffScale,db.missingBuffIconSize
     if not Number(scale) or scale < 0.7 or scale > 1.5 then scale=1 end
-    if not Number(size) or size < 24 or size > 48 then size=34 end
+    if not Number(size) or size < 24 or size > 64 then size=34 end
     return scale,math.floor(size)
 end
 
@@ -300,6 +301,7 @@ function Buffs:Collect()
     for _, family in ipairs(families) do
         local personalFamily = self:Recipient(family,player.class)
         local spell, catalog = personalFamily.spell, family.catalog
+        local personalEntry
         if spell then
             local personal = not catalog.group or catalog.upkeep
             local present, remaining = self:Present(personalFamily, auras.player, true)
@@ -308,7 +310,8 @@ function Buffs:Collect()
                 else present = self:Weapon(16, Enum and Enum.WeaponSlot and Enum.WeaponSlot.MainHand, true) end
             end
             if (personal and Suite.db.missingBuffClass or not personal and Suite.db.missingBuffSelf) and present == false then
-                entries[#entries + 1] = { kind = "self", family = personalFamily, spell = spell, unit = "player", guid = player.guid, names = { player.name }, remaining = remaining }
+                personalEntry = { kind = "self", family = personalFamily, spell = spell, unit = "player", guid = player.guid, names = { player.name }, remaining = remaining }
+                entries[#entries + 1] = personalEntry
             end
         end
         if catalog.group and Suite.db.missingBuffOutgoing and #family.choices > 0 then
@@ -331,6 +334,17 @@ function Buffs:Collect()
                 local names,soon={},nil
                 for _,item in ipairs(bucket.members) do names[#names+1]=item.member.name;if item.remaining then soon=math.max(soon or 0,item.remaining) end end
                 local missing=bucket.members[1].member
+                -- One actionable icon per spell, with the player in the same
+                -- recipient list. Retain the normal per-recipient spell choices.
+                if personalEntry and personalEntry.spell.id == bucket.spell.id then
+                    table.insert(names,1,player.name)
+                    missing=player
+                    if personalEntry.remaining then soon=math.max(soon or 0,personalEntry.remaining) end
+                    for index,entry in ipairs(entries) do
+                        if entry == personalEntry then table.remove(entries,index);break end
+                    end
+                    personalEntry=nil
+                end
                 local target=catalog.party and player or missing
                 local present=self:Present(personalFamily,auras.player,true)
                 local passive=catalog.toggle and present ~= false
@@ -436,15 +450,21 @@ function Buffs:Notify(entries)
     if #lines > 0 then Suite.Print("Missing buffs: " .. table.concat(lines, "; ") .. ".") end
 end
 
-function Buffs:Place(frame)
+function Buffs:Place(frame, belowHeight)
     if InCombatLockdown() then return end
+    if not Number(belowHeight) or belowHeight < 0 then belowHeight = nil end
     local saved = Suite.db.missingBuffPosition
     local scale = self:DisplayOptions()
     frame:SetScale(scale)
+    local effective, parentScale = Call(frame.GetEffectiveScale, frame), Call(UIParent.GetEffectiveScale, UIParent)
+    if not Number(effective) or effective <= 0 or not Number(parentScale) or parentScale <= 0 then return end
+    local ratio = effective / parentScale
     frame:ClearAllPoints()
     if Read(saved, "table") and Number(saved.x) and Number(saved.y) and math.abs(saved.x) <= 0.5 and math.abs(saved.y) <= 0.5 then
-        frame:SetPoint("CENTER", UIParent, "CENTER", saved.x * UIParent:GetWidth(), saved.y * UIParent:GetHeight())
-    else frame:SetPoint("TOP", UIParent, "TOP", 0, -140) end
+        if belowHeight then
+            frame:SetPoint("TOP", UIParent, "CENTER", saved.x * UIParent:GetWidth() / ratio, saved.y * UIParent:GetHeight() / ratio - belowHeight / 2 - 8)
+        else frame:SetPoint("CENTER", UIParent, "CENTER", saved.x * UIParent:GetWidth() / ratio, saved.y * UIParent:GetHeight() / ratio) end
+    else frame:SetPoint("TOP", UIParent, "TOP", 0, -140 / ratio - (belowHeight and belowHeight + 8 or 0)) end
 end
 
 function Buffs:StopMoving(frame)
@@ -463,6 +483,20 @@ function Buffs:StopMoving(frame)
     end
 end
 
+function Buffs:ApplyLock(frame)
+    if InCombatLockdown() or not frame or not frame.buffHeader then return end
+    local locked = Suite.db.missingBuffLocked == true
+    frame:SetMovable(not locked)
+    frame:EnableMouse(false)
+    local header = frame.buffHeader
+    header:Show()
+    header:EnableMouse(not locked)
+    header.lock.right:SetShown(locked)
+    for _, part in ipairs(header.lock.parts) do
+        part:SetColorTexture(locked and 0.41 or 0.55, locked and 0.84 or 0.65, locked and 0.75 or 0.7, 0.75)
+    end
+end
+
 function Buffs:Header(frame, title)
     frame:SetMovable(true); frame:SetClampedToScreen(true)
     local header = CreateFrame("Frame", nil, frame)
@@ -477,8 +511,22 @@ function Buffs:Header(frame, title)
     header:SetScript("OnMouseUp", function(_, button)
         if button == "RightButton" and not Suite.db.missingBuffLocked and IsControlKeyDown() then self:ResetPosition() end
     end)
-    local caption = Label(header, 10); caption:SetPoint("CENTER"); caption:SetJustifyH("CENTER"); caption:SetText(title)
+    local caption = Label(header, 10); caption:SetPoint("CENTER", header, "CENTER", 0, 0); caption:SetJustifyH("CENTER"); caption:SetText(title)
     header.caption = caption
+    -- Passive superscript mark: stable title width, no extra mouse target.
+    local lock = CreateFrame("Frame", nil, header)
+    lock:SetSize(8, 9); lock:SetPoint("BOTTOMLEFT", caption, "RIGHT", 2, 0); lock:EnableMouse(false)
+    lock.parts = {}
+    local function Part(width, height, x, y)
+        local part = lock:CreateTexture(nil, "ARTWORK")
+        part:SetSize(width, height); part:SetPoint("CENTER", lock, "CENTER", x, y)
+        lock.parts[#lock.parts + 1] = part
+        return part
+    end
+    Part(6, 4, 0, -2); Part(1, 3, -2.5, 2); Part(5, 1, 0, 4)
+    lock.right = Part(1, 3, 2.5, 2)
+    header.lock, frame.buffHeader = lock, header
+    self:ApplyLock(frame)
     return header
 end
 
@@ -488,8 +536,8 @@ function Buffs:Build()
     local controller = CreateFrame("Frame", nil, UIParent, "SecureHandlerStateTemplate")
     local bar = CreateFrame("Frame", nil, controller, "SecureHandlerBaseTemplate,BackdropTemplate")
     self.controller, self.bar = controller, bar
-    bar:SetFrameStrata("MEDIUM"); bar:SetSize(242, 70); Surface(bar); self:Place(bar)
-    self.header = self:Header(bar, "MISSING BUFFS")
+    bar:SetFrameStrata("MEDIUM"); bar:SetSize(242, 70); self:Place(bar)
+    self.header = self:Header(bar, "Missing Buffs")
     bar:Hide()
     controller:SetFrameRef("bar", bar)
     controller:SetAttribute("_onstate-combat", [[
@@ -523,7 +571,7 @@ function Buffs:Tooltip(button)
     local entry = button.entry
     if not entry or not GameTooltip then return end
     if entry.kind == "coating" then Suite.BuffReminders:Tooltip(button, false); return end
-    GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
+    GameTooltip:SetOwner(button, "ANCHOR_BOTTOM")
     GameTooltip:AddLine(entry.spell.name, 0.41, 0.84, 0.75)
     if entry.kind == "incoming" then
         GameTooltip:AddLine((entry.remaining and "Expiring soon on you. " or "Missing on you. ") .. "A nearby group member may provide it: " .. Suite.BuffReminders:Names(entry), 1, 1, 1, true)
@@ -648,6 +696,18 @@ function Buffs:Button(index)
     return button
 end
 
+function Buffs:BarLayout(count)
+    -- Keep shared icon coordinates beneath the compact floating movement title.
+    local _, size = self:DisplayOptions()
+    local stride, rowStride = size + 9, size + 14
+    local columns = math.min(8, math.max(1, count))
+    local caption = self.header and self.header.caption
+    local titleWidth = caption and Call(caption.GetUnboundedStringWidth, caption)
+    if not Number(titleWidth) or titleWidth <= 0 or titleWidth > 4096 then titleWidth = 96 end
+    local width = math.ceil(math.max(titleWidth + 14 + (columns - 1) * 9, columns * stride + 5))
+    return width, 28 + math.ceil(math.max(1, count) / 8) * rowStride, size, stride, rowStride
+end
+
 function Buffs:Refresh()
     self:Cancel()
     if InCombatLockdown() then Suite.AfterCombat("missingBuffs", function() self:Apply() end); return end
@@ -672,16 +732,11 @@ function Buffs:Refresh()
         Suite.BuffReminders:PlaceCombat(); Suite.BuffReminders:Schedule(); return
     end
     if not self:Build() then return end
-    local _,size = self:DisplayOptions()
     if not self.bar.moving then self:Place(self.bar) end
-    local stride,rowStride = size + 9,size + 14
-    self.header.caption:SetText(Suite.db.missingBuffLocked and "MISSING BUFFS / LOCKED" or "MISSING BUFFS")
-    local columns = math.min(8, #entries)
-    local titleWidth = Call(self.header.caption.GetUnboundedStringWidth, self.header.caption)
-    if not Number(titleWidth) or titleWidth <= 0 or titleWidth > 4096 then titleWidth = 96 end
-    -- Small lists fit the title, with a little growth for each additional buff.
-    local width = math.ceil(math.max(titleWidth + 14 + (columns - 1) * 9, columns * stride + 5))
-    self.bar:SetSize(width, 28 + math.ceil(#entries / 8) * rowStride)
+    self.header.caption:SetText("Missing Buffs")
+    self:ApplyLock(self.bar)
+    local width, height, size, stride, rowStride = self:BarLayout(#entries)
+    self.bar:SetSize(width, height)
     for index, entry in ipairs(entries) do
         local button = self:Button(index)
         button.entry = entry
@@ -697,7 +752,7 @@ function Buffs:Refresh()
             button:SetAttribute("type1", "macro"); button:SetAttribute("macrotext1", "/use item:" .. entry.item.id .. "\n/use " .. entry.slot)
         end
         button.icon:SetTexture(entry.spell.icon)
-        button.caption:SetText((entry.kind == "poison" or entry.kind == "coating") and entry.hand or entry.kind == "incoming" and "Group" or entry.kind == "group" and tostring(#entry.names) or "Self")
+        button.caption:SetText("")
         if entry.kind == "incoming" then Suite.Theme:Backdrop(button, 0.9)
         else Suite.Theme:Backdrop(button, 0.8) end
         button:Show()
@@ -706,7 +761,8 @@ function Buffs:Refresh()
         local button = self.buttons[index]
         button:Hide(); button.entry = nil; button:SetAttribute("type1", nil); button:SetAttribute("spell1", nil); button:SetAttribute("unit", nil); button:SetAttribute("macrotext1", nil)
     end
-    self.bar:Show()
+    if self.preview and self.preview:IsShown() or Suite.CombatBuffs and Suite.CombatBuffs.previewActive then self.bar:Hide()
+    else self.bar:Show() end
     Suite.BuffReminders:PlaceCombat(); Suite.BuffReminders:Schedule()
 end
 
@@ -769,17 +825,60 @@ function Buffs:Apply()
 end
 
 function Buffs:SetPreview(show)
-    if not show then if self.preview then self:StopMoving(self.preview); self.preview:Hide() end; return end
+    if Suite.CombatBuffs then Suite.CombatBuffs:SetPreview(false) end
+    if not show then
+        if self.preview and self.preview:IsShown() then self:StopMoving(self.preview); self.preview:Hide(); self:Queue() end
+        return
+    end
     if InCombatLockdown() or not self.settingsVisible then return end
     if not self.preview then
         local preview = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
         self.preview = preview
-        preview:SetFrameStrata("DIALOG"); preview:SetSize(320, 75); Surface(preview)
-        preview:EnableMouse(true); self:Header(preview, "MISSING BUFFS / POSITION PREVIEW")
-        local text = Label(preview, 11); text:SetPoint("BOTTOMLEFT", 10, 14); text:SetText("Self   ·   Group   ·   Carried items   ·   Class upkeep")
+        preview:SetFrameStrata("DIALOG")
+        preview:EnableMouse(false); self:Header(preview, "Missing Buffs")
+        preview.samples = {}
         preview:SetScript("OnHide", function() self:StopMoving(preview); if self.bar and not InCombatLockdown() then self:Place(self.bar) end end)
     end
-    self:Place(self.preview); self.preview:Show()
+    local entries = self:PreviewEntries()
+    local width, height, size, stride = self:BarLayout(#entries)
+    self.preview:SetSize(width, height)
+    for index, entry in ipairs(entries) do
+        local sample = self.preview.samples[index]
+        if not sample then
+            sample = CreateFrame("Frame", nil, self.preview, "BackdropTemplate"); Surface(sample); sample:EnableMouse(false)
+            sample.icon = sample:CreateTexture(nil, "ARTWORK")
+            sample.icon:SetPoint("TOPLEFT", 2, -2); sample.icon:SetPoint("BOTTOMRIGHT", -2, 2)
+            sample.icon:SetTexCoord(0.06, 0.94, 0.06, 0.94)
+            sample.caption = Label(sample, 9); sample.caption:SetPoint("TOP", sample, "BOTTOM", 0, -2)
+            self.preview.samples[index] = sample
+        end
+        sample:SetSize(size, size); sample:ClearAllPoints()
+        sample:SetPoint("TOPLEFT", self.preview, "TOPLEFT", (width - (#entries * stride - 9)) / 2 + (index - 1) * stride, -25)
+        sample.icon:SetTexture(entry.spell.icon); sample.caption:SetText(""); sample:Show()
+    end
+    for index = #entries + 1, #self.preview.samples do self.preview.samples[index]:Hide() end
+    self:ApplyLock(self.preview); self:Place(self.preview); self.preview:Show()
+    if self.bar then self.bar:Hide() end
+end
+
+function Buffs:PreviewEntries()
+    local entries, native = {}, Suite.CombatBuffs
+    for _, key in ipairs(native and native.order or {}) do
+        local record = native.records[key]
+        if record then
+            local members = record.descriptor.members
+            entries[#entries + 1] = { spell = record.descriptor.spell, scope = #members == 1 and members[1].unit == "player" and "Self" or "Group" }
+        end
+        if #entries == 3 then break end
+    end
+    if #entries == 0 then
+        for _, entry in ipairs(self.entries or {}) do
+            if entry.spell then entries[#entries + 1] = { spell = entry.spell, scope = entry.kind == "self" and "Self" or "Group" } end
+            if #entries == 3 then break end
+        end
+    end
+    if #entries == 0 then entries[1] = { spell = self:Spell(6673) or { name = "Sample buff", icon = 134400 }, scope = "Self" } end
+    return entries
 end
 function Buffs:SetSettingsVisible(visible)
     self.settingsVisible = visible

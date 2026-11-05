@@ -195,6 +195,9 @@ local commandPages = {
 SlashCmdList.WOWFOREVERSUITE = function(message)
     local command = message:match("^%s*(%S*)"):lower()
     if command == "status" then Suite.Status()
+    elseif command == "copytest" then Suite.Chat:NativeCopyTest()
+    elseif command == "bufftest" then Suite.NativeBuffTest:Toggle()
+    elseif command == "buffstatus" then Suite.CombatBuffs:Status()
     elseif command == "containerstatus" then
         local itemID = message:match("^%s*%S+%s+(%d+)%s*$")
         if itemID then Suite.AutoOpen:Status(tonumber(itemID))

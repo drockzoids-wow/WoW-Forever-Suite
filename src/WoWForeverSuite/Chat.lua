@@ -131,6 +131,12 @@ function Chat:PaintInputBorder(record)
     Suite.Theme:Backdrop(record.inputPane, (0.4 + opacity * 0.2) * 1.3, color)
 end
 function Chat:Paint(record)
+    -- Check ownership at ordinary UI refreshes, never in the native copy gesture.
+    if self.copyRecord == record then
+        local callback, copyable = record.frame:GetOnTextCopiedCallback(), record.frame:IsTextCopyable()
+        if not Suite.IsReadable(callback) or callback ~= record.copyState.installedCallback
+            or (Read(copyable, "boolean") and not copyable) then self:StopCopy() end
+    end
     local _, opacity = self:Options()
     for _, pane in ipairs(record.panes) do
         if pane == record.tabPane then self:PaintTab(record, opacity)
@@ -172,6 +178,9 @@ function Chat:RememberFont(record, object)
     if not font or type(object.SetFont) ~= "function" then return end
     local entry = { object = object, font = font }
     record.fonts[#record.fonts + 1] = entry
+    -- Native message-frame font setters are secure mixin entry points. Observe
+    -- their current font at normal refresh/restore instead of wrapping them.
+    if object == record.frame then return end
     local function Changed()
         if self.changing or not record.applied or not self:Enabled() then return end
         entry.font = Font(object)
@@ -186,8 +195,19 @@ function Chat:Fonts(record, restore)
     local changing = self.changing; self.changing = true
     local size = self:Options()
     for _, entry in ipairs(record.fonts) do
-        if entry.font and Writable(entry.object) then
-            entry.object:SetFont(entry.font[1], restore and entry.font[2] or size, entry.font[3])
+        local readable = true
+        if entry.object == record.frame and record.applied then
+            local current, applied = Font(entry.object), entry.appliedFont
+            if not current then
+                readable = false
+            elseif applied and (current[1] ~= applied[1] or current[2] ~= applied[2] or current[3] ~= applied[3]) then
+                entry.font = current -- Preserve a later native font choice on restoration.
+            end
+        end
+        if readable and entry.font and Writable(entry.object) then
+            local targetSize = restore and entry.font[2] or size
+            entry.object:SetFont(entry.font[1], targetSize, entry.font[3])
+            entry.appliedFont = not restore and { entry.font[1], targetSize, entry.font[3] } or nil
         end
     end
     self.changing = changing
@@ -263,9 +283,42 @@ function Chat:EditBounds(record, restore)
     self.changing = changing
 end
 
+-- Diagnostic isolation only: no mouse scripts, observers, result callbacks or
+-- selection/history reads. Reload discards this temporary input configuration.
+function Chat:NativeCopyTest()
+    if InCombatLockdown() then Suite.Print("Leave combat before changing the copy test."); return end
+    local state = self.nativeCopyTest
+    local frame = state and state.frame or ChatFrame1
+    if not Writable(frame) then Suite.Print("Native chat copy test is unavailable."); return end
+    if state then
+        frame:SetTextCopyable(state.copyable)
+        frame:SetMouseClickEnabled(state.mouse)
+        frame:SetHyperlinksEnabled(state.links)
+        self.nativeCopyTest = nil
+        Suite.Print("Native chat copy test stopped.")
+        return
+    end
+    if self:Enabled() or Suite.ChatHistory:Enabled() or next(self.records)
+        or Suite.ChatHistory.hooks[frame] then
+        Suite.Print("Restore Blizzard chat and disable chat history in /wfs chat, then /reload before /wfs copytest.")
+        return
+    end
+    for _, method in ipairs({ "SetTextCopyable", "IsTextCopyable", "SetMouseClickEnabled", "IsMouseClickEnabled",
+        "SetHyperlinksEnabled", "GetHyperlinksEnabled" }) do
+        if type(frame[method]) ~= "function" then Suite.Print("Native chat copy test is unavailable."); return end
+    end
+    local copyable, mouse, links = frame:IsTextCopyable(), frame:IsMouseClickEnabled(), frame:GetHyperlinksEnabled()
+    if not Read(copyable, "boolean") or not Read(mouse, "boolean") or not Read(links, "boolean") then return end
+    self.nativeCopyTest = { frame = frame, copyable = copyable, mouse = mouse, links = links }
+    frame:SetHyperlinksEnabled(false)
+    frame:SetTextCopyable(true)
+    frame:SetMouseClickEnabled(true)
+    Suite.Print("Native copy test: drag across main-chat text, then verify by pasting. Repeat /wfs copytest or /reload to stop.")
+end
 function Chat:CopyResult(record, count)
     if self.copyRecord ~= record or not self:Enabled() or InCombatLockdown() then return end
     if Number(count) and count > 0 and count == math.floor(count) then
+        self:StopCopy()
         Suite.Print("Chat text copied to clipboard.")
     else
         Suite.Print("The game did not confirm copying that selection to the clipboard.")
@@ -279,6 +332,8 @@ function Chat:StopCopy()
         return
     end
     local state, frame = record.copyState, record.frame
+    local copyable = frame:IsTextCopyable()
+    if Read(copyable, "boolean") and not copyable then state.copyable = false end
     self.copyRecord, record.copyState = nil, nil
     local changing = self.changing; self.changing = true
     local callback = frame:GetOnTextCopiedCallback()
@@ -358,7 +413,7 @@ function Chat:Button(record)
         GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
         GameTooltip:AddLine(self.copyRecord == record and "Copy mode is on" or "Copy chat text", 0.41, 0.84, 0.75)
         GameTooltip:AddLine("Click, then drag across text. Release to copy.", 0.88, 0.91, 0.93)
-        GameTooltip:AddLine("Click again to return to normal chat.", 0.55, 0.65, 0.7)
+        GameTooltip:AddLine("Copying ends this mode. Click again to cancel.", 0.55, 0.65, 0.7)
         GameTooltip:Show()
     end)
     button:SetScript("OnLeave", function()
@@ -469,17 +524,16 @@ function Chat:Remember(frame)
             self.changing = true; self:Style(record); self.changing = false
         end
     end)
-    for _, method in ipairs({ "SetMouseClickEnabled", "SetTextCopyable", "SetHyperlinksEnabled", "SetOnTextCopiedCallback" }) do
+    -- Leave secure copy entry points unwrapped while investigating the reported
+    -- native clipboard taint. Native testing must confirm the cause and result.
+    -- Callback/copyability ownership is checked on refresh and restored on exit.
+    for _, method in ipairs({ "SetMouseClickEnabled", "SetHyperlinksEnabled" }) do
         if type(frame[method]) == "function" then
-            local key = method == "SetMouseClickEnabled" and "mouse" or method == "SetTextCopyable" and "copyable" or "links"
+            local key = method == "SetMouseClickEnabled" and "mouse" or "links"
             hooksecurefunc(frame, method, function(_, value)
-                if not self.changing and record.copyState then
-                    if method == "SetOnTextCopiedCallback" then
-                        self:StopCopy() -- Preserve the new owner's callback immediately.
-                    elseif Read(value, "boolean") then
-                        record.copyState[key] = value
-                        self:StopCopy() -- Yield to a newer native/owner input change.
-                    end
+                if not self.changing and record.copyState and Read(value, "boolean") then
+                    record.copyState[key] = value
+                    self:StopCopy() -- Yield to a newer native/owner input change.
                 end
             end)
         end
@@ -498,7 +552,7 @@ end
 function Chat:Style(record)
     if not Writable(record.frame) then return end
     if not record.applied then
-        for _, entry in ipairs(record.fonts) do entry.font = Font(entry.object) end
+        for _, entry in ipairs(record.fonts) do entry.font, entry.appliedFont = Font(entry.object), nil end
         for _, entry in ipairs(record.alphas) do
             if Available(entry.object) then
                 local alpha = entry.object:GetAlpha()
@@ -562,6 +616,13 @@ function Chat:Schedule()
     self.timer = C_Timer.NewTimer(0, function() self.timer = nil; self:Apply() end)
 end
 function Chat:Apply()
+    if self.nativeCopyTest and self:Enabled() then
+        self:NativeCopyTest()
+        if self.nativeCopyTest then
+            Suite.AfterCombat("chat", function() self:Apply() end)
+            return
+        end
+    end
     if self.timer then self.timer:Cancel(); self.timer = nil end
     if not self:Enabled() then
         self:StopCopy()

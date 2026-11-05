@@ -277,7 +277,7 @@ function Items:Resolve(button, record)
 end
 
 function Items:Update(button, record)
-    if button.IsForbidden and button:IsForbidden() then return end
+    if not self:UsableFrame(button) then return end
     if not Suite.db or (not Suite.db.itemLevels and not Suite.db.upgradeHints) then
         if record.level then record.level:SetText(""); record.arrow:SetText("") end
         return
@@ -325,8 +325,7 @@ end
 
 function Items:Track(button, item, supplied)
     if not Suite.db or (not Suite.db.itemLevels and not Suite.db.upgradeHints) then return end
-    if not Suite.IsReadable(button) or not button or not button.CreateFontString then return end
-    if button.IsForbidden and button:IsForbidden() then return end
+    if not self:UsableFrame(button) or type(button.CreateFontString) ~= "function" then return end
     local record = self.buttons[button]
     if not record then
         record = {}
@@ -352,9 +351,21 @@ function Items:Track(button, item, supplied)
     self:Update(button, record)
 end
 
+function Items:UsableFrame(frame)
+    if not Suite.IsReadable(frame) or (type(frame) ~= "table" and type(frame) ~= "userdata") then return false end
+    local predicate = frame.IsForbidden
+    if not Suite.IsReadable(predicate) then return false end
+    if predicate ~= nil and (type(predicate) ~= "function" or Read(predicate, frame) ~= false) then return false end
+    return true
+end
+
+function Items:VisibleFrame(frame)
+    return self:UsableFrame(frame) and Read(frame.IsVisible, frame) == true
+end
+
 function Items:VisitContainer(frame)
     if not Suite.db or (not Suite.db.itemLevels and not Suite.db.upgradeHints) then return end
-    if not frame or (frame.IsForbidden and frame:IsForbidden()) then return end
+    if not self:UsableFrame(frame) then return end
     if not self.containers[frame] then
         self.containers[frame] = true
         frame:HookScript("OnShow", function() self:VisitContainer(frame) end)
@@ -362,7 +373,7 @@ function Items:VisitContainer(frame)
             if frame[method] then hooksecurefunc(frame, method, function() self:VisitContainer(frame) end) end
         end
     end
-    if not frame:IsVisible() then return end
+    if not self:VisibleFrame(frame) then return end
     if frame.EnumerateValidItems then
         -- Bags yield index/button; bank pools yield button/active-marker.
         for first, second in frame:EnumerateValidItems() do
@@ -384,15 +395,18 @@ function Items:ScanVisible()
     self:ScanContainers()
     if not EnumerateFrames then return end
     local frame = EnumerateFrames()
-    while frame do
-        if not (frame.IsForbidden and frame:IsForbidden()) and frame:IsVisible()
-            and frame.SetItemButtonQuality and (frame.GetItemLink or frame.GetItemLocation or frame.GetBagID) then self:Track(frame) end
+    while Suite.IsReadable(frame) and frame do
+        -- Native aura widgets also appear here. Establish item capabilities
+        -- before asking about visibility, which can remain secret out of combat.
+        if self:UsableFrame(frame) and type(frame.SetItemButtonQuality) == "function"
+            and (type(frame.GetItemLink) == "function" or type(frame.GetItemLocation) == "function" or type(frame.GetBagID) == "function")
+            and self:VisibleFrame(frame) then self:Track(frame) end
         frame = EnumerateFrames(frame)
     end
 end
 
 function Items:Refresh()
-    for button, record in pairs(self.buttons) do if button:IsVisible() then self:Update(button, record) end end
+    for button, record in pairs(self.buttons) do if self:VisibleFrame(button) then self:Update(button, record) end end
 end
 
 function Items:Initialize()

@@ -110,7 +110,7 @@ local function BackgroundLayer(parent)
         return
     end
     -- Parent restacking must never raise the opaque fill over native text or controls.
-    -- Native quest timers also live below the LOW tracker, in BACKGROUND strata.
+    -- Timers may tie this layer; the fill also excludes the area above the main header.
     layer:SetFixedFrameStrata(true)
     layer:SetFixedFrameLevel(true)
     layer:SetFrameStrata("BACKGROUND")
@@ -152,14 +152,18 @@ function Skin:Panel(parent, target, header, pass)
         end
         self.panels[parent] = panel
     end
-    if panel.target ~= target then
+    local fillTop = not header and Anchorable(parent.Header) and parent.Header or target
+    if panel.target ~= target or panel.fillTop ~= fillTop then
         panel.target = target
+        panel.fillTop = fillTop
         -- Reuse the same outline for empty/full contents; native anchors stay untouched.
         local left, right = 0, 0
         if not header and target == parent.Header then left, right = -30, 5 end
         if panel.background then
             panel.background:ClearAllPoints()
-            panel.background:SetPoint("TOPLEFT", target, "TOPLEFT", left, 0)
+            -- Native timers reserve space above All Objectives within NineSlice.
+            -- Never paint that area, even when timer/fill strata and levels tie.
+            panel.background:SetPoint("TOPLEFT", fillTop, "TOPLEFT", fillTop == parent.Header and -30 or left, 0)
             panel.background:SetPoint("BOTTOMRIGHT", target, "BOTTOMRIGHT", right, 0)
         end
         for side, edge in pairs(panel.edges) do

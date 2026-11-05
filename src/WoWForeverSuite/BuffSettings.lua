@@ -41,6 +41,30 @@ end
 local function Icon(parent,x,y)
     local icon=parent:CreateTexture(nil,"ARTWORK");icon:SetSize(26,26);icon:SetPoint("TOPLEFT",x,y);return icon
 end
+local function Slider(parent,x,y,width,low,high,callback)
+    local slider=CreateFrame("Slider",nil,parent)
+    slider:SetPoint("TOPLEFT",x,y);slider:SetSize(width,20);slider:SetOrientation("HORIZONTAL")
+    slider:SetMinMaxValues(low,high);slider:SetValueStep(1);slider:SetObeyStepOnDrag(true);slider:EnableMouse(true)
+    slider:SetThumbTexture("Interface\\Buttons\\WHITE8X8")
+    slider:GetThumbTexture():SetSize(10,18);slider:GetThumbTexture():SetColorTexture(unpack(colors.teal))
+    local track=slider:CreateTexture(nil,"BACKGROUND");track:SetHeight(4)
+    track:SetPoint("LEFT",5,0);track:SetPoint("RIGHT",-5,0);track:SetColorTexture(0.17,0.25,0.29,1)
+    slider.label=Label(slider,"",0,22,width,11,colors.teal)
+    Label(slider,tostring(low),0,-24,60,9,colors.muted)
+    Label(slider,tostring(high),width-40,-24,40,9,colors.muted)
+    slider:SetScript("OnValueChanged",function(_,value)
+        if View.syncing or InCombatLockdown() or not Suite.IsReadable(value) or type(value)~="number"
+            or value~=value or math.abs(value)==math.huge then return end
+        callback(math.max(low,math.min(high,math.floor(value+0.5))))
+    end)
+    slider:SetScript("OnMouseDown",function() if not InCombatLockdown() then View.sliding=true end end)
+    slider:SetScript("OnMouseUp",function() View.sliding=nil;Buffs:Queue() end)
+    slider:SetScript("OnHide",function()
+        if View.sliding then View.sliding=nil;Buffs:Queue() end
+    end)
+    View.controls[#View.controls+1]=slider
+    return slider
+end
 function View:Cancel()
     self.work=nil
     if self.timer then self.timer:Cancel();self.timer=nil end
@@ -57,6 +81,11 @@ function View:Queue()
 end
 function View:Dismiss()
     self:Cancel()
+    local sliding=self.sliding
+    self.sliding=nil
+    if sliding then Buffs:Queue() end
+    if Suite.CombatBuffs then Suite.CombatBuffs:SetPreview(false) end
+    Buffs:SetPreview(false)
     self.mode,self.message=nil,nil;Suite.pending.buffManager=nil
     if self.panel then self.panel:Hide();self.search:ClearFocus();self.choiceSearch:ClearFocus() end
 end
@@ -79,8 +108,13 @@ function View:Display(key,value)
         if Buffs.preview then Buffs:StopMoving(Buffs.preview) end
     end
     Suite.db[key]=value
+    if key=="missingBuffLocked" then
+        Buffs:ApplyLock(Buffs.bar);Buffs:ApplyLock(Buffs.preview)
+    end
     if Buffs.bar then Buffs:Place(Buffs.bar) end
     if Buffs.preview then Buffs:Place(Buffs.preview) end
+    if Buffs.preview and Buffs.preview:IsShown() then Buffs:SetPreview(true) end
+    if Suite.CombatBuffs then Suite.CombatBuffs:UpdatePreview() end
     Suite.BuffReminders:PlaceCombat();Buffs:Queue();self:Refresh()
 end
 function View:Build()
@@ -91,28 +125,26 @@ function View:Build()
     for i,entry in ipairs(modes) do self.tabs[entry[1]]=Button(panel,entry[2],(i-1)*264,0,252,function() self.mode,self.message=entry[1],nil;self:Refresh() end) end
     self.status=Label(panel,"",0,-40,780,11,colors.gold);self.status:SetHeight(30)
     local display=CreateFrame("Frame",nil,panel);self.display=display
-    display:SetPoint("TOPLEFT",0,-80);display:SetSize(780,300)
+    display:SetPoint("TOPLEFT",0,-80);display:SetSize(780,340)
     Label(display,"Make the reminders comfortable to read.",0,0,780,14,colors.teal)
-    Label(display,"Teal icons cast your learned spells. Gold Group icons request a teammate's buff when clicked.\nThe action bar pauses in combat; passive combat reminders use their own option.",0,-30,780,11,colors.muted)
-    self.scale=Button(display,"",0,-90,252,function()
-        local current=Buffs:DisplayOptions();local list={0.8,1,1.2,1.4};local nextValue=list[1]
-        for i,value in ipairs(list) do if math.abs(current-value)<0.001 then nextValue=list[i%#list+1];break end end
-        self:Display("missingBuffScale",nextValue)
-    end)
-    self.size=Button(display,"",264,-90,252,function()
-        local _,current=Buffs:DisplayOptions();local list={28,34,40,48};local nextValue=list[1]
-        for i,value in ipairs(list) do if current==value then nextValue=list[i%#list+1];break end end
-        self:Display("missingBuffIconSize",nextValue)
-    end)
+    Label(display,"Normal and combat icons share these size and scale settings.\nPreviews are visual only; combat reminders are refreshed from your action bar.",0,-30,780,11,colors.muted)
+    self.scale=Slider(display,0,-108,252,70,150,function(value) self:Display("missingBuffScale",value/100) end)
+    self.size=Slider(display,264,-108,252,24,64,function(value) self:Display("missingBuffIconSize",value) end)
     self.lock=Button(display,"",528,-90,252,function() self:Display("missingBuffLocked",not Suite.db.missingBuffLocked) end)
-    self.rested=Button(display,"",0,-138,384,function() self:Display("missingBuffRested",not Suite.db.missingBuffRested) end)
-    self.smart=Button(display,"",396,-138,384,function() self:Display("missingBuffSmart",not Suite.db.missingBuffSmart) end)
-    Label(display,"Class-aware targets include Intellect and mana recovery for all Forever mana classes, including Hunters and Druids in any form. Turn this off if you prefer reminders for every class.",0,-184,780,11,colors.muted)
-    Button(display,"Preview bar position",0,-242,252,function() Buffs:SetPreview(true) end)
-    Button(display,"Reset appearance",264,-242,252,function()
+    self.rested=Button(display,"",0,-156,384,function() self:Display("missingBuffRested",not Suite.db.missingBuffRested) end)
+    self.smart=Button(display,"",396,-156,384,function() self:Display("missingBuffSmart",not Suite.db.missingBuffSmart) end)
+    Label(display,"Class-aware targets include Intellect and mana recovery for all Forever mana classes, including Hunters and Druids in any form. Turn this off if you prefer reminders for every class.",0,-198,780,11,colors.muted)
+    self.normalPreview=Button(display,"Preview normal bar",0,-252,252,function()
+        Buffs:SetPreview(not (Buffs.preview and Buffs.preview:IsShown()));self:Refresh()
+    end)
+    self.combatPreview=Button(display,"Preview combat icons",264,-252,252,function()
+        if Suite.CombatBuffs then Suite.CombatBuffs:SetPreview(not Suite.CombatBuffs.previewActive) end;self:Refresh()
+    end)
+    Button(display,"Reset appearance",528,-252,252,function()
         self:Display("missingBuffScale",1);self:Display("missingBuffIconSize",34);self:Display("missingBuffLocked",false)
     end)
-    Button(display,"Close these controls",528,-242,252,function() self:Dismiss();GUI:Select("buffs") end)
+    Label(display,"Drag the normal preview header to move both versions. Previews stop when you leave these controls or enter combat.",0,-296,516,11,colors.muted)
+    Button(display,"Close these controls",528,-296,252,function() self:Dismiss();GUI:Select("buffs") end)
     local choices=CreateFrame("Frame",nil,panel);self.choices=choices
     choices:SetPoint("TOPLEFT",0,-80);choices:SetSize(780,490)
     Label(choices,"Find a hidden reminder or choose a learned alternative.",0,0,780,14,colors.teal)
@@ -147,7 +179,7 @@ function View:Build()
     local spells=CreateFrame("Frame",nil,panel);self.spells=spells
     spells:SetPoint("TOPLEFT",0,-80);spells:SetSize(780,650)
     Label(spells,"Choose a learned spell by name or icon.",0,0,780,14,colors.teal)
-    Label(spells,"Custom reminders are optional and stay outside combat. Choose a buff you can cast; adding a spell never casts it.",0,-28,780,11,colors.muted)
+    Label(spells,"Choose a buff you can cast; adding a reminder never casts it. Combat reminders use your combat setting.",0,-28,780,11,colors.muted)
     self.search=Input(spells,0,-60,580,function(value) self.query=value;self.spellPage=1;self:Refresh() end)
     self.search.hint=Label(self.search,"Search your learned spells",8,-7,564,11,colors.muted)
     Button(spells,"Clear search",592,-60,188,function() self.query="";self.search:SetText("");self.spellPage=1;self:Refresh() end)
@@ -236,7 +268,11 @@ function View:Refresh()
     local ready=not InCombatLockdown()
     for _,control in ipairs(self.controls) do control:SetEnabled(ready) end
     self.status:SetText(not ready and "Controls are available after combat." or self.message or "")
-    if not ready then return end
+    if not ready then
+        self.sliding=nil;Buffs:SetPreview(false)
+        return
+    end
+    if self.mode~="display" then Buffs:SetPreview(false) end
     for mode,tab in pairs(self.tabs) do
         Suite.Theme:Backdrop(tab, mode == self.mode and 1 or 0.35)
     end
@@ -244,7 +280,10 @@ function View:Refresh()
     self.choiceSearch.hint:SetShown(not self.choiceQuery or self.choiceQuery=="")
     local scale,size=Buffs:DisplayOptions()
     self.scale.label:SetText("Bar scale: "..math.floor(scale*100+0.5).."%")
-    self.size.label:SetText("Icon size: "..size)
+    self.size.label:SetText("Icon size: "..size.." px")
+    self.syncing=true;self.scale:SetValue(math.floor(scale*100+0.5));self.size:SetValue(size);self.syncing=nil
+    self.normalPreview.label:SetText(Buffs.preview and Buffs.preview:IsShown() and "Stop normal preview" or "Preview normal bar")
+    self.combatPreview.label:SetText(Suite.CombatBuffs and Suite.CombatBuffs.previewActive and "Stop combat preview" or "Preview combat icons")
     self.lock.label:SetText(Suite.db.missingBuffLocked and "Movement: locked" or "Movement: unlocked")
     self.rested.label:SetText(Suite.db.missingBuffRested and "Rested areas: show reminders" or "Rested areas: pause reminders")
     self.smart.label:SetText(Suite.db.missingBuffSmart and "Class-aware targets: on" or "Class-aware targets: off")
@@ -322,6 +361,6 @@ function View:Refresh()
             end
         end
     end
-    self.panel:SetHeight(self.mode=="display" and 380 or self.mode=="choices" and 80+(self.choiceHeight or 490) or 80+(self.spellsHeight or 650))
+    self.panel:SetHeight(self.mode=="display" and 420 or self.mode=="choices" and 80+(self.choiceHeight or 490) or 80+(self.spellsHeight or 650))
     if GUI.page=="buffs" then GUI:LayoutPage("buffs") end
 end

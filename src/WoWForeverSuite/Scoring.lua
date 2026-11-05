@@ -7,12 +7,14 @@ local function Number(value)
 end
 
 -- These are deliberately simple, disclosed stat preferences, not class simulations.
+-- Every starter values armor: 100 armor = 1 point (Tank retains 2 points).
+-- Armor type remains hint-color guidance rather than an unconditional score bonus.
 Scoring.order = { "balanced", "physical", "caster", "healer", "tank" }
 Scoring.presets = {
-    balanced = { label = "Balanced", meleeDPS = 1, rangedDPS = 1, weights = { STRENGTH = 1, AGILITY = 1, INTELLECT = 1, STAMINA = 0.5, SPIRIT = 0.25 } },
-    physical = { label = "Physical", meleeDPS = 7, rangedDPS = 7, weights = { STRENGTH = 1, AGILITY = 1, STAMINA = 0.25, ATTACK_POWER = 0.5, RANGED_ATTACK_POWER = 0.5 } },
-    caster = { label = "Caster", meleeDPS = 0, rangedDPS = 1, weights = { INTELLECT = 1, STAMINA = 0.25, SPIRIT = 0.25, SPELL_POWER = 1, SPELL_DAMAGE_DONE = 1 } },
-    healer = { label = "Healer", meleeDPS = 0, rangedDPS = 1, weights = { INTELLECT = 1, SPIRIT = 0.75, STAMINA = 0.25, SPELL_POWER = 1, SPELL_HEALING_DONE = 0.5, MANA_REGENERATION = 1 } },
+    balanced = { label = "Balanced", meleeDPS = 1, rangedDPS = 1, weights = { STRENGTH = 1, AGILITY = 1, INTELLECT = 1, STAMINA = 0.5, SPIRIT = 0.25, ARMOR = 0.01 } },
+    physical = { label = "Physical", meleeDPS = 7, rangedDPS = 7, weights = { STRENGTH = 1, AGILITY = 1, STAMINA = 0.25, ATTACK_POWER = 0.5, RANGED_ATTACK_POWER = 0.5, ARMOR = 0.01 } },
+    caster = { label = "Caster", meleeDPS = 0, rangedDPS = 1, weights = { INTELLECT = 1, STAMINA = 0.25, SPIRIT = 0.25, SPELL_POWER = 1, SPELL_DAMAGE_DONE = 1, ARMOR = 0.01 } },
+    healer = { label = "Healer", meleeDPS = 0, rangedDPS = 1, weights = { INTELLECT = 1, SPIRIT = 0.75, STAMINA = 0.25, SPELL_POWER = 1, SPELL_HEALING_DONE = 0.5, MANA_REGENERATION = 1, ARMOR = 0.01 } },
     tank = { label = "Tank", meleeDPS = 1, rangedDPS = 1, weights = { STAMINA = 1, STRENGTH = 0.5, AGILITY = 0.5, ARMOR = 0.02, DEFENSE_SKILL_RATING = 1 } },
 }
 
