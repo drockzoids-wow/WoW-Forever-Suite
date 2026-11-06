@@ -27,6 +27,26 @@ local function Text(parent, size, color)
 end
 
 local pages = {
+    whatsnew = { title = "What's New", singleColumn = true, description = "Recent additions · Choose a feature to find its controls.", rows = {
+        { action = "newsTraining", label = "Pin your next training", help = "Pin class skills and ranks in Training Planner. Review their estimated total\nwith trained skills excluded, then choose base or recorded prices." },
+        { action = "newsSupplies", label = "Keep a supply checklist", help = "Choose item targets for this character and see what your bags are missing.\nCarried-item tracking starts off; purchases and item use stay manual." },
+        { action = "newsMail", label = "Watch recorded mail deadlines", help = "Optionally record mailbox deadlines during visits and review them across alts.\nSaved times show when they were checked; login reminders flag nearby deadlines." },
+        { action = "newsTalents", label = "Plan and learn talent builds", help = "Create drafts or browse your class leveling starter.\nPreview planned levels and follow the build through native talent learning." },
+        { action = "newsContacts", label = "Organize your contacts anywhere", help = "Edit full names, categories and notes away from the mailbox.\nFind contacts with search and category filters." },
+        { action = "newsMacros", label = "More class macros", help = "Find leveling and PvP utilities for your class, alongside supply macros.\nPreview and explicitly create each recipe; native spell rules still apply." },
+        { action = "newsShortcuts", label = "Open Blizzard tools quickly", help = "Optional chat shortcuts open key bindings, Edit Mode, macros and more.\nExisting commands keep priority; enable shortcuts in their settings." },
+    }, note = "New tracking features start off independently. Find this page in Suite Settings or type /wfs whatsnew.\nOpening a feature's settings keeps your existing choices." },
+    supplies = { title = "Supply Checklist", singleColumn = true, description = "Plan the items you want to carry for your next trip.", rows = {
+        { action = "suppliesOpen", label = "Open Supply Checklist", help = "Save up to 32 item IDs or pasted item links with target quantities.\nClick an existing row to edit or remove it. Targets save per character." },
+        { key = "supplyChecklist", label = "Track carried supplies", help = "Starts off. Count current bags while the checklist is open.\nBank stock is excluded; unreadable inventory is shown as unavailable." },
+    }, note = "Open directly with /wfs checklist. Targets remain available with tracking off.\nNo automatic purchases, item use or changes to your macros." },
+    shortcuts = { title = "Chat Shortcuts", singleColumn = true, description = "Open familiar Blizzard tools with a short chat command.", rows = {
+        { key = "chatShortcuts", label = "Enable chat shortcuts", help = "Starts off. Existing commands from the game or other addons take priority.\nUse /wfs commands for the list, or /wfs followed by a shortcut if its alias is taken." },
+        { passive = true, label = "/kb  ·  Quick Keybind", help = "Hover an action button and press a key using Blizzard's binding mode." },
+        { passive = true, label = "/edit  ·  Edit Mode     /binds  ·  Key bindings", help = "Arrange your HUD or open the full list of keyboard bindings." },
+        { passive = true, label = "/macros  ·  Macros     /cal  ·  Calendar", help = "Open Blizzard's macro editor or calendar." },
+        { passive = true, label = "/settings  ·  Settings     /addons  ·  AddOns     /rl  ·  Reload UI", help = "Open game options, manage addons, or reload the interface." },
+    }, note = "Available outside combat. Binding and layout changes use Blizzard's normal controls.\nDisabling shortcuts releases their aliases. /wfs macros still opens the Suite Macro Builder." },
     talents = { title = "Talent Builds", description = "Explore builds on your talent tree without spending points.", rows = {
         { key = "talentPlanner", label = "Talent build planner", help = "Add a build library beside the native talent window.\nStarts off. Drafts are shared across your characters of the same class." },
         { key = "talentPlannerRules", label = "Limit to current level", help = "On: also enforce your current level and earned point budget.\nOff: plan ahead. Tree tiers and prerequisites always apply." },
@@ -41,12 +61,13 @@ local pages = {
         { action = "levelingSession", label = "Start a new session", help = "Save this session in the log and start fresh. Rates appear after one minute.\nReload keeps the session; a fresh login starts a new one. Idle time counts." },
         { action = "levelingPosition", label = "Reset tracker position", help = "Return this character's tracker to the top left.\nCtrl-right-clicking its unlocked header also resets its position." },
     }, note = "Gold/hour includes spending and transfers. Estimates use your session pace; incomplete XP tracking shows no estimate." },
-    professions = { title = "Professions", description = "Use deliberate profession shortcuts on eligible bag equipment.", rows = {
+    professions = { title = "Professions", description = "Choose optional enchanting conveniences.", rows = {
         { key = "modifierDisenchant", label = "Modifier-click Disenchant", help = "Hold the selected modifier and left-click highlighted bag equipment.\nDisenchant destroys the item; the character must know the spell." },
         { action = "disenchantModifier", label = "Choose modifier key", help = "Cycle Alt, Ctrl and Shift. Hold only that modifier.\nEquipped gear, bank items, locked slots and combat are excluded." },
+        { key = "autoReplaceEnchant", label = "Automatically replace existing enchants", help = "Enchanters: skip Yes when replacing an enchant on your gear or through trade.\nThe old enchant is lost. You still choose the enchant and item; unavailable in combat." },
     }, note = "Only uncommon, rare or epic weapons and armor are offered.\nThe game makes the final skill and eligibility check. Nothing is disenchanted automatically." },
     training = { title = "Training Planner", description = "Review class skills, future training costs and weapon trainers.", rows = {
-        { action = "trainingOpen", label = "Open Training Planner", help = "Browse your class catalog from level 1 to 60, with base costs.\nWeapon trainers include locations, class eligibility and base costs." },
+        { action = "trainingOpen", label = "Open Training Planner", help = "Browse class skills through level 60; pin ranks to a wishlist with estimated costs.\nWeapon trainers include locations, class eligibility and base costs." },
         { key = "trainingPlanner", label = "Record trainer offerings", help = "Save class skills separately from weapon trainer visits.\nStarts off. Training purchases remain manual." },
         { key = "trainingSpellbook", label = "Show with spellbook", help = "Open your class catalog with the spellbook while recording is enabled.\nClosing the spellbook dismisses its companion." },
         { key = "trainingAuto", label = "Show Training Planner at trainers", help = "Open Class or Weapons beside the trainer after offerings arrive.\nClosing the planner dismisses it for that visit." },
@@ -159,10 +180,13 @@ local pages = {
         { key = "classHealthBars", label = "Class colored health bars", help = "Softer class colors for player, target, target of target and focus.\nReplace the original fill so its color stays clear." },
         { key = "targetThreat", label = "Target threat indicator", help = "Your threat against the target: grey at 0%, red at 100%.\nA translucent Blizzard-style rectangle moves below the frame when buffs are on top." },
     }, note = "NPCs and vehicles keep their normal health bars. Party and raid use Blizzard's class color setting.\nThreat appears for enemy NPCs; -- means no percentage is available." },
-    mail = { title = "A familiar name, a quicker letter.", description = "Your characters and saved recipients beside the mailbox.", rows = {
+    mail = { title = "A familiar name, a quicker letter.", description = "Keep contacts anywhere, then find them beside Send Mail.", rows = {
+        { action = "mailBook", label = "Contact book", help = "Add and edit contacts anywhere, with your own categories and notes.\nSearch your shared address book without visiting a mailbox." },
         { key = "mailHelper", label = "Mail contacts", help = "Show full character names and rulesets beside Send Mail.\nClick a name to fill To; Blizzard handles delivery rules." },
         { key = "mailRememberRecipient", label = "Remember recipient", help = "Keep the recipient in the To field after a successful send.\nClosing the mailbox clears it for the next visit." },
-    }, note = "Known alts fill missing last names from account autocomplete when available. Your active character stays hidden. Save full names in To for any unresolved contact." },
+        { action = "mailDeadlines", label = "Review mail deadlines", help = "Review recorded mailbox deadlines for characters in this region.\nVisit each mailbox to refresh; saved mail may have changed." },
+        { key = "mailExpiry", label = "Record mail deadlines and remind at login", help = "Starts off. Record the earliest deadline when visiting a mailbox.\nAt login, flag deadlines within three days or already passed; partial inboxes are labelled." },
+    }, note = "Manage full names, categories and notes in Contact book, or type /wfs contacts anywhere outside combat.\nYour active character stays hidden from Send Mail; known alts fill missing last names when available." },
     chat = { title = "A quieter place for conversation.", description = "A clean chat panel using your active settings profile.", rows = {},
         note = "Click the small copy icon on chat, then drag across text and release to copy. A chat message reports the result. Click the icon again for normal chat." },
     vendor = { title = "Ready for the next trip.", description = "Open shops, repair your gear and choose how to clear gray-quality junk.", rows = {
@@ -189,7 +213,11 @@ local pages = {
 Catalog:Configure(pages)
 
 function GUI:Action(action)
-    if action == "combatPreview" then Suite.CombatIndicator:Preview()
+    local news = { newsTraining = "training", newsSupplies = "supplies", newsMail = "mail", newsTalents = "talents", newsContacts = "mail", newsMacros = "macros", newsShortcuts = "shortcuts" }
+    if news[action] then self:OpenPage(news[action])
+    elseif action == "suppliesOpen" then Suite.SupplyChecklist:Open()
+    elseif action == "mailDeadlines" then Suite.MailExpiry:Open()
+    elseif action == "combatPreview" then Suite.CombatIndicator:Preview()
     elseif action == "combatReset" then Suite.CombatIndicator:ResetPosition()
     elseif action == "levelingSession" then Suite.Leveling:ResetSession()
     elseif action == "levelingPosition" then Suite.Leveling:ResetPosition()
@@ -198,6 +226,7 @@ function GUI:Action(action)
     elseif action == "disenchantModifier" then
         Suite.Set("disenchantModifier", ({ alt="ctrl", ctrl="shift", shift="alt" })[Suite.ProfessionHelper:Modifier()]); self:Select("professions")
     elseif action == "trainingOpen" then Suite.Training:Open()
+    elseif action == "mailBook" then Suite.Mail:OpenBook()
     elseif action == "talentsOpen" then Suite.TalentPlanner:Open()
     elseif action == "buffCustom" then Suite.BuffReminders:OpenOptions()
     elseif action == "buffAppearance" then Suite.BuffSettings:Open("display")

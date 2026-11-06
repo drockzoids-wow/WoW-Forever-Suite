@@ -16,6 +16,33 @@ function Helper:Modifier()
     return Suite.IsReadable(value) and type(value) == "string" and keys[value] and value or "alt"
 end
 function Helper:Enabled() return Suite.db and Suite.IsReadable(Suite.db.modifierDisenchant) and Suite.db.modifierDisenchant == true end
+-- Observe only Blizzard's two replacement dialogs; never replace native handlers.
+local replacementAPIs = { REPLACE_ENCHANT = "ReplaceEnchant", TRADE_REPLACE_ENCHANT = "ReplaceTradeEnchant" }
+function Helper:ConfirmReplacement(which)
+    if not Suite.IsReadable(which) or type(which) ~= "string" or not replacementAPIs[which]
+        or InCombatLockdown() or self.confirmingReplacement
+        or not Suite.db or not Suite.IsReadable(Suite.db.autoReplaceEnchant) or Suite.db.autoReplaceEnchant ~= true
+        or Read(C_SpellBook and C_SpellBook.IsSpellKnown, 13262) ~= true then return end
+    local fn = C_Item and C_Item[replacementAPIs[which]]
+    if type(fn) ~= "function" then return end
+    local dialog = Read(StaticPopup_FindVisible, which)
+    if not dialog or Read(dialog.IsForbidden, dialog) ~= false or Read(dialog.IsProtected, dialog) ~= false
+        or Read(dialog.IsShown, dialog) ~= true or not Suite.IsReadable(dialog.which) or dialog.which ~= which
+        or type(dialog.Hide) ~= "function" then return end
+    self.confirmingReplacement = true
+    local ok, result = pcall(fn)
+    self.confirmingReplacement = nil
+    -- Leave failed requests available for the player's normal confirmation.
+    if ok and Suite.IsReadable(result) and result ~= false
+        and Suite.IsReadable(dialog.which) and dialog.which == which then dialog:Hide() end
+end
+function Helper:ApplyEnchantReplacement()
+    if self.replacementHooked or InCombatLockdown() or not Suite.db
+        or not Suite.IsReadable(Suite.db.autoReplaceEnchant) or Suite.db.autoReplaceEnchant ~= true
+        or type(hooksecurefunc) ~= "function" or type(StaticPopup_Show) ~= "function" then return end
+    hooksecurefunc("StaticPopup_Show", function(which) self:ConfirmReplacement(which) end)
+    self.replacementHooked = true
+end
 function Helper:Held()
     local selected = self:Modifier()
     for key in pairs(keys) do
@@ -135,6 +162,7 @@ function Helper:Build()
     return true
 end
 function Helper:Apply()
+    Suite.AfterCombat("enchantReplacement", function() self:ApplyEnchantReplacement() end)
     Suite.pending.professions = nil
     if self.timer then self.timer:Cancel(); self.timer = nil end
     if not self:Enabled() then

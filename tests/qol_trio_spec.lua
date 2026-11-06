@@ -94,6 +94,56 @@ C_Reputation={GetFactionDataByID=function(id)return {name="Faction "..id,isHeade
 SetCombat(false); helper:Apply();bars:Apply();rep:Apply()
 equal(made,0,"three optional modules construct nothing by default")
 equal(writes,0,"reputation stays unchanged by default")
+do
+    local oldHook, oldShow, oldFind = hooksecurefunc, StaticPopup_Show, StaticPopup_FindVisible
+    local oldReplace, oldTrade = C_Item.ReplaceEnchant, C_Item.ReplaceTradeEnchant
+    local callback, hooks, replacements, trades = nil, 0, 0, 0
+    local popup = Native(100, 100); popup.which = "REPLACE_ENCHANT"
+    StaticPopup_Show = function() end
+    StaticPopup_FindVisible = function(which) if popup.which == which and popup.shown then return popup end end
+    hooksecurefunc = function(name, fn) equal(name,"StaticPopup_Show","only observes native popup display"); callback=fn; hooks=hooks+1 end
+    C_Item.ReplaceEnchant = function() replacements=replacements+1 end
+    C_Item.ReplaceTradeEnchant = function() trades=trades+1 end
+    helper:Apply(); equal(hooks,0,"disabled enchant option installs no hook")
+    Suite.db.autoReplaceEnchant=true; SetCombat(true); helper:Apply()
+    equal(hooks,0,"enchant hook installation defers in combat")
+    SetCombat(false); Suite.pending.enchantReplacement(); Suite.pending.enchantReplacement=nil
+    equal(hooks,1,"enchant option installs independently of disenchant shortcut")
+    helper:Apply(); equal(hooks,1,"reapply does not duplicate enchant hook")
+    callback("DELETE_ITEM"); callback("REPLACE_TRADESKILL_ENCHANT"); callback({secret=true})
+    equal(replacements,0,"unrelated and restricted popup types remain manual")
+    learned=false; callback("REPLACE_ENCHANT"); learned=true
+    equal(replacements,0,"non-enchanter confirmation remains manual")
+    SetCombat(true); callback("REPLACE_ENCHANT"); SetCombat(false)
+    equal(replacements,0,"combat confirmation is not accepted or replayed")
+    Suite.db.autoReplaceEnchant=false; callback("REPLACE_ENCHANT")
+    equal(replacements,0,"disabling makes installed hook inert immediately")
+    Suite.db.autoReplaceEnchant={secret=true}; callback("REPLACE_ENCHANT")
+    equal(replacements,0,"restricted preference never authorizes replacement")
+    Suite.db.autoReplaceEnchant=true; popup.shown=false; callback("REPLACE_ENCHANT")
+    equal(replacements,0,"absent confirmation cannot trigger replacement")
+    popup.shown=true; popup.IsProtected=function() return true end; callback("REPLACE_ENCHANT")
+    equal(replacements,0,"protected confirmation is left native")
+    popup.IsProtected=function() return false end
+    C_Item.ReplaceEnchant=nil; callback("REPLACE_ENCHANT")
+    equal(popup.shown,true,"missing replacement capability preserves confirmation")
+    C_Item.ReplaceEnchant=function() error("unavailable") end; callback("REPLACE_ENCHANT")
+    equal(popup.shown,true,"replacement API errors preserve manual confirmation")
+    C_Item.ReplaceEnchant=function() return false end; callback("REPLACE_ENCHANT")
+    equal(popup.shown,true,"explicit native failure preserves manual confirmation")
+    C_Item.ReplaceEnchant=function() replacements=replacements+1; callback("REPLACE_ENCHANT") end
+    callback("REPLACE_ENCHANT")
+    equal(replacements,1,"own-item replacement is requested once despite reentrancy")
+    equal(popup.shown,false,"successful replacement dismisses its confirmation")
+    popup.which="TRADE_REPLACE_ENCHANT"; popup.shown=true; callback("TRADE_REPLACE_ENCHANT")
+    equal(trades,1,"trade replacement uses its distinct native API")
+    equal(popup.shown,false,"trade confirmation dismisses after replacement")
+    equal(replacements,1,"trade never calls own-item replacement")
+    Suite.db.autoReplaceEnchant=false
+    helper.replacementHooked=nil
+    C_Item.ReplaceEnchant, C_Item.ReplaceTradeEnchant = oldReplace, oldTrade
+    hooksecurefunc, StaticPopup_Show, StaticPopup_FindVisible = oldHook, oldShow, oldFind
+end
 Suite.db.modifierDisenchant=true; SetCombat(true);helper:Apply()
 equal(made,0,"profession overlay creation defers in combat")
 SetCombat(false);Suite.pending.professions();Suite.pending.professions=nil

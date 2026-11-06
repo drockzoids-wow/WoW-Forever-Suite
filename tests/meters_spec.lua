@@ -1126,7 +1126,7 @@ meters:Apply(); meters:ChooseSession(1, "Overall"); meters:ChooseSession(2, "His
 equal(first.session.label.text, "O", "Overall uses its compact initial")
 equal(second.session.label.text, "C", "retained fight uses the compact Current initial")
 equal(second.session.fullLabel, "Current · Reset target", "compact history button preserves full fight identity in its tooltip")
-equal(first.session.width, 24, "session button is much narrower than the old text selector")
+equal(first.session.width, 30, "session button reserves room for the wider Overall initial beside the arrow")
 equal(first.reset.enabled, false, "reset button is disabled when native reset capability is absent")
 meters:ResetData()
 equal(second.fightID, 501, "unsupported reset leaves historical selection intact")

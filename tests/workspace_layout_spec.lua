@@ -72,7 +72,7 @@ equal(gui.groupTabs.suite:IsShown(),true,"Suite Settings remains visible from Ho
 gui.groupTabs.suite.OnClick(gui.groupTabs.suite)
 equal(gui.page,"browse_suite","Suite Settings lists all its utility pages")
 equal(gui.groupTabs.suite.point[2],12,"Suite Settings aligns with other sections")
-equal(routes, 29, "all existing routes plus Talent Builds remain accessible")
+equal(routes, 32, "all existing routes plus Supply Checklist and What's New remain accessible")
 local gear = Suite.GearSettings
 gear:Open("picker")
 for _, card in ipairs(gear.profileButtons) do
@@ -124,7 +124,7 @@ for _, group in ipairs(catalog.groups) do
     end
 end
 local reached = 0; for _ in pairs(reachable) do reached = reached + 1 end
-equal(reached, 29, "all original destinations can be browsed without search")
+equal(reached, 32, "all destinations including Supply Checklist and What's New can be browsed without search")
 for _, route in ipairs({ "bags", "items", "actionbars", "buffs" }) do
     local ever = {}
     for _, view in ipairs(catalog.pages[route].views) do

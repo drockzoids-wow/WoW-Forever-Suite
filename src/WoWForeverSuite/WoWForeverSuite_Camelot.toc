@@ -10,6 +10,7 @@
 ## Category: Quality of Life
 
 Core.lua
+Shortcuts.lua
 Theme.lua
 Profiles.lua
 Bindings.lua
@@ -42,6 +43,7 @@ TrainingCatalogData.lua
 TrainingCatalog.lua
 TrainingWeapons.lua
 Training.lua
+ReleaseTools.lua
 TalentPlanner.lua
 TalentPlannerRules.lua
 TalentPlannerOrder.lua

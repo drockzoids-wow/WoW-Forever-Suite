@@ -23,11 +23,11 @@ Suite.defaults = {
     autoRepair = false, repairSource = "personal", autoSellJunk = false, junkMode = "slow", autoVendor = false, vendorKnownItems = false,
     autoQuestPickup = false, autoQuestTurnIn = false, autoGossip = false, questTrackerRemember = false,
     quickLoot = false, sortBagsOnOpen = false, reverseCombinedBags = false, reverseBagSlots = false, autoOpenContainers = false, questTrackerSkin = false, questItemButton = false, questItemPosition = {},
-    modifierDisenchant = false, disenchantModifier = "alt", castbars = {}, zoneReputation = false,
+    modifierDisenchant = false, disenchantModifier = "alt", autoReplaceEnchant = false, castbars = {}, zoneReputation = false,
     bagSpaceAlert = false, bagSpaceBlacklist = {}, bagSpacePosition = {},
-    mailHelper = false, mailRememberRecipient = false,
+    mailHelper = false, mailRememberRecipient = false, mailExpiry = false, supplyChecklist = false,
     mailContacts = { schema = 2, entries = {}, removed = {} },
-    chatHistory = false, chatStyle = false, chatFontSize = 14, chatOpacity = 0.5, audioSync = false,
+    chatHistory = false, chatStyle = false, chatFontSize = 14, chatOpacity = 0.5, audioSync = false, chatShortcuts = false,
     itemLevels = false, itemTooltipLevels = false, characterItemLevel = false, upgradeHints = false, equipmentSetToggle = false,
     itemInventory = false, inventorySearch = false, characterDashboard = false, inventory = { schema = 1, characters = {}, accountBanks = {} },
     inventoryBrowser = { schema = 1, favorites = {} },
@@ -155,11 +155,13 @@ events:SetScript("OnEvent", function(_, event, name, second)
             Suite.IsReadable(WoWForeverSuiteCharDB) and type(WoWForeverSuiteCharDB) == "table" and Suite.db or nil)
         local leveling = Suite.Leveling:InitializeCharacter(character.leveling)
         local training = Suite.Training:InitializeCharacter(character.training)
+        local supplies = Suite.SupplyChecklist:InitializeCharacter(character.supplies)
         local chatHistory = Suite.ChatHistory:InitializeCharacter(character.chatHistory)
         local talentGuide = Suite.TalentPlanner:InitializeGuide(character.talentGuide)
         WoWForeverSuiteCharDB = Suite.Macros:Initialize(character)
         WoWForeverSuiteCharDB.leveling = leveling
         WoWForeverSuiteCharDB.training = training
+        WoWForeverSuiteCharDB.supplies = supplies
         WoWForeverSuiteCharDB.chatHistory = chatHistory
         WoWForeverSuiteCharDB.talentGuide = talentGuide
         WoWForeverSuiteCharDB.scoring = scoring
@@ -200,11 +202,13 @@ local commandPages = {
     actionbars = "actionbars", unitframes = "unitframes", combat = "combat", vendor = "vendor", buffs = "buffs", missingbuffs = "buffs",
     bars = "bars", map = "worldmap", worldmap = "worldmap",
     quests = "quests", gossip = "quests", loot = "quests", mail = "mail", chat = "chat", audio = "audio",
-    leveling = "leveling", xp = "leveling",
+    leveling = "leveling", xp = "leveling", shortcuts = "shortcuts", supplies = "supplies", whatsnew = "whatsnew", news = "whatsnew",
 }
 SlashCmdList.WOWFOREVERSUITE = function(message)
     local command = message:match("^%s*(%S*)"):lower()
     if command == "status" then Suite.Status()
+    elseif command == "commands" then Suite.Shortcuts:Help()
+    elseif Suite.Shortcuts:Handle(command) then return
     elseif command == "copychat" or command == "chatcopy" then
         Suite.ChatCopy:Open(SELECTED_CHAT_FRAME or DEFAULT_CHAT_FRAME)
     elseif command == "buffstatus" then Suite.CombatBuffs:Status()
@@ -226,6 +230,10 @@ SlashCmdList.WOWFOREVERSUITE = function(message)
     elseif command == "talents" or command == "builds" then Suite.TalentPlanner:Open()
     elseif command == "inventory" then Suite.CharacterBrowser:Open()
     elseif command == "bank" then Suite.OfflineBank:Toggle()
+    elseif command == "contacts" or command == "addressbook" then Suite.Mail:OpenBook()
+    elseif command == "checklist" then Suite.SupplyChecklist:Open()
+    elseif command == "maildeadlines" then Suite.MailExpiry:Open()
+    elseif command == "wishlist" then Suite.Training.wishlistOnly = true; Suite.Training:SelectView("class"); Suite.Training:Open()
     elseif command == "macrostatus" then Suite.Macros:Status()
     elseif command == "meters" or command == "damage" then Suite.GUI:OpenMeters()
     elseif commandPages[command] then Suite.GUI:OpenPage(commandPages[command])

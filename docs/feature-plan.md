@@ -1,5 +1,79 @@
 # Forever Suite feature plan
 
+## Readable training Unpin button — November 6, 2026
+
+User screenshot shows Unpin truncated to Un.... Widen training row Pin/Unpin buttons from 48 to 64 units; shift the price column right and narrow it while retaining its right edge and an eight-unit gap. Skill text remains unchanged. Native appearance retest pending.
+
+## Four next-release companion tools — November 6, 2026
+
+User approves all four recommendations. Implement per-character class-rank pins in Training Planner (up to 200), a searchable/paginated wishlist and estimated outstanding cost using Base/Recorded prices. Retain learned pins but exclude their costs; disclose missing prices. No weapon-trainer pinning. `/wfs wishlist` opens the class wishlist.
+
+Tools → Supply Checklist saves up to 32 per-character item-ID/link targets with quantities, editing, confirmed removal and pagination. Independently default-off carried-item tracking uses complete bag scans only while open. Unavailable scans show unknown rather than shortages. Bank stock is excluded; metadata requests are bounded. No purchases, item use, macro edits or polling. `/wfs supplies` opens settings; `/wfs checklist` opens the editor.
+
+Independent default-off Mail → Record mail deadlines and remind at login captures loaded count, reported total, earliest observed deadline and checked time during mailbox visits. Partial inbox coverage is explicit. Initial empty/unreadable/error data preserves prior observations; confirmed empty inbox updates clear them. `/wfs maildeadlines` reviews regional records even with recording off. Selected-character dashboard details/tooltip show summary/check time; one login reminder flags deadlines within three days or already passed. Past observations never claim mail was actually lost. No inbox refresh or mail transactions.
+
+Suite Settings → What's New (`/wfs whatsnew`, `/wfs news`) links to these additions and recent talent/contact/macro/shortcut work. Browsing enables nothing. Native smoke tests remain pending. No version/package/deployment/junction or disk SavedVariables changes; unrelated work retained.
+
+## Readable meter Overall selector — November 6, 2026
+
+Widen the compact session selector from 24 to 30 units so O fits beside its dropdown arrow instead of truncating to an ellipsis. Preserve C, session choices and full-label tooltips. User confirms the fix works in game on November 6; actual build/Interface not supplied.
+
+## Bandage macros retain native targeting — November 6, 2026
+
+Correct FS Bandage to plain `/use item:ID` instead of forcing `[@player]`. Both strongest-carried and explicit choices leave targeting to the item/game settings. Supply updates change the item, preserving the existing owned macro/action-bar reference. Other supply recipes already omit unit targets; coatings keep their explicit hand slots, and class/pet utilities retain their described targeting. Update help and the obsolete self-bandage smoke expectation. Offline: 79 Lua 5.1 files, matching TOCs and 30,131 assertions pass, including existing-owned-body correction and supply-change targeting regressions. Actual friendly-target/cursor/self-cast behavior needs a live test.
+
+## Common chat shortcuts — November 6, 2026
+
+Implemented default-off Tools → Chat Shortcuts with `/kb`, `/edit`, `/binds`, `/macros`, `/cal`, `/settings`, `/addons` and `/rl` for Blizzard's binding/layout/settings and common UI tools. `/wfs shortcuts` opens the switch and reference; `/wfs commands` prints help. Preserve existing alias owners, offer namespaced fallbacks and release owned aliases on disable. `/wfs macros` still opens the Suite builder; `/wfs mac` opens Blizzard macros. Commands require out-of-combat use and never replay later. Native save/cancel controls retain ownership of binding/layout changes. Offline: 79 Lua 5.1 files, identical TOCs and 30,126 assertions pass. Live behavior, visuals and taint remain pending.
+
+## Optional automatic enchant replacement — November 6, 2026
+
+Add **Bags & Gear → Professions → Automatically replace existing enchants**, off by default. On an enchanter, accept only the normal own-item and trade enchant replacement prompts outside combat, after the player chooses an enchant and item. Old enchants are lost, as disclosed in help. Keep modifier Disenchant independent, other confirmations manual, and missing/failed capabilities on native confirmation. Search includes override/overwrite/replace/confirmation. Rename the Disenchant navigation entry to Professions. Pinned 70532 dialog source supports the API mapping; live 70790 compatibility, protection/taint and visuals remain pending. Offline Lua 5.1, TOCs and 29,916 substitute assertions pass; no deployment or release changes.
+
+## Contact book away from the mailbox — November 6, 2026
+
+Add a shared Contact book through Mail settings, `/wfs contacts` (`/wfs addressbook`), and the Send Mail helper. Use the original slate-and-teal style with a searchable, paginated list on the left and full-name/ruleset/category/notes editing on the right. Type custom categories; cycle the category filter to narrow the list. Add, rename, edit and confirm removal without a mailbox, even with mailbox features disabled. Keep existing regional scope, GUID identities, removed-contact markers and active-character exclusion from the Send Mail list. Existing records need no schema reset; automatic identity refresh preserves category/notes. Mail delivery and optional mailbox behavior remain native. Native layout/input/persistence and combat smoke tests remain pending.
+
+## Leveling and PvP macro additions — November 6, 2026
+
+Add three more recipes per class (27 total), with purpose-labelled help in the existing class sections. Selection follows authored Forever recommendations; native execution remains unverified.
+
+| Class | Leveling additions | PvP / control addition |
+| --- | --- | --- |
+| Druid | Healing Touch; Mark of the Wild | Hibernate |
+| Hunter | Hunter's Mark & pet; Raptor Strike & attack | Wing Clip |
+| Mage | Arcane Intellect; Arcane Missiles | Frost Nova |
+| Paladin | Blessing of Might; Holy Light | Repentance |
+| Priest | Renew; Shadow Word: Pain | Psychic Scream |
+| Rogue | Sinister Strike & attack; Eviscerate & attack | Gouge |
+| Shaman | Lightning Bolt; Lightning Shield | Frost Shock |
+| Warlock | Corruption; Drain Soul | Spell Lock |
+| Warrior | Rend & attack; Hamstring & attack | Disarm |
+
+Retain localized names and explicit ownership-safe Create / update. Hunter Mark sends the pet even if the mark fails; Sinister Strike protects Stealth in both commands. Nova/Scream stop casts, Hibernate/Gouge stop attacks, and channel guards preserve active channels. Talent/pet/form/stance restrictions stay native and are disclosed. Seven class recipes, eight for Druid; ten custom-item slots remain. Offline: 78 Lua 5.1 files, identical TOCs, 29,726 assertions pass.
+
+## More Forever class macros — November 6, 2026
+
+Add two researched utility recipes per class to the existing class-specific sections, alongside the exact requested Druid Prowl macro. Selection reflects recurring authored-library recommendations, not measured popularity.
+
+| Class | Additional recipes |
+| --- | --- |
+| Druid | Rejuvenation; Entangling Roots |
+| Hunter | Concussive Shot; Auto Shot |
+| Mage | Blink; Remove Lesser Curse |
+| Paladin | Flash of Light; Blessing of Protection |
+| Priest | Flash Heal; Shackle Undead |
+| Rogue | Sap; Vanish |
+| Shaman | Healing Wave; Purge |
+| Warlock | Fear; Banish |
+| Warrior | Pummel; Sunder Armor & attack |
+
+Keep localized spell lookup, explicit Create / update, General-tab ownership checks, class filtering and combat deferral. Vanish adds a trusted stopattack option; all other new recipes reuse existing generation options. Settings search includes the new names. Four recipes per class, five for Druid; ten independent item choices remain available. All 28,776 offline checks pass; native execution/layout/taint remain pending. Research links and adaptations are in sources.json.
+
+## Custom Druid Prowl recipe — November 6, 2026
+
+Add the requested exact three-line English Prowl/Cat Form macro as Druid · Prowl, creating FS Prowl through the existing Macros page. Keep `[noform:2] !cat form` followed by `[form:2] prowl`; use existing class filtering, preview and explicit ownership-safe creation/update. Offline checks pass; native form mapping and execution need a Druid smoke test.
+
 ## Talent planner production acceptance — November 6, 2026
 
 User accepts the current talent planner for production after the final draft level-reference and reset additions. Treat the reported talent workflow as accepted for release. Latest offline checks: 78 Lua 5.1 files, matching 1.0.4 TOCs, 28,117 assertions. Keep unreported detailed/native coverage separate; acceptance does not claim all classes, starters or combat/taint cases were tested. No whole-Suite publication was requested.

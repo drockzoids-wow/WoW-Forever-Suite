@@ -1,13 +1,13 @@
 local _, Suite = ...
 local Catalog = { groups = {
     { key = "overview", label = "Home", description = "Browse a section or open a tool. Each feature remains optional.", pages = { { "overview", "Home" } } },
-    { key = "inventory", label = "Bags & Gear", description = "Bags, bank, item levels, upgrades and tooltip information.", pages = { { "bags", "Bags & Bank" }, { "items", "Item Levels & Upgrades" }, { "tooltips", "Tooltips" }, { "professions", "Disenchant" } } },
+    { key = "inventory", label = "Bags & Gear", description = "Bags, bank, item levels, upgrades and tooltip information.", pages = { { "bags", "Bags & Bank" }, { "items", "Item Levels & Upgrades" }, { "tooltips", "Tooltips" }, { "professions", "Professions" } } },
     { key = "combat", label = "Combat", description = "Buff reminders, damage meters, action buttons and unit frames.", pages = { { "buffs", "Buff Reminders" }, { "meters", "Damage Meters" }, { "actionbars", "Action Bars" }, { "castbars", "Castbars" }, { "unitframes", "Unit Frames" }, { "combat", "Combat Indicator" } } },
     { key = "layout", label = "Maps & Interface", description = "Maps, window movement, progress bars, chat and sound.", pages = { { "minimap", "Minimap" }, { "worldmap", "World Map" }, { "windows", "Window Movement" }, { "bars", "Progress Bars & UI Buttons" }, { "chat", "Chat" }, { "audio", "Audio" } } },
     { key = "journey", label = "Quests & Leveling", description = "Quests, looting, the leveling tracker and camping.", pages = { { "quests", "Quests, Loot & Tracker" }, { "leveling", "Leveling Tracker" }, { "camping", "Camping" } } },
     { key = "everyday", label = "Vendors & Mail", description = "Repairs, junk selling, shops and mail recipients.", pages = { { "vendor", "Vendor" }, { "mail", "Mail" } } },
-    { key = "tools", label = "Tools", description = "Characters and inventory, training costs, talent builds and macros.", pages = { { "characters", "Characters & Inventory" }, { "training", "Training Planner" }, { "talents", "Talent Builds" }, { "macros", "Macro Builder" } } },
-    { key = "suite", label = "Suite Settings", utility = true, description = "Appearance, settings profiles and guided setup.", pages = { { "appearance", "Appearance" }, { "profiles", "Profiles" }, { "setup", "Setup Guide" } } },
+    { key = "tools", label = "Tools", description = "Characters and inventory, training costs, supplies, talent builds, macros and chat shortcuts.", pages = { { "characters", "Characters & Inventory" }, { "training", "Training Planner" }, { "supplies", "Supply Checklist" }, { "talents", "Talent Builds" }, { "macros", "Macro Builder" }, { "shortcuts", "Chat Shortcuts" } } },
+    { key = "suite", label = "Suite Settings", utility = true, description = "What's new, appearance, settings profiles and guided setup.", pages = { { "whatsnew", "What's New" }, { "appearance", "Appearance" }, { "profiles", "Profiles" }, { "setup", "Setup Guide" } } },
 } }
 Suite.SettingsCatalog = Catalog
 Catalog.sections = {
@@ -23,10 +23,10 @@ Catalog.sections = {
     vendor = { [1] = "Repairs", [3] = "Junk Selling", [6] = "Vendor Conversation", [7] = "Known Items" },
     quests = { [1] = "Quests & Conversation", [4] = "Loot & Tracker" },
     actionbars = { [1] = "Appearance & Feedback", [3] = "Ability Proc Popups" }, bars = { [1] = "Bar Appearance" },
-    unitframes = { [1] = "Health Bars", [2] = "Target Threat" }, mail = { [1] = "Recipients" }, meters = { [1] = "Damage Meters" },
+    unitframes = { [1] = "Health Bars", [2] = "Target Threat" }, mail = { [1] = "Recipients", [4] = "Mail Deadlines" }, meters = { [1] = "Damage Meters" },
     audio = { [1] = "Output Device" },
     leveling = { [1] = "Leveling Tracker", [2] = "Header Controls", [4] = "Session & Position" },
-    professions = { [1] = "Disenchant" },
+    professions = { [1] = "Disenchant", [3] = "Enchanting" },
     training = { [1] = "Training Planner", [3] = "Automatic Opening" },
     talents = { [1] = "Talent Build Planner" },
 }
@@ -63,7 +63,7 @@ local extras = {
     { page = "chat", key = "chatFontSize", label = "Chat text size", target = "chatFields.chatFontSize.slider", words = "font" },
     { page = "chat", key = "chatOpacity", label = "Chat background opacity", target = "chatFields.chatOpacity.slider", words = "transparency" },
     { page = "macros", key = "macroUpdates", label = "Automatic macro updates", target = "macroUpdates", words = "supplies food drink bandage poison coatings" },
-    { page = "macros", key = "macroCreate", label = "Create or edit macros", target = "macroSave", words = "food health drink mana bandage poison weapon oil stone class hunter misdirection mend feed revive pet druid innervate rebirth mage counterspell polymorph paladin freedom justice priest shield dispel rogue kick blind shaman earth shock chain heal warlock recall drain life warrior heroic strike taunt" },
+    { page = "macros", key = "macroCreate", label = "Create or edit macros", target = "macroSave", words = "food health drink mana bandage poison weapon oil stone class hunter misdirection mend feed revive pet druid innervate rebirth mage counterspell polymorph paladin freedom justice priest shield dispel rogue kick blind shaman earth shock chain heal warlock recall drain life warrior heroic strike taunt prowl cat form rejuvenation entangling roots concussive auto shot blink remove lesser curse flash light protection flash heal shackle undead sap vanish healing wave purge fear banish pummel sunder armor leveling pvp healing touch mark wild hibernate hunters mark pet pull raptor strike wing clip arcane intellect missiles frost nova might holy light repentance renew shadow pain psychic scream sinister strike eviscerate gouge lightning bolt shield frost shock corruption drain soul spell lock rend hamstring disarm" },
     { page = "setup", key = "setupGuide", label = "Run the setup guide", words = "welcome installer auto loot first login" },
 }
 for _, item in ipairs({ { "width", "Meter width" }, { "height", "Meter height" }, { "rowHeight", "Meter bar height" },
@@ -79,6 +79,8 @@ for _, item in ipairs({ { "lock", "Lock damage meters" }, { "snap", "Snap damage
     extras[#extras + 1] = { page = "meters", key = "meter_" .. item[1], label = item[2], target = "meterButtons." .. item[1], words = "damage healing dps hps" }
 end
 local synonyms = { characterDashboard = "recorded characters dashboard alts money gold professions levels snapshots dates",
+    chatShortcuts = "slash commands hotkeys kb quick keybinding edit mode binds macros cal calendar settings addons rl reload",
+    autoReplaceEnchant = "profession enchanting enchanter override overwrite replace existing enchant confirmation yes trade",
     inventorySearch = "search items alts characters owners bags bank", itemInventory = "inventory counts alts characters bags bank",
     minimapStats = "performance fps ping latency", showLatency = "ping connection", windowTools = "move drag position resize scale",
     vendorKnownItems = "vendor merchant already known owned collected green highlight recipe pet mount cosmetic",
@@ -102,6 +104,7 @@ local synonyms = { characterDashboard = "recorded characters dashboard alts mone
     trainingOpen = "class weapon weapons master trainers locations directory faction alliance horde training planner saved costs offerings",
     trainingLevelUp = "class trainer training planner level up available skills reminder",
     trainingSpellbook = "spellbook spell book player spells class training planner automatic popup",
+    mailBook = "black book addressbook contacts recipients categories notes friends crafters alts edit add offline",
     buffCustom = "custom learned spell name icon search id group raid party", buffManage = "hidden buffs families show restore intellect spirit priest mage hunter",
     buffAppearance = "scale icon size header movement preview position", missingBuffExpiry = "expiry expiring duration refresh timer",
     missingBuffCombat = "combat shout thorns lightning shield righteous fury reminders",

@@ -225,7 +225,10 @@ end
 equal(Actions(body, false), "101", "out-of-combat health recipe only eats")
 equal(Actions(body, true), "5512,105", "combat health recipe attempts both supplies in order")
 equal(Actions(macros:Generate(water, snapshot), true), "106", "combat mana recipe drinks no water")
-equal(macros:Generate(bandage, snapshot), "#showtooltip item:107\n/use [@player] item:107", "bandage uses fixed self targeting")
+equal(macros:Generate(bandage, snapshot), "#showtooltip item:107\n/use item:107", "automatic bandage preserves native item targeting")
+bandage.item = 107
+equal(macros:Generate(bandage, snapshot), "#showtooltip item:107\n/use item:107", "explicit bandage choice preserves native item targeting")
+bandage.item = nil
 equal(macros:Generate(mainhand, snapshot), "#showtooltip [nocombat] item:2862\n/use [nocombat] item:2862\n/use [nocombat] 16", "sword matches sharpening stone and main hand")
 equal(macros:Generate(offhand, snapshot):find("item:3239", 1, true) ~= nil, true, "mace matches weightstone")
 weapon[16] = 204
@@ -465,13 +468,24 @@ Suite.db.macroUpdates = true
 macros:Apply(); Flush()
 equal(macros:Save(bandage), true, "create bandage for event-driven update regressions")
 local bandageIndex = macros:Find(bandage.name)
+-- An existing owned macro from before the fix must update in place, including on the bar.
+local oldBandageBody = "#showtooltip item:107\n/use [@player] item:107"
+native[bandageIndex].body, Suite.db.macroOwnership[bandage.name] = oldBandageBody, oldBandageBody
+SetCombat(true)
+macros:Refresh()
+equal(native[bandageIndex].body, oldBandageBody, "old owned bandage is not rewritten in combat")
+SetCombat(false)
+macros:Refresh()
+equal(macros:Find(bandage.name), bandageIndex, "bandage targeting correction retains the existing macro index")
+equal(native[bandageIndex].body, "#showtooltip item:107\n/use item:107", "old owned self-bandage updates to native targeting")
+equal(Suite.db.macroOwnership[bandage.name], native[bandageIndex].body, "corrected bandage remains managed")
 bags, unavailable, weapon[16], weapon[17] = { 100, 104, 116, 3239, 115 }, 115, 204, nil
 macros.events.OnEvent(macros.events, "BAG_UPDATE_DELAYED")
 macros.events.OnEvent(macros.events, "PLAYER_EQUIPMENT_CHANGED", 16)
 Flush()
 equal(native[1].body:find("item:100", 1, true) ~= nil, true, "bag events update food despite an uncached unrelated reagent")
 equal(native[2].body:find("item:104", 1, true) ~= nil, true, "bag events update drink despite an uncached unrelated reagent")
-equal(native[bandageIndex].body:find("item:116", 1, true) ~= nil, true, "bag events update bandages despite an uncached unrelated reagent")
+equal(native[bandageIndex].body, "#showtooltip item:116\n/use item:116", "bag events change bandage supplies while preserving native targeting despite an uncached unrelated reagent")
 equal(native[mainhandIndex].body:find("item:3239", 1, true) ~= nil, true, "equipment events update coatings despite an uncached unrelated reagent")
 equal(native[offhandIndex].body, "#showtooltip", "empty hand clears its coating despite an uncached unrelated reagent")
 equal(requests[115], 1, "unrelated uncached data is still requested once")
@@ -481,7 +495,7 @@ local pendingFood = native[1].body
 macros.events.OnEvent(macros.events, "BAG_UPDATE_DELAYED"); Flush()
 equal(native[1].body, pendingFood, "pending relevant food retains its previous action")
 equal(native[2].body:find("item:104", 1, true) ~= nil, true, "unknown recovery item also preserves drink until classified")
-equal(native[bandageIndex].body:find("item:107", 1, true) ~= nil, true, "pending food does not pause ready bandage updates")
+equal(native[bandageIndex].body, "#showtooltip item:107\n/use item:107", "ready bandage updates retain native targeting while food is pending")
 equal(native[mainhandIndex].body:find("item:2862", 1, true) ~= nil, true, "pending food does not pause ready coating updates")
 unavailable = nil
 macros.events.OnEvent(macros.events, "GET_ITEM_INFO_RECEIVED", 101, true); Flush()
@@ -832,7 +846,7 @@ C_Spell = { GetSpellInfo = function(id) return spells[id] and { name = spells[id
 native, Suite.db.macroOwnership = {}, {}
 Suite.db.macroUpdates = false
 alt = macros:Initialize(nil)
-equal(#macros:Entries(), 7, "hunter sees the two class recipes alongside shared recipes")
+equal(#macros:Entries(), 12, "hunter sees seven class recipes alongside shared recipes")
 local redirect, pet = alt.entries[6], alt.entries[7]
 equal(redirect.recipe, "hunterMisdirection", "hunter recipes precede arbitrary item choices")
 equal(macros:Generate(redirect, { incomplete = true }), "#showtooltip Misdirection\n/cast [@focus,help][@target,help][@pet,exists] Misdirection", "misdirection exactly preserves requested friendly target precedence without bag dependencies")
@@ -1029,7 +1043,7 @@ equal(macros:Save(redirect), false, "missing spell metadata does not replace a s
 equal(native[redirectIndex].body, savedRedirect, "missing spell lookup preserves old misdirection text")
 spells[34477] = "Misdirection"
 playerClass = "MAGE"; macros:Refresh(); gui:RefreshMacros()
-equal(#macros:Entries(), 7, "Mage shows its own two recipes while hiding retained Hunter recipes")
+equal(#macros:Entries(), 12, "Mage shows its own seven recipes while hiding retained Hunter recipes")
 equal(gui.macroListScroll.suiteScrollBar:IsShown(), true, "Mage class recipes extend its list beyond the viewport")
 equal(gui.macroListScroll.suiteOffset <= gui.macroListScroll.suiteMaximum, true, "class changes clamp the position to the new visible list")
 equal(gui.macroListHeadings[2].label.text, "− Mage Macros", "class-filtered heading follows the current class")
@@ -1042,7 +1056,7 @@ equal(#macros:Entries(), 5, "unreadable class never exposes class-only entries")
 local deferredClass = macros:Initialize(nil)
 equal(#deferredClass.entries, 5, "unknown startup class creates only ordinary recipes")
 playerClass = "HUNTER"; macros:SyncGeneral(); macros:SyncGeneral()
-equal(#deferredClass.entries, 7, "late class availability adds each class recipe exactly once")
+equal(#deferredClass.entries, 12, "late class availability adds each class recipe exactly once")
 SetCombat(true)
 equal(macros:Save(pet), false, "combat still blocks explicit class macro changes")
 equal(native[petIndex].body, petBody, "combat cannot rewrite pet-care text")
@@ -1052,7 +1066,7 @@ for i = 1, 9 do equal(macros:AddItem() ~= nil, true, "hunter retains each of the
 gui.macroCollapsed["Item Macros"] = true; gui:RefreshMacros()
 gui.macroAdd.OnClick()
 equal(gui.macroCollapsed["Item Macros"], nil, "adding an item expands its collapsed category before revealing it")
-equal(gui.macroSelected, limited.entries[17], "adding a custom item selects the new scroll-list entry")
+equal(gui.macroSelected, limited.entries[22], "adding a custom item selects the new scroll-list entry")
 equal(gui.macroListScroll.suiteOffset, gui.macroListScroll.suiteMaximum, "newly added items are revealed at the list bottom")
 equal(gui.macroListHeadings[3].label.text, "− Item Macros", "custom item choices are grouped separately")
 local selectedAtBottom = gui.macroSelected
@@ -1065,7 +1079,7 @@ equal(gui.macroListContent.height, listHeight, "combat does not relayout list ge
 equal(type(Suite.pending.macroListLayout), "function", "combat defers list layout through the existing queue")
 SetCombat(false); Suite.pending.macroListLayout()
 equal(Suite.pending.macroListLayout, nil, "deferred layout settles after combat")
-equal(#limited.entries, 17, "class recipes do not reduce arbitrary item capacity")
+equal(#limited.entries, 22, "class recipes do not reduce arbitrary item capacity")
 equal(macros:AddItem(), nil, "hunter still enforces the ten-item cap")
 gui.macroSelected = limited.entries[6]; gui:RefreshMacros()
 equal(gui.macroChoose:IsShown(), false, "misdirection hides irrelevant item controls")
@@ -1077,10 +1091,10 @@ equal(gui.macroRows[6]:IsShown(), true, "collapsing General keeps Hunter recipes
 equal(gui.macroListContent.height, fullListHeight - 260, "collapsed General removes its row space from the scroll range")
 gui.macroListHeadings[2].OnClick()
 equal(gui.macroRows[6]:IsShown(), false, "Hunter recipes collapse independently")
-equal(gui.macroRows[8]:IsShown(), true, "custom items remain visible when other categories collapse")
+equal(gui.macroRows[13]:IsShown(), true, "custom items remain visible when other categories collapse")
 equal(gui.macroSelected, keptSelection, "collapsing the selected category preserves the detail selection")
 equal(gui.macroPreviewBody, keptPreview, "collapse does not change the generated macro preview")
-equal(#limited.entries, 17, "collapse does not remove or change saved recipes")
+equal(#limited.entries, 22, "collapse does not remove or change saved recipes")
 gui.macroListHeadings[3].OnClick()
 equal(gui.macroListScroll.suiteMaximum, 0, "collapsing all categories eliminates list overflow")
 equal(gui.macroListScroll.suiteOffset, 0, "collapsing categories clamps obsolete scroll positions")

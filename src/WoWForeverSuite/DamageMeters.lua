@@ -582,7 +582,8 @@ function Meters:Layout(rects)
         -- Only the left arrow opens the picker; the passive title belongs to the draggable header.
         local titleWidth = math.min(190, math.max(50, rect.width - 196))
         window.metric:SetWidth(HEADER - 2)
-        window.session:SetWidth(24)
+        -- Leave 15 pixels for either initial beside the arrow; 9 clips the wider O.
+        window.session:SetWidth(30)
         window.title:SetWidth(titleWidth)
         window.duration:Show()
         window.visibleRows = settings.minimized and 0 or math.min(MAX_ROWS, math.max(1, math.floor((rect.height - HEADER - 4) / settings.rowHeight)))

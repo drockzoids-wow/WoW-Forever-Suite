@@ -60,7 +60,7 @@ for _, group in ipairs(catalog.groups) do
         end
     end
 end
-equal(leafCount, 29, "existing destinations plus Talent Builds remain present")
+equal(leafCount, 32, "existing destinations plus Supply Checklist and What's New remain present")
 equal(gui.scrollFrame.suiteScrollBar ~= nil, true, "the owned viewport uses a Suite scrollbar")
 equal(catalog.pageGroup.training.key, "tools", "Training Planner is discoverable under Tools")
 equal(catalog.labels.training, "Training Planner", "planner has an explicit sidebar label")

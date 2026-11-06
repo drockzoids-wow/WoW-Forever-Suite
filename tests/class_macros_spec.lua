@@ -4,6 +4,52 @@ local saved = { db = Suite.macroDB, ownership = Suite.db.macroOwnership, updates
     api = C_Spell, selected = gui.macroSelected, collapsed = gui.macroCollapsed, snapshot = macros.snapshot }
 local originalSpells = {};for id, value in pairs(spells) do originalSpells[id] = value end
 local cases = {
+    { "DRUID", "druidTouch", 5185, "Healing Touch", "[@mouseover,help,nodead][help,nodead][@player]" },
+    { "DRUID", "druidMark", 1126, "Mark of the Wild", "[@mouseover,help,nodead][help,nodead][@player]" },
+    { "DRUID", "druidHibernate", 2637, "Hibernate", "[@focus,harm,nodead][@mouseover,harm,nodead][harm,nodead]", "stopattack" },
+    { "HUNTER", "hunterMark", 1130, "Hunter's Mark", "[harm,nodead]", "petattack" },
+    { "HUNTER", "hunterRaptor", 2973, "Raptor Strike", "[harm,nodead]", "start" },
+    { "HUNTER", "hunterWingClip", 2974, "Wing Clip", "[@mouseover,harm,nodead][harm,nodead]" },
+    { "MAGE", "mageIntellect", 1459, "Arcane Intellect", "[@mouseover,help,nodead][help,nodead][@player]" },
+    { "MAGE", "mageMissiles", 5143, "Arcane Missiles", "[nochanneling,harm,nodead]" },
+    { "MAGE", "mageNova", 122, "Frost Nova", "[@player]", "stop" },
+    { "PALADIN", "paladinMight", 19740, "Blessing of Might", "[@mouseover,help,nodead][help,nodead][@player]" },
+    { "PALADIN", "paladinHolyLight", 635, "Holy Light", "[@mouseover,help,nodead][help,nodead][@player]" },
+    { "PALADIN", "paladinRepentance", 20066, "Repentance", "[@focus,harm,nodead][@mouseover,harm,nodead][harm,nodead]" },
+    { "PRIEST", "priestRenew", 139, "Renew", "[@mouseover,help,nodead][help,nodead][@player]" },
+    { "PRIEST", "priestPain", 589, "Shadow Word: Pain", "[@mouseover,harm,nodead][harm,nodead]" },
+    { "PRIEST", "priestScream", 8122, "Psychic Scream", "[@player]", "stop" },
+    { "ROGUE", "rogueSinister", 1752, "Sinister Strike", "[nostealth,harm,nodead]", "startUnstealthed" },
+    { "ROGUE", "rogueEviscerate", 2098, "Eviscerate", "[harm,nodead]", "start" },
+    { "ROGUE", "rogueGouge", 1776, "Gouge", "[@mouseover,harm,nodead][harm,nodead]", "stopattack" },
+    { "SHAMAN", "shamanBolt", 403, "Lightning Bolt", "[nochanneling,harm,nodead]" },
+    { "SHAMAN", "shamanShield", 324, "Lightning Shield", "[@player]" },
+    { "SHAMAN", "shamanFrostShock", 8056, "Frost Shock", "[@focus,harm,nodead][@mouseover,harm,nodead][harm,nodead]" },
+    { "WARLOCK", "warlockCorruption", 172, "Corruption", "[@mouseover,harm,nodead][harm,nodead]" },
+    { "WARLOCK", "warlockSoul", 1120, "Drain Soul", "[nochanneling,harm,nodead]" },
+    { "WARLOCK", "warlockSpellLock", 19647, "Spell Lock", "[@focus,harm,nodead][@mouseover,harm,nodead][harm,nodead]" },
+    { "WARRIOR", "warriorRend", 772, "Rend", "[harm,nodead]", "start" },
+    { "WARRIOR", "warriorHamstring", 1715, "Hamstring", "[harm,nodead]", "start" },
+    { "WARRIOR", "warriorDisarm", 676, "Disarm", "[@focus,harm,nodead][@mouseover,harm,nodead][harm,nodead]" },
+    { "DRUID", "druidRejuvenation", 774, "Rejuvenation", "[@mouseover,help,nodead][help,nodead][@player]" },
+    { "DRUID", "druidRoots", 339, "Entangling Roots", "[@focus,harm,nodead][@mouseover,harm,nodead][harm,nodead]" },
+    { "HUNTER", "hunterConcussive", 5116, "Concussive Shot", "[@mouseover,harm,nodead][harm,nodead]" },
+    { "HUNTER", "hunterAutoShot", 75, "Auto Shot", "[harm,nodead]", "toggle" },
+    { "MAGE", "mageBlink", 1953, "Blink", "[@player]", "stop" },
+    { "MAGE", "mageCurse", 475, "Remove Lesser Curse", "[@mouseover,help,nodead][help,nodead][@player]" },
+    { "PALADIN", "paladinFlash", 19750, "Flash of Light", "[@mouseover,help,nodead][help,nodead][@player]" },
+    { "PALADIN", "paladinProtection", 1022, "Blessing of Protection", "[@mouseover,help,nodead][help,nodead][@player]" },
+    { "PRIEST", "priestFlash", 2061, "Flash Heal", "[@mouseover,help,nodead][help,nodead][@player]" },
+    { "PRIEST", "priestShackle", 9484, "Shackle Undead", "[@focus,harm,nodead][@mouseover,harm,nodead][harm,nodead]" },
+    { "ROGUE", "rogueSap", 677, "Sap", "[@focus,harm,nodead][@mouseover,harm,nodead][harm,nodead]" },
+    { "ROGUE", "rogueVanish", 1856, "Vanish", "[@player]", "stopattack" },
+    { "SHAMAN", "shamanWave", 331, "Healing Wave", "[@mouseover,help,nodead][help,nodead][@player]" },
+    { "SHAMAN", "shamanPurge", 370, "Purge", "[@mouseover,harm,nodead][@focus,harm,nodead][harm,nodead]" },
+    { "WARLOCK", "warlockFear", 5782, "Fear", "[@focus,harm,nodead][@mouseover,harm,nodead][harm,nodead]" },
+    { "WARLOCK", "warlockBanish", 710, "Banish", "[@focus,harm,nodead][@mouseover,harm,nodead][harm,nodead]" },
+    { "WARRIOR", "warriorPummel", 6552, "Pummel", "[@focus,harm,nodead][@mouseover,harm,nodead][harm,nodead]", "stop" },
+    { "WARRIOR", "warriorSunder", 7386, "Sunder Armor", "[harm,nodead]", "start" },
+    { "DRUID", "druidProwl", nil, nil, nil, "prowl" },
     { "DRUID", "druidInnervate", 29166, "Innervate", "[@mouseover,help,nodead][help,nodead][@player]" },
     { "DRUID", "druidRebirth", 20484, "Rebirth", "[@mouseover,help,dead][help,dead]" },
     { "MAGE", "mageCounterspell", 2139, "Counterspell", "[@mouseover,harm,nodead][harm,nodead]", "stop" },
@@ -24,17 +70,25 @@ local cases = {
 for _, entry in ipairs(cases) do if entry[3] then spells[entry[3]] = entry[4] end end
 SetCombat(false);Suite.db.macroUpdates = false;gui.macroCollapsed = {}
 equal(Suite.SettingsCatalog:Search("counterspell")[1].page, "macros", "class spells are discoverable through settings search")
-equal(macros:VisibleCapacity(), 17, "class expansion keeps the existing bounded visible row capacity")
+for _, word in ipairs({ "leveling", "pvp", "hibernate", "repentance", "spell lock", "gouge" }) do
+    local found = false
+    for _, result in ipairs(Suite.SettingsCatalog:Search(word)) do
+        if result.page == "macros" then found = true end
+    end
+    equal(found, true, "leveling and PvP utilities are discoverable: " .. word)
+end
+equal(macros:VisibleCapacity(), 23, "visible row capacity includes eight Druid recipes and ten item choices")
 local classes, names = {}, {}
 for _, case in ipairs(cases) do
+    SetClass(case[1])
     if not classes[case[1]] then
         SetClass(case[1]);Suite.db.macroOwnership = {}
         for index in pairs(native) do native[index] = nil end
         macros:Initialize(nil)
-        equal(#macros:Entries(), 7, "each supported class receives two recipes plus five shared recipes")
+        equal(#macros:Entries(), case[1] == "DRUID" and 13 or 12, "each supported class receives its recipes plus five shared recipes")
         equal(next(native), nil, "listing class recipes never creates a game macro")
         macros:EnsureClassRecipes();macros:EnsureClassRecipes()
-        equal(#Suite.macroDB.entries, 7, "repeated discovery never duplicates class recipes")
+        equal(#Suite.macroDB.entries, case[1] == "DRUID" and 13 or 12, "repeated discovery never duplicates class recipes")
         for _, entry in ipairs(macros:Entries()) do
             local recipe = macros.byRecipe[entry.recipe]
             equal(not recipe.class or recipe.class == case[1], true, "class list excludes foreign recipes")
@@ -50,11 +104,15 @@ for _, case in ipairs(cases) do
     local body, note, pending, ready = macros:Generate(entry, { incomplete = true })
     local expected
     if case[6] == "recall" then expected = "/petpassive\n/petfollow"
+    elseif case[6] == "prowl" then expected = "#showtooltip prowl\n/cast [noform:2] !cat form\n/cast [form:2] prowl"
     else
         expected = "#showtooltip " .. case[4]
         if case[6] == "stop" then expected = expected .. "\n/stopcasting" end
-        expected = expected .. "\n/cast " .. case[5] .. " " .. (case[6] == "attack" and "!" or "") .. case[4]
-        if case[6] == "attack" then expected = expected .. "\n/startattack [harm,nodead]" end
+        if case[6] == "stopattack" then expected = expected .. "\n/stopattack" end
+        if case[6] == "petattack" then expected = expected .. "\n/petattack " .. case[5] end
+        expected = expected .. "\n/cast " .. case[5] .. " " .. ((case[6] == "attack" or case[6] == "toggle") and "!" or "") .. case[4]
+        if case[6] == "attack" or case[6] == "start" then expected = expected .. "\n/startattack [harm,nodead]" end
+        if case[6] == "startUnstealthed" then expected = expected .. "\n/startattack [nostealth,harm,nodead]" end
     end
     equal(body, expected, "generated targeting and command order match reviewed behavior")
     equal(pending, false, "class utility does not depend on loading bags")
@@ -67,7 +125,7 @@ for _, case in ipairs(cases) do
     equal(native[index].body, body, "client substitute confirms the exact written body")
     equal(Suite.db.macroOwnership[entry.name], body, "only confirmed text establishes macro ownership")
     local retained = macros:Initialize(Suite.macroDB)
-    equal(#macros:Entries(), 7, "reload exposes exactly two current-class recipes while retaining inactive records")
+    equal(#macros:Entries(), case[1] == "DRUID" and 13 or 12, "reload exposes current-class recipes while retaining inactive records")
     for _, candidate in ipairs(retained.entries) do if candidate.recipe == case[2] then entry = candidate end end
     gui:Select("macros");gui.macroSelected = entry;gui:RefreshMacros()
     equal(gui.macroChoose:IsShown(), false, "spell/static class recipes hide unrelated item picker")
@@ -88,7 +146,7 @@ for _, case in ipairs(cases) do
         spells[case[3]] = case[4]
     else
         C_Spell = nil
-        equal(macros:Generate(entry, { incomplete = true }), body, "pet recall requires no spell lookup or bag data")
+        equal(macros:Generate(entry, { incomplete = true }), body, "static class recipe requires no spell lookup or bag data")
         C_Spell = saved.api
     end
     native[index].body = "/say manually edited"
@@ -100,7 +158,7 @@ for _, case in ipairs(cases) do
     SetCombat(true)
     equal(macros:Save(entry), false, "class macro writes defer during combat")
     SetCombat(false)
-    local class = case[1];SetClass("HUNTER")
+    local class = case[1];SetClass(class == "HUNTER" and "MAGE" or "HUNTER")
     equal(macros:Save(entry), false, "another class cannot rewrite this macro")
     SetClass(class)
 end
@@ -113,11 +171,22 @@ C_Spell.GetSpellInfo = function() error("unavailable") end
 equal(macros:Generate({ recipe = "mageCounterspell" }, {}), nil, "failed spell API cannot produce partial macro text")
 C_Spell.GetSpellInfo = getter
 SetClass("HUNTER");macros:Initialize(nil)
-equal(#macros:Entries(), 7, "existing Hunter selections remain two recipes")
+equal(#macros:Entries(), 12, "Hunter retains seven class recipes")
 SetClass({ secret = true })
 equal(#macros:Entries(), 5, "restricted class exposes only shared recipes")
 SetClass("UNKNOWN")
 equal(#macros:Entries(), 5, "unsupported classes receive no invented recipes")
+SetClass("DRUID");macros:Initialize(nil)
+local lastItem
+for index = 1, 10 do
+    lastItem = macros:AddItem()
+    equal(lastItem ~= nil, true, "largest class retains every custom-item slot")
+end
+equal(#macros:Entries(), 23, "largest class plus ten custom items fills the bounded row pool")
+gui.macroCollapsed = {};gui:Select("macros");gui.macroSelected = lastItem;gui:RefreshMacros()
+equal(gui.macroRows[23].entry, lastItem, "last custom item has a real row in the largest class list")
+equal(gui.macroRows[23]:IsShown(), true, "last row remains available in the expanded list")
+equal(macros:AddItem(), nil, "larger class library retains the ten-item limit")
 for id in pairs(spells) do spells[id] = nil end
 for id, value in pairs(originalSpells) do spells[id] = value end
 SetClass("HUNTER")

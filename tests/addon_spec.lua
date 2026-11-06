@@ -1621,4 +1621,6 @@ assert(loadfile("tests/combat_indicator_spec.lua"))(Suite, equal, Frame, functio
 assert(loadfile("tests/proc_alerts_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/equipment_sets_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/talent_planner_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/shortcuts_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/release_tools_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 print("Behavior checks passed: " .. checks)

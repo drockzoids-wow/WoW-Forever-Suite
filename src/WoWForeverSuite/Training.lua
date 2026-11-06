@@ -47,8 +47,16 @@ local function Button(parent, text, x, y, width, callback)
 end
 function Training:Enabled() return Suite.db and Suite.db.trainingPlanner == true end
 function Training:InitializeCharacter(value)
-    local db = { position = {}, weapons = {}, allLevels = true }
+    local db = { position = {}, weapons = {}, allLevels = true, wishlist = {} }
     if Read(value, "table") then
+        if Read(value.wishlist, "table") then
+            local count = 0
+            for id, pinned in pairs(value.wishlist) do
+                if count < 200 and Integer(id, 2147483647) and id > 0 and Read(pinned, "boolean") and pinned then
+                    db.wishlist[id] = true; count = count + 1
+                end
+            end
+        end
         if Read(value.allLevels, "boolean") then db.allLevels = value.allLevels end
         if Read(value.position, "table") and Read(value.position.x, "number") and Read(value.position.y, "number")
             and math.abs(value.position.x) <= 0.5 and math.abs(value.position.y) <= 0.5 then
@@ -69,6 +77,28 @@ function Training:InitializeCharacter(value)
     self.db = db
     self.allLevels = db.allLevels
     return db
+end
+function Training:TogglePin(row)
+    if InCombatLockdown() or not self.db or not row or not Integer(row.spellID, 2147483647) or row.spellID == 0 then return end
+    self.db.wishlist = self.db.wishlist or {}
+    if not self.db.wishlist[row.spellID] then
+        local count = 0; for _ in pairs(self.db.wishlist) do count = count + 1 end
+        if count >= 200 then Suite.Print("Your training wishlist holds up to 200 ranks."); return end
+    end
+    self.db.wishlist[row.spellID] = not self.db.wishlist[row.spellID] or nil
+    self:Refresh()
+end
+function Training:Wishlist(snapshot)
+    local rows, total, unknown, learned = {}, 0, 0, 0
+    for _, row in ipairs(snapshot and snapshot.rows or {}) do
+        if row.spellID and self.db and self.db.wishlist and self.db.wishlist[row.spellID] then
+            rows[#rows + 1] = row
+            if row.state == "used" then learned = learned + 1
+            elseif Number(row.cost) then total = total + row.cost
+            else unknown = unknown + 1 end
+        end
+    end
+    return rows, total, unknown, learned
 end
 function Training:Validate(value)
     if not Read(value, "table") or not Read(value.rows, "table") then return end
@@ -452,6 +482,8 @@ function Training:Refresh()
     local snapshot = Suite.TrainingCatalog:Snapshot(self.db and self.db.snapshot, self:CurrentLevel(), self.recordedCosts)
     local currentVisit = self.live and self.fresh and self.visitKind == "class"
     local groups = self.view == "weapons" and self:WeaponGroups() or self:Groups(snapshot, self:CurrentLevel(), not currentVisit)
+    local wishes, wishCost, wishUnknown, wishLearned = self:Wishlist(snapshot)
+    if self.wishlistOnly and self.view ~= "weapons" then groups = { { title = "Pinned training", rows = wishes } } end
     if self.view ~= "weapons" then groups = self:FilterClassGroups(groups, snapshot) end
     self.page = math.max(1, math.min(self.page, #groups))
     local group = groups[self.page]
@@ -462,9 +494,11 @@ function Training:Refresh()
     end
     local reference = snapshot and snapshot.reference == true or false
     local weapons = self.view == "weapons"
-    local allLevels = not weapons and snapshot and snapshot.catalog and self.allLevels ~= false
+    local allLevels = not weapons and ((snapshot and snapshot.catalog and self.allLevels ~= false) or self.wishlistOnly)
     self.catalogPaging = allLevels
-    frame.levels:SetShown(not weapons)
+    frame.levels:SetShown(not weapons and not self.wishlistOnly)
+    frame.wishlist:SetShown(not weapons)
+    frame.wishlist.label:SetText(self.wishlistOnly and "Show all training" or "Wishlist (" .. #wishes .. ")")
     frame.search:Show()
     frame.searchHint:SetText(weapons and "Search weapons" or "Search spells")
     self:UpdateSearchHint()
@@ -511,6 +545,9 @@ function Training:Refresh()
     if not InCombatLockdown() then self.classIconNames = not weapons and {} or nil end
     for index, widget in ipairs(frame.rows) do
         local row = group.rows[index + self.offset]
+        widget.pin:SetShown(not weapons and row ~= nil and row.spellID ~= nil)
+        widget.pin:SetEnabled(not InCombatLockdown())
+        widget.pin.label:SetText(row and row.spellID and self.db.wishlist and self.db.wishlist[row.spellID] and "Unpin" or "Pin")
         widget:SetShown(row ~= nil)
         if not InCombatLockdown() then
             local icon
@@ -557,6 +594,10 @@ function Training:Refresh()
     frame.total:SetTextColor(sufficient and 0.41 or 1, sufficient and 0.84 or 0.65, sufficient and 0.75 or 0.4)
     frame.funds:SetText(reference and "Your class and known skills determine what can be trained." or "Your gold: " .. Money(money) .. " · Savings gap: " .. (Number(money) and Money(math.max(0, total - money)) or "--"))
     frame.covered:SetText(snapshot and snapshot.catalog and "Reference catalog; talents, skills and trainer availability apply." or reference and "Wands, Unarmed and Defense are automatic. Dual Wield is class training." or Number(money) and string.format("Gold covers %d/%d offers individually", covered, offerCount) or "Gold coverage unavailable")
+    if not weapons and #wishes > 0 then
+        frame.covered:SetText("Wishlist estimate: " .. Money(wishCost) .. " · " .. wishLearned .. " trained"
+            .. (wishUnknown > 0 and " · " .. wishUnknown .. " prices unknown" or " · excludes trained skills"))
+    end
     frame.range:SetText(#group.rows > 6 and string.format("%d–%d of %d · Scroll", self.offset + 1, math.min(self.offset + 6, #group.rows), #group.rows) or "")
     if allLevels then
         frame.pageText:SetText(math.floor(self.offset / 6) + 1 .. " / " .. math.max(1, math.ceil(#group.rows / 6)))
@@ -705,6 +746,11 @@ function Training:Build()
     frame.context = Label(frame, 11, 14, -80, 472); frame.context:SetWordWrap(false)
     frame.status = Label(frame, 11, 14, -101, 472); frame.status:SetHeight(34); frame.status:SetWordWrap(true)
     frame.group = Label(frame, 14, 14, -140, 330)
+    frame.wishlist = Button(frame, "Wishlist (0)", 350, -136, 136, function()
+        if InCombatLockdown() then return end
+        self.wishlistOnly = not self.wishlistOnly
+        self.page, self.offset, self.groupTitle = 1, 0, nil; self:Refresh()
+    end)
     frame.prices = Button(frame, "Costs: Base", 164, -42, 126, function()
         self.recordedCosts = not self.recordedCosts; self:Refresh()
     end)
@@ -732,9 +778,10 @@ function Training:Build()
     for index = 1, 6 do
         local row = CreateFrame("Frame", nil, frame); row:SetSize(472, 37); row:SetPoint("TOPLEFT", 14, -166 - (index - 1) * 38)
         row.icon = row:CreateTexture(nil, "ARTWORK"); row.icon:SetSize(30, 30); row.icon:SetPoint("TOPLEFT", 0, -2); row.icon:Hide()
-        row.name = Label(row, 12, 36, 0, 289); row.name:SetWordWrap(false)
-        row.state = Label(row, 10, 36, -17, 289); row.state:SetTextColor(0.55, 0.65, 0.7)
-        row.cost = Label(row, 12, 330, 0, 140); row.cost:SetJustifyH("RIGHT")
+        row.name = Label(row, 12, 36, 0, 237); row.name:SetWordWrap(false)
+        row.state = Label(row, 10, 36, -17, 237); row.state:SetTextColor(0.55, 0.65, 0.7)
+        row.cost = Label(row, 12, 350, 0, 120); row.cost:SetJustifyH("RIGHT")
+        row.pin = Button(row, "Pin", 278, -1, 64, function() self:TogglePin(row.data) end)
         row:EnableMouse(true)
         row:SetScript("OnEnter", function()
             local data = row.data

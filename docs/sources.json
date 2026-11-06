@@ -1,4 +1,332 @@
 {
+  "releaseCompanionTools20261106": {
+    "date": "2026-11-06",
+    "commit": "ca8368f2f2380cbe696854f7f2646387c278a61b",
+    "sourceBuild": "1.60.1.70532",
+    "lastReportedRunningBuild": "1.60.1.70790 / Interface 16001",
+    "cache": ".cache/release-tools-20261106/MailFrame.lua",
+    "sha256": "43B76F33F6DD0A46871922A6C6DB874E825D73A355AD1A9216D4436B5E2222A0",
+    "reference": "https://github.com/Gethe/wow-ui-source/blob/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_MailFrame/MailFrame.lua",
+    "findings": [
+      "Line 317 reads loaded and total inbox counts; line 340 reads daysLeft at GetInboxHeaderInfo return seven.",
+      "Lines 391-394 convert fractional days into native deadline display.",
+      "Suite records aggregates only during mailbox visits; no refresh, mail transaction or subject/sender capture.",
+      "Training pins reuse existing TrainingCatalog spell IDs and base/recorded costs; supplies reuse complete Inventory bag scans.",
+      "Earlier source is not proof of ordinary-addon access or current-build rendering/taint safety. Native checks remain pending."
+    ]
+  },
+  "chatShortcuts20261106": {
+    "date": "2026-11-06",
+    "commit": "ca8368f2f2380cbe696854f7f2646387c278a61b",
+    "sourceBuild": "1.60.1.70532",
+    "cache": ".cache/slash-shortcuts-20261106",
+    "references": [
+      "https://github.com/Gethe/wow-ui-source/blob/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_SettingsDefinitions_Frame/Mainline/KeybindingsOverrides.lua",
+      "https://github.com/Gethe/wow-ui-source/blob/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_QuickKeybind/QuickKeybind.lua",
+      "https://github.com/Gethe/wow-ui-source/blob/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_SettingsDefinitions_Frame/Keybindings.lua",
+      "https://github.com/Gethe/wow-ui-source/blob/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_Settings_Shared/Blizzard_Settings.lua",
+      "https://github.com/Gethe/wow-ui-source/blob/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_ChatFrameBase/Shared/SlashCommandsRegistry.lua",
+      "https://github.com/Gethe/wow-ui-source/blob/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_ChatFrameBase/Shared/SlashCommands.lua",
+      "https://github.com/Gethe/wow-ui-source/blob/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_ChatFrameBase/Mainline/SlashCommandsOverrides.lua",
+      "https://github.com/Gethe/wow-ui-source/blob/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_GameMenu/Shared/GameMenuFrame.lua"
+    ],
+    "finding": "Native Quick Keybind button closes SettingsPanel(true) then shows QuickKeybindFrame. Keybindings settings publish KEYBINDINGS_CATEGORY_ID; Settings.OpenToCategory routes through C_SettingsUtil. Edit Mode checks CanEnterEditMode and opens via ShowUIPanel. Native MACRO/CALENDAR/RELOAD callbacks supply their loading and game-rule behavior. Slash registry documents cached callbacks and IsSecureCmd.",
+    "qualification": "Familiar convenience aliases chosen for this request; no measured popularity claim. Pinned 70532 source predates last supplied 70790 / Interface 16001. Live execution, UI and taint pending; no third-party implementation/assets copied."
+  },
+  "enchantReplacement20261106": {
+    "date": "2026-11-06",
+    "commit": "ca8368f2f2380cbe696854f7f2646387c278a61b",
+    "sourceBuild": "1.60.1.70532",
+    "references": [
+      "https://github.com/Gethe/wow-ui-source/blob/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_StaticPopup_Game/GameDialogDefs.lua",
+      "https://github.com/Gethe/wow-ui-source/blob/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_StaticPopup/StaticPopup.lua",
+      "https://github.com/Gethe/wow-ui-source/blob/ca8368f2f2380cbe696854f7f2646387c278a61b/Interface/AddOns/Blizzard_APIDocumentationGenerated/ItemDocumentation.lua"
+    ],
+    "cache": ".cache/enchant-replace-20261106; .cache/upgrade-armor-70532/ItemDocumentation.lua",
+    "finding": "REPLACE_ENCHANT accepts with C_Item.ReplaceEnchant; TRADE_REPLACE_ENCHANT accepts with C_Item.ReplaceTradeEnchant. Both APIs take no arguments. StaticPopup_FindVisible returns an existing shown dialog by token.",
+    "qualification": "Earlier source than last reported 70790 / Interface 16001. Ordinary-addon action access, popup protection, live rendering and taint remain unverified."
+  },
+  "levelingPvPMacros20261106": {
+    "date": "2026-11-06",
+    "request": "A few more commonly used macros per class, including leveling and PvP options.",
+    "references": [
+      "https://github.com/nobody174/wow-forever/blob/main/wow-forever-macros.md",
+      "https://senseos.gg/wiki/wow-forever/talents/macros/",
+      "https://wowforevercompass.com/macros/"
+    ],
+    "qualification": "Authored community recommendations and template examples, not measured popularity or live verification. Atlas states an earlier 70291 snapshot and untested gameplay; repository contains beta caveats. Do not import questionable cooldown fallbacks or rank/gear/form/stance assumptions. Earlier ForeverDB class URLs could not be reopened in this follow-up; use accessible authors listed here instead.",
+    "classes": [
+      {
+        "class": "DRUID",
+        "recipes": [
+          {
+            "key": "druidTouch",
+            "spellID": 5185,
+            "purpose": "Leveling: heal a living friendly mouseover, then friendly target, otherwise yourself. Leave any form that blocks healing yourself; this macro does not cancel forms."
+          },
+          {
+            "key": "druidMark",
+            "spellID": 1126,
+            "purpose": "Leveling: buff a living friendly mouseover, then friendly target, otherwise yourself. Uses your highest learned rank; no form is cancelled."
+          },
+          {
+            "key": "druidHibernate",
+            "spellID": 2637,
+            "purpose": "PvP / control: stop auto-attacking and Hibernate a living enemy focus, then enemy mouseover, then enemy target. Requires an eligible Beast or Dragonkin; damage can break it. No form is cancelled."
+          }
+        ]
+      },
+      {
+        "class": "HUNTER",
+        "recipes": [
+          {
+            "key": "hunterMark",
+            "spellID": 1130,
+            "purpose": "Leveling / pull: send your pet at your living enemy target, then attempt Hunter's Mark. The pet attacks even if marking fails; this begins a pull. Requires an active pet for the pet command."
+          },
+          {
+            "key": "hunterRaptor",
+            "spellID": 2973,
+            "purpose": "Leveling / melee: attempt Raptor Strike and start melee attacks against your living enemy target. Native melee weapon, range and resource rules apply."
+          },
+          {
+            "key": "hunterWingClip",
+            "spellID": 2974,
+            "purpose": "PvP / kiting: slow a living enemy mouseover, otherwise your enemy target. Requires melee range; does not change your selected target."
+          }
+        ]
+      },
+      {
+        "class": "MAGE",
+        "recipes": [
+          {
+            "key": "mageIntellect",
+            "spellID": 1459,
+            "purpose": "Leveling: buff a living friendly mouseover, then friendly target, otherwise yourself, while keeping your selected target."
+          },
+          {
+            "key": "mageMissiles",
+            "spellID": 5143,
+            "purpose": "Leveling: channel Arcane Missiles at your living enemy target without restarting any channel already in progress. Repeated presses wait until that channel ends."
+          },
+          {
+            "key": "mageNova",
+            "spellID": 122,
+            "purpose": "PvP / escape: stop your current cast and attempt Frost Nova around yourself, even without an enemy selected. This does not automatically Blink or choose a destination."
+          }
+        ]
+      },
+      {
+        "class": "PALADIN",
+        "recipes": [
+          {
+            "key": "paladinMight",
+            "spellID": 19740,
+            "purpose": "Leveling: buff a living friendly mouseover, then friendly target, otherwise yourself. Native blessing replacement and duration rules apply."
+          },
+          {
+            "key": "paladinHolyLight",
+            "spellID": 635,
+            "purpose": "Leveling: heal a living friendly mouseover, then friendly target, otherwise yourself. Uses your highest learned rank, with its normal mana cost and cast time."
+          },
+          {
+            "key": "paladinRepentance",
+            "spellID": 20066,
+            "purpose": "PvP / control: Repentance a living enemy focus, then enemy mouseover, then enemy target. Requires the learned talent and an eligible creature type; damage can break it."
+          }
+        ]
+      },
+      {
+        "class": "PRIEST",
+        "recipes": [
+          {
+            "key": "priestRenew",
+            "spellID": 139,
+            "purpose": "Leveling: heal a living friendly mouseover over time, then friendly target, otherwise yourself, without changing your selected target."
+          },
+          {
+            "key": "priestPain",
+            "spellID": 589,
+            "purpose": "Leveling / multidot: apply Shadow Word: Pain to a living enemy mouseover, otherwise your enemy target. Keep your selected target; each press attempts one cast."
+          },
+          {
+            "key": "priestScream",
+            "spellID": 8122,
+            "purpose": "PvP / escape: stop your current cast and attempt Psychic Scream around yourself, even with no enemy selected. Fleeing enemies can pull additional enemies."
+          }
+        ]
+      },
+      {
+        "class": "ROGUE",
+        "recipes": [
+          {
+            "key": "rogueSinister",
+            "spellID": 1752,
+            "purpose": "Leveling: outside Stealth, attempt Sinister Strike and start melee on your living enemy target. In Stealth neither command runs, preserving your opener."
+          },
+          {
+            "key": "rogueEviscerate",
+            "spellID": 2098,
+            "purpose": "Leveling / finisher: attempt Eviscerate and start melee on your living enemy target. You must supply the required combo points and Energy; the macro does not choose a finisher for you."
+          },
+          {
+            "key": "rogueGouge",
+            "spellID": 1776,
+            "purpose": "PvP / control: stop auto-attacking and Gouge a living enemy mouseover, otherwise your enemy target. Native facing and melee-range rules apply; damage can break it."
+          }
+        ]
+      },
+      {
+        "class": "SHAMAN",
+        "recipes": [
+          {
+            "key": "shamanBolt",
+            "spellID": 403,
+            "purpose": "Leveling: cast Lightning Bolt on your living enemy target while preserving any channel already in progress. Uses your highest learned rank."
+          },
+          {
+            "key": "shamanShield",
+            "spellID": 324,
+            "purpose": "Leveling: apply Lightning Shield to yourself without changing your target. Repeated presses can refresh it and spend mana; native shield replacement rules apply."
+          },
+          {
+            "key": "shamanFrostShock",
+            "spellID": 8056,
+            "purpose": "PvP / kiting: slow a living enemy focus, then enemy mouseover, then enemy target. Shares native shock cooldown restrictions; this does not interrupt as Earth Shock does."
+          }
+        ]
+      },
+      {
+        "class": "WARLOCK",
+        "recipes": [
+          {
+            "key": "warlockCorruption",
+            "spellID": 172,
+            "purpose": "Leveling / multidot: apply Corruption to a living enemy mouseover, otherwise your enemy target. Each press attempts one cast without changing your selected target."
+          },
+          {
+            "key": "warlockSoul",
+            "spellID": 1120,
+            "purpose": "Leveling / shards: channel your highest learned Drain Soul on your living enemy target, preserving any active channel. Native kill, inventory and shard requirements decide the result."
+          },
+          {
+            "key": "warlockSpellLock",
+            "spellID": 19647,
+            "purpose": "PvP / interrupt: have your Felhunter Spell Lock a living enemy focus, then enemy mouseover, then enemy target. Requires the active pet to know the ability; does not summon or switch pets."
+          }
+        ]
+      },
+      {
+        "class": "WARRIOR",
+        "recipes": [
+          {
+            "key": "warriorRend",
+            "spellID": 772,
+            "purpose": "Leveling: attempt Rend and start melee against your living enemy target. Does not change stance; native stance and Rage requirements apply."
+          },
+          {
+            "key": "warriorHamstring",
+            "spellID": 1715,
+            "purpose": "Leveling / PvP: attempt Hamstring and start melee against your living enemy target to slow a runner. Does not change stance; native stance and Rage rules apply."
+          },
+          {
+            "key": "warriorDisarm",
+            "spellID": 676,
+            "purpose": "PvP / defense: Disarm a living enemy focus, then enemy mouseover, then enemy target. Does not change stance; native stance, Rage, weapon and immunity rules apply."
+          }
+        ]
+      }
+    ],
+    "implementation": "27 localized recipes, three per class. Friendly mouseover/target/self; selected-target damage and pet pull; hostile mouseover or focus/mouseover/target control. Hunter Mark emits /petattack with the same target guards before /cast; pet attacks even if mark fails. Sinister uses nostealth in both cast and attack commands via trusted attackConditions. Hibernate/Gouge stop attacks; Nova/Scream stop casts. Missiles/Drain Soul/Lightning Bolt preserve any existing channel. No automatic targeting, stance/form swap, castsequence rotation, aura cancellation, outgoing communication or new native API/event/timer.",
+    "ui": "Seven class recipes, eight Druid; automatic maximum row capacity 23 including ten item choices and five shared recipes. Existing class grouping, names, saved choices, writer safeguards and exact requested Prowl body retained. Descriptions identify Leveling/PvP purpose and restrictions; settings search includes names and purpose terms.",
+    "validation": "78 Lua 5.1 files, matching TOCs and 29,726 substitute assertions pass. Covers each exact preview/written body, command order, localization/name failures, ownership/manual/combat/cross-class guards, discovery/reload, search, list expansion/collapse and all ten items including final Druid row 23. No native execution or visual/taint result inferred; last reported client is 70790 / Interface 16001."
+  },
+  "foreverClassMacros20261106": {
+    "date": "2026-11-06",
+    "request": "Research commonly recommended Forever macros and add options to all nine class sections; retain the exact separately requested Druid Prowl macro.",
+    "selectionQualification": "Original authored Forever macro libraries provide recommendations, not measured request counts or proof of native execution. Select two useful additional patterns per class, avoid duplicating existing recipes and adapt targeting explicitly. Do not label these the most popular macros.",
+    "overviewReferences": [
+      "https://www.60.tools/macros",
+      "https://senseos.gg/guides/wow-forever/macros/"
+    ],
+    "classes": [
+      {
+        "class": "Druid",
+        "recipes": [
+          "Rejuvenation",
+          "Entangling Roots"
+        ],
+        "url": "https://foreverdb.net/macros/druid"
+      },
+      {
+        "class": "Hunter",
+        "recipes": [
+          "Concussive Shot",
+          "Auto Shot"
+        ],
+        "url": "https://foreverdb.net/macros/hunter"
+      },
+      {
+        "class": "Mage",
+        "recipes": [
+          "Blink",
+          "Remove Lesser Curse"
+        ],
+        "url": "https://foreverdb.net/macros/mage"
+      },
+      {
+        "class": "Paladin",
+        "recipes": [
+          "Flash of Light",
+          "Blessing of Protection"
+        ],
+        "url": "https://foreverdb.net/macros/paladin"
+      },
+      {
+        "class": "Priest",
+        "recipes": [
+          "Flash Heal",
+          "Shackle Undead"
+        ],
+        "url": "https://foreverdb.net/macros/priest"
+      },
+      {
+        "class": "Rogue",
+        "recipes": [
+          "Sap",
+          "Vanish"
+        ],
+        "url": "https://foreverdb.net/macros/rogue"
+      },
+      {
+        "class": "Shaman",
+        "recipes": [
+          "Healing Wave",
+          "Purge"
+        ],
+        "url": "https://foreverdb.net/macros/shaman"
+      },
+      {
+        "class": "Warlock",
+        "recipes": [
+          "Fear",
+          "Banish"
+        ],
+        "url": "https://foreverdb.net/macros/warlock"
+      },
+      {
+        "class": "Warrior",
+        "recipes": [
+          "Pummel",
+          "Sunder Armor & attack"
+        ],
+        "url": "https://foreverdb.net/macros/warrior"
+      }
+    ],
+    "adaptations": "Use existing guarded runtime C_Spell.GetSpellInfo localization and complete-body validation. Friendly mouseover then friendly target then self. Focus-first crowd control for Roots/Shackle/Sap/Fear/Banish/Pummel; Purge uses mouseover before focus. Hostile target fallbacks require harm,nodead. Vanish stops attacks first; Blink/Pummel stop casts. Auto Shot uses !. Sunder starts attacks without retargeting. No automatic form/stance switching, rank strings, equipment names or castsequence rotations. Existing Hunter recipes and all earlier utilities retain their bodies.",
+    "clientQualification": "Last user-reported client 1.60.1.70790 / Interface 16001. ForeverDB labels data as build 70790 but most macros untested. Existing cached Blizzard GetSpellInfo contract is earlier 70450 evidence, not exact-build availability proof. Metadata is not a learned-spell predicate; native availability, spell IDs, targeting, execution and taint require live smoke tests.",
+    "validation": "78 Lua 5.1 files, identical TOCs and 28,776 substitute assertions pass. Covers all 19 additions including exact Prowl, localized names, missing/secret/invalid names, native text confirmation, class filtering, reload, manual edit/combat protection and list scrolling/item capacity. No deployment or native SavedVariables edits."
+  },
   "castbarEffects20261105": {
     "date": "2026-11-05",
     "references": [

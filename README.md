@@ -1,8 +1,10 @@
 # Forever Suite
 
-**Current source: 1.0.3.** Square minimap now expands the shorter side for an equal-width-and-height map, preserving native position and Edit Mode scale. Turning it off restores the native dimensions. The initial 1.0.0 feature baseline is described in the [release notes](docs/release-1.0.0.md).
+**Current source: 1.0.4 — release candidate.** This update adds fixed sidebar navigation, talent builds and leveling starters, a training wishlist, a supply checklist, recorded mail deadlines, a standalone contact book, expanded class macros and optional chat shortcuts. New optional features start off. The initial feature baseline is described in the [1.0.0 release notes](docs/release-1.0.0.md).
 
-**Release candidate:** offline review and packaging checks pass; chat copying now uses a separate Ctrl+C window, and the replacement and recent combat/UI changes need native retesting. See the [1.0.3 review and remaining checks](docs/release-review-1.0.3.md).
+**Training Planner** has per-character pins and a wishlist cost estimate (`/wfs wishlist`). **Tools → Supply Checklist** saves item targets and optionally counts carried stock (`/wfs checklist`). **Mail → Mail Deadlines** optionally records mailbox deadlines and reminds at login (`/wfs maildeadlines`). Both tracking switches start off. **Suite Settings → What's New** links to recent additions (`/wfs whatsnew`).
+
+**Validation:** 80 Lua files pass Lua 5.1 syntax checks, both TOCs match, and 30,536 behavior assertions pass with API substitutes. The talent workflow has user production acceptance; additional native coverage remains recorded separately. Current-build mailbox capture, reload/relog persistence and combat/taint checks remain in the [in-game test guide](docs/testing.md), including unresolved world-map and quest-tracker combat reports. See the [1.0.4 changelog](CHANGELOG.md#104--release-candidate-november-6-2026). Restart WoW to load the new modules. The release tag is on hold; a code push does not publish this candidate.
 
 Optional **Ability proc popups** are under `/wfs actionbars` → **Ability Proc Popups**. Native highlighted class procs and supported reactive skills such as Overpower show a passive spell icon/name during combat. Use **Preview proc popups** outside combat to drag them into place. The feature starts off; cast through your normal keybind/action bar. Native class coverage and appearance still need in-game testing.
 
@@ -16,7 +18,7 @@ Drag the settings window past screen edges to get it out of the way of previews.
 
 **Known vendor items:** enable `/wfs vendor` → **Known Items → Highlight already-known vendor items** for green highlights/checkmarks on learned recipes and collected items. Ordinary items in your bags do not count as learned. Missing data remains unmarked. This feature starts off and does not enable vendor automation. See the [smoke test](docs/testing.md#known-vendor-items---02102).
 
-The official source is **C:\Games\Development\GitHub Repos\WoW Forever Suite** (user-selected October 25, 2026). Version **1.0.3** includes the readable journey journal, default training catalog and earlier quality fixes alongside the newer vendor highlights. Reload after loading this source; the footer should show **1.0.3**.
+The official source is **C:\Games\Development\GitHub Repos\WoW Forever Suite** (user-selected October 25, 2026). After restarting with this source, the footer should show **1.0.4**. The readable journey journal, default training catalog, vendor highlights and existing optional tools remain available.
 
 Open /wfs leveling > **Session journal** for six labeled cards and **Summary, Loot, Reputation, Levels and History**. New tracking adds deaths, loot estimates, ordinary reputation, level milestones and confirmed Suite sales/repairs. Old XP/gold/time remains; details not collected earlier show **Not recorded**. No EverCore history is imported. See the [smoke checklist](docs/testing.md#readable-journal-and-default-training-catalog---02103-october-22-2026).
 
@@ -38,31 +40,31 @@ Version **0.2.94** adds `/wfs vendor` → **Vendor Conversation → Automaticall
 
 ## Border color
 
-Version **0.2.93** adds **Interface → Appearance**, also opened with `/wfs colors` or `/wfs appearance`. Choose **Default teal**, **My class**, or **Custom**. **Choose custom color** opens Blizzard’s color wheel with live border preview; Okay keeps your choice and Cancel restores the previous mode and custom color. The swatch and hex preview show the active color. Class mode follows the character you’re playing, and Custom remembers your last color. Both choices follow the active shared or personal settings profile.
+Version **0.2.93** adds **Suite Settings → Appearance**, also opened with `/wfs colors` or `/wfs appearance`. Choose **Default teal**, **My class**, or **Custom**. **Choose custom color** opens Blizzard’s color wheel with live border preview; Okay keeps your choice and Cancel restores the previous mode and custom color. The swatch and hex preview show the active color. Class mode follows the character you’re playing, and Custom remembers your last color. Both choices follow the active shared or personal settings profile.
 
 The selection updates all Suite-styled borders, including native skins, minimap, chat, Training Planner, and Suite windows/controls. Hover effects and transparency remain. Changes during combat apply afterward. Informational colors and native borders outside Suite styling retain their meanings. See the [border-color smoke test](docs/testing.md#shared-border-color--0293) for native verification.
 
 ## Chat history
 
-Open **/wfs chat** or **Interface → Chat**, then click **Enable chat history** once. It remembers up to 250 recent lines shown in your main chat window, separately for each character. After reload or login, saved messages appear above the current session in muted colors, with links preserved. Recording begins when enabled; it cannot recover earlier unsaved messages.
+Open **/wfs chat** or **Maps & Interface → Chat**, then click **Enable chat history** once. It remembers up to 250 recent lines shown in your main chat window, separately for each character. After reload or login, saved messages appear above the current session in muted colors, with links preserved. Recording begins when enabled; it cannot recover earlier unsaved messages.
 
 Works with Blizzard or Suite chat styling, with no tuning required. **Clear saved history** removes this character's saved copy while leaving live chat visible. Other tabs, the combat log and messages received while offline are not recorded. The enable preference follows your active settings profile; the saved messages remain character-owned.
 
-A modular addon for WoW Forever with optional quality of life tools and an original slate-and-teal control panel. Version **0.2.93** adds a shared border-color setting alongside optional chat history and the Training Planner. Your existing setup becomes Default automatically. Most features start off. See the [chat-history test guide](docs/testing.md#persistent-chat-history--0286).
+A modular addon for WoW Forever with optional quality of life tools and an original slate-and-teal control panel. Existing settings are preserved; new optional features start off. See the [chat-history test guide](docs/testing.md#persistent-chat-history--0286).
 
 ## Settings and layout profiles
 
-Open **/wfs profiles** or the **Profiles** sidebar section. Your existing choices are preserved as **Default**; you can keep using the Suite without creating or editing anything. The header shows which profile you are changing.
+Open **/wfs profiles** or **Suite Settings → Profiles**. Your existing choices are preserved as **Default**; you can keep using the Suite without creating or editing anything. The header shows which profile you are changing.
 
 To save another setup, enter a new **Profile name**, choose **Current setup** or a recorded character in the source picker, and click **Save as new profile**. Copies are independent and stay inactive until you review a switch. Up to twelve profiles, including Default, are available. Character sources appear after logging into those characters with this update and use their last saved settings.
 
 Changes normally apply to every character using the shared profile. Choose **Only this character** for personal differences; unchanged settings still inherit the shared setup. **Use shared settings** suspends private differences and keeps them available for later. Switching a profile or scope shows a review followed by **Use & reload**. Your outgoing setup saves first. Profile actions are unavailable in combat.
 
-Profiles include Suite feature choices, appearance and supported window/meter/bar layouts. Gear weights, macros, inventory/bank records, saved searches, mail contacts, item protection rules, training and the character leveling tracker retain their own settings/data. Native Edit Mode layouts and keybindings remain in the game. Unused profiles can be renamed or deleted with confirmation; Default and profiles still assigned to a character are protected.
+Profiles include Suite feature choices, appearance and supported window/meter/bar layouts. Gear weights, macros, inventory/bank records, saved searches, mail contacts/deadlines, supply targets, item protection rules, training/wishlist and the character leveling tracker retain their own settings/data. Native Edit Mode layouts and keybindings remain in the game. Unused profiles can be renamed or deleted with confirmation; Default and profiles still assigned to a character are protected.
 
 ## Class macro recipes
 
-Open **/wfs macros** or **Everyday → Macros**. Your class gets its own section with two recipes; the shared supply and item recipes remain available. Preview a recipe, click **Create macro**, then drag it from Blizzard's **General** macro tab onto your action bar. Nothing is created automatically just by browsing. Spell names come from the client; no name, rank or equipment editing is required.
+Open **/wfs macros** or **Tools → Macro Builder**. Your class gets seven utility recipes (eight for Druid), including leveling and PvP choices; shared supply recipes and ten custom-item slots remain available. Preview a recipe, click **Create / update**, then drag it from Blizzard's **General** macro tab onto your action bar. Nothing is created automatically by browsing. Spell names come from the client, except the explicitly requested English Druid Prowl recipe. The original utilities below remain alongside the expanded choices.
 
 | Class | Recipes |
 | --- | --- |
@@ -78,15 +80,27 @@ Open **/wfs macros** or **Everyday → Macros**. Your class gets its own section
 
 Spells must be learned and obey their usual range, resource, reagent, form/stance and target rules. Mouseover choices fall back as explained in the preview. Emergency Counterspell, Hammer of Justice and Earth Shock interrupt your current cast. Pet recall leaves the pet Passive. Existing manual edits and conflicting macro names remain protected. [Research and adaptations](docs/sources.json) and [native test cases](docs/testing.md#classic-class-macro-recipes--0280) record the limits.
 
+FS Bandage now uses the item's normal targeting and self-cast settings. Updating carried supplies preserves the existing managed macro/action-bar reference. Hunter's Mark & pet sends the pet even if marking fails; read each recipe's targeting and talent/pet/form/stance help before use.
+
+## Talent builds and everyday tools
+
+Open **Tools → Talent Builds** or `/wfs talents` to save drafts, order points, undo/redo, import/export and follow a build through manual native learning. Each class has a built-in leveling starter; preview a level or customize a copy. Draft availability follows its own spending and prerequisites. The level reference excludes bonus points; Reset draft is undoable and never resets learned talents.
+
+Open **Mail → Contact book** or `/wfs contacts` to edit full names, rulesets, categories and notes away from a mailbox. Search and category filtering work with both mailbox integrations off. Mail Deadlines records observations only during mailbox visits; partial inboxes and check times are labelled. Passed recorded deadlines mean another mailbox check is needed, not confirmed mail loss.
+
+**Tools → Chat Shortcuts** optionally enables `/kb`, `/edit`, `/binds`, `/macros`, `/cal`, `/settings`, `/addons` and `/rl` outside combat. Existing command owners keep priority; namespaced alternatives remain available. `/wfs commands` lists the shortcuts. `/wfs macros` still opens the Suite builder.
+
+**Bags & Gear → Professions** adds optional automatic own-item/trade enchant replacement confirmation for enchanters. It starts off and is independent of modifier Disenchant. Choose the enchant and item yourself; replacing an enchant loses the old one. Other confirmations and final trade acceptance stay manual.
+
 ## Suite workspace
 
-Open **/wfs** for six workspaces: **Home**, **Bags & Gear**, **Combat**, **Interface**, **Everyday**, and **Profiles**. The selected workspace expands its own pages in the sidebar; Setup Guide stays available at the bottom. Search remains at the top and jumps directly to the matching control. Existing slash shortcuts still work.
+Open **/wfs** for eight fixed sidebar sections: **Home**, **Bags & Gear**, **Combat**, **Maps & Interface**, **Quests & Leveling**, **Vendors & Mail**, **Tools**, and **Suite Settings**. Category directories list their pages without moving the sidebar. Search jumps directly to controls, including nested settings, and existing slash shortcuts still work.
 
-The rectangular panel fits itself to your screen without manual sizing. Related settings use two columns where useful, with room for their descriptions. Home offers six shortcuts instead of duplicate switches. Character/inventory and macro panes use the wider space; gear profiles and weights use three columns. Each optional feature retains its previous setting. The scrolling behavior confirmed in 0.2.78 is retained.
+The rectangular panel fits itself to your screen. Home offers category cards and direct tool shortcuts. Bags, item levels/upgrades, action bars and buff reminders use focused one-column views; advanced editors retain their dedicated layouts. Each optional feature retains its setting, and browsing does not enable modules. Buff reminders move through their settings preview; the live title/bar stays fixed and click-through.
 
 ## Characters and inventory
 
-Open **/wfs inventory**, or choose **Characters → Inventory**. The default view shows all recorded items in your region; no search setup or manual editing is required. Select a character in the roster and choose **Browse inventory**, or click an item result to focus its owner. Cycle **All locations / Bags / Personal bank / Shared bank** to narrow the view. Shared contents count once.
+Open **/wfs inventory**, or choose **Tools → Characters & Inventory**. The default view shows all recorded items in your region; no search setup or manual editing is required. Select a character in the roster and choose **Browse inventory**, or click an item result to focus its owner. Cycle **All locations / Bags / Personal bank / Shared bank** to narrow the view. Shared contents count once.
 
 Search by item name, type, subtype or exact item ID. **Save view** keeps the search, owner and location together; up to eight views save account-wide. Item rows show quantities and the age of their source records. Amber dates flag records at least a day old; unknown locations stay distinct from recorded empty ones. Modified item clicks use the client's normal link/dressing-room behavior.
 
@@ -162,13 +176,13 @@ If opening still does nothing, run `/wfs containerstatus 5523` for Small Barnacl
 
 ## Audio sync
 
-Open `/wfs audio` or **Everyday Tools → Audio** and enable **Follow Windows audio device**. The feature selects System Default game output and refreshes it after Windows playback-device notifications, without a reload. **Sync now** requests a manual refresh. Updates pause during movies/cinematics; refreshing can briefly interrupt game sound.
+Open `/wfs audio` or **Maps & Interface → Audio** and enable **Follow Windows audio device**. The feature selects System Default game output and refreshes it after Windows playback-device notifications, without a reload. **Sync now** requests a manual refresh. Updates pause during movies/cinematics; refreshing can briefly interrupt game sound.
 
 Disabling stops automatic refreshes; choose a fixed output through the game's Audio settings afterward. Volume, mute, background sound, microphone and voice-chat choices remain under native control. The setting starts off independently. Test real speaker/headset switching with the [audio checklist](docs/testing.md#follow-windows-audio-device--0231) before calling native routing verified.
 
 ## Nearby quest items
 
-Enable **Nearby quest-item button** under **Everyday Tools → Quests & Loot**; it starts off. A compact item icon appears when you carry a native quest-log special item and the game reports its nearby objective or quest area. Hover for the quest, count and normal item tooltip; left-click uses it with native targeting and cooldowns. Left-drag saves placement, and Ctrl-right-click resets it. **Use nearby quest item** is available under Forever Suite in native Keybindings.
+Enable **Nearby quest-item button** under **Quests & Leveling → Quests, Loot & Tracker**; it starts off. A compact item icon appears when you carry a native quest-log special item and the game reports its nearby objective or quest area. Hover for the quest, count and normal item tooltip; left-click uses it with native targeting and cooldowns. Left-drag saves placement, and Ctrl-right-click resets it. **Use nearby quest item** is available under Forever Suite in native Keybindings.
 
 The button hides during combat/death and rechecks the item before clicks. Items without native special-item/location data may not appear. See the [quest-item checklist](docs/testing.md#compact-nearby-quest-item-button--0226) for native use, placement and taint tests.
 
@@ -182,7 +196,7 @@ Preview, then click Create/Update outside combat and drag the macro from Blizzar
 
 Version **0.2.19** adds **Overview → Characters**. Open `/wfs characters` or `/wfs dashboard` to browse recorded names, rulesets, levels, gold, profession ranks and inventory snapshot dates. Enable **Record character dashboard** to update each character as you play it; it starts off and preserves saved records when disabled. Log into alts and visit their banks to refresh them. Search names/context/professions, cycle sorting and page through longer rosters. Click a character to see its professions with aligned ranks beneath the roster. Gold totals cover known character balances in your region, with coverage shown; offline information can be stale. Hover for complete text and each field's recording date. See the [dashboard checklist](docs/testing.md#recorded-character-dashboard--0219) for native verification.
 
-Choose **Maps & Layout**, **Bags & Gear**, **Combat & Bars**, **Everyday Tools**, **Mail & Chat** or **Macros**; related pages appear as tabs above the controls. Overview and Setup Guide stay directly accessible. Categories remember their last visited tab during the session. Long pages scroll inside the panel, keeping the title, navigation and footer visible.
+Choose a fixed sidebar section to browse its category directory, then open the page you need. Home provides direct tool shortcuts; Setup Guide is under Suite Settings. Focused settings views retain their scroll positions during the session. Long pages scroll inside the panel, keeping the title, navigation and footer visible.
 
 Click a section heading such as **Launcher & Addon Buttons** or **Map Appearance** to collapse or expand its settings. A plus means collapsed; a minus means expanded. Choices stay independent and are remembered while logged in, including after closing settings. Reload starts expanded. Collapsing a section keeps its feature settings intact. Search reopens a hidden setting's section before highlighting it.
 
@@ -218,13 +232,13 @@ Version 0.1.28 centers the GUI emblem's gold-and-teal infinity through FOREVER, 
 
 On the first login after this update, Suite offers **Everyday → Bars & HUD → Map & windows → Items & social → Review**. Your current settings are the starting point. Choose individual options or use each page's suggested choices; nothing changes until **Apply setup** on Review. **Use current choices** undoes that page's draft edits. **Later**, X, Escape, navigating to ordinary settings or reloading discards the draft and dismisses the one-time welcome.
 
-Open **Setup guide** in the sidebar or type `/wfs setup` to run it again. It covers Auto Loot, Quick loot, vendor/quest tools, bars, minimap, supported window movement, gear information, inventory/banks, mail, chat and camping. Native Auto Loot is changed only when you explicitly apply its choice; later logins do not enforce it. Arrange your HUD and minimap through Edit Mode. Drag empty window headers outside combat, Ctrl+scroll to resize, and Ctrl+right-click to reset. More detailed controls remain in their individual pages.
+Open **Suite Settings → Setup Guide** or type `/wfs setup` to run it again. It covers Auto Loot, Quick loot, vendor/quest tools, bars, minimap, supported window movement, gear information, inventory/banks, mail, chat and camping. Native Auto Loot is changed only when you explicitly apply its choice; later logins do not enforce it. Arrange your HUD and minimap through Edit Mode. Drag empty window headers outside combat, Ctrl+scroll to resize, and Ctrl+right-click to reset. More detailed controls remain in their individual pages.
 
 The guide uses original Suite code, wording and presentation. ElvUI 15.26 was reviewed only as an installation-flow reference. Native rendering, game permissions, combat behavior and persistence still need the [in-game checklist](docs/testing.md#first-login-setup-guide--0198).
 
 ## Missing buffs
 
-After /reload, open **/wfs buffs** or **Combat → Missing Buffs** and enable **Missing buff bar**. It starts off. Teal icons use your learned self/group buffs or carried supplies. Persistent gold **Group** icons identify relevant missing buffs a nearby teammate may provide, with provider names on hover. **Left-click requests that buff in party, raid or instance chat**; right-click hides its family. Requests use a 30-second per-buff and 3-second global cooldown. They cannot cast another player's spell. Browsing and automatic updates never announce requests; native restrictions produce local feedback. Existing local notices remain throttled; missing weapon supplies still have no fake action icon. Unknown data never proves a buff is missing.
+After /reload, open **/wfs buffs** or **Combat → Buff Reminders** and enable **Missing buff bar**. It starts off. Teal icons use your learned self/group buffs or carried supplies. Persistent gold **Group** icons identify relevant missing buffs a nearby teammate may provide, with provider names on hover. **Left-click requests that buff in party, raid or instance chat**; right-click hides its family. Requests use a 30-second per-buff and 3-second global cooldown. They cannot cast another player's spell. Browsing and automatic updates never announce requests; native restrictions produce local feedback. Existing local notices remain throttled; missing weapon supplies still have no fake action icon. Unknown data never proves a buff is missing.
 
 Intellect and Mana recovery recognize all seven Forever Mana classes, including **Hunters** and shifted **Druids**. Physical choices use broad class-appropriate targets, and universal buffs retain broad coverage. The same model drives your outgoing targets and learned alternatives, such as Might/Wisdom; a useful existing alternative satisfies its family. Defaults do not claim a spec-optimal or multi-Paladin assignment. Divine Spirit/Fear Ward reflect Forever's baseline class notes; unseen teammate talents are not inferred. Class/level means a teammate may provide the buff, not that the addon has read their spellbook.
 
@@ -254,7 +268,7 @@ See the [native smoke test](docs/testing.md#class-aware-buff-reminders-and-contr
 | Unit frames | Class colored player, target, target of target and focus health fills, replacing the native colored pixels and tint |
 | Inventory tooltips | Bag/bank quantities by recorded character, a combined total and shared account-bank contents counted once |
 | Cross-character search | Original results popup beside native bags/banks and the saved bank, with owners, bag/bank counts, paging and snapshot dates |
-| Macros | Fixed recovery, self-bandage and weapon-coating recipes; chosen-item variants, preview and optional automatic updates |
+| Macros | Fixed recovery, normal-targeting bandage and weapon-coating recipes; chosen-item variants, preview and optional automatic updates |
 | Camping | Nearby-camp bar with carried objects, counts, cooldowns and a remembered resting pose |
 | Damage meters | Up to three slate/teal windows with metric/fight menus, clickable player breakdowns, quick reset, independent appearance and snapping with shared-edge sizing |
 | Action bars | Optional square slate-and-teal skin with native controls and Edit Mode layout; independently optional full-icon red range feedback |

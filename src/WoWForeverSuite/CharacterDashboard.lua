@@ -130,7 +130,8 @@ function Dashboard:Rows(query, sort)
                 money = Integer(profile.money, 0, 1000000000000) and profile.money or nil,
                 professions = Professions(profile.professions), at = At(profile.at), levelAt = At(profile.levelAt),
                 moneyAt = At(profile.moneyAt), professionsAt = At(profile.professionsAt),
-                bagsAt = SnapshotAt(character.bags), bankAt = SnapshotAt(character.bank) or SnapshotAt(character.bankView) }
+                bagsAt = SnapshotAt(character.bags), bankAt = SnapshotAt(character.bank) or SnapshotAt(character.bankView),
+                mailExpiry = Suite.MailExpiry:Validate(character.mailExpiry) }
             if row.money then gold, known = gold + row.money, known + 1 end
             local words = (row.name .. " " .. row.realm .. " " .. row.ruleset .. " " .. (row.class or ""))
             if row.professions then for _, skill in ipairs(row.professions) do words = words .. " " .. skill.name end end
@@ -175,6 +176,8 @@ function Dashboard:Tooltip(button)
     GameTooltip:AddLine("Professions recorded: " .. self:Stamp(row.professionsAt), unpack(muted))
     GameTooltip:AddLine("Bags recorded: " .. self:Stamp(row.bagsAt), unpack(muted))
     GameTooltip:AddLine("Bank recorded: " .. self:Stamp(row.bankAt), unpack(muted))
+    GameTooltip:AddLine(Suite.MailExpiry:Summary(row.mailExpiry, Call(GetServerTime)), unpack(muted))
+    if row.mailExpiry then GameTooltip:AddLine("Mailbox checked: " .. self:Stamp(row.mailExpiry.at), unpack(muted)) end
     GameTooltip:AddLine("Recorded information may have changed since this character was played.", unpack(muted))
     GameTooltip:Show()
 end
@@ -262,6 +265,7 @@ function Dashboard:Build(parent)
         self.skills[index].rank:SetJustifyH("RIGHT")
     end
     self.freshness = Label(self.details, 10, muted, 12, -56, 756)
+    self.mailStatus = Label(self.details, 10, muted, 12, -108, 756)
     self.browseButton = Button(0, 0, 372, "Browse inventory", function() if self.selected then Suite.CharacterBrowser:Open(self.selected) end end)
     self.bankBrowseButton = Button(0, 0, 372, "Open saved bank", function() if self.selected then Suite.OfflineBank:OpenFor(self.selected, 0) end end)
     self.browseButton:SetParent(self.details); self.browseButton:ClearAllPoints(); self.browseButton:SetPoint("TOPLEFT", 12, -80)
@@ -347,6 +351,8 @@ function Dashboard:Render()
     if selected then
         self.detailTitle:SetText(selected.name .. " · Professions")
         self.detailContext:SetText(selected.realm .. "  ·  " .. selected.ruleset)
+        self.mailStatus:SetText(Suite.MailExpiry:Summary(selected.mailExpiry, Call(GetServerTime))
+            .. (selected.mailExpiry and " · Checked " .. self:Stamp(selected.mailExpiry.at) or ""))
         self.freshness:SetText("Bags: " .. Suite.CharacterBrowser:Age(selected.bagsAt, selected.bagsAt ~= nil)
             .. "  ·  Bank: " .. Suite.CharacterBrowser:Age(selected.bankAt, selected.bankAt ~= nil))
         local available = Suite.OfflineBank:GetSnapshot(0, selected.guid) ~= nil
