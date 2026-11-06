@@ -1,6 +1,6 @@
 # Forever Suite
 
-## 1.0.4 — Release candidate (November 6, 2026)
+## 1.0.5 — November 6, 2026
 
 - Add a per-character Training Planner wishlist with Pin/Unpin controls, search and pagination. Estimate outstanding costs using base or recorded prices, excluding trained ranks and disclosing unknown prices. Widen Unpin buttons to prevent truncation.
 - Add an optional Supply Checklist with up to 32 per-character item targets, carried-stock shortages, editable quantities and confirmed removal. Tracking starts off; unavailable bag data remains unknown and bank stock is excluded.
@@ -12,6 +12,9 @@
 - Add default-off chat shortcuts for Blizzard key bindings, Edit Mode, macros, calendar, settings, AddOns and reload. Preserve existing alias owners and provide namespaced alternatives outside combat.
 - Add default-off automatic own-item/trade enchant replacement confirmation for enchanters, independent of modifier Disenchant. Other confirmations and final trade acceptance remain manual.
 - Widen damage-meter session selectors so the Overall initial fits beside the dropdown arrow; user confirms the fix in game.
+- Validate 80 Lua files as Lua 5.1, identical TOCs and 30,536 behavior assertions with API substitutes. Relevant native checks remain documented separately. The previously reported world-map and quest-tracker combat taint issues remain open for monitoring; the user reports no recent recurrence and defers further investigation. No taint fix is claimed in this release.
+
+## 1.0.4 — November 6, 2026
 
 - Replace expanding workspace navigation with fixed sidebar sections and category directories. Add focused views for bags, item levels/upgrades, action bars and buff reminders, with search links into nested settings.
 - Add an optional talent build planner beside the native talent window: saved class builds, draft editing, point order, undo/redo, notes, import/export and guidance through manual native learning.
@@ -22,7 +25,6 @@
 - Add campfire hiding for normal buff reminders, retain rested-area hiding and keep enabled combat reminders independent of those filters. Move buff positioning into the settings preview and remove its movement-lock control.
 - Exclude armor kits from weapon-coating choices/reminders and remove Shaman totems from the built-in buff reminder catalog.
 - Prefer word-prefix matches in weapon trainer search, so Bows wins over Crossbows when searching for bow.
-- Validate 80 Lua files as Lua 5.1, identical TOCs and 30,536 behavior assertions with API substitutes. Relevant native checks and the reported world-map/quest-tracker combat taint investigations remain open; this candidate is not tagged or published.
 
 ## 1.0.3 — Release candidate (November 5, 2026)
 

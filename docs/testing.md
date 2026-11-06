@@ -1,5 +1,11 @@
 # Forever Suite in game testing
 
+## 1.0.5 publication scope — November 6, 2026
+
+Release preparation passes: 80 Lua 5.1 files, identical 1.0.5 Core/TOC versions and 30,536 behavior assertions; `git diff --check` is clean. `scripts/Package.ps1` builds `dist/WoWForeverSuite-1.0.5.zip`; all 89 archived files match shipped source by SHA256 with no extras. Archive SHA256: 29DA817E1944B0535D1DCA9D9331AC53A699CE8EEAB662E88F7A3C34A9963182. This local archive check does not establish native compatibility or publishing success; GitHub's release job also validates its packager output.
+
+User authorizes release of the current tools/fixes under 1.0.5, preserving already-published v1.0.4. This version update changes no gameplay behavior. Last full local baseline: 80 Lua 5.1 files, matching TOCs and 30,536 behavior assertions; b4a7200 also passed GitHub Addon checks. Repeat offline/version/package checks for the release commit. User reports no recent recurrence of the map/tracker taint errors and asks to skip investigation; experimental changes were reverted, and both reports remain open for monitoring. No additional native test pass is inferred. Existing smoke checklists and talent-workflow production acceptance retain their separate scope.
+
 ## Training Unpin label width — November 6, 2026
 
 After reload, pin/unpin training rows at normal and changed UI scales. Both full labels must fit, with no overlap into skill names or right-aligned prices. User screenshot establishes the previous truncation; widened-button native retest is pending.

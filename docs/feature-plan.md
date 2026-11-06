@@ -1,5 +1,9 @@
 # Forever Suite feature plan
 
+## Release 1.0.5 authorized — November 6, 2026
+
+User approves publishing the current additions as 1.0.5 because v1.0.4 is already published from an older commit. Preserve the published tag; align Core/both TOCs and release notes at 1.0.5. World-map/tracker taint investigation is deferred at the user's request after no recent recurrence; no fix or new native verification is claimed. Existing optional defaults and accepted talent workflow remain unchanged.
+
 ## Readable training Unpin button — November 6, 2026
 
 User screenshot shows Unpin truncated to Un.... Widen training row Pin/Unpin buttons from 48 to 64 units; shift the price column right and narrow it while retaining its right edge and an eight-unit gap. Skill text remains unchanged. Native appearance retest pending.

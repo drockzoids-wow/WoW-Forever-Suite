@@ -1,5 +1,9 @@
 # WoW Forever addon development reference
 
+## Publish the additional tools as 1.0.5 — November 6, 2026
+
+User explicitly authorizes bumping and releasing 1.0.5 after remote verification finds v1.0.4 already published from 2b672c0463bb72c794070e54e7140b7c7b967fc3. Preserve that release/tag. The additional tools and fixes were committed/pushed as b4a7200 with passing GitHub Addon checks; release them with aligned Core/TOC versions and corrected README/changelog sections. User subsequently defers world-map/tracker taint investigation after no recent recurrence; all experimental changes were reverted. Retain these as open monitoring reports, not resolved or verified fixes. No native gameplay change in the release-version update, deployment or junction action. Native tests remain qualified separately; publication authorization does not imply they passed.
+
 ## Training Unpin label width — November 6, 2026
 
 User screenshot confirms the 48-unit wishlist button truncates Unpin. Increase width to 64 (52 units of label space after insets). Move the price column from x330/width140 to x350/width120, preserving its right edge and eight units after the button. Skill name/state widths and pin behavior are unchanged. Native visual retest pending; no release/deployment changes.
