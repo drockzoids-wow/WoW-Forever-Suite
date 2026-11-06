@@ -114,6 +114,7 @@ Spell(1126, "Mark of the Wild"); Spell(467, "Thorns", 6); Spell(6673, "Battle Sh
 Spell(13165, "Aspect of the Hawk", 10); Spell(13163, "Aspect of the Monkey", 4)
 Spell(8232, "Windfury Weapon", 30)
 Spell(8075, "Strength of Earth Totem", 10); Spell(8076, "Strength of Earth", 10)
+Spell(5675, "Mana Spring Totem", 26); Spell(8512, "Windfury Totem", 32)
 Spell(465, "Devotion Aura")
 Spell(8679, "Sofort wirkendes Gift")
 learned = { 1459, 1461, 6117, 7302 }
@@ -369,14 +370,27 @@ equal(imbue.spell.id, 8232, "temporary oils do not satisfy shaman weapon imbues"
 enchants[0] = { { hasEnchant = true, enchantType = 3 } }
 imbueButton:PreClick("LeftButton")
 equal(imbueButton.attributes.type1, nil, "already applied weapon imbue cancels stale recasting")
-learned = { 8232, 8075 }; buffs.bookDirty = true; buffs:Refresh()
-local totem, totemButton = Find("group", "earth")
-equal(totemButton.attributes.unit, "player", "learned party totems cast on the player for missing group members")
-auras.player = { { name = "Strength of Earth", spellId = 8076 } }; buffs:Refresh()
-equal(Find("self", "earth"), nil, "native totem aura IDs satisfy upkeep independently of the totem spell name")
-equal(Find("group", "earth") ~= nil, true, "a totem reminder still identifies uncovered party members")
-Suite.db.missingBuffClass = false; auras.player = {}; buffs:Refresh()
-equal(Find("self", "earth"), nil, "class-upkeep toggle independently controls personal party aura upkeep")
+learned = { 8232, 8075, 5675, 8512 }; buffs.bookDirty = true; buffs:Refresh()
+for _, key in ipairs({ "earth", "water", "meleetotem" }) do
+    equal(Find("self", key), nil, "totems never produce personal upkeep reminders")
+    equal(Find("group", key), nil, "totems never produce outgoing group reminders")
+end
+local oldProvider = units.party1.class
+units.party1.class = "SHAMAN"
+for _, class in ipairs({ "WARRIOR", "ROGUE", "HUNTER", "PALADIN", "SHAMAN", "DRUID", "MAGE", "PRIEST", "WARLOCK" }) do
+    units.player.class, learned = class, {}; buffs.bookDirty = true; buffs:Refresh()
+    for _, key in ipairs({ "earth", "water", "meleetotem" }) do
+        equal(Find("incoming", key), nil, "no class receives incoming totem requests")
+    end
+end
+units.party1.class = oldProvider
+local migrated = buffs:InitializeChoices({ ["SHAMAN:earth"] = 8075, ["SHAMAN:water"] = 5675,
+    ["SHAMAN:meleetotem"] = 8512, ["SHAMAN:shield"] = 324 })
+equal(migrated["SHAMAN:earth"], nil, "obsolete earth totem choice is discarded")
+equal(migrated["SHAMAN:water"], nil, "obsolete water totem choice is discarded")
+equal(migrated["SHAMAN:meleetotem"], nil, "obsolete melee totem choice is discarded")
+equal(migrated["SHAMAN:shield"], 324, "shaman shield choices are preserved")
+Suite.db.missingBuffClass = false; auras.player = {}
 units.player.class, learned = "PALADIN", { 465 }; buffs.bookDirty = true
 auras.player = { { name = "Devotion Aura", spellId = 465 } }; buffs:Refresh()
 local coverage, coverageButton = Find("group", "aura")
@@ -492,6 +506,18 @@ do
     equal(extra:CoatingClick(coating), true, "coating click revalidates current inventory")
     equal(coating.spell.icon, 777, "coatings resolve the native item icon instead of relying on scanner-only metadata")
     local availableOil = carried
+    local oldNotices,oldNoticeTimes=buffs.notices,buffs.noticeTimes
+    buffs.notices,buffs.noticeTimes={},{}
+    carried = { { id = 9003, name = "Heavy Armor Kit", icon = 135346, class = 0, subclass = 6 } }
+    buffs.itemsDirty = true;buffs:Refresh()
+    local armorPrompt, armorButton = Find("coating", "MH")
+    equal(#armorPrompt.choices,0,"armor kits cannot become alternative weapon coatings")
+    equal(armorButton,nil,"armor kit alone never creates the reported Choose weapon coating icon")
+    Suite.macroDB.entries[1].item=9003;buffs:Refresh()
+    equal(Find("coating","MH"),nil,"previously selected armor kit is excluded from reminders and local notices")
+    equal(extra:CoatingItem(buffs.items,{item=9003},16),nil,"armor kit cannot pass coating click revalidation")
+    carried=availableOil;Suite.macroDB.entries[1].item=9001;buffs.itemsDirty=true;buffs:Refresh()
+    buffs.notices,buffs.noticeTimes=oldNotices,oldNoticeTimes
     carried = { { id = 9002, name = "Alternative Oil", class = 0, subclass = 6 } }
     buffs.itemsDirty = true; buffs:Refresh()
     local alternativeCoating, alternativeButton = Find("coating", "MH")
@@ -605,6 +631,13 @@ do
     extra.OnEvent = nativeEvent
     equal(dispatches, 1, "combat reminder dispatch runs once after preview cleanup")
     equal(extra.combatFrame:IsShown(), true, "native combat entry reveals passive missing-buff reminders")
+    resting=true;Suite.db.missingBuffRested=false;Suite.db.missingBuffCampfire=true
+    extra:RefreshCombat()
+    equal(extra.combatFrame:IsShown(),true,"secondary combat reminders remain visible in rested areas with both hiding preferences")
+    equal(extra.combatButtons[1].entry.spell.id,6673,"resting does not remove missing combat buff information")
+    resting=secret;extra:RefreshCombat()
+    equal(extra.combatFrame:IsShown(),true,"unknown resting state cannot hide secondary combat reminders")
+    resting=false;Suite.db.missingBuffCampfire=false
     equal(extra.combatButtons[1].entry.spell.id, 6673, "selected Battle Shout is combat useful")
     buffs.itemsDirty = true; extra:RefreshCombat()
     local dirtyCoating = false
@@ -702,6 +735,31 @@ do
     Suite.db.missingBuffRested=false;buffs:Refresh()
     equal(#buffs.entries,0,"rested-area suppression remains an optional preference")
     Suite.db.missingBuffRested=true;resting=false
+    equal(Suite.db.missingBuffCampfire,false,"campfire hiding is opt-in")
+    auras.player={{name="Campfire Nearby",spellId=1283391,duration=60}}
+    buffs:Refresh()
+    equal(Find("incoming","intellect")~=nil,true,"campfire does not hide normal reminders until selected")
+    Suite.db.missingBuffCampfire=true;buffs.events:OnEvent("UNIT_AURA","player");Flush()
+    equal(#buffs.entries,0,"campfire aura event hides out-of-combat reminders")
+    equal(buffs.bar:IsShown(),false,"campfire hiding removes the normal bar")
+    auras.player={};buffs.events:OnEvent("UNIT_AURA","player");Flush()
+    equal(Find("incoming","intellect")~=nil,true,"campfire aura removal restores normal reminders")
+    auras.player={{name="Localized campfire",spellId=1283391}}
+    equal(buffs:Context(),false,"campfire hiding recognizes the ID in other languages")
+    auras.player={{name="Campfire Nearby",spellId=999999}}
+    equal(buffs:Context(),false,"campfire hiding also recognizes the established English aura name")
+    auras.player={secret}
+    equal(buffs:CampfireNearby(),false,"unreadable aura never establishes campfire proximity")
+    local oldPredicate=C_Secrets and C_Secrets.ShouldUnitAuraIndexBeSecret
+    C_Secrets=C_Secrets or {};C_Secrets.ShouldUnitAuraIndexBeSecret=function() return true end
+    local before=reads
+    equal(buffs:CampfireNearby(),false,"restricted aura access does not establish campfire proximity")
+    equal(reads,before,"campfire scan honors the per-index restriction before reading")
+    C_Secrets.ShouldUnitAuraIndexBeSecret=oldPredicate
+    SetCombat(true);before=reads
+    equal(buffs:CampfireNearby(),false,"campfire detection is unavailable in combat")
+    equal(reads,before,"campfire preference never scans combat auras")
+    SetCombat(false);Suite.db.missingBuffCampfire=false;auras.player={}
     auras.player={{name="Arkane Intelligenz",spellId=1460}};buffs:Refresh()
     equal(Find("incoming","intellect"),nil,"localized lower-rank Intellect satisfies incoming family")
     auras.player={{name="Arcane Brilliance",spellId=23028}};buffs:Refresh()
@@ -802,6 +860,14 @@ do
     Suite.db.missingBuffCustom={};manager.cachedLearned=nil
     -- Display choices update only owned UI outside combat and keep useful defaults.
     units.player.class="HUNTER";learned={};manager:Open("display");buffs.bookDirty=true;buffs:Refresh()
+    manager.rested:OnClick();Flush()
+    equal(Suite.db.missingBuffRested,false,"rested hiding control saves the inverted existing preference")
+    equal(manager.rested.label.text,"Hide in rested areas: on","rested control clearly labels hiding")
+    manager.rested:OnClick();manager.campfire:OnClick();Flush()
+    equal(Suite.db.missingBuffCampfire,true,"campfire control saves its independent preference")
+    equal(Suite.InitializeDB({missingBuffCampfire=true}).missingBuffCampfire,true,"campfire preference survives settings normalization")
+    equal(manager.campfire.label.text,"Hide near a campfire: on","campfire control reflects its state")
+    manager.campfire:OnClick();Flush()
     equal(Suite.db.missingBuffScale,1,"bar starts at normal scale")
     equal(Suite.db.missingBuffIconSize,34,"bar preserves readable original icon size")
     manager.scale:SetValue(120);manager.size:SetValue(40);Flush()
@@ -840,47 +906,39 @@ do
     equal(combatView.previewRoot:IsShown(),false,"combat preview can be stopped explicitly")
     equal(buffs.bar:IsShown(),true,"stopping preview restores the actual missing-buff bar")
     manager.scale:SetValue(120);manager.size:SetValue(40);Flush()
-    local originalCenterX,originalCenterY=buffs.bar.centerX,buffs.bar.centerY
-    local ratio=buffs.bar:GetEffectiveScale()/UIParent:GetEffectiveScale()
-    buffs.bar.centerX=(UIParent:GetWidth()/2+120)/ratio
-    buffs.bar.centerY=(UIParent:GetHeight()/2+80)/ratio
-    buffs.bar.moving=true
-    local widthBeforeLock=buffs.bar:GetWidth()
-    manager.lock:OnClick();Flush()
-    equal(Suite.db.missingBuffLocked,true,"movement lock saves")
-    equal(math.abs(buffs.bar.point[4]*ratio-120)<0.001,true,"locking preserves the dragged horizontal position at non-unit scale")
-    equal(math.abs(buffs.bar.point[5]*ratio-80)<0.001,true,"locking preserves the dragged vertical position at non-unit scale")
-    equal(buffs.bar:GetWidth(),widthBeforeLock,"lock state does not resize the buff header")
-    equal(buffs.header.caption.text,"Missing Buffs","floating title uses compact wording without a locked suffix")
-    equal(buffs.header.caption.point[4],0,"normal title centers its text over the row independently of the lock mark")
-    equal(buffs.header.mouseEnabled,false,"locked header is click-through")
-    equal(buffs.header:IsShown(),true,"live bar has a floating title header")
+    equal(manager.lock,nil,"appearance controls no longer expose a movement lock")
+    equal(buffs.bar:IsMovable(),false,"live buff bar stays fixed")
+    equal(buffs.header.OnDragStart,nil,"live header has no drag handler")
+    equal(buffs.header.OnMouseUp,nil,"live header cannot reset position")
+    equal(buffs.header.lock,nil,"live title has no distracting lock artwork")
+    equal(buffs.header.caption.text,"Missing Buffs","live title retains its compact wording")
+    equal(buffs.header.caption.point[4],0,"title remains centered over the row")
+    equal(buffs.header.mouseEnabled,false,"live header is click-through")
+    equal(buffs.header:IsShown(),true,"live title remains visible")
     equal(buffs.bar.backdrop,nil,"live bar has no surrounding panel backdrop")
-    equal(buffs.bar.mouseEnabled,false,"empty buff border is click-through")
-    equal(buffs.header.lock.right:IsShown(),true,"closed superscript lock shows its right shackle")
-    buffs.bar.moving=nil;buffs.header:OnDragStart()
-    equal(buffs.bar.moving,nil,"locked header cannot move the bar")
-    manager.lock:OnClick();Flush();buffs.header:OnDragStart()
-    equal(buffs.bar.moving,true,"unlocked live header can start a drag")
-    equal(buffs.header.mouseEnabled,true,"unlocked title supports movement")
-    equal(buffs.header.lock.right:IsShown(),false,"unlocked superscript icon opens the shackle")
-    buffs.header:OnDragStop()
-    buffs.bar.centerX,buffs.bar.centerY=originalCenterX,originalCenterY
+    equal(buffs.bar.mouseEnabled,false,"empty live bar remains click-through")
+    -- Old saved lock values cannot prevent the settings preview from moving.
+    Suite.db.missingBuffLocked=true
     manager.normalPreview:OnClick();Flush()
-    equal(buffs.preview.buffHeader:IsShown(),true,"normal settings preview retains its visible movement handle")
+    equal(buffs.preview.buffHeader:IsShown(),true,"settings preview retains its movement header")
+    equal(buffs.preview.buffHeader.lock,nil,"preview also omits lock artwork")
+    equal(buffs.preview:IsMovable(),true,"preview movement ignores the retired saved lock")
     buffs.preview.buffHeader:OnDragStart()
-    equal(buffs.preview.moving,true,"unlocked preview header retains dragging")
-    buffs.preview.buffHeader:OnDragStop()
+    equal(buffs.preview.moving,true,"settings preview can start a drag")
+    local ratio=buffs.preview:GetEffectiveScale()/UIParent:GetEffectiveScale()
     buffs.preview.centerX=(UIParent:GetWidth()/2-90)/ratio
     buffs.preview.centerY=(UIParent:GetHeight()/2+110)/ratio
-    buffs.preview.moving=true;manager.lock:OnClick();Flush()
-    equal(math.abs(buffs.preview.point[4]*ratio+90)<0.001,true,"locking the dragged preview keeps its horizontal placement")
-    equal(math.abs(buffs.preview.point[5]*ratio-110)<0.001,true,"locking the dragged preview keeps its vertical placement")
-    equal(buffs.preview.mouseEnabled,false,"locked preview background is also click-through")
-    equal(buffs.preview.buffHeader.mouseEnabled,false,"locked preview header cannot catch the mouse")
-    manager.lock:OnClick();Flush()
-    equal(buffs.preview.mouseEnabled,false,"preview empty space remains click-through even when unlocked")
+    buffs.preview.buffHeader:OnDragStop()
+    equal(math.abs(Suite.db.missingBuffPosition.x*UIParent:GetWidth()+90)<0.001,true,"preview saves horizontal movement at non-unit scale")
+    equal(math.abs(Suite.db.missingBuffPosition.y*UIParent:GetHeight()-110)<0.001,true,"preview saves vertical movement at non-unit scale")
+    equal(buffs.preview.mouseEnabled,false,"preview empty space remains click-through")
+    equal(buffs.preview.buffHeader.mouseEnabled,true,"preview title accepts movement input")
     manager.normalPreview:OnClick();Flush()
+    equal(math.abs(buffs.bar.point[4]*ratio+90)<0.001,true,"live bar adopts the preview horizontal position")
+    equal(math.abs(buffs.bar.point[5]*ratio-110)<0.001,true,"live bar adopts the preview vertical position")
+    buffs.preview.buffHeader:OnDragStart()
+    equal(buffs.preview.moving,nil,"hidden preview cannot start movement")
+    Suite.db.missingBuffLocked=nil
     buffs.preview.centerX,buffs.preview.centerY=nil,nil
     manager.combatPreview:OnClick();Flush()
     SetCombat(true);buffs.controller:RunState("combat")
@@ -1079,8 +1137,10 @@ end
 SlashCmdList.WOWFOREVERSUITE("buffs")
 equal(Suite.GUI.page, "buffs", "buff bar has its own slash-accessible settings page")
 for index = 1, 8 do
+    if Suite.GUI.rows[index]:IsShown() then
     equal(-Suite.GUI.rows[index].point[3] + Suite.GUI.rows[index].height <= Suite.GUI.content.height - 36, true,
         "buff settings remain within the scrollable content instead of overflowing the footer")
+    end
 end
 buffs:SetPreview(true); equal(buffs.preview:IsShown(), true, "settings can preview placement without actions")
 Suite.GUI:Select("overview"); equal(buffs.preview:IsShown(), false, "navigation cancels the non-actionable preview")

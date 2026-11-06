@@ -120,7 +120,7 @@ function Tips:ComparisonDetails(tooltip, comparison)
         if full then label = label .. " x " .. tostring(row.weight) end
         Pair(label, scoring.Format(row.points, true) .. " pts", row.points > 0)
     end
-    if #rows > limit then tooltip:AddLine((#rows - limit) .. " more weighted changes · full breakdown in Gear Details", 0.55, 0.65, 0.7) end
+    if #rows > limit then tooltip:AddLine((#rows - limit) .. " more weighted changes · full breakdown in Item Levels & Upgrades", 0.55, 0.65, 0.7) end
     if comparison.weapon and comparison.preference == "stats" then
         tooltip:AddLine("Compares the complete hand set; off-hand weapon DPS counts at 50%.", 0.55, 0.65, 0.7, true)
     end

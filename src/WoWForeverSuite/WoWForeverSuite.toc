@@ -3,7 +3,7 @@
 ## Notes: A personal collection of optional tools for WoW Forever.
 ## Author: Drockzoids
 ## IconTexture: Interface\AddOns\WoWForeverSuite\Media\ForeverSuiteIcon.tga
-## Version: 1.0.3
+## Version: 1.0.4
 ## Bindings: Bindings.xml
 ## SavedVariables: WoWForeverSuiteDB
 ## SavedVariablesPerCharacter: WoWForeverSuiteCharDB
@@ -42,9 +42,16 @@ TrainingCatalogData.lua
 TrainingCatalog.lua
 TrainingWeapons.lua
 Training.lua
+TalentPlanner.lua
+TalentPlannerRules.lua
+TalentPlannerOrder.lua
+TalentPlannerStarterData.lua
+TalentPlannerStarters.lua
+TalentPlannerUI.lua
 Castbars.lua
 ZoneReputation.lua
 QuestTrackerSkin.lua
+QuestTrackerState.lua
 Loot.lua
 Mail.lua
 ChatCopy.lua

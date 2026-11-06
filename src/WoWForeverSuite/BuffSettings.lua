@@ -36,7 +36,7 @@ local function Input(parent,x,y,width,callback)
         if not InCombatLockdown() then callback(f:GetText()) end
     end)
     f:SetScript("OnEnterPressed",function() f:ClearFocus() end)
-    f:SetScript("OnEscapePressed",function() View:Dismiss();GUI:Select("buffs") end)
+    f:SetScript("OnEscapePressed",function() View:Dismiss();GUI:Select("buffs","reminders") end)
     return f
 end
 local function Icon(parent,x,y)
@@ -97,21 +97,15 @@ function View:Open(mode)
     end
     self.cachedLearned=nil
     self.mode,self.message=mode or "display",nil
-    GUI:OpenPage("buffs");self:Build();self:Refresh();GUI:Select("buffs");GUI:ScrollTo(GUI.controlsOffset)
+    local view=({display="appearance",visibility="visibility",choices="choices",spells="spells"})[self.mode] or "appearance"
+    GUI:OpenPage("buffs",view);self:Build();self:Refresh();GUI:Select("buffs");GUI:ScrollTo(GUI.controlsOffset)
 end
 function View:Changed()
     Buffs.bookDirty=true;Buffs:Queue();self:Refresh()
 end
 function View:Display(key,value)
     if InCombatLockdown() then return end
-    if key=="missingBuffLocked" then
-        if Buffs.bar then Buffs:StopMoving(Buffs.bar) end
-        if Buffs.preview then Buffs:StopMoving(Buffs.preview) end
-    end
     Suite.db[key]=value
-    if key=="missingBuffLocked" then
-        Buffs:ApplyLock(Buffs.bar);Buffs:ApplyLock(Buffs.preview)
-    end
     if Buffs.bar then Buffs:Place(Buffs.bar) end
     if Buffs.preview then Buffs:Place(Buffs.preview) end
     if Buffs.preview and Buffs.preview:IsShown() then Buffs:SetPreview(true) end
@@ -122,32 +116,31 @@ function View:Build()
     if self.panel or InCombatLockdown() then return end
     local panel=CreateFrame("Frame",nil,GUI.content);panel:SetSize(780,340);self.panel,GUI.buffPanel=panel,panel
     self.tabs={}
-    local modes={{"display","Bar appearance"},{"choices","Buff list"},{"spells","Custom spells"}}
-    for i,entry in ipairs(modes) do self.tabs[entry[1]]=Button(panel,entry[2],(i-1)*264,0,252,function() self.mode,self.message=entry[1],nil;self:Refresh() end) end
-    self.status=Label(panel,"",0,-40,780,11,colors.gold);self.status:SetHeight(30)
+    self.status=Label(panel,"",0,0,780,11,colors.gold);self.status:SetHeight(30)
     local display=CreateFrame("Frame",nil,panel);self.display=display
-    display:SetPoint("TOPLEFT",0,-80);display:SetSize(780,340)
+    display:SetPoint("TOPLEFT",0,-40);display:SetSize(780,264)
     Label(display,"Make the reminders comfortable to read.",0,0,780,14,colors.teal)
     Label(display,"Normal and combat icons share these size and scale settings.\nPreviews are visual only; combat reminders are refreshed from your action bar.",0,-30,780,11,colors.muted)
     self.scale=Slider(display,0,-108,252,70,150,function(value) self:Display("missingBuffScale",value/100) end)
     self.size=Slider(display,264,-108,252,24,64,function(value) self:Display("missingBuffIconSize",value) end)
-    self.lock=Button(display,"",528,-90,252,function() self:Display("missingBuffLocked",not Suite.db.missingBuffLocked) end)
-    self.rested=Button(display,"",0,-156,384,function() self:Display("missingBuffRested",not Suite.db.missingBuffRested) end)
-    self.smart=Button(display,"",396,-156,384,function() self:Display("missingBuffSmart",not Suite.db.missingBuffSmart) end)
-    Label(display,"Class-aware targets include Intellect and mana recovery for all Forever mana classes, including Hunters and Druids in any form. Turn this off if you prefer reminders for every class.",0,-198,780,11,colors.muted)
-    self.normalPreview=Button(display,"Preview normal bar",0,-252,252,function()
+    local visibility=CreateFrame("Frame",nil,panel);self.visibility=visibility
+    visibility:SetPoint("TOPLEFT",0,-40);visibility:SetSize(780,144)
+    self.rested=Button(visibility,"",0,0,780,function() self:Display("missingBuffRested",not Suite.db.missingBuffRested) end)
+    self.campfire=Button(visibility,"",0,-46,780,function() self:Display("missingBuffCampfire",not Suite.db.missingBuffCampfire) end)
+    Label(visibility,"These hiding options affect only the out-of-combat bar. Combat reminders still appear wherever you fight.",0,-90,780,11,colors.muted)
+    self.normalPreview=Button(display,"Preview normal bar",0,-176,252,function()
         Buffs:SetPreview(not (Buffs.preview and Buffs.preview:IsShown()));self:Refresh()
     end)
-    self.combatPreview=Button(display,"Preview combat icons",264,-252,252,function()
+    self.combatPreview=Button(display,"Preview combat icons",264,-176,252,function()
         if Suite.CombatBuffs then Suite.CombatBuffs:SetPreview(not Suite.CombatBuffs.previewActive) end;self:Refresh()
     end)
-    Button(display,"Reset appearance",528,-252,252,function()
-        self:Display("missingBuffScale",1);self:Display("missingBuffIconSize",34);self:Display("missingBuffLocked",false)
+    Button(display,"Reset appearance",528,-176,252,function()
+        self:Display("missingBuffScale",1);self:Display("missingBuffIconSize",34)
     end)
-    Label(display,"Drag the normal preview header to move both versions. Previews stop when you leave these controls or enter combat.",0,-296,516,11,colors.muted)
-    Button(display,"Close these controls",528,-296,252,function() self:Dismiss();GUI:Select("buffs") end)
+    Label(display,"Drag the normal preview header to move both versions. Previews stop when you leave these controls or enter combat.",0,-220,516,11,colors.muted)
+    self.resetPosition=Button(display,"Reset position",528,-220,252,function() Buffs:ResetPosition() end)
     local choices=CreateFrame("Frame",nil,panel);self.choices=choices
-    choices:SetPoint("TOPLEFT",0,-80);choices:SetSize(780,490)
+    choices:SetPoint("TOPLEFT",0,-40);choices:SetSize(780,490)
     Label(choices,"Find a hidden reminder or choose a learned alternative.",0,0,780,14,colors.teal)
     self.choiceSearch=Input(choices,0,-34,384,function(value) self.choiceQuery=value;self.page=1;self:Refresh() end)
     self.choiceSearch.hint=Label(self.choiceSearch,"Search by spell or class",8,-7,368,11,colors.muted)
@@ -193,7 +186,7 @@ function View:Build()
             if not row.spell then return end
             if row.builtIn then
                 self.mode="choices";self.filter="all";self.choiceQuery=row.spell.name;self.page=1
-                self.choiceSearch:SetText(row.spell.name);self:Refresh();return
+                self.choiceSearch:SetText(row.spell.name);GUI:Select("buffs","choices");self:Refresh();return
             end
             local ok=Suite.BuffReminders:AddCustom(tostring(row.spell.id),false)
             self.message=ok and "Reminder added. Choose Self or Party / raid below." or "Already saved, or all eight custom slots are in use."
@@ -285,10 +278,10 @@ function View:Refresh()
     self.syncing=true;self.scale:SetValue(math.floor(scale*100+0.5));self.size:SetValue(size);self.syncing=nil
     self.normalPreview.label:SetText(Buffs.preview and Buffs.preview:IsShown() and "Stop normal preview" or "Preview normal bar")
     self.combatPreview.label:SetText(Suite.CombatBuffs and Suite.CombatBuffs.previewActive and "Stop combat preview" or "Preview combat icons")
-    self.lock.label:SetText(Suite.db.missingBuffLocked and "Movement: locked" or "Movement: unlocked")
-    self.rested.label:SetText(Suite.db.missingBuffRested and "Rested areas: show reminders" or "Rested areas: pause reminders")
-    self.smart.label:SetText(Suite.db.missingBuffSmart and "Class-aware targets: on" or "Class-aware targets: off")
+    self.rested.label:SetText(Suite.db.missingBuffRested and "Hide in rested areas: off" or "Hide in rested areas: on")
+    self.campfire.label:SetText(Suite.db.missingBuffCampfire and "Hide near a campfire: on" or "Hide near a campfire: off")
     self.display:SetShown(self.mode=="display");self.choices:SetShown(self.mode=="choices");self.spells:SetShown(self.mode=="spells")
+    self.visibility:SetShown(self.mode=="visibility")
     if self.mode=="choices" or self.mode=="spells" then
         local learned,book,complete=self:Learned()
         if not complete then self.status:SetText("Some learned spell information is unavailable. The list will update when it arrives.") end
@@ -362,6 +355,6 @@ function View:Refresh()
             end
         end
     end
-    self.panel:SetHeight(self.mode=="display" and 420 or self.mode=="choices" and 80+(self.choiceHeight or 490) or 80+(self.spellsHeight or 650))
+    self.panel:SetHeight(self.mode=="display" and 304 or self.mode=="visibility" and 184 or self.mode=="choices" and 40+(self.choiceHeight or 490) or 80+(self.spellsHeight or 650))
     if GUI.page=="buffs" then GUI:LayoutPage("buffs") end
 end

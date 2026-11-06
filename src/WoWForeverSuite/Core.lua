@@ -1,6 +1,6 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "1.0.3"
+Suite.version = "1.0.4"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {
@@ -21,7 +21,7 @@ Suite.defaults = {
     shortKeybinds = false, keybindFontStyle = false, keybindFont = "default", keybindSize = 12,
     keybindOutline = "default", keybindBold = false,
     autoRepair = false, repairSource = "personal", autoSellJunk = false, junkMode = "slow", autoVendor = false, vendorKnownItems = false,
-    autoQuestPickup = false, autoQuestTurnIn = false, autoGossip = false,
+    autoQuestPickup = false, autoQuestTurnIn = false, autoGossip = false, questTrackerRemember = false,
     quickLoot = false, sortBagsOnOpen = false, reverseCombinedBags = false, reverseBagSlots = false, autoOpenContainers = false, questTrackerSkin = false, questItemButton = false, questItemPosition = {},
     modifierDisenchant = false, disenchantModifier = "alt", castbars = {}, zoneReputation = false,
     bagSpaceAlert = false, bagSpaceBlacklist = {}, bagSpacePosition = {},
@@ -35,8 +35,10 @@ Suite.defaults = {
     macroUpdates = false, macroOwnership = {},
     campingBar = false, campingPose = "sit", campingPosition = {},
     levelingBar = false, trainingPlanner = false, trainingAuto = true, trainingLevelUp = true, trainingSpellbook = true,
+    talentPlanner = false, talentPlannerRules = false, talentBuilds = { schema = 1, classes = {} },
     missingBuffExpiry = false, missingBuffCombat = false, missingBuffWeapons = false, missingBuffWarning = 60, missingBuffCustom = {},
-    missingBuffScale = 1, missingBuffIconSize = 34, missingBuffLocked = false, missingBuffRested = true, missingBuffSmart = true,
+    missingBuffScale = 1, missingBuffIconSize = 34, missingBuffRested = true, missingBuffSmart = true,
+    missingBuffCampfire = false,
     missingBuffs = false, missingBuffSelf = true, missingBuffOutgoing = true, missingBuffIncoming = true, missingBuffClass = true,
     missingBuffPosition = {}, missingBuffChoices = {},
     damageMeters = false, meterSnap = true, meterGap = 4, meterLocked = false,
@@ -154,11 +156,17 @@ events:SetScript("OnEvent", function(_, event, name, second)
         local leveling = Suite.Leveling:InitializeCharacter(character.leveling)
         local training = Suite.Training:InitializeCharacter(character.training)
         local chatHistory = Suite.ChatHistory:InitializeCharacter(character.chatHistory)
+        local talentGuide = Suite.TalentPlanner:InitializeGuide(character.talentGuide)
         WoWForeverSuiteCharDB = Suite.Macros:Initialize(character)
         WoWForeverSuiteCharDB.leveling = leveling
         WoWForeverSuiteCharDB.training = training
         WoWForeverSuiteCharDB.chatHistory = chatHistory
+        WoWForeverSuiteCharDB.talentGuide = talentGuide
         WoWForeverSuiteCharDB.scoring = scoring
+        local trackerCollapsed = character.questTrackerCollapsed
+        if Suite.IsReadable(trackerCollapsed) and type(trackerCollapsed) == "boolean" then
+            WoWForeverSuiteCharDB.questTrackerCollapsed = trackerCollapsed
+        end
         WoWForeverSuiteCharDB.suiteProfile = Suite.Profiles:Initialize(Suite.db, character.suiteProfile)
         Suite.InitializeDB(Suite.db)
     elseif event == "PLAYER_LOGIN" then
@@ -201,6 +209,11 @@ SlashCmdList.WOWFOREVERSUITE = function(message)
         Suite.ChatCopy:Open(SELECTED_CHAT_FRAME or DEFAULT_CHAT_FRAME)
     elseif command == "buffstatus" then Suite.CombatBuffs:Status()
     elseif command == "procstatus" then Suite.ProcAlerts:Status()
+    elseif command == "talentstatus" then
+        local spellID = message:match("^%s*%S+%s+(%d+)%s*$")
+        if spellID then Suite.TalentPlanner:Status(tonumber(spellID))
+        elseif message:match("^%s*%S+%s*$") then Suite.TalentPlanner:Status()
+        else Suite.Print("Usage: /wfs talentstatus [spellID]") end
     elseif command == "containerstatus" then
         local itemID = message:match("^%s*%S+%s+(%d+)%s*$")
         if itemID then Suite.AutoOpen:Status(tonumber(itemID))
@@ -210,6 +223,7 @@ SlashCmdList.WOWFOREVERSUITE = function(message)
     elseif command == "windows" then Suite.Windows:Status()
     elseif command == "resetwindows" then Suite.Windows:ResetAll()
     elseif command == "training" or command == "trainer" then Suite.Training:Open()
+    elseif command == "talents" or command == "builds" then Suite.TalentPlanner:Open()
     elseif command == "inventory" then Suite.CharacterBrowser:Open()
     elseif command == "bank" then Suite.OfflineBank:Toggle()
     elseif command == "macrostatus" then Suite.Macros:Status()

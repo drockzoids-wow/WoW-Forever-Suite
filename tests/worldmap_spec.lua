@@ -478,7 +478,7 @@ SlashCmdList.WOWFOREVERSUITE("map"); equal(gui.page, "worldmap", "map slash comm
 local panel = gui.mapPanel
 gui:Select("overview"); equal(panel:IsShown(), false, "map controls hide on other pages")
 gui:Select("worldmap"); equal(gui.mapPanel, panel, "map page reuses its controls")
-equal(-gui.tabs.chat.point[3] + gui.tabs.chat.height <= gui.frame.height - 77 - 44, true, "all sixteen sidebar tabs clear the version stamp")
+equal(gui.tabs.chat:IsShown(), false, "chat uses the category directory rather than another sidebar row")
 equal(-panel.point[3] + panel.height < gui.content.height - 35, true, "map controls clear the footer")
 
 Suite.db.revealWorldMap = false; reveal:Apply()

@@ -100,6 +100,10 @@ function Items:Read(id, bag, slot, level, english)
     if class == 0 and subclass == 7 then item.flags.bandage = true end
     local description = Tooltip(id, bag, slot)
     if english and description then
+        item.flags.weaponCoating = description:find("weapon", 1, true) ~= nil
+            and description:find("permanent", 1, true) == nil
+    end
+    if english and description then
         local lower = name:lower()
         item.conjured = lower:find("conjured", 1, true) ~= nil
         item.health, item.mana = Restoration(description, "health"), Restoration(description, "mana")
@@ -284,17 +288,27 @@ function Items:PetFoodChoices(snapshot)
     return choices, note or (#choices == 0 and "No carried food matches your active pet." or nil)
 end
 
+function Items:IsWeaponCoating(item)
+    if not Suite.IsReadable(item) or type(item) ~= "table" then return false end
+    if Number(item.id) and stones[item.id] then return true end
+    if Text(item.family) and (item.family == "sharp" or item.family == "blunt") then return true end
+    if not Number(item.class) or not Number(item.subclass) or item.class ~= 0 or item.subclass ~= 6 or not Text(item.name) then return false end
+    local lower = item.name:lower()
+    if lower:find("armor kit", 1, true) then return false end
+    local flags = item.flags
+    return (Suite.IsReadable(flags) and type(flags) == "table" and Suite.IsReadable(flags.weaponCoating) and flags.weaponCoating == true)
+        or lower:match("%f[%a]oil$") ~= nil or lower:match("%f[%a]poison%f[%A]") ~= nil
+end
+
 function Items:Choices(snapshot, recipe)
     if recipe == "hunterPet" then return self:PetFoodChoices(snapshot) end
     local choices = {}
     for _, item in ipairs(snapshot.list) do
         local recovery = recipe == "food" or recipe == "water"
         local weapon = recipe == "mainhand" or recipe == "offhand"
-        local lower = item.name:lower()
         if recipe == "item" or recovery and item.class == 0 and (item.subclass == 5 or item.eventFood)
             or recipe == "bandage" and item.flags.bandage
-            or weapon and (item.family or item.class == 0 and item.subclass == 6
-                or lower:find("poison", 1, true) or lower:find("oil", 1, true)) then
+            or weapon and self:IsWeaponCoating(item) then
             choices[#choices + 1] = item
         end
     end

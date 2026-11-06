@@ -86,6 +86,24 @@ equal(Suite.db.macroUpdates, false, "macro updates default off")
 equal(food.created, false, "starter recipes create nothing")
 equal(food.combat, false, "combat supplies require an explicit choice")
 local snapshot = supplies:Scan()
+do
+    local items={
+        {id=91001,name="Heavy Armor Kit",class=0,subclass=6,flags={}},
+        {id=91002,name="Unrecognized Enhancement",class=0,subclass=6,flags={}},
+        {id=91003,name="Crafting Oil",class=7,subclass=0,flags={}},
+        {id=91004,name="Shadow Oil",class=0,subclass=6,flags={}},
+        {id=91005,name="Instant Poison IV",class=0,subclass=6,flags={}},
+        {id=91006,name="Weapon Treatment",class=0,subclass=6,flags={weaponCoating=true}},
+    }
+    for _,recipe in ipairs({"mainhand","offhand"}) do
+        local choices=supplies:Choices({list=items},recipe)
+        equal(#choices,3,"weapon choices require a recognized coating rather than the enhancement category")
+        equal(choices[1].id,91004,"weapon oils remain available")
+        equal(choices[2].id,91005,"ranked poisons remain available")
+        equal(choices[3].id,91006,"readable weapon-use tooltip permits an additional coating")
+    end
+    equal(#supplies:Choices({list=items},"item"),6,"generic item recipes still allow armor kits")
+end
 equal(snapshot.best.food.id, 101, "prefer conjured food to higher restoration vendor food")
 equal(snapshot.best.water.id, 103, "prefer conjured drink")
 equal(snapshot.byID[101].count, 4, "combine identical carried stacks")

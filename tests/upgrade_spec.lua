@@ -242,7 +242,7 @@ equal(gloveRecord.arrow.text,"","player-ineligible armor clears the real bag mar
 C_PlayerInfo,C_Item.GetItemInfoInstant,C_Item.IsUsableItem=oldPlayerInfo,oldInstant,oldUsable
 
 Suite.Apply = function() end
-Suite.GUI:Select("items")
+Suite.GUI:Select("items", "upgrades")
 equal(Suite.GUI.rows[5].value.text, "Stats", "comparison control displays current preference")
 Suite.GUI.rows[5].OnClick()
 equal(Suite.db.upgradePreference, "ilevel", "comparison control changes saved preference")

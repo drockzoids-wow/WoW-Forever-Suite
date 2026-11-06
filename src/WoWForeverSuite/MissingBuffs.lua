@@ -57,6 +57,22 @@ function Buffs:Context()
     local resting = Call(IsResting)
     return (resting == false or resting == true and Suite.db.missingBuffRested == true)
         and Call(UnitIsDeadOrGhost, "player") == false
+        and not (Suite.db.missingBuffCampfire == true and self:CampfireNearby())
+end
+
+function Buffs:CampfireNearby()
+    -- This preference belongs only to the clickable, out-of-combat bar.
+    if InCombatLockdown() or not C_UnitAuras or type(C_UnitAuras.GetAuraDataByIndex) ~= "function" then return false end
+    local localized = C_Spell and Call(C_Spell.GetSpellName, 1283391)
+    for index = 1, 255 do
+        if C_Secrets and type(C_Secrets.ShouldUnitAuraIndexBeSecret) == "function"
+            and Call(C_Secrets.ShouldUnitAuraIndexBeSecret, "player", index, "HELPFUL") ~= false then return false end
+        local aura = Call(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL")
+        if not Read(aura, "table") then return false end
+        if ID(aura.spellId) and aura.spellId == 1283391 then return true end
+        if Text(aura.name) and (aura.name == "Campfire Nearby" or Text(localized) and aura.name == localized) then return true end
+    end
+    return false
 end
 
 function Buffs:Unit(unit)
@@ -480,50 +496,28 @@ function Buffs:StopMoving(frame)
     end
 end
 
-function Buffs:ApplyLock(frame)
-    if InCombatLockdown() or not frame or not frame.buffHeader then return end
-    local locked = Suite.db.missingBuffLocked == true
-    frame:SetMovable(not locked)
+function Buffs:Header(frame, title, preview)
+    frame:SetMovable(preview == true); frame:SetClampedToScreen(true)
     frame:EnableMouse(false)
-    local header = frame.buffHeader
-    header:Show()
-    header:EnableMouse(not locked)
-    header.lock.right:SetShown(locked)
-    for _, part in ipairs(header.lock.parts) do
-        part:SetColorTexture(locked and 0.41 or 0.55, locked and 0.84 or 0.65, locked and 0.75 or 0.7, 0.75)
-    end
-end
-
-function Buffs:Header(frame, title)
-    frame:SetMovable(true); frame:SetClampedToScreen(true)
     local header = CreateFrame("Frame", nil, frame)
     header:SetPoint("TOPLEFT", 1, -1); header:SetPoint("TOPRIGHT", -1, -1); header:SetHeight(21)
-    header:EnableMouse(true); header:RegisterForDrag("LeftButton")
-    header:SetScript("OnDragStart", function()
-        if InCombatLockdown() or Suite.db.missingBuffLocked then return end
-        frame.moving = true; frame:StartMoving()
-    end)
-    header:SetScript("OnDragStop", function() self:StopMoving(frame) end)
-    header:SetScript("OnHide", function() self:StopMoving(frame) end)
-    header:SetScript("OnMouseUp", function(_, button)
-        if button == "RightButton" and not Suite.db.missingBuffLocked and IsControlKeyDown() then self:ResetPosition() end
-    end)
+    header:EnableMouse(preview == true)
+    if preview then
+        header:RegisterForDrag("LeftButton")
+        header:SetScript("OnDragStart", function()
+            if InCombatLockdown() or not self.settingsVisible or not frame:IsShown() then return end
+            frame.moving = true; frame:StartMoving()
+        end)
+        header:SetScript("OnDragStop", function() self:StopMoving(frame) end)
+        header:SetScript("OnHide", function() self:StopMoving(frame) end)
+        header:SetScript("OnMouseUp", function(_, button)
+            if not InCombatLockdown() and self.settingsVisible and button == "RightButton" and IsControlKeyDown() then self:ResetPosition() end
+        end)
+    end
     local caption = Label(header, 10); caption:SetPoint("CENTER", header, "CENTER", 0, 0); caption:SetJustifyH("CENTER"); caption:SetText(title)
     header.caption = caption
-    -- Passive superscript mark: stable title width, no extra mouse target.
-    local lock = CreateFrame("Frame", nil, header)
-    lock:SetSize(8, 9); lock:SetPoint("BOTTOMLEFT", caption, "RIGHT", 2, 0); lock:EnableMouse(false)
-    lock.parts = {}
-    local function Part(width, height, x, y)
-        local part = lock:CreateTexture(nil, "ARTWORK")
-        part:SetSize(width, height); part:SetPoint("CENTER", lock, "CENTER", x, y)
-        lock.parts[#lock.parts + 1] = part
-        return part
-    end
-    Part(6, 4, 0, -2); Part(1, 3, -2.5, 2); Part(5, 1, 0, 4)
-    lock.right = Part(1, 3, 2.5, 2)
-    header.lock, frame.buffHeader = lock, header
-    self:ApplyLock(frame)
+    frame.buffHeader = header
+    header:Show()
     return header
 end
 
@@ -730,7 +724,6 @@ function Buffs:Refresh()
     if not self:Build() then return end
     if not self.bar.moving then self:Place(self.bar) end
     self.header.caption:SetText("Missing Buffs")
-    self:ApplyLock(self.bar)
     local width, height, size, stride, rowStride = self:BarLayout(#entries)
     self.bar:SetSize(width, height)
     for index, entry in ipairs(entries) do
@@ -830,7 +823,7 @@ function Buffs:SetPreview(show)
         local preview = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
         self.preview = preview
         preview:SetFrameStrata("DIALOG")
-        preview:EnableMouse(false); self:Header(preview, "Missing Buffs")
+        preview:EnableMouse(false); self:Header(preview, "Missing Buffs", true)
         preview.samples = {}
         preview:SetScript("OnHide", function() self:StopMoving(preview); if self.bar and not InCombatLockdown() then self:Place(self.bar) end end)
     end
@@ -851,7 +844,7 @@ function Buffs:SetPreview(show)
         sample.icon:SetTexture(entry.spell.icon); sample:Show()
     end
     for index = #entries + 1, #self.preview.samples do self.preview.samples[index]:Hide() end
-    self:ApplyLock(self.preview); self:Place(self.preview); self.preview:Show()
+    self:Place(self.preview); self.preview:Show()
     if self.bar then self.bar:Hide() end
 end
 

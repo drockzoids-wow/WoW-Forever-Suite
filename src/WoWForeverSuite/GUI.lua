@@ -3,7 +3,7 @@ local GUI = { rows = {}, tabs = {} }
 Suite.GUI = GUI
 local LOGO_TEXTURE = "Interface\\AddOns\\" .. addonName .. "\\Media\\ForeverSuiteLogo.tga"
 local Catalog = Suite.SettingsCatalog
-local CONTENT_WIDTH, BODY_HEIGHT = 816, 628
+local CONTENT_WIDTH, BODY_HEIGHT = 816, 640
 local WINDOW_WIDTH, WINDOW_HEIGHT, SIDEBAR_WIDTH = 1120, 760, 208
 GUI.contentWidth = CONTENT_WIDTH
 
@@ -27,6 +27,11 @@ local function Text(parent, size, color)
 end
 
 local pages = {
+    talents = { title = "Talent Builds", description = "Explore builds on your talent tree without spending points.", rows = {
+        { key = "talentPlanner", label = "Talent build planner", help = "Add a build library beside the native talent window.\nStarts off. Drafts are shared across your characters of the same class." },
+        { key = "talentPlannerRules", label = "Limit to current level", help = "On: also enforce your current level and earned point budget.\nOff: plan ahead. Tree tiers and prerequisites always apply." },
+        { action = "talentsOpen", label = "Open Talent Builds", help = "Create an empty draft or copy the native tree, then edit its overlay.\nLeft-click adds ranks; right-click removes. Drafts save automatically." },
+    }, note = "Tree tiers and prerequisites always apply. Turn Limit to current level off to plan ahead.\nSuite build codes work with this planner. Selecting a draft never applies talents." },
     appearance = { title = "Appearance", description = "One border color across Forever Suite.", rows = {},
         note = "Applies to borders added or styled by the Suite. Changes during combat apply when combat ends." },
     leveling = { title = "Leveling", description = "Your XP, gold and pace in one compact tracker.", rows = {
@@ -118,7 +123,7 @@ local pages = {
         { key = "missingBuffSelf", label = "My missing buffs", help = "Show learned group buffs you can cast on yourself." },
         { key = "missingBuffOutgoing", label = "Buff my party and raid", help = "Click to buff the first listed member missing your learned buff." },
         { key = "missingBuffIncoming", label = "Buffs my group can give me", help = "Show gold Group icons for relevant buffs a nearby teammate may provide.\nLeft-click an icon to request that buff in group chat; browsing never sends." },
-        { key = "missingBuffClass", label = "Class upkeep", help = "Aspects, armor, auras, totems, shields, imbues and rogue poisons." },
+        { key = "missingBuffClass", label = "Class upkeep", help = "Aspects, armor, auras, shields, imbues and rogue poisons." },
         { action = "buffPreview", label = "Preview position", help = "Drag the preview header. Closing settings ends the preview." },
         { action = "buffReset", label = "Reset bar position", help = "Restore the top-center position near breath and fatigue bars.\nCtrl+right-click its header also resets." },
         { action = "buffChoices", label = "Restore buff choices", help = "Undo hidden families, selected alternatives and chosen poisons." },
@@ -128,7 +133,7 @@ local pages = {
         { key = "missingBuffWeapons", label = "Weapon coating reminders", help = "Use main/off-hand choices from Macros for stones, oils and poisons.\nCarried compatible supplies appear on the bar.\nMissing supplies use local chat reminders." },
         { action = "buffCustom", label = "Custom learned buff spells", help = "Find learned spells by name and icon; add up to eight reminders.\nChoose Self or Party / raid; custom spells stay outside combat." },
         { action = "buffManage", label = "Manage buff reminders", help = "See hidden families, restore individual reminders and choose learned alternatives." },
-        { action = "buffAppearance", label = "Buff bar appearance", help = "Shared size and scale sliders for normal and combat icons.\nPreview either version outside combat, lock movement and choose rested-area behavior." },
+        { action = "buffAppearance", label = "Buff bar appearance", help = "Shared size and scale sliders for normal and combat icons.\nUse the normal preview to move both bars; the live bar stays fixed." },
     }, note = "Teal icons cast your buffs; gold Group icons show buffs teammates may provide. Missing supplies use local chat. Right-click chooses alternatives or hides a family." },
     actionbars = { title = "Your buttons, Suite style.", description = "Slate and teal to match your meters and minimap.", rows = {
         { key = "fullButtonRange", label = "Full button range indicator", help = "Turn the whole action icon red when your target is out of range.\nButtons return to their normal colors when range clears." },
@@ -177,6 +182,7 @@ local pages = {
         { key = "questTrackerSkin", label = "Suite quest tracker skin", help = "A slate tracker with one outline, underlined headers and teal buttons.\nKeep native quest colors, controls and text-size settings." },
         { key = "questItemButton", label = "Nearby quest-item button", help = "A compact, draggable item icon near quest objectives; left-click to use it.\nHides in combat. Ctrl-right-click resets its position; bind it under Forever Suite." },
         { key = "zoneReputation", label = "Track reputation for this zone", help = "Watch the home-city faction in known outdoor zones and towns.\nUnmapped zones and instances keep your watched faction." },
+        { key = "questTrackerRemember", label = "Remember tracker collapse", help = "Keep your last expanded or minimized choice through reloads and loading screens.\nSaved separately for each character. Changes during combat wait until it ends." },
     }, note = "Hold Shift when talking to pause quests. Repeatable quests run once per visit.\nLoot rolls and bind confirmations keep their normal behavior." },
 }
 
@@ -192,6 +198,7 @@ function GUI:Action(action)
     elseif action == "disenchantModifier" then
         Suite.Set("disenchantModifier", ({ alt="ctrl", ctrl="shift", shift="alt" })[Suite.ProfessionHelper:Modifier()]); self:Select("professions")
     elseif action == "trainingOpen" then Suite.Training:Open()
+    elseif action == "talentsOpen" then Suite.TalentPlanner:Open()
     elseif action == "buffCustom" then Suite.BuffReminders:OpenOptions()
     elseif action == "buffAppearance" then Suite.BuffSettings:Open("display")
     elseif action == "buffManage" then Suite.BuffSettings:Open("choices")
@@ -260,16 +267,29 @@ function GUI:GetRow(index)
     row.value:SetWidth(120); row.value:SetWordWrap(false)
     Fill(row, palette.row)
     row:SetScript("OnEnter", function() row:SetBackdropColor(0.09, 0.13, 0.145) end)
-    row:SetScript("OnLeave", function() Fill(row, palette.row) end)
+    row:SetScript("OnLeave", function() Fill(row, row.baseColor or palette.row) end)
+    row.rule = row:CreateTexture(nil, "BACKGROUND")
+    row.rule:SetHeight(1); row.rule:SetPoint("BOTTOMLEFT"); row.rule:SetPoint("BOTTOMRIGHT")
+    Suite.Theme:Texture(row.rule, 0.2)
     self.rows[index] = row
     return row
 end
 
-function GUI:Select(key)
+function GUI:Select(key, requestedView)
     self:StopScrollDrags()
     if not Suite.IsReadable(key) or type(key) ~= "string" or not pages[key] then return end
     if key ~= "leveling" then Suite.pending.levelingJournalLayout = nil end
     local previousPage, previousScroll = self.page, self.scrollOffset or 0
+    self.pageViews, self.pageScroll = self.pageViews or {}, self.pageScroll or {}
+    local previousView = self.pageViews[previousPage] or ""
+    if previousPage then self.pageScroll[previousPage .. ":" .. previousView] = previousScroll end
+    local page = pages[key]
+    if page.views then
+        if Suite.IsReadable(requestedView) and type(requestedView) == "string" then
+            for _, view in ipairs(page.views) do if view.key == requestedView then self.pageViews[key] = requestedView end end
+        end
+        self.pageViews[key] = self.pageViews[key] or page.views[1].key
+    end
     Suite.pending.settingsReveal = nil
     self.selectionSerial = (self.selectionSerial or 0) + 1
     if key == "setup" and not self.setupPanel and InCombatLockdown() then Suite.Setup:Open(); return end
@@ -287,26 +307,34 @@ function GUI:Select(key)
     self:ClearSearch()
     self:LayoutNavigation(key)
     Suite.ProfileSettings:RefreshCaption()
-    local page = pages[key]
     self.heading:SetText(page.title)
     self.description:SetText(page.description)
     self.note:SetHeight(key == "setup" and 12 or 40)
     self.note:SetText(page.note or "Every tool is optional. Changes apply as you make them.")
+    for i = 1, #page.rows do self:GetRow(i) end
     for _, row in ipairs(self.rows) do row:Hide() end
     for _, section in ipairs(self.sections or {}) do section:Hide() end
-    if self.homePanel then self.homePanel:SetShown(key == "overview") end
-    if key == "overview" then self:BuildHome() end
+    if self.homePanel then self.homePanel:SetShown(page.directory == true) end
+    if page.directory then self:BuildHome(key) end
     if self.profilePanel then self.profilePanel:SetShown(key == "profiles") end
     if key == "profiles" then Suite.ProfileSettings:Build(); Suite.ProfileSettings:Refresh() end
     if self.macroPanel then self.macroPanel:SetShown(key == "macros") end
     if self.gearPanel then self.gearPanel:SetShown(key == "items" and Suite.GearSettings.mode ~= nil) end
     if key == "items" then Suite.GearSettings:Refresh() end
-    if self.buffPanel then self.buffPanel:SetShown(key=="buffs" and Suite.BuffSettings.mode~=nil) end
-    if key=="buffs" and Suite.BuffSettings.mode then Suite.BuffSettings:Build();Suite.BuffSettings:Refresh() end
+    if key == "buffs" then
+        local view = self.pageViews.buffs
+        local mode = ({ appearance = "display", visibility = "visibility", choices = "choices", spells = "spells" })[view]
+        if mode then
+            if Suite.BuffSettings.mode ~= mode then Suite.BuffSettings:Dismiss() end
+            Suite.BuffSettings.mode = mode
+            Suite.BuffSettings:Build(); Suite.BuffSettings:Refresh()
+        else Suite.BuffSettings:Dismiss() end
+    elseif self.buffPanel then self.buffPanel:Hide() end
     if self.meterPanel then self.meterPanel:SetShown(key == "meters") end
     if self.chatPanel then self.chatPanel:SetShown(key == "chat") end
     if self.characterPanel then self.characterPanel:SetShown(key == "characters") end
     if self.keybindPanel then self.keybindPanel:SetShown(key == "actionbars") end
+    if self.procPanel then self.procPanel:SetShown(key == "actionbars" and self.pageViews.actionbars == "feedback") end
     if self.progressPanel then self.progressPanel:SetShown(key == "bars") end
     if self.mapPanel then self.mapPanel:SetShown(key == "worldmap") end
     if self.castbarPanel then self.castbarPanel:SetShown(key == "castbars") end
@@ -327,15 +355,16 @@ function GUI:Select(key)
     Suite.Macros:SetVisible(key == "macros" and self.frame:IsShown())
     Suite.Camping:SetSettingsVisible(key == "camping" and self.frame:IsShown())
     Suite.MissingBuffs:SetSettingsVisible(key == "buffs" and self.frame:IsShown())
-    if key ~= "actionbars" then Suite.ProcAlerts:SetPreview(false) end
+    if key ~= "actionbars" or self.pageViews.actionbars ~= "feedback" then Suite.ProcAlerts:SetPreview(false) end
     if key ~= "combat" then Suite.CombatIndicator:StopPreview() end
-    local offset, sectionIndex, sectionStart, collapsed = 0, 0, nil, false
+    local offset, sectionIndex, sectionStart, collapsed = self:LayoutViews(key), 0, nil, false
     local column, lineHeight, pairedRow = 0, 0, nil
     local function FlushRows()
         if column > 0 then offset = offset + lineHeight + 12; column, lineHeight = 0, 0 end
     end
     self.rowOffsets = {}
     for i, data in ipairs(page.rows) do
+        if not data.hidden and (not data.view or data.view == self.pageViews[key]) then
         local section = Catalog.sections[key] and Catalog.sections[key][i]
         if section then
             FlushRows()
@@ -353,11 +382,15 @@ function GUI:Select(key)
         end
         if not collapsed then
             local row = self:GetRow(i)
+            row.baseColor = page.singleColumn and palette.background or palette.row
+            Fill(row, row.baseColor); row.rule:SetShown(page.singleColumn == true)
+            local top, gap, bottom = page.singleColumn and 10 or 16, page.singleColumn and 4 or 6, page.singleColumn and 10 or 16
             local nextSection = Catalog.sections[key] and Catalog.sections[key][i + 1]
-            local paired = column > 0 or (i < #page.rows and not nextSection)
+            local paired = not page.singleColumn and (column > 0 or (i < #page.rows and not nextSection))
             local width = paired and (CONTENT_WIDTH - 16) / 2 or CONTENT_WIDTH
             row:SetWidth(width)
             row.label:SetText(data.label); row.label:SetWidth(width - (data.key and 82 or 154))
+            row.label:ClearAllPoints(); row.label:SetPoint("TOPLEFT", 14, -top)
             row.label:SetWordWrap(true)
             local labelHeight = 16 * math.max(1, math.ceil(#data.label / math.max(1, math.floor((width - (data.key and 82 or 154)) / 7))))
             if row.label.GetStringHeight then
@@ -365,7 +398,7 @@ function GUI:Select(key)
                 if Suite.IsReadable(measured) and type(measured) == "number" and measured > 0 and measured < 100 then labelHeight = math.max(labelHeight, math.ceil(measured)) end
             end
             row.label:SetHeight(labelHeight)
-            row.help:ClearAllPoints(); row.help:SetPoint("TOPLEFT", 14, -16 - labelHeight - 6)
+            row.help:ClearAllPoints(); row.help:SetPoint("TOPLEFT", 14, -top - labelHeight - gap)
             row.help:SetWidth(width - 28)
             row.switch:ClearAllPoints(); row.switch:SetPoint("TOPRIGHT", -14, -15)
             row.value:ClearAllPoints(); row.value:SetPoint("TOPRIGHT", -14, -17)
@@ -384,7 +417,7 @@ function GUI:Select(key)
                     helpHeight = math.max(helpHeight, math.ceil(measured))
                 end
             end
-            local height = 16 + labelHeight + 6 + helpHeight + 16
+            local height = top + labelHeight + gap + helpHeight + bottom
             row.help:SetHeight(helpHeight)
             row:SetHeight(height)
             row:ClearAllPoints()
@@ -394,7 +427,7 @@ function GUI:Select(key)
             if paired and column == 0 then column, pairedRow = 1, row
             else
                 if pairedRow then pairedRow:SetHeight(lineHeight); row:SetHeight(lineHeight) end
-                offset = offset + lineHeight + 12; column, lineHeight, pairedRow = 0, 0, nil
+                offset = offset + lineHeight + (page.singleColumn and 6 or 12); column, lineHeight, pairedRow = 0, 0, nil
             end
             row.label:SetText(data.label)
             row.help:SetText(help)
@@ -422,11 +455,12 @@ function GUI:Select(key)
             row:Show()
         end
     end
+    end
     FlushRows()
     self.detailSection = sectionStart
     self.controlsOffset = offset + (#page.rows > 0 and not collapsed and 12 or 0)
     self:LayoutPage(key)
-    self:ScrollTo(previousPage == key and previousScroll or 0)
+    self:ScrollTo(self.pageScroll[key .. ":" .. (self.pageViews[key] or "")] or 0)
     for tabKey, tab in pairs(self.tabs) do
         if self.groupTabs[Suite.SettingsCatalog.pageGroup[tabKey].key] ~= tab then
         Fill(tab, tabKey == key and { 0.1, 0.2, 0.21 } or (tab:GetParent() == self.body and palette.row or palette.sidebar))
@@ -480,40 +514,110 @@ function GUI:ResetPosition()
     end)
 end
 
-function GUI:BuildHome()
-    if self.homePanel then return end
-    local panel = CreateFrame("Frame", nil, self.content)
-    self.homePanel = panel; panel:SetSize(780, 402)
-    local title = Text(panel, 15, palette.text); title:SetPoint("TOPLEFT", 0, 0)
-    title:SetText("Make yourself at home")
-    local hint = Text(panel, 11, palette.muted); hint:SetPoint("TOPLEFT", 0, -27)
-    hint:SetWidth(780); hint:SetText("Open a workspace on the left, or start with a frequently used tool.")
-    self.homeCards = {}
-    local entries = {
-        { "characters", "Characters & inventory", "Find recorded items, check your alts and browse their saved banks." },
-        { "items", "Gear comparisons", "Choose ready-made profiles and see why an item may be an upgrade." },
-        { "meters", "Damage meters", "Set up your combat views, appearance and window behavior." },
-        { "leveling", "Leveling tracker", "Follow your XP, session pace and progress toward the next level." },
-        { "minimap", "Maps & interface", "Arrange your minimap and find the window and chat tools nearby." },
-        { "setup", "Guided setup", "Walk through the main choices. Review everything before applying it." },
-    }
+function GUI:BuildHome(key)
+    key = key or "overview"
+    if not self.homePanel then
+        self.homePanel = CreateFrame("Frame", nil, self.content)
+        self.homeCards = {}
+    end
+    local panel, entries = self.homePanel, {}
+    if key == "overview" then
+        for _, group in ipairs(Catalog.groups) do
+            if group.key ~= "overview" and not group.utility then entries[#entries + 1] = { group.directory, group.label, group.description } end
+        end
+    else
+        for _, entry in ipairs(Catalog.pageGroup[key].pages) do
+            entries[#entries + 1] = { entry[1], entry[2], pages[entry[1]].description }
+        end
+    end
+    panel:SetSize(780, math.ceil(#entries / 2) * 112 - 12)
+    if self.homeToolHeading then self.homeToolHeading:Hide() end
+    for _, button in ipairs(self.homeToolButtons or {}) do button:Hide() end
+    if key == "overview" then
+        if not self.homeToolHeading then
+            self.homeToolHeading = Text(panel, 14, palette.text)
+            self.homeToolHeading:SetPoint("TOPLEFT", 0, -342); self.homeToolHeading:SetText("Open a tool")
+            self.homeToolButtons = {}
+            for index, route in ipairs({ "characters", "training", "talents", "macros" }) do
+                local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
+                Suite.Theme:ButtonFeedback(button); Fill(button, palette.row)
+                button:SetSize(186, 34); button:SetPoint("TOPLEFT", (index - 1) * 198, -370)
+                local text = Text(button, 12, palette.accent); text:SetPoint("CENTER")
+                text:SetText(route == "characters" and "Characters & inventory" or Catalog.labels[route])
+                button:SetScript("OnClick", function()
+                    if InCombatLockdown() then return end
+                    if route == "training" then Suite.Training:Open()
+                    elseif route == "talents" then Suite.TalentPlanner:Open()
+                    else self:Select(route) end
+                end)
+                button.page = route; self.homeToolButtons[index] = button
+            end
+        end
+        self.homeToolHeading:Show()
+        for _, button in ipairs(self.homeToolButtons) do button:Show() end
+        panel:SetHeight(410)
+    end
+    panel:Show()
+    for _, card in ipairs(self.homeCards) do card:Hide() end
     for index, entry in ipairs(entries) do
-        local card = CreateFrame("Button", nil, panel, "BackdropTemplate")
+        local card = self.homeCards[index]
+        if not card then
+        card = CreateFrame("Button", nil, panel, "BackdropTemplate")
         Suite.Theme:ButtonFeedback(card)
-        card:SetSize(382, 100); card:SetPoint("TOPLEFT", ((index - 1) % 2) * 398, -66 - math.floor((index - 1) / 2) * 112)
         card:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
         card:SetBackdropColor(unpack(palette.row)); Suite.Theme:Backdrop(card, 0.35)
         card.label = Text(card, 14, palette.text); card.label:SetPoint("TOPLEFT", 18, -17)
-        card.label:SetText(entry[2]); card.label:SetWidth(330)
+        card.label:SetWidth(330)
         card.help = Text(card, 11, palette.muted); card.help:SetPoint("TOPLEFT", 18, -44)
         card.help:SetSize(346, 42); card.help:SetWordWrap(true); card.help:SetJustifyV("TOP"); card.help:SetText(entry[3])
         card.arrow = Text(card, 16, palette.accent); card.arrow:SetPoint("TOPRIGHT", -16, -16); card.arrow:SetText("›")
-        local page = entry[1]; card.page = page
-        card:SetScript("OnClick", function() if not InCombatLockdown() then self:Select(page) end end)
+        card:SetScript("OnClick", function() if not InCombatLockdown() then self:Select(card.page) end end)
         card:SetScript("OnEnter", function() Suite.Theme:Backdrop(card, 1) end)
         card:SetScript("OnLeave", function() Suite.Theme:Backdrop(card, 0.35) end)
         self.homeCards[index] = card
+        end
+        card:SetSize(382, 100); card:ClearAllPoints()
+        card:SetPoint("TOPLEFT", ((index - 1) % 2) * 398, -math.floor((index - 1) / 2) * 112)
+        card.page = entry[1]; card.label:SetText(entry[2]); card.help:SetText(entry[3]); card:Show()
     end
+end
+
+function GUI:LayoutViews(key)
+    self.viewButtons = self.viewButtons or {}
+    for _, button in ipairs(self.viewButtons) do button:Hide() end
+    if self.viewBack then self.viewBack:Hide() end
+    local definitions = pages[key].views
+    if not definitions then return 0 end
+    local active, index, secondary = self.pageViews[key], 0, false
+    for _, view in ipairs(definitions) do
+        if view.key == active then secondary = view.secondary == true end
+        if not view.secondary then
+            index = index + 1
+            local button = self.viewButtons[index]
+            if not button then
+                button = CreateFrame("Button", nil, self.content, "BackdropTemplate")
+                Suite.Theme:ButtonFeedback(button)
+                button.label = Text(button, 12, palette.text); button.label:SetPoint("CENTER")
+                button:SetScript("OnClick", function() if not InCombatLockdown() then self:Select(button.page, button.view) end end)
+                self.viewButtons[index] = button
+            end
+            button.page, button.view = key, view.key
+            button:SetSize(180, 32); button:ClearAllPoints(); button:SetPoint("TOPLEFT", (index - 1) * 192, 0)
+            button.label:SetText(view.label)
+            Fill(button, active == view.key and { 0.1, 0.2, 0.21 } or palette.row)
+            button.label:SetTextColor(unpack(active == view.key and palette.accent or palette.text))
+            button:Show()
+        end
+    end
+    if not self.viewBack then
+        self.viewBack = CreateFrame("Button", nil, self.content, "BackdropTemplate")
+        Suite.Theme:ButtonFeedback(self.viewBack)
+        self.viewBack:SetSize(220, 32); self.viewBack:SetPoint("TOPLEFT", 576, 0)
+        local text = Text(self.viewBack, 12, palette.accent); text:SetPoint("CENTER"); text:SetText("< Back to reminders")
+        self.viewBack:SetScript("OnClick", function() if not InCombatLockdown() then self:Select("buffs", "reminders") end end)
+    end
+    self.viewBack:SetShown(secondary)
+    return 48
 end
 
 function GUI:BuildLevelingLog()
@@ -1243,10 +1347,12 @@ function GUI:BuildKeybinds()
     if self.keybindPanel then return end
     local container = CreateFrame("Frame", nil, self.content)
     self.keybindPanel, self.keybindControls = container, {}
-    container:SetPoint("TOPLEFT", 0, -238); container:SetSize(514, 388)
-    self:BuildProcSize(container)
+    container:SetPoint("TOPLEFT", 0, -238); container:SetSize(514, 276)
+    self.procPanel = CreateFrame("Frame", nil, self.content)
+    self.procPanel:SetSize(514, 90)
+    self:BuildProcSize(self.procPanel)
     local panel = CreateFrame("Frame", nil, container)
-    panel:SetPoint("TOPLEFT", 0, -112); panel:SetSize(514, 276)
+    panel:SetPoint("TOPLEFT", 0, 0); panel:SetSize(514, 276)
     local heading = Text(panel, 14, palette.text)
     heading:SetPoint("TOPLEFT"); heading:SetText("Keybind labels")
     local function Button(key, x, y, callback)
@@ -1669,8 +1775,7 @@ end
 
 function GUI:LayoutNavigation(key)
     local group = Catalog.pageGroup[key]
-    self.group, self.groupLast = group.key, self.groupLast or {}
-    self.groupLast[group.key] = key
+    self.group = group.key
     local y = 42
     for _, candidate in ipairs(Catalog.groups) do
         local tab, active = self.groupTabs[candidate.key], group == candidate
@@ -1679,25 +1784,33 @@ function GUI:LayoutNavigation(key)
         else tab:SetPoint("TOPLEFT", 12, -y); y = y + 42 end
         Fill(tab, active and { 0.1, 0.2, 0.21 } or palette.sidebar)
         tab.indicator:SetShown(active); tab.label:SetTextColor(unpack(active and palette.accent or palette.text))
-        if not candidate.utility and #candidate.pages > 1 then
+        if #candidate.pages > 1 then
             for _, leaf in ipairs(candidate.pages) do
                 local child = self.tabs[leaf[1]]
-                child:SetShown(active)
-                if active then child:ClearAllPoints(); child:SetPoint("TOPLEFT", 28, -y); y = y + 29 end
+                child:Hide()
             end
-            if active then y = y + 10 end
         end
     end
-    self.heading:ClearAllPoints(); self.heading:SetPoint("TOPLEFT", 0, 0)
-    self.description:ClearAllPoints(); self.description:SetPoint("TOPLEFT", 0, -35)
-    self.viewportHeight = BODY_HEIGHT - 78 - 50
-    self.scrollFrame:ClearAllPoints(); self.scrollFrame:SetPoint("TOPLEFT", 0, -78)
+    self.breadcrumbGroup.label:SetText(group.label)
+    self.breadcrumbGroup:SetShown(key ~= "overview")
+    self.breadcrumbGroup.route = group.directory
+    self.heading:ClearAllPoints(); self.heading:SetPoint("TOPLEFT", 0, -24)
+    self.description:ClearAllPoints(); self.description:SetPoint("TOPLEFT", 0, -58)
+    self.viewportHeight = BODY_HEIGHT - 100 - 40
+    self.scrollFrame:ClearAllPoints(); self.scrollFrame:SetPoint("TOPLEFT", 0, -100)
     self.scrollFrame:SetSize(CONTENT_WIDTH, self.viewportHeight)
 end
 
 function GUI:LayoutPage(key)
     local panels = { leveling = self.levelingLogPanel, appearance = self.appearancePanel, buffs = Suite.BuffSettings.mode and self.buffPanel or nil, profiles = self.profilePanel, overview = self.homePanel, items = Suite.GearSettings.mode and self.gearPanel or nil, macros = self.macroPanel, meters = self.meterPanel, chat = self.chatPanel,
-        actionbars = self.keybindPanel, bars = self.progressPanel, worldmap = self.mapPanel, characters = self.characterPanel, castbars = self.castbarPanel }
+        actionbars = self.pageViews.actionbars == "keybinds" and self.keybindPanel or self.pageViews.actionbars == "feedback" and self.procPanel or nil,
+        bars = self.progressPanel, worldmap = self.mapPanel, characters = self.characterPanel, castbars = self.castbarPanel }
+    if pages[key].directory then panels[key] = self.homePanel end
+    if key == "items" and self.pageViews.items ~= "upgrades" then panels.items = nil; if self.gearPanel then self.gearPanel:Hide() end end
+    if key == "actionbars" then
+        self.keybindPanel:SetShown(self.pageViews.actionbars == "keybinds")
+        self.procPanel:SetShown(self.pageViews.actionbars == "feedback")
+    end
     local panel, bottom = panels[key], self.controlsOffset or 0
     if panel then
         local collapsed = self:IsSectionCollapsed(key, self.detailSection)
@@ -1721,8 +1834,15 @@ end
 
 function GUI:RevealSetting(entry)
     if not entry or not pages[entry.page] then return end
+    if InCombatLockdown() then
+        self:ClearSearch()
+        Suite.AfterCombat("settingsReveal", function()
+            if self.frame and self.frame:IsShown() then self:RevealSetting(entry) end
+        end)
+        return
+    end
     self:SetSectionCollapsed(entry.page, Catalog:SectionFor(entry.page, entry.row), false)
-    self:Select(entry.page)
+    self:Select(entry.page, entry.view)
     local target, offset = Catalog:Target(self, entry)
     if not target then return end
     self:ScrollTo(offset or 0)
@@ -1917,7 +2037,7 @@ function GUI:Initialize()
         tab.indicator:SetPoint("TOPLEFT", 0, -8)
         tab.indicator:SetPoint("BOTTOMLEFT", 0, 8)
         Suite.Theme:Texture(tab.indicator, 1)
-        tab:SetScript("OnClick", function() self:Select(self.groupLast and self.groupLast[key] or entry.pages[1][1]) end)
+        tab:SetScript("OnClick", function() if not InCombatLockdown() then self:Select(entry.directory) end end)
         self.groupTabs[key] = tab
         if #entry.pages == 1 then self.tabs[entry.pages[1][1]] = tab end
     end
@@ -1927,14 +2047,14 @@ function GUI:Initialize()
 
     local navHelp = Text(sidebar, 10, palette.muted)
     navHelp:SetPoint("BOTTOMLEFT", 24, 94); navHelp:SetWidth(160)
-    navHelp:SetText("Choose a workspace.\nSearch finds any setting.")
+    navHelp:SetText("Browse a section.\nEvery feature is optional.")
     self.body = CreateFrame("Frame", nil, frame)
-    self.body:SetPoint("TOPLEFT", 240, -102); self.body:SetSize(CONTENT_WIDTH + 32, BODY_HEIGHT)
+    self.body:SetPoint("TOPLEFT", 240, -94); self.body:SetSize(CONTENT_WIDTH + 32, BODY_HEIGHT)
     self.scrollFrame = self:CreateSuiteScrollFrame(self.body)
     self.content = CreateFrame("Frame", nil, self.scrollFrame)
     self.content:SetSize(CONTENT_WIDTH, BODY_HEIGHT); self.scrollFrame:SetScrollChild(self.content)
     for _, group in ipairs(Catalog.groups) do
-        if not group.utility and #group.pages > 1 then
+        if #group.pages > 1 then
             for _, entry in ipairs(group.pages) do
                 local key = entry[1]
                 local tab = CreateFrame("Button", nil, sidebar, "BackdropTemplate")
@@ -1951,7 +2071,16 @@ function GUI:Initialize()
         end
     end
     local navTitle = Text(sidebar, 10, palette.muted)
-    navTitle:SetPoint("TOPLEFT", 24, -20); navTitle:SetText("WORKSPACES")
+    navTitle:SetPoint("TOPLEFT", 24, -20); navTitle:SetText("SECTIONS")
+    local function Crumb(x, width, label, callback)
+        local button = CreateFrame("Button", nil, self.body)
+        button:SetSize(width, 20); button:SetPoint("TOPLEFT", x, 0)
+        button.label = Text(button, 11, palette.accent); button.label:SetPoint("LEFT"); button.label:SetText(label)
+        button:SetScript("OnClick", function() if not InCombatLockdown() then callback(button) end end)
+        return button
+    end
+    self.breadcrumbHome = Crumb(0, 48, "Home", function() self:Select("overview") end)
+    self.breadcrumbGroup = Crumb(64, 240, "", function(button) self:Select(button.route) end)
     self.heading = Text(self.body, 24, palette.text)
     self.heading:SetPoint("TOPLEFT", 0, 0)
     self.heading:SetWidth(CONTENT_WIDTH)
@@ -2094,14 +2223,14 @@ function GUI:Toggle()
     if self.frame:IsShown() then self.frame:Raise() end
 end
 
-function GUI:OpenPage(key)
+function GUI:OpenPage(key, view)
     if not Suite.db then return end
     if not pages[key] then return end
     if key == "setup" and not self.setupPanel and InCombatLockdown() then Suite.Setup:Open(); return end
-    if InCombatLockdown() then Suite.AfterCombat("guiOpen", function() self:OpenPage(key) end); return end
+    if InCombatLockdown() then Suite.AfterCombat("guiOpen", function() self:OpenPage(key, view) end); return end
     Suite.pending.guiOpen = nil
     self:Initialize()
-    self:Select(key)
+    self:Select(key, view)
     self.frame:Show()
     self.frame:Raise()
 end

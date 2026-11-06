@@ -154,7 +154,7 @@ PaperDollFrame_ShowSidebar()
 equal(#timers, 0, "retained native hooks stay idle while disabled")
 equal(Suite.pending.characterItemLevel, nil, "disable leaves no deferred work")
 
-Suite.GUI:Select("items")
+Suite.GUI:Select("items", "levels")
 equal(Suite.GUI.rows[3].label.text, "Character frame item level", "Items exposes the independent setting")
 Suite.pending = oldPending
 CreateFrame, C_Timer, GetAverageItemLevel = oldCreate, oldTimers, oldAverage

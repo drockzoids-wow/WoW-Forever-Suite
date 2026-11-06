@@ -103,7 +103,7 @@ for _, tab in pairs(gui.groupTabs) do
     tabCount = tabCount + 1
     equal(-tab.point[3] + tab.height < 560, true, "sidebar tabs remain above the edition footer")
 end
-equal(tabCount, 7, "six workspaces include standalone Profiles and a separate setup utility")
+equal(tabCount, 8, "fixed sections include Tools and Suite Settings")
 for page = 1, 4 do
     setup:Move(page)
     equal(gui.setupReview:IsShown(), false, "choice pages hide the review scrollbar")

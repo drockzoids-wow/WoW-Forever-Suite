@@ -225,11 +225,11 @@ infos[999] = { name = "Loaded proc", iconID = 123 }
 equal(alerts:Entries()[1].name, "Loaded proc", "asynchronously available spell data becomes displayable")
 local gui = Suite.GUI
 local oldPage, oldShown = gui.page, gui.frame:IsShown()
-gui.frame:Show(); gui:Select("actionbars"); gui.rows[4].OnClick()
+gui.frame:Show(); gui:Select("actionbars", "feedback"); gui.rows[4].OnClick()
 equal(alerts.preview, true, "settings action opens the proc preview")
 gui:Select("overview")
 equal(alerts.preview, nil, "navigation stops proc preview")
-gui:Select("actionbars"); gui.rows[4].OnClick(); gui.frame.OnHide(gui.frame)
+gui:Select("actionbars", "feedback"); gui.rows[4].OnClick(); gui.frame.OnHide(gui.frame)
 equal(alerts.preview, nil, "closing settings stops proc preview")
 gui:Select(oldPage); gui.frame:SetShown(oldShown)
 
@@ -344,7 +344,7 @@ alerts:Cancel()
 
 -- Size control updates the real preview without enabling the proc feature.
 SetCombat(false)
-gui.frame:Show(); gui:Select("actionbars")
+gui.frame:Show(); gui:Select("actionbars", "feedback")
 equal(alerts.preview, nil, "synchronizing size slider does not open a preview")
 equal(gui.procSizeLabel.text, "42 px", "size slider displays current pixels")
 Suite.db.procAlertPosition = { x = 0.12, y = -0.08 }; alerts:Place()

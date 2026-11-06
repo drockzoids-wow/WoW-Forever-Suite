@@ -256,6 +256,12 @@ for _, widget in ipairs(widgets) do
 end
 local prepared = made
 SetCombat(true); combat:RefreshVisibility()
+Suite.db.missingBuffRested=false;Suite.db.missingBuffCampfire=true;resting=true
+combat:RefreshVisibility()
+equal(combat.frame:IsShown(),true,"combat reminders ignore rested and campfire hiding preferences")
+resting=nil;combat:RefreshVisibility()
+equal(combat.frame:IsShown(),true,"unknown resting state cannot suppress combat reminders")
+resting=false;Suite.db.missingBuffRested=true;Suite.db.missingBuffCampfire=false
 Aura("player", false, 0); Aura("party1", false, 0)
 equal(Icons(), 1, "two missing members draw one shared icon position")
 equal(TitleDrawn(),true,"missing coverage reveals a passive floating title")

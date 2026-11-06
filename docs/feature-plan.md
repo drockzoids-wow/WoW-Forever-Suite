@@ -1,5 +1,167 @@
 # Forever Suite feature plan
 
+## Talent planner production acceptance — November 6, 2026
+
+User accepts the current talent planner for production after the final draft level-reference and reset additions. Treat the reported talent workflow as accepted for release. Latest offline checks: 78 Lua 5.1 files, matching 1.0.4 TOCs, 28,117 assertions. Keep unreported detailed/native coverage separate; acceptance does not claim all classes, starters or combat/taint cases were tested. No whole-Suite publication was requested.
+
+## Build level reference and draft reset — November 6, 2026
+
+Add a second footer line below the actual earned-point balance with the no-bonus point baseline, updated on draft edits: 31 points correspond to level 40, starting with one at level 10. Empty and above-51-point drafts have explicit messages. This does not change actual bonus-aware native budgets or imply every non-point requirement is satisfied. Add Reset draft immediately left of Limit to current level; clear only the selected editable draft's ranks/order, retain its identity/metadata and support Undo/Redo. Hide from starter/native/guide views and block combat use. All 28,117 offline checks pass; native layout/input/persistence retest pending.
+
+## Correct empty-draft tier availability — November 6, 2026
+
+Second user screenshot shows lower Fury rows orange at zero draft points, despite the preceding availability-color patch. Supplement per-node conditions with Forever's per-tree five-point row policy, using native display groups and row positions. Only top rows may be available in an empty draft; five/ten/fifteen points in one draft tree unlock its next rows without advancing the others. Apply the same rule to draft purchases and purchase-order validation, not only borders. Captured positive conditions, prerequisites, caps and earned budgets remain enforced. Three-tree regression reproduces the previous failure; all 28,069 offline checks pass. Actual post-fix rendering/input and build compatibility remain pending reload/retest.
+
+## Native-like talent draft feedback — November 6, 2026
+
+Replace orange native-removal borders with draft availability. Unspent icons stay grey; spending draft points colors the icon; orange outlines indicate an available next rank, including newly unlocked tiers. Maxed/locked nodes lose that outline; invalid allocated drafts use red warnings. Use draft prerequisites and the current-level/budget preference, independent of live spending. Keep actual talent learning and its comparison markers intact. All 28,010 offline checks pass; native visual/input retest pending.
+
+## Fix blocked Furious Precision rank — November 6, 2026
+
+User report identifies build 70790/Interface 16001 and Furious Precision's explicit zero-spending Available condition on a five-group node. Recognize that zero-only form as satisfied without inferring a currency group or using native isMet. Preserve real thresholds, additional requirements, restricted-data rejection and rank caps. Exact-shape regression reproduces the old failure and passes draft 1→2→3, limit OFF/ON and undo/redo after the fix. All 27,990 offline assertions pass; post-fix in-game retest remains pending. Retain `/wfs talentstatus` for other unsupported metadata.
+
+## Move buff reminders through preview — November 6, 2026
+
+Remove the distracting missing-buff lock and its setting. The live title/bar stay fixed and click-through; use Buff bar appearance → Preview normal bar to drag the shared normal/combat position. Preserve saved placement and reset controls, and ignore retired lock values. Offline checks pass; native retest pending. Supersedes earlier live dragging/lock behavior.
+
+## Armor kits are not missing buffs — November 6, 2026
+
+Exclude armor kits and unidentified enhancement-category items from weapon-coating choices and missing-buff prompts, including previously selected kits. Keep recognized oils, poisons and compatible stones available, and generic item macros independent. Fix the shared classifier instead of hiding only the reported icon. Offline regressions pass; native retest pending.
+
+## Automatic starter level helper — November 6, 2026
+
+Opening the starter level browser now automatically compares learned talents with the selected level: OK matches, +N missing ranks, X differences, and a LEVEL N outline marks that level's exact planned pick. Keep native ranks and Apply visible and show a comparison summary above the tree. Paging updates immediately without Learn this build. Unverified structural requirements no longer erase a safely mapped reference schedule; disclose reference-only status and block learning/customization. Missing identities/caps/choices remain hard failures. Native retest pending; the screenshot's specific unsupported requirement record is not yet diagnosed.
+
+## Built-in class leveling plans — November 5, 2026
+
+Implemented the approved starter library: Feral Druid, Beast Mastery Hunter, Frost Mage, Retribution Paladin, Shadow Priest, Combat Rogue, Enhancement Shaman, Affliction Warlock and Fury Warrior, researched from the attributed Icy Veins Forever calculators. Each contains 51 ordered points. Automatically offer the current class's starter separately from personal drafts, with a read-only reference-level preview, surrounding choices, next milestone, source guide, Learn this build and Customize a copy. Keep source recommendations and Suite styling distinct; these are starter paths, not best-build claims.
+
+Resolve and structurally validate the entire path against native spell identities/caps/rules before use; incompatible client data disables the starter with an explanation. Actual learning retains native budget/level/purchase checks and manual selection/Apply. Per-character guide restoration supports starter identity; customization preserves source and respects current-level trimming on the new copy. Offline tests cover nine-class fixtures and lifecycle; native class compatibility/layout/taint still need verification. Restart required for two new files. Additional spec variants and respec-transition paths remain future work.
+
+## Approved GUI structure implemented — 1.0.4, November 5, 2026
+
+User approves the navigation concept. Implement eight fixed sidebar destinations, category directories listing all 29 original routes, Home/category breadcrumbs and direct Home tool shortcuts. Give Bags & Bank, Item Levels & Upgrades, Action Bars and Buff Reminders compact one-column settings with named views. Keep advanced editors and existing feature behavior; no optional module is enabled by browsing. Existing settings, route/slash compatibility, original styling and scrollbar behavior remain intact.
+
+Buff Reminders exposes Reminders / Visibility / Appearance; location hiding now belongs to Visibility, and size/lock/previews/reset to Appearance. Buff choices/custom spells remain explicit secondary views. Action Bars separates proc/range feedback from keybind text. Search covers talent rows and individually named nested buff controls, selects their views and defers full reveals in combat. Per-view scrolling is remembered for this login only. Remaining feature pages use their established detailed forms within the new navigation shell; this is the approved pilot, not a rewrite of every editor.
+
+Offline checks pass in the combined shared checkout: 78 Lua 5.1 files, matching 1.0.4 TOCs, 27,057 substitute assertions. Concurrent talent-starter files are preserved; the GUI adds no Lua files. Four approximate source-layout previews inspected. Actual WoW rendering, input/taint and no-search task success remain pending the new smoke test. No deployment or junction changes.
+
+## Simpler GUI discovery — November 5, 2026
+
+User requests a deep review of layout and navigation, especially finding features without search. Source audit and a clickable concept completed; addon redesign is proposed, not implemented. See the detailed audit and full 29-route mapping in docs/forever-development.md. Preserve existing settings, optional feature flags, records, routes, shortcut compatibility, original slate/teal styling and the user-confirmed scrollbar behavior.
+
+Recommended first implementation: replace moving active-only navigation with a fixed sidebar and visible category directories; use specific labels (Disenchant, Window Movement, Item Levels & Upgrades, Buff Reminders); provide direct tool launchers; use one-column related controls with named secondary groups. Keep enable switches distinct from Open tool actions. Do not add a category-wide switch that changes multiple independent modules. Consolidate setting metadata so browse and search both cover nested controls, including talent settings and rested/campfire hiding. Duplicate discovery links must lead to the same setting, not create competing values.
+
+Pilot Buff Reminders first: Reminders / Visibility / Appearance, clear out-of-combat qualifiers for location hiding, visible entry to buff choices/custom spells, and colocated size/lock/preview. Then migrate bags/gear and action bars before remaining pages. Prefer measured task success over a target category count; the concept has eight fixed destinations, versus the current seven expanding groups. No favorites, command palette, first-run redesign or broad feature refactoring is needed for the initial pass.
+
+Next acceptance gate: run the no-search tasks in docs/testing.md against the current UI and concept, then implement and smoke-test the selected structure. The concept contains sample local values and basic rows; dedicated editors and advanced controls are not fully simulated. Do not call the proposed GUI implemented or verified from the current baseline checks.
+
+## Pause normal buff reminders at rest — November 5, 2026
+
+User subsequently confirms “That worked.” The requested hiding behavior has successful user feedback; detailed transition/combat coverage and actual running build/Interface remain unreported.
+
+Implemented independent **Hide in rested areas** and **Hide near a campfire** toggles in Buff bar appearance, affecting only the out-of-combat Missing Buffs bar. Preserve existing rested settings; new campfire hiding starts off and follows the established Campfire Nearby aura, independent of the Camping bar. Resting/campfire filters never suppress enabled combat reminders, including the secondary weapon/class display. Existing event-driven updates restore normal reminders on leaving rest or losing the campfire aura. Additional speculative low-priority contexts are outside this change. Offline checks pass; native smoke test pending.
+
+Talent badge alignment (November 5): move comparison badges five units right of native talent icons, with top edges aligned, as requested to reduce native tooltip overlap. Preserve outline layering. Native appearance retest pending.
+
+Talent guide visual refinement (November 6): draw the yellow next-talent outline beneath +N comparison badges so overlapping corners do not obscure ranks. Implemented; native retest pending.
+
+## Make talent learning discoverable — November 6, 2026
+
+Rename Follow build to Learn this build, distinguish Edit draft, shorten Point order to fit, and remove the contradictory unselected status for selected live builds. Show explicit click-talent then native Apply Changes instructions above the tree, including confirmation/pause states. Manual learning remains unchanged; no automatic allocation. Implemented; native clarity and placement retest pending.
+
+## Investigate combat tracker aura taint — November 5, 2026
+
+Additional open regression on 1.0.3 / 70790 / Interface 16001: leveling in combat causes native scenario tracker ShouldShowMawBuffs to reject secret aura reads under Suite taint. User confirms tracker skin and collapse persistence enabled. Audit persistence's native SetCollapsed/state/layout entry point; establish causality with fresh log and a persistence-off/reload isolation trial. Preserve native aura restrictions and scenario updates; no resolution claimed or code change made.
+
+## Investigate combat world-map taint — November 5, 2026
+
+User confirms loaded Suite 1.0.3 on client 1.60.1 (70790), Interface 16001, with both reveal and window tools enabled; likely earlier map opening/movement. Fresh incident log still needed to distinguish the originating interaction.
+
+Open regression: native quest-pin SetPassThroughButtons is blocked with Suite attribution when the world map toggles in combat. Capture the originating taint with a fresh game log; the supplied failure stack and older existing log do not establish the cause. Preserve native map input and combat restrictions. No implementation change or resolution claimed. See the focused capture in docs/testing.md.
+
+## Show the whole followed build on live talents — November 6, 2026
+
+User prefers the supplied Zygor comparison behavior. Follow build now shows original click-through +N / OK / X badges across the native tree, including future ranks and conflicts while next-step guidance is paused. Keep the next eligible gold outline, explicit pending-change pause and native manual Apply workflow. Name conflicting live/planned talents in the sidebar. Installed Zygor inspected as a behavioral reference; no code/assets copied. Offline checks pass (27,053 assertions); live appearance and coexistence remain pending. Supersedes the single-marker-only presentation.
+
+## Leveling order and Follow build — November 5, 2026
+
+Implemented the approved next phase: editable one-point leveling steps with legal reordering, automatic generation, Save/Cancel and Undo/Redo. Draft edits and current-level trimming reconcile the order. Follow build opens live talents with a click-through NEXT marker; the player selects and applies native talents. Pause on staged changes, allocation mismatch, inactive spec or unavailable/insufficient points rather than advancing from unconfirmed choices. Remember the followed build per character using stable IDs. WFS1 still shares allocations only; imported plans receive a generated order. Restart required for the new file. Offline checks pass; native layout, client permissions and taint remain pending. Automated spending/commit and sharing custom order remain outside this phase.
+
+## Quest tracker persistence user confirmation — November 5, 2026
+
+User confirms the tracker collapse persistence fix works. The reported unwanted expansion is resolved in their test; exact transition coverage and actual running build/Interface remain unreported. Broader smoke tests remain in docs/testing.md.
+
+## Talent notes validation is Lua 5.1 compatible — November 5, 2026
+
+Fix the user-reported malformed-pattern error when validating empty notes. Detect NUL with `%z` separately from the non-NUL control-byte class, preserving existing notes/builds and input bounds. A stricter compatibility regression reproduces the previous failure and passes after the correction. Native retest pending.
+
+## Explain and organize talent drafts — November 5, 2026
+
+Add all four authorized improvements: named prerequisite and remaining-tree-point explanations, client-supplied draft/next-rank descriptions where available, per-build notes/favorites, and clear ranks-added/ranks-removed comparisons. Persist rejection messages through refreshes. Sort favorites first without changing saved record identity; notes support Save/Cancel, copy independently on duplication and remain personal rather than joining WFS1 sharing codes. Guard unavailable descriptions and avoid native-rank substitutions. Preserve accepted planner behavior and layout; current combined checks pass (75 Lua files, 26,983 assertions). New native UI/data/persistence tests remain pending.
+
+## Quest tracker collapse persistence — November 5, 2026
+
+Implemented **Remember tracker collapse** on Quests & Loot, independently optional and default off. Save the player's latest main tracker minimize/expand click per character, retaining both states across reloads, login, loading screens and observed automatic native resets. Automatic expansions do not replace the saved choice. Uses native controls/setter, coalesced work and combat deferral; skin remains independent. Settings profiles carry the enable toggle, while character state stays outside profile snapshots. This concerns the main tracker's expanded/minimized state; individual section states and screen placement are outside this change. Offline checks pass: 75 Lua 5.1 files, identical TOCs and 26,948 assertions. Native smoke tests/build/Interface pending; no package/deployment change.
+
+## Trim future drafts when limiting to current level — November 5, 2026
+
+Turning the level limit ON automatically trims the selected draft to a reachable current-level build within earned points. Keep existing lower-tier choices first, remove unsupported higher-tier/future-level ranks and make the operation one undo step. OFF plus Undo restores the future plan; other saved builds remain intact. Also trim when selecting an oversized saved draft with the limit ON. Preserve data and explain unavailable metadata rather than wiping it speculatively. Implemented with passing regressions; native retest pending.
+
+## Center draft heading text — November 5, 2026
+
+Center each tree name and draft total together inside the accepted header box, keeping its icon at the left. Use measured text widths so different names and point totals stay centered. Implemented; native appearance retest pending.
+
+## Center draft tree headings — November 5, 2026
+
+Retain the accepted heading appearance; center each 300-unit box inside its 400-unit native talent section, leaving 50 units before either boundary. Replace the portrait-relative left alignment that pushed the right borders against section edges. Implemented; native retest pending.
+
+## Clearer talent headings, sidebar and mode label — November 5, 2026
+
+Keep accepted planner behavior. Present bright tree names with totals beside them in owned heading panels, make the right sidebar fully opaque, and rename Follow talent rules to Limit to current level in the draft and settings. Retain approved ON/OFF emphasis and orange/green fills. Both modes still enforce tree structure; ON additionally limits current level/points. Implemented with passing existing checks; new native appearance retest pending. Comparison wording and draft-rank tooltip enhancements remain separate follow-ups.
+
+## Both talent modes enforce tree structure — November 5, 2026
+
+User confirms talents work and clarifies the toggle: OFF plans past current level/points, while ON also enforces current character level and earned budget. Both modes must enforce tiers, prerequisites, rank caps and exclusivity. Apply the same policy to edits, history and creation/import; preserve older invalid drafts for repair. Update help/tooltips while retaining accepted button styling and remaining-point colors. Implemented with substitute regressions; native retest pending. Earlier unrestricted-free-planning decisions are superseded.
+
+## Talent rules button colors — November 5, 2026
+
+Keep the approved fills; emphasize only ON/OFF with uppercase, thicker white lettering and an outline. The prefix retains its existing style.
+
+Follow talent rules uses a muted orange button background when On and green when Off, as requested. Keep the existing label, border and input feedback. Implemented; native appearance retest pending.
+
+## Correct talent row conditions and count clipping — November 5, 2026
+
+User reports second-row Fury blocked despite 5/5 Cruelty and four points remaining; tooltip confirms unavailable requirements. Evaluate positive native spending thresholds even without isGate, and support an ordinary minimum-level condition on multi-rank talents while preserving unknown/partial-rank safeguards. Keep group scoping, prerequisites, current budget and simultaneous level requirements. Give draft header totals independent 40x26 badges and outlined 16px white text instead of inheriting tiny native digit bounds. Substitute regressions pass; actual Fury condition records and native success remain unverified until retest.
+
+## Weapon search matching priority — November 5, 2026
+
+Fix bow selecting Crossbows on the current trainer page. Weapon search now prefers exact weapon names, then word prefixes, then embedded partial matches across the directory; equal matches retain trainer order. Bow selects Bows while crossbow still selects Crossbows. Class filtering is unchanged. Regression reproduced before the fix; offline checks pass and native retest is pending.
+
+## Draft-aware tree counts, connections and talent rules — November 5, 2026
+
+Implement the first two recommended priorities. During preview, owned overlays show draft per-tree totals over native header counts, with draft-aware prerequisite connection arrows and sidebar totals. Preserve original Blizzard labels, scripts and state; all overlays disappear on returning to live talents. Add optional Follow talent rules, default off to preserve free planning. Rules mode checks supported native prerequisite/first-rank/sufficient/exclusive connections, group-scoped spent-point gates, known level/character requirements and current earned budget. Explain rejected edits and refuse unknown requirements; support valid incremental repairs to existing invalid free/imported drafts. No game talent changes occur. Future-level exact requirements, notes/favorites and website imports remain follow-ups.
+
+74 Lua files and 26,867 substitute assertions pass, including state/history preservation and native-view cleanup. New visuals, actual client rule coverage and taint remain pending the live checklist. This supersedes earlier notes that all tier/prerequisite checks were outside scope: supported checks are now optional, with unknown cases explicitly unavailable.
+
+## Talent draft remaining-point counter — November 5, 2026
+
+Display current level, full earned talent budget and remaining draft points in the draft footer. Remaining is green above zero, yellow at zero and red when negative; edits/refunds/history and level/currency updates refresh it. Use native committed class-currency unspent plus spent, not a level formula or only currently unspent live points. Keep overspending available for future-level planning; tier/prerequisite validation remains outside scope. Unavailable inputs must not invent a numeric balance. Implemented; 26,825 substitute assertions pass, native appearance/budget retest pending.
+
+## Talent Builds launcher refinement — November 5, 2026
+
+Replace the external text launcher with a compact gold cog near the native talent window X, at the user's circled header location. Hover says Expand talent builds or Collapse talent builds; it remains available in both states. Preserve the native X, existing popout and draft behavior. Implemented; native appearance retest pending.
+
+## Talent Builds first iteration — November 5, 2026
+
+Add an independently optional, default-off native talent overlay with a slate/teal right-side build library. Research across Retail, Classic/TBC, Wrath and MoP families and Forever favors native positioning, saved named builds and a separate editable preview; links/download evidence and source qualification are recorded in forever-development.md. Support empty/native-copy drafts, duplication, rename/delete, autosave, bounded undo/redo, native-rank comparisons, choices and class/tree-revision-checked Suite sharing codes. Share 30 builds per class across the account, outside settings-profile rollback. `/wfs talents` or `/wfs builds` opens it after enabling Home → Talent Builds.
+
+This first iteration is free planning with native rank limits. Disclose that tier/prerequisite/point-budget rules are not checked. Website/native export compatibility, leveling sequence, offline cross-class catalogs and explicit application remain follow-ups, not implemented features. No actual talent spending/staging/reset occurs. Return to live talents or close the popout to use normal native input. Inspect/spec transitions invalidate stale input; combat hides owned input through a secure visibility driver and defers layout/disable work. 73 Lua files and 26,813 substitute assertions pass; native visuals/taint and actual build remain unverified. Existing release package has not been refreshed.
+
+## Totems excluded from missing buffs — November 5, 2026
+
+Do not automatically remind or request totems for any class. Temporary area effects no longer belong in the shared missing-buff catalog; Shaman shields and weapon imbues remain. This supersedes historical totem-reminder requirements below. Implemented with substitute checks; native retest pending.
+
 ## Final review preserves the accepted feature set — November 5, 2026
 
 No new functional blocker identified. Remove the resolved castbarstatus diagnostic and unused proc-size cache; retain accepted chat/castbar behavior and existing optional features. Static references, Lua 5.1, 26,561 substitute assertions and 80-file archive/source integrity pass. Latest casual proc/dungeon feedback is positive, while focused verification and actual running build remain unreported. Local candidate is prepared for final smoke and subsequent release preparation; no commit/tag/upload performed. Current assessment: release-review-1.0.3.md.

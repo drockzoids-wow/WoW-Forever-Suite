@@ -1,13 +1,13 @@
 local _, Suite = ...
 local Catalog = { groups = {
-    { key = "overview", label = "Home", pages = { { "overview", "Overview" }, { "characters", "Characters" }, { "leveling", "Leveling" }, { "training", "Training Planner" } } },
-    { key = "inventory", label = "Bags & Gear", pages = { { "bags", "Bags & Bank" }, { "items", "Gear Details" }, { "tooltips", "Tooltips" }, { "professions", "Professions" } } },
-    { key = "combat", label = "Combat", pages = { { "combat", "Combat Indicator" }, { "actionbars", "Action Bars" }, { "unitframes", "Unit Frames" },
-        { "buffs", "Missing Buffs" }, { "meters", "Damage Meters" }, { "castbars", "Castbars" } } },
-    { key = "layout", label = "Interface", pages = { { "appearance", "Appearance" }, { "minimap", "Minimap" }, { "worldmap", "World Map" }, { "windows", "Windows" }, { "bars", "Bars & Buttons" }, { "chat", "Chat" }, { "audio", "Audio" } } },
-    { key = "everyday", label = "Everyday", pages = { { "quests", "Quests & Loot" }, { "vendor", "Vendor" }, { "mail", "Mail" }, { "camping", "Camping" }, { "macros", "Macros" } } },
-    { key = "profiles", label = "Profiles", pages = { { "profiles", "Profiles" } } },
-    { key = "setup", label = "Setup Guide", utility = true, pages = { { "setup", "Setup Guide" } } },
+    { key = "overview", label = "Home", description = "Browse a section or open a tool. Each feature remains optional.", pages = { { "overview", "Home" } } },
+    { key = "inventory", label = "Bags & Gear", description = "Bags, bank, item levels, upgrades and tooltip information.", pages = { { "bags", "Bags & Bank" }, { "items", "Item Levels & Upgrades" }, { "tooltips", "Tooltips" }, { "professions", "Disenchant" } } },
+    { key = "combat", label = "Combat", description = "Buff reminders, damage meters, action buttons and unit frames.", pages = { { "buffs", "Buff Reminders" }, { "meters", "Damage Meters" }, { "actionbars", "Action Bars" }, { "castbars", "Castbars" }, { "unitframes", "Unit Frames" }, { "combat", "Combat Indicator" } } },
+    { key = "layout", label = "Maps & Interface", description = "Maps, window movement, progress bars, chat and sound.", pages = { { "minimap", "Minimap" }, { "worldmap", "World Map" }, { "windows", "Window Movement" }, { "bars", "Progress Bars & UI Buttons" }, { "chat", "Chat" }, { "audio", "Audio" } } },
+    { key = "journey", label = "Quests & Leveling", description = "Quests, looting, the leveling tracker and camping.", pages = { { "quests", "Quests, Loot & Tracker" }, { "leveling", "Leveling Tracker" }, { "camping", "Camping" } } },
+    { key = "everyday", label = "Vendors & Mail", description = "Repairs, junk selling, shops and mail recipients.", pages = { { "vendor", "Vendor" }, { "mail", "Mail" } } },
+    { key = "tools", label = "Tools", description = "Characters and inventory, training costs, talent builds and macros.", pages = { { "characters", "Characters & Inventory" }, { "training", "Training Planner" }, { "talents", "Talent Builds" }, { "macros", "Macro Builder" } } },
+    { key = "suite", label = "Suite Settings", utility = true, description = "Appearance, settings profiles and guided setup.", pages = { { "appearance", "Appearance" }, { "profiles", "Profiles" }, { "setup", "Setup Guide" } } },
 } }
 Suite.SettingsCatalog = Catalog
 Catalog.sections = {
@@ -28,8 +28,15 @@ Catalog.sections = {
     leveling = { [1] = "Leveling Tracker", [2] = "Header Controls", [4] = "Session & Position" },
     professions = { [1] = "Disenchant" },
     training = { [1] = "Training Planner", [3] = "Automatic Opening" },
+    talents = { [1] = "Talent Build Planner" },
 }
 local extras = {
+    { page = "buffs", key = "missingBuffRested", label = "Hide in rested areas", help = "Out-of-combat bar only.", view = "visibility", owner = "BuffSettings", target = "rested", words = "inn city resting hide" },
+    { page = "buffs", key = "missingBuffCampfire", label = "Hide near a campfire", help = "Out-of-combat bar only.", view = "visibility", owner = "BuffSettings", target = "campfire", words = "camping hide" },
+    { page = "buffs", key = "missingBuffScale", label = "Buff bar scale", view = "appearance", owner = "BuffSettings", target = "scale" },
+    { page = "buffs", key = "missingBuffIconSize", label = "Buff icon size", view = "appearance", owner = "BuffSettings", target = "size" },
+    { page = "buffs", key = "buffPreview", label = "Preview buff bar position", view = "appearance", owner = "BuffSettings", target = "normalPreview" },
+    { page = "buffs", key = "buffReset", label = "Reset buff bar position", view = "appearance", owner = "BuffSettings", target = "resetPosition" },
     { page = "appearance", key = "borderColorMode", label = "Border color", target = "borderModeControls.default", words = "appearance theme borders outline default teal class custom color colour" },
     { page = "appearance", key = "customBorderColor", label = "Choose custom border color", target = "borderColorButton", words = "appearance theme wheel swatch picker rgb hex colour" },
     { page = "profiles", key = "settingsProfiles", label = "Settings and layout profiles", target = "profilePanel", words = "default shared personal character overrides copy rename switch setup" },
@@ -96,7 +103,7 @@ local synonyms = { characterDashboard = "recorded characters dashboard alts mone
     trainingLevelUp = "class trainer training planner level up available skills reminder",
     trainingSpellbook = "spellbook spell book player spells class training planner automatic popup",
     buffCustom = "custom learned spell name icon search id group raid party", buffManage = "hidden buffs families show restore intellect spirit priest mage hunter",
-    buffAppearance = "scale icon size header lock movement rested cities class mana intellect", missingBuffExpiry = "expiry expiring duration refresh timer",
+    buffAppearance = "scale icon size header movement preview position", missingBuffExpiry = "expiry expiring duration refresh timer",
     missingBuffCombat = "combat shout thorns lightning shield righteous fury reminders",
     missingBuffWeapons = "weapon coating oil stone poison mainhand offhand",
     bagSpaceReset = "blacklist protect trash items", preset = "weights upgrades role automatic class character profile custom", weights = "editable custom stat weights score breakdown tooltip details", scorePreset = "weights upgrades role", missingBuffClass = "poison imbue aspect upkeep" }
@@ -122,8 +129,40 @@ function Catalog:Configure(pages)
     old[3].help = "Record bank contents when you visit a bank.\nBrowse the last saved view from anywhere."
     old[4].help = "Open your saved bank. Browsing cannot move items."
     old[5].help = "Assign a shortcut in Blizzard's Keybindings settings."
+    -- Views retain the original setting keys and row identities; no saved choice is migrated.
+    pages.bags.views = { { key = "tools", label = "Bag tools" }, { key = "inventory", label = "Recorded inventory" } }
+    for i, row in ipairs(pages.bags.rows) do row.view = i >= 2 and i <= 6 and "inventory" or "tools" end
+    pages.items.views = { { key = "levels", label = "Item levels" }, { key = "upgrades", label = "Upgrades" }, { key = "equipment", label = "Equipment sets" } }
+    for i, row in ipairs(pages.items.rows) do row.view = i <= 3 and "levels" or i <= 7 and "upgrades" or "equipment" end
+    pages.actionbars.views = { { key = "appearance", label = "Appearance" }, { key = "feedback", label = "Range & procs" }, { key = "keybinds", label = "Keybind text" } }
+    for i, row in ipairs(pages.actionbars.rows) do row.view = i == 2 and "appearance" or "feedback" end
+    pages.buffs.views = { { key = "reminders", label = "Reminders" }, { key = "visibility", label = "Visibility" }, { key = "appearance", label = "Appearance" },
+        { key = "choices", label = "Buff choices", secondary = true }, { key = "spells", label = "Custom spells", secondary = true } }
+    for i, row in ipairs(pages.buffs.rows) do
+        row.view = (i == 9 or i == 10) and "visibility" or (i == 6 or i == 7) and "appearance" or "reminders"
+    end
+    pages.buffs.rows[1].view = nil
+    pages.buffs.rows[6].hidden, pages.buffs.rows[7].hidden = true, true -- Preview and reset are beside the appearance controls.
+    pages.buffs.rows[15].hidden = true -- Legacy action remains available to existing callers.
+    pages.buffs.rows[#pages.buffs.rows + 1] = { key = "missingBuffSmart", view = "reminders", label = "Class-aware buff targets",
+        help = "Match mana buffs to eligible classes, including Hunters and Druids in any form." }
+    pages.buffs.description = "Missing buffs for you and your group. Normal reminders are clickable; combat reminders are passive."
+    pages.buffs.rows[13].label, pages.buffs.rows[14].label = "Custom learned spells", "Buff choices & hidden reminders"
+    pages.buffs.rows[13].reveal = { view = "spells", owner = "BuffSettings", target = "spells" }
+    pages.buffs.rows[14].reveal = { view = "choices", owner = "BuffSettings", target = "choices" }
+    pages.buffs.rows[13].help = "Choose learned spells to remind you about outside combat."
+    pages.buffs.rows[14].help = "Restore hidden families or choose learned alternatives."
+    pages.buffs.rows[15].help = "Adjust shared icon size, scale and movement."
+    pages.bars.description = "XP and reputation bars, bag buttons, micro menu and player buff borders."
+    for _, page in ipairs({ "bags", "items", "actionbars", "buffs" }) do
+        self.sections[page] = {}
+        pages[page].singleColumn = true
+    end
     -- Familiar labels are easier to scan than a different slogan on every destination.
     for _, group in ipairs(self.groups) do
+        group.directory = group.key == "overview" and "overview" or "browse_" .. group.key
+        if group.key ~= "overview" then pages[group.directory] = { title = group.label, description = group.description, rows = {}, directory = true } end
+        self.pageGroup[group.directory], self.labels[group.directory] = group, group.label
         for _, entry in ipairs(group.pages) do
             self.pageGroup[entry[1]], self.labels[entry[1]] = group, entry[2]
             pages[entry[1]].title = entry[2]
@@ -131,12 +170,15 @@ function Catalog:Configure(pages)
     end
     pages.overview.description = "Choose a section on the left or search for a setting above.\nYour existing choices are kept; each tool remains optional."
     pages.overview.rows = {}
-    pages.overview.description = "Your tools, organized around the way you play."
+    pages.overview.title, pages.overview.directory = "What would you like to change?", true
+    pages.overview.description = self.groups[1].description
     pages.overview.note = "Every tool is optional. Your existing settings are kept; changes save automatically."
     local seen = {}
     -- Prefer dedicated pages over duplicated Overview shortcuts when finding a setting.
-    local order = { "characters", "training", "professions", "bags", "items", "tooltips", "minimap", "worldmap", "windows", "combat", "actionbars", "bars", "unitframes",
-        "buffs", "meters", "quests", "vendor", "leveling", "camping", "audio", "mail", "chat", "macros" }
+    local order = {}
+    -- Keep inventory's tooltip alias canonical while deriving coverage from the navigation manifest.
+    order[1] = "bags"
+    for _, group in ipairs(self.groups) do for _, entry in ipairs(group.pages) do if entry[1] ~= "bags" then order[#order + 1] = entry[1] end end end
     local function Add(entry)
         if seen[entry.key] then return end
         seen[entry.key] = true
@@ -148,10 +190,18 @@ function Catalog:Configure(pages)
     end
     for _, page in ipairs(order) do
         for index, row in ipairs(pages[page].rows) do
-            if not row.passive then Add({ page = page, key = row.key or row.action, label = row.label, help = row.help, row = index }) end
+            if not row.passive and not row.hidden then
+                local reveal = row.reveal
+                Add({ page = page, key = row.key or row.action, label = row.label, help = row.help,
+                    row = not reveal and index or nil, view = reveal and reveal.view or row.view,
+                    owner = reveal and reveal.owner, target = reveal and reveal.target })
+            end
         end
     end
-    for _, entry in ipairs(extras) do Add(entry) end
+    for _, entry in ipairs(extras) do
+        if entry.page == "actionbars" then entry.view = entry.key == "procAlertIconSize" and "feedback" or "keybinds" end
+        Add(entry)
+    end
 end
 
 function Catalog:Search(query)
@@ -184,19 +234,22 @@ end
 
 function Catalog:Target(gui, entry)
     if entry.row then return gui.rows[entry.row], gui.rowOffsets and gui.rowOffsets[entry.row] end
-    local target = gui
+    local target = entry.owner and Suite[entry.owner] or gui
     for key in (entry.target or ""):gmatch("[^.]+") do
         if target == nil then return end
         target = target[key]
     end
     if target == gui then return end
-    local offset = gui.controlsOffset or 0
-    if target and type(target.GetPoint) == "function" then
-        local ok, point, relative, relativePoint, _, y = pcall(target.GetPoint, target, 1)
+    local offset, widget = 0, target
+    -- Owned detail controls can sit several anchors below the scroll child.
+    for depth = 1, 8 do
+        if not widget or widget == gui.content or type(widget.GetPoint) ~= "function" then break end
+        local ok, point, relative, relativePoint, _, y = pcall(widget.GetPoint, widget, 1)
         -- The small substitute uses the short SetPoint form; native GetPoint always returns five values.
         if Suite.IsReadable(relative) and type(relative) == "number" then y = relativePoint end
         if ok and Suite.IsReadable(point) and point == "TOPLEFT" and Suite.IsReadable(y)
             and type(y) == "number" and y <= 0 and y > -10000 then offset = offset - y end
+        widget = type(widget.GetParent) == "function" and widget:GetParent() or nil
     end
     return target, offset
 end

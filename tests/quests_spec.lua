@@ -488,7 +488,7 @@ Fresh()
 
 Suite.GUI:OpenPage("quests")
 equal(Suite.GUI.page, "quests", "quests have their own settings page")
-equal(Suite.GUI.tabs.quests.label.text, "Quests & Loot", "sidebar groups quest and loot tools")
+equal(Suite.GUI.tabs.quests.label.text, "Quests, Loot & Tracker", "directory names the quest tracker explicitly")
 equal(Suite.GUI.rows[1].label.text, "Automatically pick up quests", "first quest control exposes pickup")
 equal(Suite.GUI.rows[2].label.text, "Automatically turn in quests", "second quest control exposes turn-in")
 equal(Suite.GUI.rows[3].label.text, "Automatically advance gossip", "third quest control exposes gossip")
@@ -498,8 +498,7 @@ Suite.GUI.rows[1].OnClick(); equal(Suite.db.autoQuestPickup, false, "pickup cont
 Suite.GUI.rows[2].OnClick(); equal(Suite.db.autoQuestTurnIn, false, "turn-in control saves its independent setting")
 Suite.GUI.rows[3].OnClick(); equal(Suite.db.autoGossip, false, "gossip control saves its independent setting")
 Suite.Apply = oldApply
-equal(-Suite.GUI.tabs.chat.point[3] + Suite.GUI.tabs.chat.height < Suite.GUI.frame.height - 77 - 35,
-    true, "all fourteen tabs leave room for the sidebar footer")
+equal(Suite.GUI.tabs.chat:IsShown(), false, "directory navigation keeps the sidebar compact")
 SlashCmdList.WOWFOREVERSUITE("quests"); equal(Suite.GUI.page, "quests", "quest slash shortcut opens settings")
 SlashCmdList.WOWFOREVERSUITE("gossip"); equal(Suite.GUI.page, "quests", "gossip slash shortcut opens settings")
 

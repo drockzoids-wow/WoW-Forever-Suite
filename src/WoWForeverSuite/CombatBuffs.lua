@@ -451,7 +451,6 @@ function Combat:RefreshVisibility(event)
         and InCombatLockdown() then self.suspended = true end
     local allowed = InCombatLockdown() and Enabled() and not self.suspended and (self.count or 0) > 0
         and Call(UnitIsDeadOrGhost, "player") == false
-        and (Call(IsResting) == false or Suite.db.missingBuffRested == true)
     -- The host is transparent, contains no protected widgets and has no input.
     -- Its visibility is driven by public context only, never aura display state.
     self.frame:SetShown(allowed == true)

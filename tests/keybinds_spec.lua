@@ -231,7 +231,7 @@ equal(ActionButton1.HotKey.path, "Fonts\\ARIALN.TTF", "combat disable restores t
 equal(Label(ActionButton1), "Shift-3", "combat disable restores the latest native label afterward")
 
 Suite.Set = function(key, value) Suite.db[key] = value; module:Apply() end
-Suite.GUI:OpenPage("actionbars")
+Suite.GUI:OpenPage("actionbars", "keybinds")
 local controls = Suite.GUI.keybindControls
 controls.shortKeybinds:OnClick()
 equal(Suite.db.shortKeybinds, true, "GUI has an independent shortening control")

@@ -101,6 +101,7 @@ function Extra:CoatingItem(snapshot, entry, slot)
     if entry.item then
         if snapshot.pendingByID and snapshot.pendingByID[entry.item] then return nil, true end
         local item = snapshot.byID and snapshot.byID[entry.item]
+        if item and not Suite.MacroItems:IsWeaponCoating(item) then return nil, false end
         if item and item.family then
             local matching, _, pending = Suite.MacroItems:WeaponStone({ list = { item }, pending = snapshot.pending }, slot)
             return matching, pending
@@ -174,7 +175,11 @@ function Extra:Prepare()
         if snapshot and not snapshot.incomplete then
             for _, entry in ipairs(Suite.macroDB and Suite.macroDB.entries or {}) do
                 local slot = entry.recipe == "mainhand" and 16 or entry.recipe == "offhand" and 17 or nil
-                if slot then
+                local selected = entry.item and snapshot.byID and snapshot.byID[entry.item]
+                if slot and ID(entry.item) and not selected then
+                    selected = Suite.MacroItems:Read(entry.item, nil, nil, Call(UnitLevel, "player"), snapshot.english)
+                end
+                if slot and not (selected and not Suite.MacroItems:IsWeaponCoating(selected)) then
                     local weapon = Call(GetInventoryItemID, "player", slot)
                     local ok, _, _, _, _, _, class
                     if ID(weapon) and C_Item and type(C_Item.GetItemInfoInstant) == "function" then
@@ -379,7 +384,7 @@ end
 function Extra:RefreshCombat()
     if Suite.CombatBuffs then Suite.CombatBuffs:RefreshVisibility() end
     if not self.combatFrame then return end
-    if not ActiveCombat() or Call(UnitIsDeadOrGhost, "player") ~= false or (Call(IsResting) ~= false and Suite.db.missingBuffRested ~= true) then
+    if not ActiveCombat() or Call(UnitIsDeadOrGhost, "player") ~= false then
         self.combatFrame:Hide(); return
     end
     self.nextDue = nil

@@ -445,7 +445,7 @@ Suite.Set = function(key, value)
     equal(key, "actionBarSkin", "skin control only edits the skin preference")
     Suite.db[key] = value; skin:Apply()
 end
-Suite.GUI:OpenPage("actionbars")
+Suite.GUI:OpenPage("actionbars", "appearance")
 equal(Suite.GUI.rows[2].label.text, "Suite action bar skin", "skin has a clear independent settings toggle")
 Suite.GUI.rows[2]:OnClick()
 equal(Suite.db.actionBarSkin, true, "settings toggle enables the skin")

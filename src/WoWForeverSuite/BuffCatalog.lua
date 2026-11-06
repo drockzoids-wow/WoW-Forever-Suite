@@ -27,10 +27,6 @@ Suite.BuffCatalog = {
     { key = "aura", class = "PALADIN", roots = { 465, 7294, 19746, 19891, 19888, 19876, 20218 },
         partyRoots = { [465]=true, [7294]=true, [19746]=true, [20218]=true }, group = true, party = true, upkeep = true, toggle = true, incoming = true },
     { key = "shield", class = "SHAMAN", combat = true, roots = { 324, 24398 } },
-    { key = "earth", class = "SHAMAN", roots = { 8075, 8071 }, physicalRoots = { [8075]=true }, auras = { 8076, 8072 }, group = true, party = true, upkeep = true, incoming = true },
-    { key = "water", class = "SHAMAN", roots = { 5675, 5394 }, manaRoots = { [5675]=true }, auras = { 5677, 5395 }, group = true, party = true, upkeep = true, incoming = true },
-    -- These Forever effects conflict; accepting any avoids demanding all alternatives.
-    { key = "meleetotem", class = "SHAMAN", roots = { 8512, 8835, 8227 }, physical = true, auras = { 8515, 8836, 8228 }, group = true, party = true, upkeep = true, incoming = true },
     { key = "imbue", class = "SHAMAN", roots = { 8232, 8024, 8017, 8033 }, weapon = true },
     { key = "shout", class = "WARRIOR", combat = true, roots = { 6673, 469 }, physicalRoots = { [6673]=true }, group = true, party = true, incoming = true },
 }

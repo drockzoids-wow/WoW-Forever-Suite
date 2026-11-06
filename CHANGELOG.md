@@ -1,5 +1,17 @@
 # Forever Suite
 
+## 1.0.4 — Release candidate (November 6, 2026)
+
+- Replace expanding workspace navigation with fixed sidebar sections and category directories. Add focused views for bags, item levels/upgrades, action bars and buff reminders, with search links into nested settings.
+- Add an optional talent build planner beside the native talent window: saved class builds, draft editing, point order, undo/redo, notes, import/export and guidance through manual native learning.
+- Add nine built-in leveling starter references with level browsing, talent comparisons and editable personal copies.
+- Make talent icons reflect draft spending and orange outlines reflect available next ranks. Enforce per-tree row requirements independently of learned native talents, including zero-spending condition handling.
+- Show the no-bonus point-based level reference below the actual earned-point budget. Add an undoable Reset draft button beside Limit to current level. User accepts the current talent workflow for production.
+- Add optional per-character quest-tracker collapse persistence.
+- Add campfire hiding for normal buff reminders, retain rested-area hiding and keep enabled combat reminders independent of those filters. Move buff positioning into the settings preview and remove its movement-lock control.
+- Exclude armor kits from weapon-coating choices/reminders and remove Shaman totems from the built-in buff reminder catalog.
+- Prefer word-prefix matches in weapon trainer search, so Bows wins over Crossbows when searching for bow.
+
 ## 1.0.3 — Release candidate (November 5, 2026)
 
 - Center and scale spell labels, progress markers, cast-edge effects and clipping masks with custom castbar height. Restore native geometry when custom sizing is disabled or Edit Mode opens.

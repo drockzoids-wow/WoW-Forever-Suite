@@ -242,15 +242,34 @@ function Training:Search()
         return
     end
     if query == "" then return end
+    local best
     for page, group in ipairs(self:WeaponGroups()) do
         for index, row in ipairs(group.rows) do
-            if Text(row.name) and row.name:lower():find(query, 1, true) then
-                self.page, self.groupTitle = page, group.title
-                self.offset = math.min(index - 1, math.max(0, #group.rows - 6))
-                self:Refresh()
-                return
+            if Text(row.name) then
+                local name = row.name:lower()
+                local position = name:find(query, 1, true)
+                local score
+                if position then
+                    score = name == query and 0 or 2
+                    -- Prefer a word prefix (bow -> Bows) over an embedded match (Crossbows).
+                    while position do
+                        if position == 1 or name:sub(position - 1, position - 1):match("[%s%p]") then
+                            score = math.min(score, 1); break
+                        end
+                        position = name:find(query, position + 1, true)
+                    end
+                end
+                if score and (not best or score < best.score) then
+                    best = { score = score, page = page, group = group, index = index }
+                end
             end
         end
+    end
+    if best then
+        self.page, self.groupTitle = best.page, best.group.title
+        self.offset = math.min(best.index - 1, math.max(0, #best.group.rows - 6))
+        self:Refresh()
+        return
     end
     frame.search:SetTextColor(1, 0.65, 0.4)
 end

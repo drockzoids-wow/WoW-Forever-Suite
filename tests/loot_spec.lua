@@ -131,7 +131,7 @@ GetLootSlotType = nativeKind
 Fire("LOOT_READY", true); equal(#sent, 3, "capabilities becoming available before a later ready event can act")
 
 Fresh(); Suite.GUI:OpenPage("quests")
-equal(Suite.GUI.tabs.quests.label.text, "Quests & Loot", "loot shares the journey settings group")
+equal(Suite.GUI.tabs.quests.label.text, "Quests, Loot & Tracker", "loot shares the journey settings group")
 equal(Suite.GUI.rows[4].label.text, "Quick loot", "quick loot has a plainly named independent toggle")
 equal(Suite.GUI.rows[4].help.text:find("modifier key", 1, true) ~= nil, true, "help explains native auto-loot modifier")
 Suite.Apply = function() loot:Apply() end

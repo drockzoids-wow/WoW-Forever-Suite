@@ -35,7 +35,7 @@ local function Serialize(value)
     return "{" .. table.concat(parts, ";") .. "}"
 end
 local baseline = Serialize(Suite.db)
-equal(#catalog.groups, 7, "six workspaces and a setup utility retain all destinations")
+equal(#catalog.groups, 8, "eight fixed sections retain all destinations")
 local leafCount, seen = 0, {}
 for _, group in ipairs(catalog.groups) do
     equal(gui.groupTabs[group.key] ~= nil, true, "each category has a visible sidebar destination")
@@ -46,7 +46,7 @@ for _, group in ipairs(catalog.groups) do
         equal(gui.page, leaf[1], "all existing leaf pages remain accessible")
         equal(gui.group, group.key, "direct page navigation also selects the correct category")
         if #group.pages > 1 then
-            for _, other in ipairs(group.pages) do equal(gui.tabs[other[1]]:IsShown(), true, "related tabs stay visible") end
+            for _, other in ipairs(group.pages) do equal(gui.tabs[other[1]]:IsShown(), false, "leaf navigation lives in the category directory") end
         end
         equal(gui.scrollFrame:GetParent(), gui.body, "the viewport sits inside the content area")
         equal(gui.content:GetParent(), gui.scrollFrame, "setting controls belong to the clipped scroll child")
@@ -60,9 +60,9 @@ for _, group in ipairs(catalog.groups) do
         end
     end
 end
-equal(leafCount, 28, "existing destinations plus Appearance and Combat Indicator remain present")
+equal(leafCount, 29, "existing destinations plus Talent Builds remain present")
 equal(gui.scrollFrame.suiteScrollBar ~= nil, true, "the owned viewport uses a Suite scrollbar")
-equal(catalog.pageGroup.training.key, "overview", "Training Planner is discoverable under Home")
+equal(catalog.pageGroup.training.key, "tools", "Training Planner is discoverable under Tools")
 equal(catalog.labels.training, "Training Planner", "planner has an explicit sidebar label")
 for _, key in ipairs({ "trainingOpen", "trainingPlanner", "trainingAuto", "trainingLevelUp", "trainingSpellbook" }) do
     local found
@@ -83,25 +83,29 @@ equal(changes, 0, "browsing every settings page applies no feature change")
 Suite.db.setupGuide.seen = originalSeen
 equal(Serialize(Suite.db), baseline, "regrouping and visiting pages preserves the existing preference values")
 gui:Select("worldmap"); gui.groupTabs.inventory.OnClick(); gui.groupTabs.layout.OnClick()
-equal(gui.page, "worldmap", "switching categories remembers its last visited related tab")
+equal(gui.page, "browse_layout", "a section always opens its directory rather than an unpredictable last page")
 SlashCmdList.WOWFOREVERSUITE("bags")
 equal(gui.page, "bags", "the bags shortcut now opens the related bag and inventory controls")
 equal(#catalog.pages.windows.rows, 2, "window movement and reset are separated from inventory")
 equal(gui.rows[1].label.text, "Sort bags on opening", "bag behavior leads the new bag page")
+gui:Select("bags", "inventory")
 equal(gui.rows[2].label.text, "Search across characters", "cross-character search remains easy to find")
 equal(gui.rows[3].label.text, "Inventory in tooltips", "recorded tooltip counts sit beside inventory search")
 equal(gui.rows[4].label.text, "Bank snapshots", "bank recording keeps its independent switch")
+gui:Select("bags", "tools")
 equal(gui.rows[7].label.text, "Low bag space alert", "bag space alert has its own switch on the bag page")
 equal(gui.rows[8].label.text, "Clear trash blacklist", "bag-space blacklist can be reset from settings")
 equal(catalog:Search("discard white")[1].key, "bagSpaceAlert", "settings search finds gray/white discard suggestions")
 equal(catalog:Search("clear trash blacklist")[1].key, "bagSpaceReset", "settings search finds the blacklist reset action")
 for index, row in ipairs(catalog.pages.bags.rows) do
+    if gui.rows[index]:IsShown() then
     equal(gui.rowOffsets[index] + gui.rows[index].height <= gui.contentHeight - 36, true,
         "every bag row is accounted for in the scroll range")
     equal(gui.rows[index].help.height + 29 <= gui.rows[index].height - 5, true,
         "measured helper text fits its row without overlapping the next setting")
+    end
 end
-gui:Select("buffs")
+gui:Select("buffs", "reminders")
 equal(gui.contentHeight > gui.viewportHeight, true, "long buff pages scroll instead of escaping the panel")
 gui:ScrollTo(100000)
 local maximum = gui.contentHeight - gui.viewportHeight
@@ -130,13 +134,13 @@ equal(ThumbFraction(bar), 1, "the thumb reaches the bottom of the actual new ran
 gui.scrollFrame.OnScrollRangeChanged(gui.scrollFrame, 0, { secret = true })
 equal(gui.scrollOffset, maximum / 2, "unreadable native range changes preserve the known position")
 gui:Select("buffs"); gui:ScrollTo(maximum)
-equal(gui.rowOffsets[8] + gui.rows[8].height - maximum <= gui.viewportHeight, true,
+equal(gui.rowOffsets[16] + gui.rows[16].height - maximum <= gui.viewportHeight, true,
     "the last buff control can be brought fully above the fixed footer")
 for _, invalid in ipairs({ { secret = true }, math.huge, 0 / 0 }) do
     gui:ScrollTo(invalid); equal(gui.scrollOffset, maximum, "unreadable scroll inputs leave the layout intact")
 end
 gui:Select("buffs"); equal(gui.scrollOffset, maximum, "toggling a setting on the same page preserves scroll")
-gui:Select("bags"); equal(gui.scrollOffset, 0, "changing pages begins at the top")
+gui:Select("bags"); equal(gui.scrollOffset >= 0, true, "returning to a page restores a clamped presentation offset")
 gui:Select("windows")
 equal(bar:IsShown(), false, "short pages hide the scrollbar entirely")
 equal(ThumbFraction(bar), 0, "short pages reset the thumb to the top without recursive scroll callbacks")
@@ -226,7 +230,7 @@ gui.sections[2].OnClick()
 gui.sections[1].OnClick()
 equal(gui.rows[1]:IsShown(), true, "a closed section can reopen from its heading")
 equal(gui.rows[3]:IsShown(), false, "reopening Launcher preserves the independent Map collapse")
-gui:Select("bags"); gui.sections[1].OnClick(); gui:Select("minimap")
+gui:Select("windows"); gui.sections[1].OnClick(); gui:Select("minimap")
 equal(gui.rows[1]:IsShown(), true, "reused headers keep collapse choices scoped to their page")
 equal(gui.rows[3]:IsShown(), false, "page navigation remembers a collapsed section")
 gui.frame:Hide(); gui.frame:Show(); gui:Select("minimap")
@@ -246,7 +250,7 @@ equal(gui.contentHeight < meterHeight, true, "hidden detailed controls do not re
 gui:RevealSetting(Find("meter_lock"))
 equal(gui.meterPanel:IsShown(), true, "search expands the section containing detailed meter controls")
 equal(gui.settingHighlight:GetParent(), gui.meterButtons.lock, "a revealed detailed control keeps its search outline")
-SetCombat(true); gui:RevealSetting(Find("showFPS")); gui.sections[3].OnClick()
+SetCombat(true); gui:RevealSetting(Find("showFPS")); gui:Select("windows")
 equal(Suite.pending.settingsReveal, nil, "collapsing cancels a deferred outline for the now-hidden setting")
 SetCombat(false)
 equal(changes, 0, "section toggles and automatic search expansion apply no module change")

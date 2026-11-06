@@ -59,7 +59,7 @@ function Gear:Open(mode)
     end
     self.mode, self.removing, self.message = mode, nil, nil
     self:Build(); self:Refresh()
-    GUI:Select("items"); GUI:ScrollTo(GUI.controlsOffset)
+    GUI:Select("items", "upgrades"); GUI:ScrollTo(GUI.controlsOffset)
 end
 
 function Gear:Choose(id)

@@ -128,7 +128,7 @@ GetCurrentRegion = function() return 110 end
 for i = 1, 7 do characters["extra" .. i] = { name = "Extra " .. i, realm = "Realm", region = 110 } end
 SlashCmdList.WOWFOREVERSUITE("characters")
 equal(gui.page, "characters", "characters command opens the integrated dashboard")
-equal(gui.group, "overview", "dashboard remains in the existing Overview category")
+equal(gui.group, "tools", "recorded inventory is discoverable in Tools")
 equal(gui.characterPanel:GetParent(), gui.content, "dashboard uses the existing clipped scroll child")
 equal(Suite.SettingsCatalog:Search("recorded character dashboard")[1].key, "characterDashboard", "settings search finds the dashboard recording control")
 GetCurrentRegion = function() return { secret = true } end; dashboard:Render()

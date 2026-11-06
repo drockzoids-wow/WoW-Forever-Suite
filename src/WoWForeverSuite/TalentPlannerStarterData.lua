@@ -1,0 +1,46 @@
+local _, Suite = ...
+-- Ordered talent choices researched from Icy Veins' Forever leveling calculators,
+-- November 5, 2026 (calculator revision 70755). Spell IDs are game identifiers;
+-- prose, artwork and calculator implementation are not bundled.
+local function Path(spec, slug, order, spells, tip)
+    return { spec = spec, source = "https://www.icy-veins.com/wow-forever/" .. slug .. "-leveling",
+        reviewed = "2026-11-05", order = order, spells = spells, tip = tip }
+end
+Suite.TalentPlanner.starters = {
+    WARRIOR = Path("Fury", "fury-warrior", "iiiiikkkkklllqqoooootQssqppvvvx2221133554446yyqq777",
+        { ["1"]=16462,["2"]=12286,["3"]=12285,["4"]=12295,["5"]=12290,["6"]=12296,["7"]=12834,
+          i=12320,k=12322,l=1323963,q=12317,o=23584,Q=1329555,s=20500,t=12328,p=1310315,v=12319,x=23881,y=12301 },
+        "Dual-wield path. Train dual wielding at 20; keep both weapons and weapon skills current."),
+    DRUID = Path("Feral", "feral-druid", "gggggjjjiionnpprttqsvwwssyyyyyzuBBBBBCCCCC111115544",
+        { ["1"]=1223081,["4"]=1223082,["5"]=16819,g=16934,i=17002,j=16947,n=16998,o=1238122,p=16942,
+          s=16972,r=1328617,q=1328613,t=16958,v=17007,w=1223242,y=1223246,z=407995,u=1322605,B=17003,C=17069 },
+        "Feral path. Check each new form's abilities as you level; this plan does not require an automatic respec."),
+    HUNTER = Path("Beast Mastery", "beast-mastery-hunter", "000002255144677a7779dd9999ceeefeiiiiilllllmmwwwwwjj",
+        { ["0"]=19552,["1"]=19583,["2"]=1223755,["4"]=19559,["5"]=24443,["6"]=19596,["7"]=19616,
+          ["9"]=19598,a=1293241,c=19577,d=19590,e=19621,f=19574,i=19426,j=1310661,l=1223984,m=415405,w=24293 },
+        "Pet-focused path. Complete your pet training and keep your pet's abilities current."),
+    MAGE = Path("Frost", "frost-mage", "CC0022277BBBEEEBBJDDDDMMMDIPPKKHHHLGOR44CNNNQQQQQFF",
+        { ["0"]=6057,["2"]=11237,["4"]=11210,["7"]=400588,B=11070,C=29438,D=11207,E=11071,F=11165,
+          G=11175,H=11160,I=11185,J=1312002,K=16757,L=11958,M=11170,N=11190,O=12472,P=400647,Q=11180,R=11426 },
+        "Frost path with early Arcane points. Early picks may span more than one tree."),
+    PALADIN = Path("Retribution", "retribution-paladin", "xxxxxzzBBBFFEDDHIIIDJJJKCLLLLLNOOOOO77444AA4488ccCC",
+        { ["4"]=20224,["7"]=1310899,["8"]=429144,O=20262,A=1237268,c=1310904,x=20060,z=25956,B=20117,
+          D=1311074,C=9452,E=20375,F=26022,H=1311087,I=20111,K=20066,J=20049,L=1311084,N=1310735 },
+        "Retribution path. Keep your weapon upgraded and use newly unlocked talents in your rotation."),
+    PRIEST = Path("Shadow", "shadow-priest", "11BBBBBDDCCCGHHCEJIIIIIMMLKOOOOOP22255555aaaiiiKKzz",
+        { ["1"]=14524,["2"]=1225132,["5"]=18551,a=14521,i=14913,z=15260,B=15270,C=15273,D=15275,
+          E=17322,G=15407,H=1225139,I=1326159,J=15286,K=15257,L=15487,M=1309950,O=15259,P=15473 },
+        "Shadow path with early wand points. The order intentionally begins outside the Shadow tree."),
+    ROGUE = Path("Combat", "combat-rogue", "iihhhmmlllom66nrvvwwtuuuusssssxuwSS1122233322c8855a",
+        { ["1"]=14144,["2"]=14138,["3"]=14156,["5"]=14165,["6"]=1329265,["8"]=14128,c=1329256,a=14177,
+          h=14162,i=13732,l=13713,m=13705,n=13742,o=14251,r=1310711,v=30919,w=18427,S=13715,t=13877,u=13960,s=1329284,x=13750 },
+        "Combat weapon path. Check weapon requirements before choosing equipment for this plan."),
+    SHAMAN = Path("Enhancement", "enhancement-shaman", "hhhhhkkkiionnnisllrrvvuutzzzzzAAArrrwwwwwx111112225",
+        { ["1"]=16035,["2"]=30160,["5"]=16038,h=16255,i=17485,k=415140,n=16266,o=1223030,r=16256,
+          s=17364,l=16262,t=16268,u=30812,v=1223031,w=408498,x=425336,z=16179,A=1223033 },
+        "Enhancement path. Some intermediate points are in Restoration to support continued leveling."),
+    WARLOCK = Path("Affliction", "affliction-warlock", "111122222366999bbaaadjjjjjllnnnqaa30fffffg0eee55577",
+        { ["0"]=18182,["1"]=18174,["2"]=17810,["3"]=18218,["5"]=403511,["6"]=18827,["7"]=17783,
+          ["9"]=427712,a=1310949,b=18094,d=18265,e=17804,f=18271,g=1316697,j=18697,l=1235316,n=18731,q=18788 },
+        "Affliction path with Demonology support. Mid-level points deliberately develop both trees."),
+}

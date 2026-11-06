@@ -257,7 +257,7 @@ Suite.Set = function(key, value)
     Suite.db[key] = value
     module:Apply()
 end
-Suite.GUI:OpenPage("actionbars")
+Suite.GUI:OpenPage("actionbars", "feedback")
 equal(Suite.GUI.page, "actionbars", "direct shortcut opens action bar settings")
 equal(Suite.GUI.tabs.actionbars.label.text, "Action Bars", "new sidebar entry is visible")
 equal(Suite.GUI.rows[1].label.text, "Full button range indicator", "range control has clear wording")
