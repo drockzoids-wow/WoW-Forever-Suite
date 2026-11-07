@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { lua, lauxlib, lualib, to_luastring, to_jsstring } = require('../.cache/lua-tools/fengari');
 const root = path.resolve(__dirname, '..');
-const input = path.join(root, '.cache/training-catalog-20261022');
+const input = path.join(root, '.cache/training-catalog-20261107');
 const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
 function value(index) {
   const kind = lua.lua_type(state, index);
@@ -62,7 +62,7 @@ function serialize(v) {
   if(keys.every(k=>/^\d+$/.test(k)))return '{'+keys.sort((a,b)=>+a-+b).map(k=>serialize(v[k])).join(',')+'}';
   return '{'+keys.filter(k=>v[k]!==undefined).map(k=>k+'='+serialize(v[k])).join(',')+'}';
 }
-const header='local _, Suite = ...\n-- Adapted factual class data: fusionpit/WhatsTraining (MIT), Forever branch\n-- e0d52183bac0581464d91b3b859528d53afd4a0d. Notice: TrainingCatalog-LICENSE.txt\n-- English names/ranks: Wago client exports 1.60.1.70532. Server costs may change.\nSuite.TrainingCatalogData = {\n';
+const header='local _, Suite = ...\n-- Adapted factual class data: fusionpit/WhatsTraining (MIT), Forever branch\n-- dd4256471d65149ad6e8d00ad1f18fa7c31e7a6e. Notice: TrainingCatalog-LICENSE.txt\n-- English names/ranks: Wago client exports 1.60.1.70532. Server costs may change.\nSuite.TrainingCatalogData = {\n';
 fs.writeFileSync(path.join(root,'src/WoWForeverSuite/TrainingCatalogData.lua'),header+Object.entries(out).map(([token,rows])=>'    '+token+' = {\n'+rows.map(row=>'        '+serialize(row)+',').join('\n')+'\n    },').join('\n')+'\n}\n');
 fs.copyFileSync(path.join(input,'upstream/LICENSE'),path.join(root,'src/WoWForeverSuite/TrainingCatalog-LICENSE.txt'));
 fs.writeFileSync(path.join(input,'catalog.json'),JSON.stringify(out,null,2));

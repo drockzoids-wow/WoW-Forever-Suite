@@ -644,6 +644,16 @@ training:SelectView("class")
 equal(search:IsShown(), true, "Class view keeps the same search layout")
 equal(training.frame.searchHint.text, "Search spells", "Class search names its spell scope")
 training.db.weapons = searchVisits; Search(""); training.frame:Hide()
+local launcher = Frame(); launcher:SetSize(400, 400); launcher:Show()
+ClassTrainerFrame:Hide()
+training:Open(nil, nil, launcher)
+equal(training.contextPlaced, true, "manual planner opening uses launcher placement")
+local contextualPoint = training.frame.point
+training:OnEvent("PLAYER_REGEN_ENABLED")
+equal(training.frame.point, contextualPoint, "combat exit preserves contextual planner position")
+training.frame:Hide(); training:Open()
+equal(training.contextPlaced, nil, "standalone planner opening returns to its own placement")
+training.frame:Hide()
 Suite.db.trainingPlanner = false; training:Apply()
 training.level, training.levelNotice, training.levelWork = nil, nil, nil
 Suite.db, Suite.pending, training.db = oldDB, oldPending, oldTrainingDB

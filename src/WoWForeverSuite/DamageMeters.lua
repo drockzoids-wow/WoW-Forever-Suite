@@ -297,7 +297,7 @@ function Meters:DescribeMenu(window, root, kind)
     if kind == "metric" then self:MetricMenu(window, root)
     elseif kind == "session" then self:SessionMenu(window, root)
     else
-        root:CreateButton("Window " .. window.index .. " settings", function() Suite.GUI:OpenMeters(window.index) end)
+        root:CreateButton("Window " .. window.index .. " settings", function() Suite.GUI:OpenMeters(window.index, window.frame) end)
         if self.preview then root:CreateButton("Stop test", function() self:SetPreview(false) end) end
         if Suite.db.meterDock.anchor then root:CreateButton("Detach windows", function() self:Detach() end) end
         root:CreateButton("Reset window layout", function() self:Reset(window.index) end)

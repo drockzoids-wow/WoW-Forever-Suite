@@ -13,6 +13,7 @@ Read `docs/forever-development.md`, `docs/feature-plan.md` and `docs/testing.md`
 
 ## Client and source
 
+- November 7 installed executable observation: `Wow.exe` `1.60.1.70862`. The public Forever UI source now matches build 70862 at `9dc84f0d3bbae1768ac3405b3716000bd93eda06`; review snapshot is `.cache/review-20261107/wow-ui-source-9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns`. This supersedes the earlier public-source lag for this review. Actual running build/Interface and native results still require an in-game report.
 - Current stress-test game: `C:\Games\World of Warcraft\_forever_` (user-selected October 21, 2026).
 - October 31 installed executable observation: `Wow.exe` `1.60.1.70707`; actual running build/Interface remains unreported. The public Forever source branch still points to build 70532, so its minimap layout is earlier evidence, not an exact-build match.
 - October 21 installed executable: `Wow.exe` `1.60.1.70532`, flavor `wowf`; actual running build/Interface unreported. Installed stress-test Suite is a separate 0.2.93 directory; this canonical source is newer. The public source mirror at build 70450 is earlier evidence, not an exact match for 70532.

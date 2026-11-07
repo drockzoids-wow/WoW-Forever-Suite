@@ -145,7 +145,7 @@ function Browser:BankTarget()
 end
 function Browser:OpenBank()
     local guid, bankType = self:BankTarget()
-    if guid then return Suite.OfflineBank:OpenFor(guid, bankType) end
+    if guid then return Suite.OfflineBank:OpenFor(guid, bankType, Suite.GUI.frame) end
     return false
 end
 function Browser:Open(guid)

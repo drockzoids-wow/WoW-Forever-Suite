@@ -1,6 +1,6 @@
 local Suite, equal, Frame, SetCombat = ...
 local mail = Suite.Mail
-local names = { "CreateFrame", "C_Timer", "UnitGUID", "UnitName", "UnitClass", "UnitLevel", "UnitFactionGroup",
+local names = { "CreateFrame", "C_Timer", "MenuUtil", "UnitGUID", "UnitName", "UnitClass", "UnitLevel", "UnitFactionGroup",
     "GetCurrentRegion", "GetNormalizedRealmName", "GetRealmName", "C_GameRules", "C_AutoComplete", "Enum", "RAID_CLASS_COLORS", "MailFrame", "SendMailFrame",
     "MailFrameTab2", "SendMailFrameLockSendMail", "SendMailNameEditBox", "SendMailSubjectEditBox", "MailFrameTab_OnClick", "SendMailFrame_SendMail" }
 local old = {}; for _, name in ipairs(names) do old[name] = _G[name] end
@@ -29,6 +29,13 @@ end
 local function Find(name)
     for _, entry in ipairs(mail:List(true)) do
         if entry.name == name or entry.name:match("^(%S+)") == name then return entry end
+    end
+end
+local function Stored(name)
+    for key, entry in pairs(mail:Database()) do
+        if type(entry.name) == "string" and (entry.name == name or entry.name:match("^(%S+)") == name) then
+            return entry, key
+        end
     end
 end
 local function NewMailFrame()
@@ -139,7 +146,7 @@ equal(mail.visit, true, "inbox still starts the mailbox visit")
 MailFrameTab_OnClick(nil, 2)
 equal(mail.frame:IsShown(), true, "character helper shows on selecting native Send Mail")
 equal(mail.frame:GetParent(), MailFrame, "helper follows native mailbox hierarchy and scale")
-equal(#mail:List(), 2, "existing Suite alts retain full names and rulesets while current character is hidden")
+equal(#mail:List(), 1, "only same-ruleset alts appear while current character is hidden")
 equal(Find("Foreign"), nil, "other-region records stay outside mail list")
 equal(mail.frame.point[1], "TOPLEFT", "helper docks right with available room")
 equal(mail.rows[1].name.textColor[2], 0.8, "class color in recorded contact row")
@@ -197,7 +204,7 @@ equal(mail.search:GetText(), "Arcanist", "contact search survives a mailbox tab 
 mail.search:SetText("")
 
 mail.search:SetText("pvp")
-equal(#mail:List(), 1, "ruleset search is literal and case-insensitive")
+equal(#mail:List(), 0, "search cannot reveal other-ruleset contacts")
 mail.search:SetText("[")
 equal(#mail:List(), 0, "search punctuation is not a Lua pattern")
 equal(mail.empty:IsShown(), true, "empty search explains no matches")
@@ -206,7 +213,7 @@ SendMailNameEditBox:SetText("  Courier   Post  ")
 mail:SaveRecipient()
 equal(Find("Courier").address, "Courier Post", "manual recipient keeps both names and normalizes spaces")
 mail:SaveRecipient()
-equal(#mail:List(), 3, "repeated recipient saves deduplicate")
+equal(#mail:List(), 2, "repeated recipient saves deduplicate")
 SendMailNameEditBox:SetText("Localalt Post"); mail:SaveRecipient()
 equal(Find("Localalt").ruleset, "PvE", "typed recipient is recorded under the current ruleset")
 for _, bad in ipairs({ "", "A1", "Bad|cff00ff00", "Name-", "Name-/realm", "Name\nRealm", "Drock",
@@ -216,7 +223,7 @@ for _, bad in ipairs({ "", "A1", "Bad|cff00ff00", "Name-", "Name-/realm", "Name\
     equal(#mail:List(), before, "invalid recipient not saved: " .. bad)
 end
 SendMailNameEditBox.text = { secret = true }; mail:SaveRecipient()
-equal(#mail:List(), 4, "secret recipient never saved or parsed")
+equal(#mail:List(), 3, "secret recipient never saved or parsed")
 SendMailNameEditBox.text = ""
 
 for index = 1, 9 do mail:Store("Alt" .. string.char(64 + index) .. " Letter", "PvE", 110, nil, "MAGE", index) end
@@ -226,27 +233,27 @@ equal(mail.next.enabled, true, "long list has accessible next page")
 mail.next.OnClick()
 equal(mail.page, 2, "next-page contact navigation")
 mail.frame.OnMouseWheel(mail.frame, -1)
-equal(mail.page, 3, "wheel contact navigation")
+equal(mail.page, 2, "wheel clamps to filtered final page")
 mail.next.OnClick()
-equal(mail.page, 3, "last page is clamped")
+equal(mail.page, 2, "last page is clamped")
 mail.sortButtons.level.OnClick()
 equal(mail:List()[1].name, "AltI Letter", "first level sort is descending among alts")
 mail.sortButtons.level.OnClick()
 equal(mail.ascending, true, "sort direction toggles")
-mail.sortButtons.ruleset.OnClick()
-equal(mail.sort, "ruleset", "ruleset sorting available")
+mail.sortButtons.name.OnClick()
+equal(mail.sort, "name", "name sorting remains available")
 
 mail:ConfirmRemove(arc.key)
 equal(mail.confirmation:IsShown(), true, "contact removal requires inline confirmation")
 mail.confirmation.cancel.OnClick()
-equal(#mail:List(), 13, "cancel preserves contact")
+equal(#mail:List(), 12, "cancel preserves contact")
 mail:ConfirmRemove(arc.key); mail:RemoveConfirmed()
-equal(#mail:List(), 12, "confirmed removal affects only chosen contact")
+equal(#mail:List(), 11, "confirmed removal affects only chosen contact")
 mail:SeedRecordedCharacters()
-equal(#mail:List(), 12, "inventory seeding does not resurrect removed contact")
+equal(#mail:List(), 11, "inventory seeding does not resurrect removed contact")
 local saved = Suite.Copy(Suite.db)
 Suite.db = Suite.InitializeDB(saved); mail.removed = nil; mail:Apply(); mail:SeedRecordedCharacters()
-equal(#mail:List(), 12, "contact removal survives database reload")
+equal(#mail:List(), 11, "contact removal survives database reload")
 local zoids = Find("Zoids")
 mail:ConfirmRemove(zoids.key)
 equal(mail.confirm, nil, "current character removal is disabled")
@@ -391,16 +398,16 @@ Suite.db.mailContacts = { schema = 1, entries = {
 mail.query, mail.sort, mail.ascending = "", "name", true
 local migrated = mail:Database()
 equal(Suite.db.mailContacts.schema, 2, "legacy contacts migrate to full-name schema")
-equal(#mail:List(), 5, "migration retains valid legacy contacts and ignores unreadable entries")
+equal(#mail:List(), 2, "migration displays only same-ruleset legacy contacts")
 local legacy = Find("Drock")
 equal(legacy.name, "Drock", "migration does not invent a surname")
 equal(legacy.incomplete, true, "legacy first-name-only contact requests completion")
 equal(legacy.address, nil, "legacy contact has no fabricated delivery address")
 equal(legacy.ruleset, "PvE", "observed beta server label migrates to PvE")
 equal(migrated[legacy.key].realm, nil, "new contact record omits realm")
-equal(Find("Hard").ruleset, "Hardcore", "known legacy Hardcore label")
-equal(Find("Role").ruleset, "RP", "known legacy RP label")
-equal(Find("Unknown").ruleset, nil, "unrecognized server label stays unknown")
+equal(Stored("Hard").ruleset, "Hardcore", "known legacy Hardcore label")
+equal(Stored("Role").ruleset, "RP", "known legacy RP label")
+equal(Stored("Unknown").ruleset, nil, "unrecognized server label stays unknown")
 local retainedKey = legacy.key
 equal(mail:Database(), migrated, "migration is stable across repeated database access")
 Suite.db.inventory.characters = {
@@ -417,7 +424,7 @@ mail:Apply()
 equal(Find("Zoids").name, "Zoids Ward", "Camelot UnitName second return is the surname")
 equal(Find("Zoids").ruleset, "PvE", "logged-in character records current PvE ruleset")
 equal(mail.search.placeholder.text, "Search contacts or categories", "mail search includes contact categories")
-equal(mail.sortButtons.ruleset.title, "Ruleset", "visible sort replaces Realm")
+equal(mail.sortButtons.ruleset, nil, "redundant ruleset sort is removed")
 local sendsBefore = sends
 mail:Choose(retainedKey)
 equal(SendMailNameEditBox:GetText(), "Drock ", "legacy click begins native full-name input")
@@ -451,11 +458,11 @@ equal(Find("Drockhilda").address, "Drockhilda Mirthbraid", "already combined nat
 player.name, player.surname = "Drockhilda", "Mirthbraid"
 player.realm = "ClassicBetaPvP"; mail:RecordPlayer()
 equal(Find("Drockhilda").ruleset, "PvP", "PvP ruleset label is recorded")
-mail:Choose(retainedKey)
 local crossRulesetWrites = writes
-mail:SaveRecipient()
-equal(Find("Drock").ruleset, "PvE", "saving a selected contact preserves its own known ruleset")
-equal(writes, crossRulesetWrites, "rulesets do not rewrite or block native recipient input")
+mail:Choose(retainedKey)
+equal(Find("Drock"), nil, "PvE contact is hidden on PvP")
+equal(Stored("Drock").ruleset, "PvE", "hidden contact retains its original ruleset")
+equal(writes, crossRulesetWrites, "stale cross-ruleset selection cannot fill recipient")
 player.hardcore = true; mail:RecordPlayer()
 equal(Find("Drockhilda").ruleset, "Hardcore", "native Hardcore flag takes precedence over a server label")
 player.hardcore = false
@@ -464,9 +471,11 @@ equal(Find("Drockhilda").ruleset, "RP", "RP ruleset label is recorded")
 player.realm = "ClassicBetaRPPvP"; mail:RecordPlayer()
 equal(Find("Drockhilda").ruleset, "RP-PvP", "combined RP-PvP ruleset label is recorded")
 player.realm = "UnreleasedVariant"; mail:RecordPlayer()
-equal(Find("Drockhilda").ruleset, nil, "unknown new variant clears a stale ruleset without guessing PvE")
+equal(Stored("Drockhilda").ruleset, nil, "unknown new variant clears a stale ruleset without guessing PvE")
+equal(#mail:List(true), 0, "unknown current ruleset hides all contacts")
 player.realm, player.hardcore = { secret = true }, { secret = true }; mail:RecordPlayer()
-equal(Find("Drockhilda").ruleset, nil, "restricted ruleset inputs are not compared or serialized")
+equal(Stored("Drockhilda").ruleset, nil, "restricted ruleset inputs are not compared or serialized")
+equal(#mail:List(true), 0, "restricted current ruleset hides all contacts")
 player.realm, player.hardcore = "ClassicBetaPvE", false
 local nativeRules = C_GameRules; C_GameRules = nil; mail:RecordPlayer()
 equal(Find("Drockhilda").ruleset, "PvE", "missing optional Hardcore API retains public server-label fallback")
@@ -602,10 +611,12 @@ equal(#queries, beforeDuplicates, "duplicate incomplete recorded identities do n
 local beforeOtherRuleset = #queries
 Incomplete("Pvponly", nil, "PvP"); responses.Pvponly = { Result("Pvponly Person") }; mail:ResolveRecordedNames()
 equal(#queries, beforeOtherRuleset, "current account cache does not assign another ruleset's surname")
-equal(Find("Pvponly").incomplete, true, "other-ruleset incomplete contact remains available for explicit completion")
+equal(Stored("Pvponly").name, "Pvponly", "other-ruleset incomplete contact remains saved")
+equal(Find("Pvponly"), nil, "other-ruleset incomplete contact is hidden")
 Incomplete("Unknownrule"); Suite.db.mailContacts.entries["110:guid:Old-Unknownrule"].ruleset = nil
 responses.Unknownrule = { Result("Unknownrule Person") }; mail:ResolveRecordedNames()
-equal(Find("Unknownrule").incomplete, true, "unknown ruleset cannot be inferred from a same-server name")
+equal(Stored("Unknownrule").name, "Unknownrule", "unknown ruleset cannot be inferred from a same-server name")
+equal(Find("Unknownrule"), nil, "unknown contact ruleset stays hidden")
 CheckUnresolved("Late", {}, "empty cache leaves old name intact until another native refresh")
 responses.Late = { Result("Late Person") }
 local beforeRetry = #queries; mail:ResolveRecordedNames()
@@ -647,6 +658,41 @@ mail.search:SetText("")
 Suite.db.mailHelper, Suite.db.mailRememberRecipient = false, false; mail:Apply(); Flush()
 
 -- Standalone contact management with both mailbox preferences off and no native mailbox.
+do
+    local savedDB, savedRealm = Suite.db, player.realm
+    Suite.db = Suite.InitializeDB(nil)
+    player.realm = "CAMWOWUS2Realm1PvE"
+    equal(mail:CurrentRuleset(), "PvE", "observed normalized CAMWOW realm identifies PvE")
+    player.realm = "CAMWOW US2 Realm 1 PvP"
+    equal(mail:CurrentRuleset(), "PvP", "CAMWOW PvP remains separate")
+    player.realm = "CAMWOW US2 Realm 1 Unreleased"
+    equal(mail:CurrentRuleset(), nil, "unknown CAMWOW suffix is not guessed")
+    GetRealmName = function() return "CAMWOW US2 Realm 1 PvE" end
+    equal(mail:CurrentRuleset(), "PvE", "recognized display realm can resolve unknown normalized label")
+    GetRealmName = function() return "Fallback Realm" end
+    player.realm = "CAMWOWUS2Realm1PvE"
+    Suite.db.inventory.characters = {
+        ["Repair-PvE"] = { name = "Recovered", fullName = "Recovered Friend", realm = player.realm, region = 110 },
+        ["Seed-PvE"] = { name = "Seeded", fullName = "Seeded Friend", realm = "CAMWOW US2 Realm 1 PvE", region = 110 },
+        ["Seed-PvP"] = { name = "Opponent", realm = "CAMWOW US2 Realm 1 PvP", region = 110 },
+        ["Removed-PvE"] = { name = "Removed", realm = player.realm, region = 110 },
+    }
+    local repair = mail:Store("Recovered", nil, 110, "Repair-PvE", "MAGE", 25, nil, true)
+    mail:Database()[repair].category, mail:Database()[repair].notes = "Friends", "Keep this note"
+    mail.removed["110:guid:Removed-PvE"] = true
+    mail:SeedRecordedCharacters()
+    equal(#mail:List(true, ""), 2, "CAMWOW repair and seeding restore PvE roster only")
+    equal(mail:Database()[repair].ruleset, "PvE", "unknown existing contact ruleset is repaired by recorded GUID realm")
+    equal(mail:Database()[repair].notes, "Keep this note", "repair preserves contact notes")
+    equal(mail:Database()[repair].category, "Friends", "repair preserves categories")
+    equal(mail:Database()[repair].level, 25, "repair preserves richer level metadata")
+    equal(Find("Recovered").address, "Recovered Friend", "repair restores a recorded surname for the same GUID and first name")
+    equal(Find("Seeded").address, "Seeded Friend", "new inventory seed uses recorded full name")
+    equal(Find("Opponent"), nil, "CAMWOW PvP inventory is hidden on PvE")
+    equal(Find("Removed"), nil, "ruleset repair cannot resurrect removed contact")
+    Suite.db, player.realm = savedDB, savedRealm
+    mail:Database()
+end
 MailFrame = nil; SendMailFrame:Hide()
 mail.query = "unrelated mailbox search"
 local bookWrites, bookSends, bookTabs = writes, sends, tabs
@@ -655,7 +701,29 @@ equal(mail.book.frame:IsShown(), true, "contact book opens without mailbox or en
 equal(mail.book.frame:GetParent(), UIParent, "contact book is independent of mailbox hierarchy")
 equal(mail.book.frame.OnUpdate, nil, "contact book has no idle updater")
 local book = mail.book
-book.name:SetText("Parcel Friend"); book.ruleset:SetText("PvE")
+equal(book.frame.point[1], "CENTER", "standalone contact book opens centrally")
+local helperShown, helperRect = mail.frame:IsShown(), mail.frame.rect
+local screenWidth = UIParent.GetWidth
+UIParent.GetWidth = function() return 2000 end
+mail.frame:Show(); mail.frame.rect = { 400, 100, 288, 512 }
+mail:OpenBook(mail.frame)
+equal(book.frame.point[4], 698, "mailbox book opens on helper's right")
+equal(book.frame.point[2], UIParent, "book placement avoids a permanent helper dependency")
+equal(book.frame.point[5] + book.frame.height, 612, "book and helper top edges align")
+mail.frame.rect = { 1500, 100, 288, 512 }; mail:PlaceBook(mail.frame)
+equal(book.frame.point[4], 820, "right screen edge places book on helper's left")
+UIParent.GetWidth = function() return 800 end
+mail.frame.rect = { 300, 100, 288, 512 }; mail:PlaceBook(mail.frame)
+equal(book.frame.point[4] >= 0 and book.frame.point[4] + book.frame.width <= 800, true, "narrow screen keeps book within horizontal bounds")
+local bookX, bookY = book.frame.point[4], book.frame.point[5]
+SetCombat(true); mail:PlaceBook(); SetCombat(false)
+equal(book.frame.point[4] == bookX and book.frame.point[5] == bookY, true, "combat preserves book anchors")
+mail.frame:Hide(); mail:OpenBook(mail.frame)
+equal(book.frame.point[1], "CENTER", "hidden helper cannot attract contact book")
+mail.frame.rect, UIParent.GetWidth = helperRect, screenWidth
+mail.frame:SetShown(helperShown)
+book.name:SetText("Parcel Friend")
+equal(book.ruleset, nil, "contact editor has no manual ruleset choice")
 book.category:SetText("Crafters"); book.notes:SetText("Send spare ore")
 book.save.OnClick()
 local friendKey = book.key
@@ -673,17 +741,17 @@ local renamedKey = book.key
 equal(mail:Database()[friendKey], nil, "renaming manual contact removes old address key")
 equal(mail:Database()[renamedKey].name, "Parcel Courier", "editor rename updates address")
 equal(mail.removed[friendKey], true, "rename suppresses stale old address")
-local duplicate, duplicateMessage = mail:SaveContact(nil, "Parcel Courier", "PvE", "Other", "")
+local duplicate, duplicateMessage = mail:SaveContact(nil, "Parcel Courier", "Other", "")
 equal(duplicate, nil, "duplicate name and ruleset rejected")
 equal(type(duplicateMessage), "string", "duplicate provides useful feedback")
 equal(mail:Database()[renamedKey].category, "Friends", "duplicate cannot overwrite metadata")
-equal(mail:SaveContact(nil, "Incomplete", "PvE", "", ""), nil, "standalone contact requires surname")
-equal(mail:SaveContact(nil, "Hidden Person", "PvE", { secret = true }, ""), nil, "restricted category rejected")
-equal(mail:SaveContact(nil, "Hidden Person", "PvE", "Friends", "|Hbad"), nil, "markup in notes rejected")
-equal(mail:SaveContact(nil, "Hidden Person", "PvE", "Friends", string.rep("x", 241)), nil, "oversized notes rejected")
-equal(mail:SaveContact("missing", "Missing Person", "PvE", "", ""), nil, "stale editor cannot recreate deleted record")
+equal(mail:SaveContact(nil, "Incomplete", "", ""), nil, "standalone contact requires surname")
+equal(mail:SaveContact(nil, "Hidden Person", { secret = true }, ""), nil, "restricted category rejected")
+equal(mail:SaveContact(nil, "Hidden Person", "Friends", "|Hbad"), nil, "markup in notes rejected")
+equal(mail:SaveContact(nil, "Hidden Person", "Friends", string.rep("x", 241)), nil, "oversized notes rejected")
+equal(mail:SaveContact("missing", "Missing Person", "", ""), nil, "stale editor cannot recreate deleted record")
 local guided = mail:Store("Guided Person", "PvE", 110, "Book-Guid", "MAGE", 20, "Alliance")
-equal(mail:SaveContact(guided, "Guided Person", "PvE", "Alts", "Bank alt"), guided, "recorded contact retains GUID key")
+equal(mail:SaveContact(guided, "Guided Person", "Alts", "Bank alt"), guided, "recorded contact retains GUID key")
 mail:Store("Guided Person", "PvE", 110, "Book-Guid", "MAGE", 21, "Alliance")
 equal(mail:Database()[guided].category, "Alts", "automatic identity refresh preserves category")
 equal(mail:Database()[guided].notes, "Bank alt", "automatic identity refresh preserves notes")
@@ -699,16 +767,62 @@ book.filterButton.OnClick()
 equal(book.filter, "Friends", "category picker advances to next category")
 book.filterButton.OnClick()
 equal(book.filter, nil, "category picker returns to all contacts")
+local categoryMenu
+MenuUtil = { CreateContextMenu = function(owner, generate)
+    equal(owner, book.categoryChoose, "category menu belongs to editor chooser")
+    categoryMenu = {}
+    local root = { CreateButton = function(_, label, callback)
+        categoryMenu[#categoryMenu + 1] = { label = label, callback = callback }
+    end }
+    generate(owner, root)
+end }
+book.categoryChoose.OnClick()
+equal(categoryMenu[3].label, "Alts", "existing categories are sorted in chooser")
+equal(categoryMenu[4].label, "Friends", "chooser includes other existing category")
+categoryMenu[3].callback()
+equal(book.category:GetText(), "Alts", "existing category selection fills editor")
+equal(mail:Database()[renamedKey].category, "Friends", "category selection waits for Save")
+categoryMenu[1].callback()
+equal(book.category:GetText(), "", "new category clears field")
+equal(book.category.focused, true, "new category focuses editable field")
+book.category:SetText("New group")
+categoryMenu[2].callback()
+equal(book.category:GetText(), "", "uncategorized clears category")
+SetCombat(true); categoryMenu[3].callback(); SetCombat(false)
+equal(book.category:GetText(), "", "open category menu cannot edit in combat")
+player.realm = "ClassicBetaPvP"
+categoryMenu[3].callback()
+equal(book.category:GetText(), "", "stale menu cannot select another ruleset's category")
+equal(#mail:Categories(), 0, "category choices exclude other rulesets")
+player.realm = "ClassicBetaPvE"
+MenuUtil = nil
+book.categoryChoose.OnClick()
+equal(book.category:GetText(), "Alts", "missing native menu cycles existing categories")
+book.categoryChoose.OnClick()
+equal(book.category:GetText(), "Friends", "fallback reaches next existing category")
+book.categoryChoose.OnClick()
+equal(book.category:GetText(), "", "fallback permits new category entry")
+MenuUtil = old.MenuUtil
 equal(mail:DeleteContact("110:guid:Old-Drock"), false, "standalone removal protects active character")
-equal(mail:SaveContact({ secret = true }, "Hidden Person", "PvE", "", ""), nil, "restricted contact key rejected")
-local separate = mail:SaveContact(nil, "Parcel Courier", "PvP", "", "")
+equal(mail:SaveContact({ secret = true }, "Hidden Person", "", ""), nil, "restricted contact key rejected")
+player.realm = "ClassicBetaPvP"
+local separate = mail:SaveContact(nil, "Parcel Courier", "", "")
 equal(type(separate), "string", "same name on different ruleset remains distinct")
 equal(mail:Database()[separate].notes, nil, "empty optional metadata is omitted")
-equal(mail:SaveContact(guided, "Guided Person", "PvE", "", ""), guided, "metadata can be cleared")
+equal(mail:Database()[separate].ruleset, "PvP", "new contacts automatically use current ruleset")
+equal(#mail:List(true, "Parcel"), 1, "PvP shows only its own matching contact")
+equal(mail:SaveContact(guided, "Guided Person", "", ""), nil, "stale PvE editor cannot change contact on PvP")
+player.realm = "ClassicBetaPvE"
+equal(#mail:List(true, "Parcel"), 1, "returning to PvE restores its contact only")
+equal(mail:Database()[renamedKey].category, "Friends", "switching rulesets preserves other contacts and categories")
+player.realm = "UnknownVariant"
+equal(mail:SaveContact(nil, "Unknown Person", "", ""), nil, "unknown ruleset blocks new contact")
+player.realm = "ClassicBetaPvE"
+equal(mail:SaveContact(guided, "Guided Person", "", ""), guided, "metadata can be cleared")
 equal(mail:Database()[guided].category, nil, "cleared category is removed")
 equal(mail:Database()[guided].notes, nil, "cleared notes are removed")
 for _, suffix in ipairs({ "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine" }) do
-    mail:SaveContact(nil, "Paging " .. suffix, "PvE", "Paging", "")
+    mail:SaveContact(nil, "Paging " .. suffix, "Paging", "")
 end
 book.filter = "Paging"; mail:RefreshBook()
 equal(book.rows[8]:IsShown(), true, "book fills its eight-row first page")
@@ -721,7 +835,7 @@ equal(book.page, 1, "search resets pagination")
 equal(book.empty:IsShown(), true, "empty search explains no results")
 book.filter = nil; book.search:SetText("")
 SetCombat(true)
-equal(mail:SaveContact(renamedKey, "Combat Rename", "PvE", "", ""), nil, "combat blocks contact mutation")
+equal(mail:SaveContact(renamedKey, "Combat Rename", "", ""), nil, "combat blocks contact mutation")
 equal(mail:DeleteContact(renamedKey), false, "combat blocks contact removal")
 SetCombat(false)
 book.remove.OnClick()

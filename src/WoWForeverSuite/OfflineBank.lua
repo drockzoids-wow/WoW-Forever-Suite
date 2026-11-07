@@ -510,7 +510,7 @@ function Bank:RefreshBags(snapshot)
     for index, button in pairs(self.bagButtons) do if index > #tabs then button:Hide() end end
 end
 
-function Bank:OpenFor(guid, bankType)
+function Bank:OpenFor(guid, bankType, owner)
     if not Suite.IsReadable(bankType) or not Suite.IsReadable(guid) then return false end
     bankType = bankType == nil and 0 or bankType
     if bankType ~= 0 and bankType ~= 2 then return false end
@@ -519,8 +519,8 @@ function Bank:OpenFor(guid, bankType)
     if not self:GetSnapshot(bankType, guid) then Suite.Print("No bank slot view is recorded for this selection."); return false end
     if not self:CreateView() then Suite.Print("Visit a bank once before opening its saved slot view."); return false end
     self.viewGUID, self.bankType, self.page = guid, bankType, 1
-    if Suite.GUI and Suite.GUI.frame then Suite.GUI.frame:Hide() end
-    self:Refresh(); self:PlaceView(); self.frame:Show(); self.frame:Raise()
+    if not owner and Suite.GUI and Suite.GUI.frame then Suite.GUI.frame:Hide() end
+    self:Refresh(); self:PlaceView(); self.frame:Show(); Suite.PlaceWindow(self.frame, owner); self.frame:Raise()
     return true
 end
 

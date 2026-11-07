@@ -1,6 +1,6 @@
 local _, Suite = ...
 -- Adapted factual class data: fusionpit/WhatsTraining (MIT), Forever branch
--- e0d52183bac0581464d91b3b859528d53afd4a0d. Notice: TrainingCatalog-LICENSE.txt
+-- dd4256471d65149ad6e8d00ad1f18fa7c31e7a6e. Notice: TrainingCatalog-LICENSE.txt
 -- English names/ranks: Wago client exports 1.60.1.70532. Server costs may change.
 Suite.TrainingCatalogData = {
     DRUID = {
@@ -550,6 +550,7 @@ Suite.TrainingCatalogData = {
         {id=1022,cost=300,level=10,name="Blessing of Protection",rank="Rank 1"},
         {id=10290,cost=300,requiredIds={465},level=10,name="Devotion Aura",rank="Rank 2"},
         {id=633,cost=300,level=10,name="Lay on Hands",rank="Rank 1"},
+        {id=25780,cost=300,level=10,name="Righteous Fury"},
         {id=1311649,cost=300,level=10,name="Seal of Fury",rank="Rank 1"},
         {id=20287,cost=300,requiredIds={20154},level=10,name="Seal of Righteousness",rank="Rank 2"},
         {id=19834,cost=1000,requiredIds={19740},level=12,name="Blessing of Might",rank="Rank 2"},
@@ -557,8 +558,7 @@ Suite.TrainingCatalogData = {
         {id=20162,cost=1000,requiredIds={21082},level=12,name="Seal of the Crusader",rank="Rank 2"},
         {id=19742,cost=2000,level=14,name="Blessing of Wisdom",rank="Rank 1"},
         {id=647,cost=2000,requiredIds={639},level=14,name="Holy Light",rank="Rank 3"},
-        {id=7294,cost=3000,level=16,name="Retribution Aura",rank="Rank 1"},
-        {id=25780,cost=3000,level=16,name="Righteous Fury"},
+        {id=7294,cost=1500,level=16,name="Retribution Aura",rank="Rank 1"},
         {id=1044,cost=3500,level=18,name="Blessing of Freedom"},
         {id=5573,cost=3500,requiredIds={498},level=18,name="Divine Protection",rank="Rank 2"},
         {id=1311656,cost=3500,requiredIds={1311649},level=18,name="Seal of Fury",rank="Rank 2"},
@@ -1037,7 +1037,7 @@ Suite.TrainingCatalogData = {
         {id=913,cost=2000,requiredIds={547},level=18,name="Healing Wave",rank="Rank 4"},
         {id=6390,cost=2000,requiredIds={5730},level=18,name="Stoneclaw Totem",rank="Rank 2"},
         {id=8143,cost=2000,level=18,name="Tremor Totem"},
-        {id=66842,cost=7000,level=20,name="Call of the Elements"},
+        {id=66842,cost=2200,level=20,name="Call of the Elements"},
         {id=8056,cost=2200,level=20,name="Frost Shock",rank="Rank 1"},
         {id=8033,cost=2200,level=20,name="Frostbrand Weapon",rank="Rank 1"},
         {id=2645,cost=2200,level=20,name="Ghost Wolf"},
@@ -1104,13 +1104,13 @@ Suite.TrainingCatalogData = {
         {id=17354,cost=800,requiredIds={16190},requiredTalentId=16190,level=38,name="Mana Tide Totem",rank="Rank 2"},
         {id=6392,cost=11000,requiredIds={6391},level=38,name="Stoneclaw Totem",rank="Rank 4"},
         {id=8161,cost=11000,requiredIds={8160},level=38,name="Strength of Earth Totem",rank="Rank 3"},
-        {id=66844,cost=7000,requiredIds={66843},level=40,name="Call of the Spirits"},
+        {id=66844,cost=12000,requiredIds={66843},level=40,name="Call of the Spirits"},
         {id=1064,cost=12000,level=40,name="Chain Heal",rank="Rank 1"},
         {id=930,cost=12000,requiredIds={421},level=40,name="Chain Lightning",rank="Rank 2"},
         {id=10447,cost=12000,requiredIds={8053},level=40,name="Flame Shock",rank="Rank 4"},
         {id=6377,cost=12000,requiredIds={6375},level=40,name="Healing Stream Totem",rank="Rank 3"},
         {id=8005,cost=12000,requiredIds={959},level=40,name="Healing Wave",rank="Rank 7"},
-        {id=1238299,cost=24000,requiredIds={408490},requiredTalentId=408490,level=40,name="Lava Burst",rank="Rank 2"},
+        {id=1238299,cost=12000,requiredIds={408490},requiredTalentId=408490,level=40,name="Lava Burst",rank="Rank 2"},
         {id=8134,cost=12000,requiredIds={945},level=40,name="Lightning Shield",rank="Rank 5"},
         {id=8737,cost=12000,level=40,name="Mail"},
         {id=6365,cost=12000,requiredIds={6364},level=40,name="Searing Totem",rank="Rank 4"},
@@ -1140,6 +1140,7 @@ Suite.TrainingCatalogData = {
         {id=17359,cost=1600,requiredIds={17354},requiredTalentId=16190,level=48,name="Mana Tide Totem",rank="Rank 3"},
         {id=10427,cost=22000,requiredIds={6392},level=48,name="Stoneclaw Totem",rank="Rank 5"},
         {id=10462,cost=24000,requiredIds={6377},level=50,name="Healing Stream Totem",rank="Rank 4"},
+        {id=1238300,cost=24000,requiredIds={1238299},requiredTalentId=408490,level=50,name="Lava Burst",rank="Rank 3"},
         {id=15207,cost=24000,requiredIds={10392},level=50,name="Lightning Bolt",rank="Rank 9"},
         {id=1239242,cost=800,requiredIds={408521},requiredTalentId=408521,level=50,name="Riptide",rank="Rank 2"},
         {id=10437,cost=24000,requiredIds={6365},level=50,name="Searing Totem",rank="Rank 5"},

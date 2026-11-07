@@ -73,14 +73,36 @@ local function Button(label)
         assert(native or Suite.IsReadable(value), "Suite never sets hidden text")
         self.text, self.textWrites = value or "", self.textWrites + 1
     end
-    text.SetFormattedText = function(self, format, ...) self.text = string.format(format, ...) end
+    text.SetFormattedText = function(self, format, ...)
+        self.text, self.textWrites = string.format(format, ...), self.textWrites + 1
+    end
+    text.alpha, text.textColor = 0.75, { 1, 0.8, 0.4, 1 }
+    text.GetAlpha = function(self) return self.alpha end
+    text.SetAlpha = function(self, value) self.alpha = value end
+    text.GetTextColor = function(self) return unpack(self.textColor) end
+    text.SetTextColor = function(self, ...) self.textColor = { ... } end
+    text.SetVertexColor = text.SetTextColor
+    text.GetJustifyH = function() return "RIGHT" end
+    text.GetJustifyV = function() return "MIDDLE" end
+    button.CreateFontString = function()
+        assert(not combat, "short-label overlays are created outside combat")
+        local overlay = Frame()
+        overlay.fontWrites = 0
+        overlay.SetFont, overlay.SetShadowColor, overlay.SetShadowOffset = text.SetFont, text.SetShadowColor, text.SetShadowOffset
+        overlay.SetTextColor, overlay.SetAlpha = text.SetTextColor, text.SetAlpha
+        button.shortLabel = overlay
+        return overlay
+    end
     for _, method in ipairs({ "SetPoint", "SetSize", "SetScale", "SetAttribute", "SetParent", "ClearAllPoints" }) do
         button[method] = function() error("keybind formatting must not change protected buttons") end
         text[method] = function() error("keybind formatting must retain native text anchors and dimensions") end
     end
     return button
 end
-local function Label(button) return button.HotKey.text end
+local function Label(button)
+    local record = module.records[button.HotKey]
+    return record and record.overlayActive and record.overlay.text or button.HotKey.text
+end
 ActionButton1 = Button("Shift-Ctrl-Mouse Button 4")
 MultiBar7Button12 = Button("Shift--")
 PetActionButton1 = Button("Alt-Mouse Wheel Up")
@@ -119,6 +141,19 @@ equal(Label(ExtraActionButton1), "|A:Gamepad-icon:16:16|a", "gamepad icon markup
 equal(Label(PossessButton2), "BS", "available possess hotkeys are supported")
 equal(ActionButton1.HotKey.size, 10, "shortening does not change fonts")
 equal(ActionButton1.HotKey:IsShown(), false, "shortening does not change native visibility")
+equal(ActionButton1.HotKey:GetText(), "Shift-Ctrl-Mouse Button 4", "native text remains untouched for Blizzard control flow")
+equal(ActionButton1.HotKey.textWrites, 0, "enabling and formatting never writes native hotkey text")
+equal(ActionButton1.shortLabel:IsShown(), false, "short label follows hidden native text")
+ActionButton1.HotKey:Show()
+equal(ActionButton1.shortLabel:IsShown(), true, "short label follows native show")
+equal(ActionButton1.HotKey:GetAlpha(), 0, "only native rendering is suppressed")
+equal(ActionButton1.shortLabel.alpha, 0.75, "overlay preserves native opacity")
+ActionButton1.HotKey:SetAlpha(0.4)
+equal(ActionButton1.shortLabel.alpha, 0.4, "overlay follows a later native opacity change")
+ActionButton1.HotKey:SetTextColor(0.2, 0.3, 0.4, 1)
+equal(ActionButton1.shortLabel.textColor[1], 0.2, "overlay follows native label color")
+ActionButton1.HotKey:Hide()
+equal(ActionButton1.shortLabel:IsShown(), false, "native hiding cannot leave an orphan label")
 equal(module.events.registered.UPDATE_BINDINGS, true, "binding changes use the native event")
 equal(module.events.OnUpdate, nil, "keybind formatting uses no per-frame worker")
 local initialHooks, initialFrames = hooks, frames
@@ -132,9 +167,22 @@ equal(Label(ActionButton1), "S2", "formatted native binding updates are observed
 Combat(true)
 native = true; ActionButton1.HotKey:SetText("Alt-Mouse4"); native = false
 equal(Label(ActionButton1), "AM4", "known text-only updates remain valid during combat")
+equal(ActionButton1.HotKey:GetText(), "Alt-Mouse4", "combat native reads retain the original text")
+equal(ActionButton1.HotKey.textWrites, 3, "three native text writes receive no Suite rewrite")
+native = true; ActionButton1.HotKey:SetText("●"); native = false
+equal(Label(ActionButton1), "●", "native range indicator replaces an abbreviated binding")
+equal(ActionButton1.HotKey:GetAlpha(), 0.4, "range indicator retains native opacity")
+equal(ActionButton1.shortLabel:IsShown(), false, "range indicator never leaves a short-label overlay")
+native = true; ActionButton1.HotKey:SetText("Alt-Mouse4"); native = false
+ActionButton1.HotKey:Show()
+equal(ActionButton1.shortLabel:IsShown(), true, "combat show restores an already prepared overlay")
+ActionButton1.HotKey:SetShown(false)
+equal(ActionButton1.shortLabel:IsShown(), false, "combat SetShown hides only the owned text")
 LeaveCombat()
 Suite.db.shortKeybinds = false; module:Apply()
 equal(Label(ActionButton1), "Alt-Mouse4", "disable restores the latest native label")
+equal(ActionButton1.HotKey:GetAlpha(), 0.4, "disable restores the latest native opacity")
+equal(ActionButton1.shortLabel:IsShown(), false, "disable hides the owned label")
 equal(Label(MultiBar7Button12), "Shift--", "disable restores punctuation exactly")
 equal(module.events.registered.UPDATE_BINDINGS, nil, "full disable unregisters events")
 
@@ -170,6 +218,7 @@ native = true; ActionButton1.HotKey:SetText(secret); native = false
 equal(module.records[ActionButton1.HotKey].original, nil, "secret native text invalidates the restore snapshot")
 Suite.db.shortKeybinds = false; module:Apply()
 equal(Label(ActionButton1), secret, "disable never overwrites restricted native text with an old label")
+equal(ActionButton1.shortLabel:IsShown(), false, "restricted text hides an obsolete abbreviation")
 native = true; ActionButton1.HotKey:SetText("Shift-3"); native = false
 ActionButton1.HotKey:SetFontObject({ "Fonts\\SKURRI.TTF", 13, "OUTLINE" })
 Suite.db.keybindFontStyle = false; module:Apply()
@@ -182,7 +231,7 @@ ActionButton3.HotKey.GetShadowColor = nil
 ActionButton4.forbidden = secret
 Suite.db.shortKeybinds, Suite.db.keybindFontStyle = true, true
 module:Apply()
-equal(Label(ActionButton2), "S4", "shortening still works when font data is restricted")
+equal(Label(ActionButton2), "Shift-4", "restricted font data leaves the original label visible")
 equal(ActionButton2.HotKey.path, secret, "restricted font data is left native")
 equal(Label(ActionButton3), "C5", "missing shadow API does not block independent shortening")
 equal(ActionButton3.HotKey.size, 10, "missing restore capability leaves the font native")

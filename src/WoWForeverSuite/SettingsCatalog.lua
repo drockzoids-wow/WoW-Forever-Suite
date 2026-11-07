@@ -62,7 +62,7 @@ local extras = {
     { page = "chat", key = "chatStyle", label = "Suite chat style", target = "chatApply", words = "enable disable restore copy text messages" },
     { page = "chat", key = "chatFontSize", label = "Chat text size", target = "chatFields.chatFontSize.slider", words = "font" },
     { page = "chat", key = "chatOpacity", label = "Chat background opacity", target = "chatFields.chatOpacity.slider", words = "transparency" },
-    { page = "macros", key = "macroUpdates", label = "Automatic macro updates", target = "macroUpdates", words = "supplies food drink bandage poison coatings" },
+    { page = "macros", key = "macroUpdates", label = "Keep class spell macros current", target = "macroUpdates", words = "supplies food drink bandage poison coatings after use automatic" },
     { page = "macros", key = "macroCreate", label = "Create or edit macros", target = "macroSave", words = "food health drink mana bandage poison weapon oil stone class hunter misdirection mend feed revive pet druid innervate rebirth mage counterspell polymorph paladin freedom justice priest shield dispel rogue kick blind shaman earth shock chain heal warlock recall drain life warrior heroic strike taunt prowl cat form rejuvenation entangling roots concussive auto shot blink remove lesser curse flash light protection flash heal shackle undead sap vanish healing wave purge fear banish pummel sunder armor leveling pvp healing touch mark wild hibernate hunters mark pet pull raptor strike wing clip arcane intellect missiles frost nova might holy light repentance renew shadow pain psychic scream sinister strike eviscerate gouge lightning bolt shield frost shock corruption drain soul spell lock rend hamstring disarm" },
     { page = "setup", key = "setupGuide", label = "Run the setup guide", words = "welcome installer auto loot first login" },
 }
@@ -245,7 +245,7 @@ function Catalog:Target(gui, entry)
     if target == gui then return end
     local offset, widget = 0, target
     -- Owned detail controls can sit several anchors below the scroll child.
-    for depth = 1, 8 do
+    for _ = 1, 8 do
         if not widget or widget == gui.content or type(widget.GetPoint) ~= "function" then break end
         local ok, point, relative, relativePoint, _, y = pcall(widget.GetPoint, widget, 1)
         -- The small substitute uses the short SetPoint form; native GetPoint always returns five values.

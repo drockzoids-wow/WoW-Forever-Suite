@@ -267,7 +267,7 @@ function Dashboard:Build(parent)
     self.freshness = Label(self.details, 10, muted, 12, -56, 756)
     self.mailStatus = Label(self.details, 10, muted, 12, -108, 756)
     self.browseButton = Button(0, 0, 372, "Browse inventory", function() if self.selected then Suite.CharacterBrowser:Open(self.selected) end end)
-    self.bankBrowseButton = Button(0, 0, 372, "Open saved bank", function() if self.selected then Suite.OfflineBank:OpenFor(self.selected, 0) end end)
+    self.bankBrowseButton = Button(0, 0, 372, "Open saved bank", function() if self.selected then Suite.OfflineBank:OpenFor(self.selected, 0, Suite.GUI.frame) end end)
     self.browseButton:SetParent(self.details); self.browseButton:ClearAllPoints(); self.browseButton:SetPoint("TOPLEFT", 12, -80)
     self.bankBrowseButton:SetParent(self.details); self.bankBrowseButton:ClearAllPoints(); self.bankBrowseButton:SetPoint("TOPLEFT", 395, -80)
     for index, labels in ipairs(self.skills) do

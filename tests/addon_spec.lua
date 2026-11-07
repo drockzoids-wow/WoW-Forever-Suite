@@ -605,6 +605,7 @@ do
     Suite.Apply = function() end
     Suite.db.setupGuide.seen = true
     frames[1].OnEvent(frames[1], "PLAYER_LOGIN")
+    equal(Suite.Macros.loginChecked, true, "native login invokes the once-per-load item macro recheck")
     equal(Suite.GUI.frame, nil, "returning login does not allocate the Suite settings panel")
     Suite.Apply = savedApply
     combat = true
@@ -1623,4 +1624,5 @@ assert(loadfile("tests/equipment_sets_spec.lua"))(Suite, equal, Frame, function(
 assert(loadfile("tests/talent_planner_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/shortcuts_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/release_tools_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/window_placement_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 print("Behavior checks passed: " .. checks)

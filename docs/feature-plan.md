@@ -1,5 +1,45 @@
 # Forever Suite feature plan
 
+## Publish the accepted fixes as 1.0.6 — November 7, 2026
+
+User confirms automatic food is fixed and authorizes publishing the latest changes to CurseForge under a fresh version. Release 1.0.6 includes item-macro use/startup checks, native macro detection, contact scoping/recovery/categories, companion placement, keybind overlays, training-data corrections and cleanup/review work. Retain optional defaults, ownership/data safeguards and prior release tags. User food confirmation does not establish all native/taint checks.
+
+## Automatic food correction and startup checks — November 7, 2026
+
+User confirms manual Update recognizes Catfish while automatic use does not. Keep the existing restorative buff-food classifier and correct native macro detection using IsMacroActionWithShowTooltip, retaining guarded legacy fallback only where needed. Add the requested one-time login/reload check for created item-use macros independently of background class updates. Coalesce stock work, defer combat/editor writes and let incomplete bags complete through bounded events; no idle polling or zoning/settings-triggered startup repeats. Regression covers stale 4592→4593 food and the supplied tooltip. Offline checks pass; native automatic-use/startup/taint retest pending. Supersedes the preceding decision to omit startup checks.
+
+## Item-use macro validation follows actual use — November 7, 2026
+
+Always check created item-use macros once after native macro/action use, independently of the default-off class-spell update preference. No idle polling or login/bag-only supply updates. Retain carried current choices; depleted preferences fall back to suitable carried food, drink, bandages or weapon-matched coatings. Keep saved preferences for restocking. Custom-item actions clear when unavailable; pet feeding can choose another natively accepted food while retaining revive/mend. A stale/placeholder press prepares the next press. Coalesce settling events, defer combat/editor writes and bound metadata waiting; preserve ownership/external edits. This explicitly supersedes earlier opted-in background supply maintenance and absent explicit-item retention. Offline regressions pass; native input/execution/taint test pending.
+
+## Full review and release priorities — November 7, 2026
+
+Completed [the full source/API review](addon-review-2026-11-07.md), with all 81 Lua files assessed, current pinned 70862 Blizzard source, no remaining confirmed unused local/unreferenced named-method candidates, and 90 clean package inputs. Correct stale Paladin/Shaman training facts from current pinned MIT upstream, retain recorded prices and add the missing level-50 Lava Burst rank. Remove unused bookkeeping and update automatic contact-scope help. Offline checks pass; native verification remains separate.
+
+Prioritize native keybind/taint, contact and window-placement checks before a fresh release version (v1.0.5 is already published). Preserve the user's deferral of older map/tracker taint investigation. Support diagnostics, checklist drag-and-drop/coalescing, manual deadline refresh, ordered talent-plan sharing and optional profession planning are recommendations for later decisions, not authorized/enabled new features. See the review for limits and evidence.
+
+## Suite tools open beside their launcher — November 7, 2026
+
+Use shared opening-time placement for Training Planner, Supply Checklist, Mail Deadlines, Contact Book, saved-bank browsing, Chat Copy and tool-to-Settings links (including meter settings and leveling bar context). Prefer right, left, below or above; keep windows on screen and minimize launcher overlap when space is insufficient. Retain the browser when it opens a saved bank. Resolve positions against UIParent so reopening Settings from a child cannot create circular anchors. Manual movement and standalone saved/default placement remain supported; chat Refresh preserves placement. Internal pages and established native companion layouts remain in place. No new preference or protected Blizzard panel changes. Offline checks pass; native smoke test pending.
+
+## Recover current mail lists and control book placement — November 7, 2026
+
+Recognize the locally observed CAMWOW US2 Realm 1 PvE server-label format, including normalized spacing, and repair previously missing contact rulesets from GUID-matched recorded inventory realms. Preserve contact metadata/removal decisions and recover recorded full names where safe. This corrects the empty-list failure introduced by filtering unrecognized server labels; retain automatic same-ruleset isolation.
+
+Opening Contact book from Send Mail aligns it beside Mail contacts: right, left if needed, then below on narrow screens, with screen clamping. Standalone/settings openings center. No global window-layout redesign or protected Blizzard panel changes. Offline checks pass; live mailbox list and placement retest pending.
+
+## Keep shortened keybinds out of native text — November 7, 2026
+
+User reports MultiBarLeftButton1:SetShown blocked under Suite attribution with Short keybind labels enabled. Replace native HotKey text rewrites with separate Suite-owned labels, preserving Blizzard's original text for its later update decisions. Retain native layout/visibility, latest opacity/color/font presentation, independent font settings, range indicators and safe capability/restricted-data fallback. Create and lay out overlays only outside combat; no bar/action visibility override. Offline checks pass; the identified text-read path is a likely cause, with actual incident build, originating taint and in-game resolution still pending. No release or deployment changes.
+
+## Choose or create contact categories — November 7, 2026
+
+Contact book Category retains typing for a new category and adds Choose for existing categories, New category and Uncategorized. Existing choices come only from contacts in the current region/ruleset, independent of search/filter. Selection waits for Save. Keep the separate list category filter. Offline checks pass; native menu/layout check pending.
+
+## Automatic same-ruleset mail contacts — November 7, 2026
+
+Send Mail and Contact book show only contacts matching the current region and known server type. PvE, PvP, Hardcore and RP variants stay separate automatically, with no preference or sync switch. New contacts inherit the active server type; remove manual ruleset entry and redundant mailbox ruleset sorting/labels. Keep custom categories and notes within the scoped list. Other types remain saved for matching characters; unknown types stay hidden until identified rather than guessed. This supersedes the earlier cross-ruleset/informational-only mail decision. Offline checks pass; native smoke test pending.
+
 ## Release 1.0.5 authorized — November 6, 2026
 
 User approves publishing the current additions as 1.0.5 because v1.0.4 is already published from an older commit. Preserve the published tag; align Core/both TOCs and release notes at 1.0.5. World-map/tracker taint investigation is deferred at the user's request after no recent recurrence; no fix or new native verification is claimed. Existing optional defaults and accepted talent workflow remain unchanged.

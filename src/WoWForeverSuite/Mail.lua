@@ -28,6 +28,7 @@ local function RulesetFromServer(value)
     if not String(value, 64) then return end
     value = value:gsub("%s", ""):lower()
     -- These are server labels, not delivery addresses. Unknown labels stay unknown.
+    value = value:match("^camwow[a-z]+%d+realm%d+(.+)$") or value
     value = value:match("^classicbeta(.+)$") or value:match("^classic(.+)$") or value:match("^forever(.+)$") or value
     return ({ pve = "PvE", pvp = "PvP", hardcore = "Hardcore", rp = "RP",
         rppvp = "RP-PvP", rppve = "RP-PvE", ["rp-pvp"] = "RP-PvP", ["rp-pve"] = "RP-PvE" })[value]
@@ -38,9 +39,8 @@ local function Ruleset()
         local active = C_GameRules.IsHardcoreActive()
         if Suite.IsReadable(active) and active == true then return "Hardcore" end
     end
-    local value = GetNormalizedRealmName and GetNormalizedRealmName()
-    if not String(value, 64) then value = GetRealmName and GetRealmName() end
-    return RulesetFromServer(value)
+    return RulesetFromServer(GetNormalizedRealmName and GetNormalizedRealmName())
+        or RulesetFromServer(GetRealmName and GetRealmName())
 end
 
 local function Name(value, allowIncomplete)
@@ -238,17 +238,27 @@ function Mail:SeedRecordedCharacters()
     for guid, entry in pairs(entries) do
         if String(guid, 128) and Suite.IsReadable(entry) and type(entry) == "table"
             and Suite.IsReadable(entry.region) and entry.region == region then
-            local name = Name(entry.name, true)
-            local ruleset = ValidRuleset(entry.ruleset) or RulesetFromServer(entry.realm)
+            local name = Name(entry.fullName) or Name(entry.name, true)
+            local ruleset = RulesetFromServer(entry.realm) or ValidRuleset(entry.ruleset)
             -- Seed once; removed contacts stay removed until that character is logged in again.
             local contacts = self:Database()
             local key = name and Key(region, name, ruleset, guid)
             local removed = key and self.removed[key]
             local oldRemoved = name and self.removed[Key(region, name, ruleset)]
             local existing = key and contacts[key]
-            if key and Suite.IsReadable(existing) and existing == nil and Suite.IsReadable(removed) and removed ~= true
+            if key and Suite.IsReadable(existing) and Suite.IsReadable(removed) and removed ~= true
                 and Suite.IsReadable(oldRemoved) and oldRemoved ~= true then
-                self:Store(name, ruleset, region, guid, entry.class, nil, nil, true)
+                if existing == nil then
+                    self:Store(name, ruleset, region, guid, entry.class, nil, nil, true)
+                elseif type(existing) == "table" and ruleset and not ValidRuleset(existing.ruleset) then
+                    -- Repair previously unknown server labels without replacing edited contact names/metadata.
+                    local restoredName = existing.name
+                    local first = Name(existing.name, true)
+                    if first and not Name(first) and Name(name) and name:match("^(%S+)"):lower() == first:lower() then
+                        restoredName = name
+                    end
+                    self:Store(restoredName, ruleset, region, guid, existing.class, existing.level, existing.faction, true)
+                end
             end
         end
     end
@@ -329,8 +339,8 @@ function Mail:ResolveRecordedNames()
 end
 
 function Mail:List(includeCurrent, search, category)
-    local result, region = {}, Region()
-    if not region then return result end
+    local result, region, ruleset = {}, Region(), Ruleset()
+    if not region or not ruleset then return result end
     local query = search
     if query == nil then query = self.query end
     query = Suite.IsReadable(query) and type(query) == "string" and query:lower() or ""
@@ -342,7 +352,7 @@ function Mail:List(includeCurrent, search, category)
             local address, complete
             if normalized then address, complete = Name(normalized.name, true) end
             local current = normalized and self:IsCurrent(normalized)
-            if normalized and key == expectedKey and (includeCurrent or not current)
+            if normalized and normalized.ruleset == ruleset and key == expectedKey and (includeCurrent or not current)
                 and (not category or String(entry.category, 32) and entry.category == category)
                 and (normalized.name .. " " .. (normalized.ruleset or "Unknown") .. " "
                     .. (String(entry.category, 32) and entry.category or "") .. " "
@@ -401,6 +411,7 @@ function Mail:SaveRecipient()
     local name = Parse(field and field:GetText())
     if not name then self:SetNotice("Enter first and last name in To."); return end
     local ruleset, region = Ruleset(), Region()
+    if not ruleset then self:SetNotice("Server type is not available yet."); return end
     local guid, class, level, faction
     for _, entry in ipairs(self:List()) do
         if entry.key == self.selected and (entry.name:lower() == name:lower()
@@ -485,8 +496,8 @@ function Mail:Create()
     local title = Text(frame, 15)
     title:SetPoint("TOPLEFT", 14, -16); title:SetText("Mail contacts")
     local subtitle = Text(frame, 10, colors.muted)
-    subtitle:SetPoint("TOPLEFT", 14, -39); subtitle:SetText("Your characters, one click away.")
-    local settings = Button(frame, 26, "...", function() Suite.GUI:OpenPage("mail") end)
+    subtitle:SetPoint("TOPLEFT", 14, -39); subtitle:SetText("Contacts on your server type.")
+    local settings = Button(frame, 26, "...", function() Suite.GUI:OpenPage("mail", nil, self.frame) end)
     settings:SetPoint("TOPRIGHT", -12, -12)
     local search = CreateFrame("EditBox", nil, frame, "BackdropTemplate")
     self.search = search
@@ -507,14 +518,14 @@ function Mail:Create()
     search:SetScript("OnEscapePressed", function() search:ClearFocus(); search:SetText("") end)
     search:SetScript("OnEnterPressed", function() search:ClearFocus() end)
     self.sortButtons = {}
-    for index, definition in ipairs({ { "name", "Name", 104 }, { "ruleset", "Ruleset", 88 }, { "level", "Level", 60 } }) do
+    for index, definition in ipairs({ { "name", "Name", 192 }, { "level", "Level", 60 } }) do
         local key, label = definition[1], definition[2]
         local button = Button(frame, definition[3], label, function()
             if self.sort == key then self.ascending = not self.ascending
             else self.sort, self.ascending = key, key ~= "level" end
             self.page = 1; self:Refresh()
         end)
-        button:SetPoint("TOPLEFT", 14 + (index == 1 and 0 or index == 2 and 108 or 200), -103)
+        button:SetPoint("TOPLEFT", 14 + (index == 1 and 0 or 200), -103)
         button.title = label; self.sortButtons[key] = button
     end
     for index = 1, PAGE_SIZE do
@@ -545,7 +556,7 @@ function Mail:Create()
     self.count = Text(frame, 10, colors.muted); self.count:SetPoint("TOP", 0, -416)
     self.save = Button(frame, 120, "Save recipient", function() self:SaveRecipient() end)
     self.save:SetPoint("BOTTOMLEFT", 14, 50)
-    local book = Button(frame, 120, "Contact book", function() self:OpenBook() end)
+    local book = Button(frame, 120, "Contact book", function() self:OpenBook(self.frame) end)
     book:SetPoint("BOTTOMLEFT", 14, 12)
     frame:SetHeight(HEIGHT + 38)
     self.notice = Text(frame, 9, colors.muted); self.notice:SetPoint("BOTTOMRIGHT", -14, 58)
@@ -583,7 +594,7 @@ function Mail:Refresh()
             if Suite.IsReadable(color) and type(color) == "table" and Number(color.r, 0, 1)
                 and Number(color.g, 0, 1) and Number(color.b, 0, 1) then row.name:SetTextColor(color.r, color.g, color.b)
             else row.name:SetTextColor(unpack(colors.text)) end
-            row.ruleset:SetText((entry.ruleset or "Unknown ruleset") .. (entry.category and "  ·  " .. entry.category or "") .. (entry.incomplete and "  ·  Add last name"
+            row.ruleset:SetText((entry.category or "Uncategorized") .. (entry.incomplete and "  ·  Add last name"
                 or entry.faction and "  ·  " .. entry.faction or ""))
             row.level:SetText(entry.level and tostring(entry.level) or "—")
             row:SetEnabled(not entry.current and not self.sendPending)
@@ -593,8 +604,9 @@ function Mail:Refresh()
         end
     end
     self.empty:SetShown(#entries == 0)
-    self.empty:SetText(self.query and self.query ~= "" and "No matching contacts.\nTry another name, category or ruleset."
-        or "Add people in Contact book, log into your alts, or enter a full name in To and save it here.")
+    self.empty:SetText(self.query and self.query ~= "" and "No matching contacts.\nTry another name or category."
+        or (Ruleset() and "Add contacts or log into alts on this server type. You can also enter a full name in To and save it here."
+            or "Server type is not available yet. Contacts will appear when it is known."))
     self.count:SetText(#entries .. " contacts  ·  " .. self.page .. " / " .. pages)
     self.previous:SetEnabled(self.page > 1); self.next:SetEnabled(self.page < pages)
     self.previous.label:SetTextColor(unpack(self.page > 1 and colors.accent or colors.muted))
@@ -760,16 +772,17 @@ local function OptionalText(value, maximum)
     return nil, false
 end
 
-function Mail:SaveContact(key, name, ruleset, category, notes)
+function Mail:SaveContact(key, name, category, notes)
     if InCombatLockdown() then return nil, "Contacts cannot be changed in combat." end
     if not Suite.IsReadable(key) or key ~= nil and not String(key, 240) then return nil, "Invalid contact." end
     name = Name(name)
-    local validRule, validCategory, validNotes
-    ruleset, validRule = OptionalText(ruleset, 64)
+    local ruleset = Ruleset()
+    if not ruleset then return nil, "Server type is not available yet." end
+    local validCategory, validNotes
     category, validCategory = OptionalText(category, 32)
     notes, validNotes = OptionalText(notes, 240)
     if not name then return nil, "Enter a first and last name." end
-    if not validRule or not validCategory or not validNotes then return nil, "Use plain text within the field limits." end
+    if not validCategory or not validNotes then return nil, "Use plain text within the field limits." end
     local entries, old = self:Database(), nil
     if key then
         for _, entry in ipairs(self:List(true, "")) do if entry.key == key then old = entry; break end end
@@ -779,7 +792,7 @@ function Mail:SaveContact(key, name, ruleset, category, notes)
     if not region then return nil, "Character region is not available yet." end
     for _, entry in ipairs(self:List(true, "")) do
         if entry.key ~= key and entry.name:lower() == name:lower() and entry.ruleset == ruleset then
-            return nil, "That name and ruleset are already in your contacts."
+            return nil, "That name is already in your contacts."
         end
     end
     local saved = key and entries[key]
@@ -809,13 +822,60 @@ function Mail:DeleteContact(key)
     return false
 end
 
+function Mail:Categories()
+    local categories, seen = {}, {}
+    for _, entry in ipairs(self:List(true, "")) do
+        if entry.category and not seen[entry.category] then
+            seen[entry.category] = true; categories[#categories + 1] = entry.category
+        end
+    end
+    table.sort(categories)
+    return categories
+end
+
+function Mail:ChooseBookCategory()
+    if InCombatLockdown() or not self.book or not Shown(self.book.frame) then return end
+    local book, ruleset = self.book, Ruleset()
+    local categories = self:Categories()
+    local function Choose(category, create)
+        if InCombatLockdown() or not Shown(book.frame) or Ruleset() ~= ruleset then return end
+        if category then
+            local available = false
+            for _, value in ipairs(self:Categories()) do if value == category then available = true; break end end
+            if not available then return end
+        end
+        book.category:SetText(category or "")
+        if create then
+            book.category:SetFocus()
+            book.status:SetText("Type a new category, then Save the contact.")
+        else book.category:ClearFocus() end
+    end
+    if MenuUtil and type(MenuUtil.CreateContextMenu) == "function" then
+        MenuUtil.CreateContextMenu(book.categoryChoose, function(_, root)
+            root:CreateButton("New category...", function() Choose(nil, true) end)
+            root:CreateButton("Uncategorized", function() Choose(nil) end)
+            for _, value in ipairs(categories) do
+                local category = value
+                root:CreateButton(category, function() Choose(category) end)
+            end
+        end)
+    else
+        -- Match the existing item chooser's fallback on clients without native menus.
+        local nextIndex = 1
+        for index, value in ipairs(categories) do
+            if value == book.category:GetText() then nextIndex = index + 1; break end
+        end
+        Choose(categories[nextIndex], categories[nextIndex] == nil)
+        book.status:SetText("Choose cycles existing categories. Type a new category, then Save.")
+    end
+end
+
 function Mail:EditContact(entry)
     if InCombatLockdown() then return end
     local book = self.book
     book.key, book.confirm = entry and entry.key, nil
-    for _, field in ipairs({ "name", "ruleset", "category", "notes" }) do
+    for _, field in ipairs({ "name", "category", "notes" }) do
         local value = entry and entry[field]
-        if not entry and field == "ruleset" then value = Ruleset() end
         book[field]:SetText(value or "")
     end
     book.status:SetText(entry and "Edit this contact, then Save." or "New contact. Enter a first and last name.")
@@ -835,7 +895,7 @@ function Mail:RefreshBook()
         row:SetShown(row.entry ~= nil)
         if row.entry then
             row.label:SetText(row.entry.name)
-            row.detail:SetText((row.entry.category or "Uncategorized") .. " · " .. (row.entry.ruleset or "Unknown"))
+            row.detail:SetText(row.entry.category or "Uncategorized")
             Fill(row, row.entry.key == book.key and { 0.1, 0.2, 0.21 } or colors.row)
         end
     end
@@ -844,7 +904,14 @@ function Mail:RefreshBook()
     book.empty:SetShown(#entries == 0)
 end
 
-function Mail:OpenBook()
+function Mail:PlaceBook(anchor)
+    if InCombatLockdown() or not self.book then return end
+    if not Suite.PlaceWindow(self.book.frame, anchor) then
+        self.book.frame:ClearAllPoints(); self.book.frame:SetPoint("CENTER")
+    end
+end
+
+function Mail:OpenBook(anchor)
     if InCombatLockdown() then Suite.Print("Open the contact book after combat."); return end
     if not self.book then
         -- Named only for Blizzard's Escape dismissal registry.
@@ -858,7 +925,7 @@ function Mail:OpenBook()
         if UISpecialFrames then table.insert(UISpecialFrames, "WoWForeverSuiteContactBook") end
         local title = Text(frame, 18); title:SetPoint("TOPLEFT", 18, -18); title:SetText("Contact book")
         local subtitle = Text(frame, 11, colors.muted); subtitle:SetPoint("TOPLEFT", 18, -44)
-        subtitle:SetText("People to remember, wherever you are. Shared across your characters.")
+        subtitle:SetText("Contacts are shared with characters on the same server type.")
         local close = Button(frame, 26, "X", function() frame:Hide() end); close:SetPoint("TOPRIGHT", -12, -12)
         local function Input(label, x, y, width, limit)
             local caption = Text(frame, 11, colors.muted); caption:SetPoint("TOPLEFT", x, y); caption:SetText(label)
@@ -874,13 +941,7 @@ function Mail:OpenBook()
         book.search = Input("Search names, categories or notes", 18, -72, 296, 240)
         book.search:SetScript("OnTextChanged", function() book.page = 1; self:RefreshBook() end)
         book.filterButton = Button(frame, 296, "All categories", function()
-            local categories, seen = {}, {}
-            for _, entry in ipairs(self:List(true, "")) do
-                if entry.category and not seen[entry.category] then
-                    seen[entry.category] = true; categories[#categories + 1] = entry.category
-                end
-            end
-            table.sort(categories)
+            local categories = self:Categories()
             local nextCategory = categories[1]
             if book.filter then
                 for index, value in ipairs(categories) do if value == book.filter then nextCategory = categories[index + 1]; break end end
@@ -907,15 +968,16 @@ function Mail:OpenBook()
         book.empty:SetSize(272, 70); book.empty:SetWordWrap(true)
         book.empty:SetText("No matching contacts. Add a new contact on the right, or change the search or category.")
         book.name = Input("First and last name", 340, -72, 310, 77)
-        book.ruleset = Input("Ruleset (e.g. PvE, PvP, Hardcore)", 340, -138, 310, 64)
-        book.category = Input("Category (e.g. Friends, Crafters, Alts)", 340, -204, 310, 32)
-        book.notes = Input("Notes", 340, -270, 310, 240)
+        book.category = Input("Category: choose existing or type new", 340, -138, 214, 32)
+        book.categoryChoose = Button(frame, 88, "Choose...", function() self:ChooseBookCategory() end)
+        book.categoryChoose:SetPoint("TOPLEFT", 562, -159)
+        book.notes = Input("Notes", 340, -204, 310, 240)
         local hint = Text(frame, 11, colors.muted); hint:SetPoint("TOPLEFT", 340, -332); hint:SetSize(310, 58)
-        hint:SetWordWrap(true); hint:SetText("Type any category to create it. At a mailbox, enable Mail contacts and click a name beside Send Mail. Blizzard decides delivery rules.")
+        hint:SetWordWrap(true); hint:SetText("Choose an existing category or type a new one, then Save. At a mailbox, enable Mail contacts and click a name beside Send Mail.")
         book.status = Text(frame, 11, colors.muted); book.status:SetPoint("TOPLEFT", 340, -400)
         book.status:SetSize(310, 55); book.status:SetWordWrap(true)
         book.save = Button(frame, 96, "Save", function()
-            local key, message = self:SaveContact(book.key, book.name:GetText(), book.ruleset:GetText(), book.category:GetText(), book.notes:GetText())
+            local key, message = self:SaveContact(book.key, book.name:GetText(), book.category:GetText(), book.notes:GetText())
             if key then book.key = key; book.confirm = nil; book.remove.label:SetText("Remove"); self:RefreshBook() end
             book.status:SetText(message)
             if key then
@@ -930,14 +992,14 @@ function Mail:OpenBook()
                 book.confirm = book.key; book.remove.label:SetText("Confirm"); book.status:SetText("Click Confirm to remove this contact.")
             elseif self:DeleteContact(book.key) then self:EditContact(); self:RefreshBook(); book.status:SetText("Contact removed.") end
         end); book.remove:SetPoint("TOPLEFT", 552, -468)
-        for _, field in ipairs({ "name", "ruleset", "category", "notes" }) do
+        for _, field in ipairs({ "name", "category", "notes" }) do
             book[field]:SetScript("OnTextChanged", function() book.confirm = nil; book.remove.label:SetText("Remove") end)
         end
         frame:SetScript("OnHide", function()
-            for _, field in ipairs({ "search", "name", "ruleset", "category", "notes" }) do book[field]:ClearFocus() end
+            for _, field in ipairs({ "search", "name", "category", "notes" }) do book[field]:ClearFocus() end
             book.confirm = nil; book.remove.label:SetText("Remove")
         end)
         self:EditContact()
     end
-    self:RefreshBook(); self.book.frame:Show()
+    self:RefreshBook(); self:PlaceBook(anchor); self.book.frame:Show()
 end

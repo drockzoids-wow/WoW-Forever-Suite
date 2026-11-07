@@ -609,6 +609,7 @@ function Training:StopDrag(save)
     if InCombatLockdown() then self.cancelMove = true; return end
     self.frame:StopMovingOrSizing(); self.moving = nil
     if save and not self.cancelMove then
+        self.contextPlaced = nil
         local x, y = self.frame:GetCenter(); local ux, uy = UIParent:GetCenter()
         local w, h = UIParent:GetWidth(), UIParent:GetHeight()
         if Number(x) and Number(y) and Number(ux) and Number(uy) and Number(w) and Number(h) and w > 0 and h > 0 then
@@ -699,6 +700,7 @@ function Training:Place()
         else self.frame:SetPoint("TOPLEFT", trainer, "TOPRIGHT", 8, 0) end
         return
     end
+    if self.contextPlaced then return end
     local p = self.db.position
     local width, height = UIParent:GetWidth(), UIParent:GetHeight()
     if not Number(width) or not Number(height) or width <= 0 or height <= 0 then return end
@@ -809,14 +811,14 @@ function Training:Build()
         self.db.allLevels = self.allLevels
         self.page, self.offset, self.groupTitle = 1, 0, nil; self:Refresh()
     end)
-    frame.settings = Button(frame, "Settings", 388, -487, 98, function() Suite.GUI:OpenPage("training") end)
+    frame.settings = Button(frame, "Settings", 388, -487, 98, function() Suite.GUI:OpenPage("training", nil, self.frame) end)
     frame:EnableMouseWheel(true); frame:SetScript("OnMouseWheel", function(_, delta)
         if Read(delta, "number") and not InCombatLockdown() then self.offset = self.offset - delta * (self.catalogPaging and 6 or 1); self:Refresh() end
     end)
     frame:Hide(); self:Place()
     return true
 end
-function Training:Open(levelNotice, spellbookVisit)
+function Training:Open(levelNotice, spellbookVisit, owner)
     if not spellbookVisit then
         self.spellbookVisit, self.spellbookOwner, Suite.pending.trainingSpellbook = nil, nil, nil
     end
@@ -830,7 +832,9 @@ function Training:Open(levelNotice, spellbookVisit)
         self.spellbookOwner = spellbookVisit
         self.levelNotice = levelNotice
         if levelNotice or spellbookVisit then self.view, self.page, self.offset, self.groupTitle = "class", 1, 0, nil end
-        self:Place(); self.frame:Show(); self.frame:Raise(); self:Refresh()
+        self.contextPlaced = Suite.PlaceWindow(self.frame, owner) or nil
+        if not self.contextPlaced then self:Place() end
+        self.frame:Show(); self.frame:Raise(); self:Refresh()
     end)
 end
 function Training:LevelUp(level)

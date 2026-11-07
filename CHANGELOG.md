@@ -1,5 +1,16 @@
 # Forever Suite
 
+## 1.0.6 — November 7, 2026
+
+- Use the native macro-with-tooltip predicate for action-bar use detection; a resolved legacy item action must not prevent a supply check. Add one coalesced check of created item-use macros at login/reload, independent of background updates. Finish incomplete stock checks on bounded bag-completion events; retain no idle refresh.
+- User confirms the automatic food fix works in game. Other detailed native checks remain qualified separately.
+- Check created item-use macros once after native macro/action use, independently of background class-spell updates. Keep carried choices, fall back when depleted, clear unavailable custom-item actions and retain saved preferences for restocking. No idle supply polling; combat/editor writes defer and incomplete data preserves existing text.
+- Render short keybind labels in Suite-owned overlays, preserving Blizzard's HotKey text. The reported action-bar visibility block still needs a focused native retest.
+- Scope mail contacts automatically to the current region/server type, add an existing-category chooser, and recover recorded contacts with CAMWOW realm labels while preserving metadata and removal decisions.
+- Open Suite companion tools beside their launcher with scale-aware screen clamping; retain dragged Chat Copy placement on Refresh and keep inventory browsers visible when opening saved banks.
+- Refresh the pinned Forever training data: correct Paladin Righteous Fury level/cost and Retribution Aura cost, correct three Shaman prices, and include level-50 Lava Burst rank 3 with its talent/rank requirements. Recorded trainer prices remain independent.
+- Remove unused settings/planner bookkeeping and review all shipped modules against pinned build-70862 Blizzard UI/API source. Offline checks do not establish native compatibility or taint safety.
+
 ## 1.0.5 — November 6, 2026
 
 - Add a per-character Training Planner wishlist with Pin/Unpin controls, search and pagination. Estimate outstanding costs using base or recorded prices, excluding trained ranks and disclosing unknown prices. Widen Unpin buttons to prevent truncation.

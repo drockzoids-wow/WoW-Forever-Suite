@@ -1,4 +1,73 @@
 {
+  "release10620261107": {
+    "date": "2026-11-07",
+    "version": "1.0.6",
+    "authorization": "User confirms automatic food is fixed and requests publishing the latest updates to CurseForge under a new version.",
+    "nativeResult": "Food fix user-confirmed; actual running build/Interface and detailed combat/taint coverage remain unreported.",
+    "validation": "81 Lua 5.1 files, identical TOCs/Core, 30714 assertions, 68 registered specs; scope/whitespace checks clean.",
+    "localPackage": {
+      "file": "dist/WoWForeverSuite-1.0.6.zip",
+      "files": 90,
+      "sha256": "45B1AD5B60657B992DB64C4FFE9372A6F4459AD8ED51CB78AF4461E146CEBA3B",
+      "qualification": "All source bytes match, no extra/missing/duplicate files. GitHub packager output and CurseForge moderation require separate verification."
+    }
+  },
+  "foodMacroStartup20261107": {
+    "date": "2026-11-07",
+    "evidence": "User screenshots show Bristle Whisker Catfish (4593) and an unavailable FS Food action; user confirms reload/use and that manual GUI Update recognizes the food. Read-only persisted macro/ownership text references 4592 with potion 858; historical stock includes 4593, not proof of running inventory.",
+    "request": "Fix automatic food updates and also recheck created item-use macros once at login/reload, without idle polling.",
+    "reference": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/ActionBarFrameDocumentation.lua",
+    "implementation": "Use guarded C_ActionBar.IsMacroActionWithShowTooltip instead of assuming the legacy GetActionInfo tuple is macro; legacy fallback only if the predicate is absent. PLAYER_LOGIN requests one coalesced stock check independently of class updates. Defer combat/editor work; incomplete bags finish through bounded completion events. Completed checks leave no idle listeners/timers.",
+    "validation": "81 Lua 5.1 files, identical TOCs, 30714 assertions, 68 registered specs; scope/whitespace checks pass. Exact restorative Catfish tooltip, stale 4592-to-4593 automatic update, native predicate restrictions, login routing/once/combat/background-off and incomplete bag completion are covered.",
+    "qualification": "The failed substitute reproduces a skipped trigger under an item-resolved legacy tuple, not a captured live tuple. Native execution/count timing/taint retest remains pending. No package/version/publication/deployment/junction or disk SavedVariables write."
+  },
+  "itemMacroUse20261107": {
+    "date": "2026-11-07",
+    "request": "Check all created item-use macros only after use, even with background updates off; fall back when depleted without idle refreshing.",
+    "sourceCommit": "9dc84f0d3bbae1768ac3405b3716000bd93eda06",
+    "sourceBuild": "1.60.1 (70862)",
+    "references": [
+      "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_FrameXML/SecureTemplates.lua",
+      "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/ActionBarFrameDocumentation.lua",
+      "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/ItemDocumentation.lua"
+    ],
+    "implementation": "Passive secure post-hooks on native UseAction/RunMacro, readable macro identity only. One coalesced after-use check; settling bag events and bounded relevant metadata completion only while pending. No idle supply refresh; class-spell background preference remains separate. Complete carried-stock snapshots govern fallback, not cached metadata. Preserve preferences, account macro indices, ownership and external edits; defer combat/editor work.",
+    "validation": "81 Lua 5.1 files, identical TOCs and 30696 behavior assertions pass; 68 specs registered; whitespace and scope audit clean.",
+    "qualification": "Sources establish native execution entry points and public text/item API shapes. Actual-client mouse/key/direct macro execution, delayed count timing and taint remain pending. No version/package/release/deployment change. Earlier review package receipt predates this change."
+  },
+  "fullReview20261107": {
+    "date": "2026-11-07",
+    "report": "docs/addon-review-2026-11-07.md",
+    "installedExecutable": "C:/Games/World of Warcraft/_forever_/Wow.exe 1.60.1.70862",
+    "runtimeBuildInterface": "Not newly reported or tested in this review",
+    "blizzardSource": {
+      "commit": "9dc84f0d3bbae1768ac3405b3716000bd93eda06",
+      "build": "1.60.1 (70862)",
+      "url": "https://github.com/Gethe/wow-ui-source/commit/9dc84f0d3bbae1768ac3405b3716000bd93eda06",
+      "cache": ".cache/review-20261107/wow-ui-source-9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns",
+      "archiveSHA256": "63EBDFD6C2D64DBAEB40BA50C9180553CB4CCB7166F31D004C2F7DB6F0FF8506",
+      "scope": "Full pinned UI-source snapshot; 642 generated Lua documentation files and 5144 API function declarations indexed. 146 direct/simple-alias C_* member names cross-referenced. Native behavior remains unverified."
+    },
+    "trainingData": {
+      "revision": "dd4256471d65149ad6e8d00ad1f18fa7c31e7a6e",
+      "url": "https://github.com/fusionpit/WhatsTraining/tree/dd4256471d65149ad6e8d00ad1f18fa7c31e7a6e/Classes/Camelot",
+      "comparison": "https://github.com/fusionpit/WhatsTraining/compare/e0d52183bac0581464d91b3b859528d53afd4a0d...dd4256471d65149ad6e8d00ad1f18fa7c31e7a6e",
+      "cache": ".cache/training-catalog-20261107",
+      "paladinSHA256": "03C33567FC2F798AB5CCC75F3B628392FC401F3221175D4F4055CF6EEC5A80CC",
+      "shamanSHA256": "3A11ED37C1764AEAFE8F0CF3B943B9E817E62F74238991648F445699ED947E72",
+      "records": 1410,
+      "qualification": "Only Paladin/Shaman class data differs in the upstream comparison. Refresh factual records only; no upstream UI copied. Full MIT notice retained. English names/ranks remain from 70532 exports; server prices/hotfixes need native confirmation."
+    },
+    "validation": {
+      "command": "node scripts/check-addon.cjs",
+      "luaFiles": 81,
+      "behaviorAssertions": 30654,
+      "registeredSpecs": 67,
+      "packageFiles": 90,
+      "packageSHA256": "27E1BBB49DDF9A1E83A39394011B0205654BC9CF37D8B888B2D1A89C0FDBE4B0",
+      "qualification": "Local rebuilt 1.0.5 review ZIP only; v1.0.5 already published. Use a fresh version/tag and rebuild before publishing. No in-game test, commit, push, upload or deployment performed."
+    }
+  },
   "releaseCompanionTools20261106": {
     "date": "2026-11-06",
     "commit": "ca8368f2f2380cbe696854f7f2646387c278a61b",

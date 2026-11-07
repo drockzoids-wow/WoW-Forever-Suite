@@ -58,7 +58,7 @@ end
 
 function Copy:Refresh()
     if InCombatLockdown() or not self.frame or not self.frame:IsShown() or not self.owner then return end
-    self:Open(self.owner)
+    self:Open(self.owner, true)
 end
 
 local function SkinScroll(scroll)
@@ -168,12 +168,13 @@ function Copy:Build()
     end)
 end
 
-function Copy:Open(source)
+function Copy:Open(source, keepPosition)
     if InCombatLockdown() then Suite.Print("Copy chat outside combat."); return end
     local text, omitted, count = self:Snapshot(source)
     if text == nil then Suite.Print("Chat text is unavailable in this window."); return end
     self:Build()
     self.body, self.owner = text, source
+    if not keepPosition then Suite.PlaceWindow(self.frame, source) end
     self.frame:Show(); self.frame:Raise(); self.frame:RegisterEvent("PLAYER_REGEN_DISABLED")
     self.edit:SetText(text); self.scroll:SetVerticalScroll(0)
     self.status:SetText(count == 0 and "No messages available to copy." or omitted

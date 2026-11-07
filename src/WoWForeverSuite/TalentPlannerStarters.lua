@@ -27,7 +27,6 @@ function Planner:ResolveStarter()
         local spell = data.spells[data.order:sub(index, index)]
         local match = spells[spell]
         if not match or ambiguous[spell] then
-            cache.missingSpell = spell
             return Fail("A starter talent is missing or ambiguous in this tree. The plan needs an update; your drafts are unchanged.")
         end
         local previous = ranks[match.node]

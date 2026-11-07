@@ -181,8 +181,8 @@ local pages = {
         { key = "targetThreat", label = "Target threat indicator", help = "Your threat against the target: grey at 0%, red at 100%.\nA translucent Blizzard-style rectangle moves below the frame when buffs are on top." },
     }, note = "NPCs and vehicles keep their normal health bars. Party and raid use Blizzard's class color setting.\nThreat appears for enemy NPCs; -- means no percentage is available." },
     mail = { title = "A familiar name, a quicker letter.", description = "Keep contacts anywhere, then find them beside Send Mail.", rows = {
-        { action = "mailBook", label = "Contact book", help = "Add and edit contacts anywhere, with your own categories and notes.\nSearch your shared address book without visiting a mailbox." },
-        { key = "mailHelper", label = "Mail contacts", help = "Show full character names and rulesets beside Send Mail.\nClick a name to fill To; Blizzard handles delivery rules." },
+        { action = "mailBook", label = "Contact book", help = "Add and edit contacts anywhere, with your own categories and notes.\nOnly contacts on your current server type are shown." },
+        { key = "mailHelper", label = "Mail contacts", help = "Show contacts on your current server type beside Send Mail.\nClick a name to fill To; Blizzard handles delivery rules." },
         { key = "mailRememberRecipient", label = "Remember recipient", help = "Keep the recipient in the To field after a successful send.\nClosing the mailbox clears it for the next visit." },
         { action = "mailDeadlines", label = "Review mail deadlines", help = "Review recorded mailbox deadlines for characters in this region.\nVisit each mailbox to refresh; saved mail may have changed." },
         { key = "mailExpiry", label = "Record mail deadlines and remind at login", help = "Starts off. Record the earliest deadline when visiting a mailbox.\nAt login, flag deadlines within three days or already passed; partial inboxes are labelled." },
@@ -215,8 +215,8 @@ Catalog:Configure(pages)
 function GUI:Action(action)
     local news = { newsTraining = "training", newsSupplies = "supplies", newsMail = "mail", newsTalents = "talents", newsContacts = "mail", newsMacros = "macros", newsShortcuts = "shortcuts" }
     if news[action] then self:OpenPage(news[action])
-    elseif action == "suppliesOpen" then Suite.SupplyChecklist:Open()
-    elseif action == "mailDeadlines" then Suite.MailExpiry:Open()
+    elseif action == "suppliesOpen" then Suite.SupplyChecklist:Open(self.frame)
+    elseif action == "mailDeadlines" then Suite.MailExpiry:Open(self.frame)
     elseif action == "combatPreview" then Suite.CombatIndicator:Preview()
     elseif action == "combatReset" then Suite.CombatIndicator:ResetPosition()
     elseif action == "levelingSession" then Suite.Leveling:ResetSession()
@@ -225,8 +225,8 @@ function GUI:Action(action)
     elseif action == "levelingMinimize" then Suite.Leveling:SetMinimized(not Suite.Leveling.db.minimized); self:Select("leveling")
     elseif action == "disenchantModifier" then
         Suite.Set("disenchantModifier", ({ alt="ctrl", ctrl="shift", shift="alt" })[Suite.ProfessionHelper:Modifier()]); self:Select("professions")
-    elseif action == "trainingOpen" then Suite.Training:Open()
-    elseif action == "mailBook" then Suite.Mail:OpenBook()
+    elseif action == "trainingOpen" then Suite.Training:Open(nil, nil, self.frame)
+    elseif action == "mailBook" then Suite.Mail:OpenBook(self.frame)
     elseif action == "talentsOpen" then Suite.TalentPlanner:Open()
     elseif action == "buffCustom" then Suite.BuffReminders:OpenOptions()
     elseif action == "buffAppearance" then Suite.BuffSettings:Open("display")
@@ -575,7 +575,7 @@ function GUI:BuildHome(key)
                 text:SetText(route == "characters" and "Characters & inventory" or Catalog.labels[route])
                 button:SetScript("OnClick", function()
                     if InCombatLockdown() then return end
-                    if route == "training" then Suite.Training:Open()
+                    if route == "training" then Suite.Training:Open(nil, nil, self.frame)
                     elseif route == "talents" then Suite.TalentPlanner:Open()
                     else self:Select(route) end
                 end)
@@ -2108,7 +2108,7 @@ function GUI:Initialize()
         button:SetScript("OnClick", function() if not InCombatLockdown() then callback(button) end end)
         return button
     end
-    self.breadcrumbHome = Crumb(0, 48, "Home", function() self:Select("overview") end)
+    Crumb(0, 48, "Home", function() self:Select("overview") end)
     self.breadcrumbGroup = Crumb(64, 240, "", function(button) self:Select(button.route) end)
     self.heading = Text(self.body, 24, palette.text)
     self.heading:SetPoint("TOPLEFT", 0, 0)
@@ -2252,27 +2252,29 @@ function GUI:Toggle()
     if self.frame:IsShown() then self.frame:Raise() end
 end
 
-function GUI:OpenPage(key, view)
+function GUI:OpenPage(key, view, owner)
     if not Suite.db then return end
     if not pages[key] then return end
     if key == "setup" and not self.setupPanel and InCombatLockdown() then Suite.Setup:Open(); return end
-    if InCombatLockdown() then Suite.AfterCombat("guiOpen", function() self:OpenPage(key, view) end); return end
+    if InCombatLockdown() then Suite.AfterCombat("guiOpen", function() self:OpenPage(key, view, owner) end); return end
     Suite.pending.guiOpen = nil
     self:Initialize()
     self:Select(key, view)
     self.frame:Show()
+    Suite.PlaceWindow(self.frame, owner)
     self.frame:Raise()
 end
 
-function GUI:OpenMeters(index)
+function GUI:OpenMeters(index, owner)
     if not Suite.db then return end
-    if InCombatLockdown() then Suite.AfterCombat("guiOpen", function() self:OpenMeters(index) end); return end
+    if InCombatLockdown() then Suite.AfterCombat("guiOpen", function() self:OpenMeters(index, owner) end); return end
     Suite.pending.guiOpen = nil
     self:Initialize()
     if index and index ~= self.meterIndex then self:FinishMeterInputs() end
     if index == 1 or index == 2 or index == 3 then self.meterIndex = index end
     self:Select("meters")
     self.frame:Show()
+    Suite.PlaceWindow(self.frame, owner)
     self.frame:Raise()
 end
 
@@ -2784,5 +2786,5 @@ function GUI:RefreshMacros()
     self.macroStatus:SetTextColor(unpack(statusColor))
     self.macroSave.label:SetText(entry.created and "Update macro" or (not pending and not ready and recipe.slot and "Create placeholder" or "Create macro"))
     self.macroSave:SetEnabled(macros:CanSave(entry, body, pending, ready))
-    self.macroUpdates.label:SetText("Keep created macros current: " .. (Suite.db.macroUpdates and "On" or "Off") .. " · click to change")
+    self.macroUpdates.label:SetText("Keep class spell macros current: " .. (Suite.db.macroUpdates and "On" or "Off") .. " · items check on login/reload and use")
 end

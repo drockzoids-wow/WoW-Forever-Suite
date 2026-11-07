@@ -29,7 +29,26 @@ for class, entries in pairs(Suite.TrainingCatalogData) do
     equal(level60, true, class .. " includes level 60")
     total = total + #entries
 end
-equal(total, 1409, "all pinned class and pet training ranks imported")
+equal(total, 1410, "all pinned class and pet training ranks imported")
+token = "PALADIN"
+local paladin = catalog:Snapshot(nil, 10)
+equal(Find(paladin, 25780).level, 10, "current Forever Righteous Fury is trained at level ten")
+equal(Find(paladin, 25780).cost, 300, "current Forever Righteous Fury base cost")
+equal(Find(paladin, 7294).cost, 1500, "current Forever Retribution Aura base cost")
+local paladinVisit = { rows = { { name = "Righteous Fury", level = 10, cost = 270, state = "available" } } }
+equal(Find(catalog:Snapshot(paladinVisit, 10, true), 25780).cost, 270, "updated base data preserves recorded trainer prices")
+token = "SHAMAN"
+local shaman = catalog:Snapshot(nil, 60)
+equal(Find(shaman, 66842).cost, 2200, "current Forever first totem-call base cost")
+equal(Find(shaman, 66844).cost, 12000, "current Forever later totem-call base cost")
+equal(Find(shaman, 1238299).cost, 12000, "current Forever talent rank base cost")
+local newRank = Find(shaman, 1238300)
+equal(newRank ~= nil, true, "current Forever level-fifty Shaman rank is included")
+equal(newRank.level, 50, "new Shaman rank level")
+equal(newRank.cost, 24000, "new Shaman rank base cost")
+equal(newRank.requirements.requiredIds[1], 1238299, "new Shaman rank retains its earlier-rank requirement")
+equal(newRank.requirements.requiredTalentId, 408490, "new Shaman rank retains its talent requirement")
+equal(newRank.state, "unavailable", "missing talent never presents the new rank as trainable")
 token = "WARRIOR"
 local initial = catalog:Snapshot(nil, 1)
 equal(Find(initial, 6673).cost, 10, "level-one Battle Shout base cost")

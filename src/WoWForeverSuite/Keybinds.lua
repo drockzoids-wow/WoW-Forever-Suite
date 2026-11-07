@@ -87,24 +87,68 @@ local function Snapshot(record)
     record.color = Color(text:GetShadowColor())
     record.offset = Offset(text:GetShadowOffset())
 end
-local function WriteText(record, value)
-    record.writing = true
-    record.text:SetText(value)
-    record.writing = nil
+function Keybinds:HideShortLabel(record)
+    if record.overlay then record.overlay:Hide() end
+    record.overlayActive = nil
+    if record.nativeAlpha ~= nil and Usable(record.text) then
+        record.changingAlpha = true
+        record.text:SetAlpha(record.nativeAlpha)
+        record.changingAlpha = nil
+    end
+    record.nativeAlpha = nil
 end
+
+function Keybinds:ShowShortLabel(record, value)
+    local text, overlay = record.text, record.overlay
+    if not overlay then return end
+    -- Blizzard reads HotKey:GetText() in Update(), before UpdateShownButtons().
+    -- Never write that native value: even cosmetic text can taint the caller.
+    local font = Font(text:GetFont())
+    local color = Color(text:GetTextColor())
+    local alpha = record.nativeAlpha
+    if not record.overlayActive then alpha = text:GetAlpha() end
+    local shown = text:IsShown()
+    if not font or not color or not Number(alpha) or alpha < 0 or alpha > 1 or not Read(shown, "boolean") then
+        self:HideShortLabel(record); return
+    end
+    if not InCombatLockdown() then
+        local ok, success = pcall(overlay.SetFont, overlay, unpack(font))
+        record.overlayReady = ok and Read(success, "boolean") and success == true
+        if not record.overlayReady then self:HideShortLabel(record); return end
+        if type(text.GetShadowColor) == "function" then
+            local shadow = Color(text:GetShadowColor())
+            if shadow then overlay:SetShadowColor(unpack(shadow)) end
+        end
+        if type(text.GetShadowOffset) == "function" then
+            local offset = Offset(text:GetShadowOffset())
+            if offset then overlay:SetShadowOffset(unpack(offset)) end
+        end
+    elseif not record.overlayReady then
+        self:HideShortLabel(record)
+        self:Queue()
+        return
+    end
+    overlay:SetText(value)
+    overlay:SetTextColor(unpack(color))
+    overlay:SetAlpha(alpha)
+    overlay:SetShown(shown)
+    record.nativeAlpha, record.overlayActive = alpha, true
+    record.changingAlpha = true
+    text:SetAlpha(0)
+    record.changingAlpha = nil
+end
+
 function Keybinds:ApplyText(record)
     if not Usable(record.text) then return end
     if self.short and On("shortKeybinds") then
-        if not record.shortActive then
-            local value = record.text:GetText()
-            if not Read(value, "string") then return end
-            record.original = value
-            record.shortActive = true
-        end
+        local value = record.text:GetText()
+        record.original = Read(value, "string") and value or nil
+        record.shortActive = true
         local short = self:Shorten(record.original)
-        if short and short ~= record.original then WriteText(record, short) end
-    elseif record.shortActive then
-        if Read(record.original, "string") then WriteText(record, record.original) end
+        if short and short ~= record.original then self:ShowShortLabel(record, short)
+        else self:HideShortLabel(record) end
+    else
+        self:HideShortLabel(record)
         record.shortActive, record.original = nil, nil
     end
 end
@@ -150,19 +194,45 @@ function Keybinds:Track(button)
         if type(text[method]) ~= "function" then record.fontCapable = false end
     end
     self.records[text] = record
-    hooksecurefunc(text, "SetText", function(_, value)
+    if not InCombatLockdown() and type(button.CreateFontString) == "function" then
+        local capable = true
+        for _, method in ipairs({ "GetFont", "GetTextColor", "GetAlpha", "SetAlpha", "IsShown", "GetJustifyH", "GetJustifyV" }) do
+            if type(text[method]) ~= "function" then capable = false end
+        end
+        if capable then
+            local horizontal, vertical = text:GetJustifyH(), text:GetJustifyV()
+            if Read(horizontal, "string") and Read(vertical, "string") then
+                record.overlay = button:CreateFontString(nil, "OVERLAY")
+                record.overlay:SetAllPoints(text)
+                record.overlay:SetJustifyH(horizontal)
+                record.overlay:SetJustifyV(vertical)
+                record.overlay:Hide()
+                hooksecurefunc(text, "SetAlpha", function(_, alpha)
+                    if record.changingAlpha or not record.overlayActive then return end
+                    if not Number(alpha) or alpha < 0 or alpha > 1 then
+                        record.nativeAlpha = nil
+                        self:HideShortLabel(record)
+                        return
+                    end
+                    record.nativeAlpha = alpha
+                    self:ApplyText(record)
+                end)
+                for _, method in ipairs({ "Show", "Hide", "SetShown", "SetTextColor", "SetVertexColor" }) do
+                    if type(text[method]) == "function" then
+                        hooksecurefunc(text, method, function() if record.shortActive then self:ApplyText(record) end end)
+                    end
+                end
+            end
+        end
+    end
+    hooksecurefunc(text, "SetText", function()
         if record.writing or not record.shortActive then return end
-        if not Suite.IsReadable(value) then record.original = nil; return end
-        if value == nil then value = "" end
-        record.original = Read(value, "string") and value or nil
         self:ApplyText(record)
     end)
     if type(text.SetFormattedText) == "function" then
         hooksecurefunc(text, "SetFormattedText", function()
             if record.writing or not record.shortActive then return end
-            if not Usable(text) then record.original = nil; return end
-            local value = text:GetText()
-            record.original = Read(value, "string") and value or nil
+            if not Usable(text) then return end
             self:ApplyText(record)
         end)
     end
@@ -170,7 +240,11 @@ function Keybinds:Track(button)
         for _, entry in ipairs({ { "SetFont", "font" }, { "SetShadowColor", "color", Color }, { "SetShadowOffset", "offset", Offset } }) do
             local field, capture = entry[2], entry[3]
             hooksecurefunc(text, entry[1], function(_, ...)
-                if record.writing or not record.fontActive then return end
+                if record.writing then return end
+                if not record.fontActive then
+                    if record.shortActive then self:ApplyText(record) end
+                    return
+                end
                 if not Usable(text) then record[field] = nil; return end
                 if field == "font" then
                     local path, size, flags = ...
@@ -185,16 +259,22 @@ function Keybinds:Track(button)
                 if On("keybindFontStyle") then
                     if InCombatLockdown() then self:Queue() else self:ApplyFont(record) end
                 end
+                if record.shortActive then self:ApplyText(record) end
             end)
         end
         if type(text.SetFontObject) == "function" then
             hooksecurefunc(text, "SetFontObject", function()
-                if record.writing or not record.fontActive then return end
+                if record.writing then return end
+                if not record.fontActive then
+                    if record.shortActive then self:ApplyText(record) end
+                    return
+                end
                 if not Usable(text) then record.font, record.color, record.offset = nil, nil, nil; return end
                 Snapshot(record)
                 if On("keybindFontStyle") then
                     if InCombatLockdown() then self:Queue() else self:ApplyFont(record) end
                 end
+                if record.shortActive then self:ApplyText(record) end
             end)
         end
     end
@@ -207,7 +287,7 @@ function Keybinds:Refresh()
     self:Cancel()
     if InCombatLockdown() then Suite.AfterCombat("keybinds", function() self:Apply() end); return end
     if self.short or self.style then Suite.ActionBars:VisitButtons(function(button) self:Track(button) end, true) end
-    for _, record in pairs(self.records) do self:ApplyText(record); self:ApplyFont(record) end
+    for _, record in pairs(self.records) do self:ApplyFont(record); self:ApplyText(record) end
 end
 function Keybinds:Queue()
     if not On("shortKeybinds") and not On("keybindFontStyle") then return end

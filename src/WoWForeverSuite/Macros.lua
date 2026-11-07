@@ -354,7 +354,7 @@ function Macros:RemoveItem(entry)
     return false
 end
 
-function Macros:Generate(entry, snapshot)
+function Macros:Generate(entry, snapshot, currentItem)
     if InCombatLockdown() then return nil, "Macro changes wait until combat ends.", true end
     local recipe = self.byRecipe[entry.recipe]
     if not self:Applicable(entry) then return nil, "This recipe is for another class.", true end
@@ -383,11 +383,19 @@ function Macros:Generate(entry, snapshot)
         local revive, mend, feed = SpellName(982), SpellName(136), SpellName(6991)
         if not revive or not mend or not feed then return nil, "Pet spell information is unavailable in this client.", true end
         local food = snapshot.carriedByID and snapshot.carriedByID[entry.item]
-        local foodName = food and food.name
-        if not food and C_Item and type(C_Item.GetItemInfo) == "function" then
-            local ok, name = pcall(C_Item.GetItemInfo, entry.item)
-            if ok then foodName = name end
+        if not food then
+            local choices, problem = Items:PetFoodChoices(snapshot)
+            food = choices[1]
+            if not food and #(snapshot.carried or {}) > 0 and problem ~= "No carried food matches your active pet." then
+                return nil, problem, true
+            end
         end
+        if not food then
+            return "#showtooltip\n/cast [@pet,dead][nopet,mod:shift] " .. revive
+                .. "\n/cast [combat,@pet,exists,nodead] " .. mend,
+                "Chosen food is not carried. No suitable carried pet food; feeding is paused until restocked.", false, true
+        end
+        local foodName = food and food.name
         if not Text(foodName) or #foodName == 0 or #foodName > 128 or foodName:find("[%c|;%[%]]") then
             return nil, "Food name is loading or unavailable. Existing text is kept.", true
         end
@@ -395,8 +403,7 @@ function Macros:Generate(entry, snapshot)
             .. "\n/cast [combat,@pet,exists,nodead] " .. mend .. "; [nocombat,@pet,exists,nodead] " .. feed
             .. "\n/stopmacro [combat][nopet][@pet,dead]\n/use " .. foodName
         if not ValidBody(body) then return nil, "These spell names exceed the game's macro text limit.", true end
-        if not food then return body, "Chosen food is not carried. Restock it or choose another food; the macro keeps your choice.", false, true end
-        local accepted, problem = Items:PetCanEat(entry.item)
+        local accepted, problem = Items:PetCanEat(food.id)
         if accepted ~= true then
             return body, problem or "Your active pet cannot eat the chosen food. Choose another food; the macro keeps your choice.", false, true, food
         end
@@ -408,19 +415,20 @@ function Macros:Generate(entry, snapshot)
         return nil, "Combat supply data is loading. Existing text is kept.", true
     end
     local item, note, pending
-    if entry.item then
-        if snapshot.pendingByID and snapshot.pendingByID[entry.item] then
+    local preferred = entry.item or not recipe.slot and currentItem
+    if preferred then
+        if snapshot.pendingByID and snapshot.pendingByID[preferred] then
             return nil, "Chosen item data is loading. Existing text is kept.", true
         end
-        item = snapshot.byID[entry.item]
-        if not item then item, pending = Items:Read(entry.item, nil, nil, UnitLevel("player"), snapshot.english) end
-        if pending then return nil, "Chosen item data is loading. Existing text is kept.", true end
-        if not item then return nil, "Choose a usable item for your current level.", true end
-    elseif recipe.slot then item, note, pending = Items:WeaponStone(snapshot, recipe.slot)
-    elseif entry.recipe == "item" then return nil, "Choose a carried item first.", true
-    elseif (entry.recipe == "food" or entry.recipe == "water") and not snapshot.english then
+        item = snapshot.byID[preferred]
+    end
+    if not item and recipe.slot then item, note, pending = Items:WeaponStone(snapshot, recipe.slot)
+    elseif not item and entry.recipe == "item" then
+        if not entry.item then return nil, "Choose a carried item first.", true end
+        note = "Chosen item is not carried. Restock it or choose another item."
+    elseif not item and (entry.recipe == "food" or entry.recipe == "water") and not snapshot.english then
         return nil, "Choose food or drink for this language.", true
-    else
+    elseif not item then
         if waiting[entry.recipe] then return nil, "Recovery supply data is loading. Existing text is kept.", true end
         item = snapshot.best[entry.recipe]
     end
@@ -557,7 +565,9 @@ function Macros:Write(entry, body, explicit, replaceEdited)
     local index, problem, old = self:Owned(entry, replaceEdited)
     if problem then return false, problem end
     if not index and not explicit then return false, "Macro missing. Click Create to make it again." end
-    if index and SameBody(old, body) then entry.created = true; return true, "Current in General macros." end
+    if index and SameBody(old, body) then
+        entry.created = true; self:WatchUses(); return true, "Current in General macros."
+    end
     self.writing = true
     local ok, result
     if index then ok, result = pcall(EditMacro, index, nil, nil, body)
@@ -573,20 +583,22 @@ function Macros:Write(entry, body, explicit, replaceEdited)
     local name, saved, readable = ReadMacro(result)
     if not readable or name ~= entry.name or not SameBody(saved, body) then return false, "The client did not confirm the saved macro." end
     Suite.db.macroOwnership[name], entry.created = saved, true
+    self:WatchUses()
     return true, "Saved in General macros. Drag it from Blizzard's Macros window to an action bar."
 end
 
 function Macros:Notify()
     if self.visible and Suite.GUI.RefreshMacros then Suite.GUI:RefreshMacros() end
 end
-function Macros:Refresh()
+function Macros:Refresh(refreshItems)
     if InCombatLockdown() then self.dirty = true; self:Notify(); return end
     self:SyncGeneral()
     self.refreshes = (self.refreshes or 0) + 1
-    self.snapshot = Items:Scan()
+    local includeItems = refreshItems ~= false or self.visible
+    if includeItems then self.snapshot = Items:Scan() end
     if Suite.db.macroUpdates then
         for _, entry in ipairs(Suite.macroDB.entries) do
-            if entry.created and self:Applicable(entry) then
+            if entry.created and self:Applicable(entry) and (refreshItems ~= false or not self:ItemRecipe(entry)) then
                 local body, note, pending, ready = self:Generate(entry, self.snapshot)
                 self.statusErrors[entry] = pending == true
                 if not pending and body then
@@ -605,8 +617,8 @@ function Macros:Refresh()
 end
 function Macros:Status()
     self:SyncGeneral()
-    Suite.Print("Automatic macro updates: " .. (Suite.db.macroUpdates and "On" or "Off")
-        .. " · completed refreshes: " .. (self.refreshes or 0))
+    Suite.Print("Class spell updates: " .. (Suite.db.macroUpdates and "On" or "Off") .. " · item macros: login/reload and after use"
+        .. " · completed refreshes: " .. (self.refreshes or 0) .. " · item checks: " .. (self.useChecks or 0))
     Suite.Print("Last macro event: " .. (self.lastEvent or "none since reload")
         .. (self.timer and " · refresh queued" or " · no refresh queued"))
     local snapshot, count = Items:Scan(), 0
@@ -622,7 +634,8 @@ function Macros:Status()
                     if problem then note = problem
                     elseif not index then note = "Macro missing. Click Create to make it again."
                     elseif SameBody(old, body) then note = "Current in General macros."
-                    elseif not Suite.db.macroUpdates then note = "Automatic updates are Off."
+                    elseif self:ItemRecipe(entry) then note = "Item macros are checked after use."
+                    elseif not Suite.db.macroUpdates then note = "Class spell updates are Off."
                     else note = "Supplies changed. Last update: " .. (self.statuses[entry] or "awaiting an event.") end
                 end
                 if self.byRecipe[entry.recipe].foodChoice then note = note .. " " .. detail end
@@ -645,8 +658,7 @@ function Macros:Save(entry, existingOnly)
         if ok and self.byRecipe[entry.recipe].foodChoice then note = note .. " " .. detail end
         if ok and not ready then
             if self.byRecipe[entry.recipe].slot then
-                note = Suite.db.macroUpdates and "Placeholder saved. Waiting for a suitable weapon and carried coating."
-                    or "Placeholder saved. Enable automatic updates to fill it when a weapon and coating are ready."
+                note = "Placeholder saved. Use this macro again after equipping a suitable weapon and carrying its coating."
             else note = "No suitable supplies. The old automatic action was cleared." end
         end
     end
@@ -662,7 +674,7 @@ function Macros:Queue()
     self.dirty = true
     if InCombatLockdown() or self.timer or not (Suite.db.macroUpdates or self.visible) then return end
     if C_Timer and type(C_Timer.NewTimer) == "function" then
-        self.timer = C_Timer.NewTimer(0.15, function() self.timer = nil; self:Refresh() end)
+        self.timer = C_Timer.NewTimer(0.15, function() self.timer = nil; self:Refresh(false) end)
     end
 end
 function Macros:SetVisible(visible)
@@ -673,11 +685,148 @@ function Macros:WatchEditor()
     local frame = MacroFrame
     if not frame or frame == self.editor or type(frame.HookScript) ~= "function" then return end
     self.editor = frame
-    frame:HookScript("OnHide", function() if Suite.db.macroUpdates or self.visible then self:Queue() end end)
+    frame:HookScript("OnHide", function()
+        if Suite.db.macroUpdates or self.visible then self:Queue() end
+        if self.used then self:QueueUsed(0.15) end
+    end)
+end
+
+-- Passive native execution post-hooks identify only public macro names/indices.
+-- They never change secure buttons, native text, action slots or macro execution.
+function Macros:ItemRecipe(entry)
+    local recipe = self.byRecipe[entry.recipe]
+    return recipe and not recipe.spell and not recipe.body and self:Applicable(entry)
+end
+function Macros:QueueUsed(delay)
+    if self.useTimer then self.useTimer:Cancel(); self.useTimer = nil end
+    if self.useExpiry then self.useExpiry:Cancel(); self.useExpiry = nil end
+    if not self.used or InCombatLockdown() or EditorOpen() then return end
+    if not C_Timer or type(C_Timer.NewTimer) ~= "function" then return end
+    self.useTimer = C_Timer.NewTimer(delay, function() self.useTimer = nil; self:CheckUsed() end)
+end
+function Macros:FinishUsed()
+    if self.useTimer then self.useTimer:Cancel(); self.useTimer = nil end
+    if self.useExpiry then self.useExpiry:Cancel(); self.useExpiry = nil end
+    self.used, self.useWaiting, self.useBagWaiting = nil, nil, nil
+    if self.useEvents then self.useEvents:UnregisterAllEvents() end
+end
+function Macros:CheckUsed()
+    if not self.used or InCombatLockdown() then return end
+    self:WatchEditor()
+    if EditorOpen() then return end
+    self.useChecks = (self.useChecks or 0) + 1
+    local snapshot = Items:Scan()
+    self.useWaiting = {}
+    self.useBagWaiting = snapshot.incomplete == true
+    for entry in pairs(self.used) do
+        local present = false
+        for _, record in ipairs(Suite.macroDB.entries) do if record == entry then present = true; break end end
+        if present and entry.created and self:ItemRecipe(entry) then
+            local owned = Suite.db.macroOwnership[entry.name]
+            local id = Text(owned) and (owned:match("\n/use item:(%d+)") or owned:match("\n/use %[%s*nocombat%s*%] item:(%d+)"))
+            local body, note, pending = self:Generate(entry, snapshot, id and tonumber(id))
+            if not pending then
+                local ok
+                if body then ok, note = self:Write(entry, body, false) end
+                self.statuses[entry], self.statusErrors[entry] = note, not ok
+                self.used[entry] = nil
+            else
+                self.statuses[entry], self.statusErrors[entry] = note, true
+                for id in pairs(snapshot.pendingByID or {}) do self.useWaiting[id] = true end
+                -- Await only this scan's requested metadata, with a bounded cleanup
+                -- timer that performs no further scan. No bag/event polling.
+                if not self.useExpiry then
+                    self.useExpiry = C_Timer.NewTimer(2, function() self:FinishUsed() end)
+                end
+            end
+        else self.used[entry] = nil end
+    end
+    if not next(self.used) then self:FinishUsed() end
+    self:Notify()
+end
+function Macros:Used(macro)
+    if not Suite.IsReadable(macro) then return end
+    local name = macro
+    if Number(macro) and macro >= 1 and macro % 1 == 0 and macro <= Limit() then
+        name = ReadMacro(macro)
+    end
+    if not ValidName(name) then return end
+    for _, entry in ipairs(Suite.macroDB and Suite.macroDB.entries or {}) do
+        if entry.name == name and entry.created and self:ItemRecipe(entry) then
+            if not self.useEvents then return end -- Prepared outside combat by WatchUses.
+            self.used = self.used or {}; self.used[entry] = true
+            self.lastEvent = "Item macro: " .. name
+            self.useWaiting = nil
+            self.useBagWaiting = nil
+            if self.useExpiry then self.useExpiry:Cancel(); self.useExpiry = nil end
+            for _, event in ipairs({ "BAG_UPDATE_DELAYED", "GET_ITEM_INFO_RECEIVED", "ITEM_DATA_LOAD_RESULT",
+                "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "PLAYER_LOGOUT" }) do self.useEvents:RegisterEvent(event) end
+            self:QueueUsed(1) -- One fallback check if an attempted use produces no bag event.
+            return
+        end
+    end
+end
+function Macros:WatchUses()
+    if InCombatLockdown() then Suite.AfterCombat("macroUseWatch", function() self:WatchUses() end); return end
+    Suite.pending.macroUseWatch = nil
+    if not Suite.macroDB or type(hooksecurefunc) ~= "function" then return end
+    local needed = false
+    for _, entry in ipairs(Suite.macroDB.entries) do
+        if entry.created and self:ItemRecipe(entry) then needed = true; break end
+    end
+    if not needed then return end
+    if not self.useEvents then
+        self.useEvents = CreateFrame("Frame")
+        self.useEvents:SetScript("OnEvent", function(_, event, id)
+            if event == "PLAYER_LOGOUT" then self:FinishUsed(); return end
+            if not self.used then return end
+            if event == "PLAYER_REGEN_DISABLED" then
+                if self.useTimer then self.useTimer:Cancel(); self.useTimer = nil end
+                if self.useExpiry then self.useExpiry:Cancel(); self.useExpiry = nil end
+            elseif event == "GET_ITEM_INFO_RECEIVED" or event == "ITEM_DATA_LOAD_RESULT" then
+                if ItemID(id) and self.useWaiting and self.useWaiting[id] then self:QueueUsed(0.15) end
+            elseif not self.useWaiting or self.useBagWaiting or event == "PLAYER_REGEN_ENABLED" then self:QueueUsed(0.15) end
+        end)
+    end
+    if not self.runHook and type(RunMacro) == "function" then
+        hooksecurefunc("RunMacro", function(macro) self:Used(macro) end); self.runHook = true
+    end
+    if not self.actionHook and type(UseAction) == "function" then
+        hooksecurefunc("UseAction", function(action)
+            if not Number(action) or action < 1 or action % 1 ~= 0 or not C_ActionBar
+                or type(C_ActionBar.GetActionText) ~= "function" then return end
+            -- Generated Suite macros all have #showtooltip. Use the native
+            -- predicate rather than assuming a resolved legacy action tuple.
+            if type(C_ActionBar.IsMacroActionWithShowTooltip) == "function" then
+                local read, macro = pcall(C_ActionBar.IsMacroActionWithShowTooltip, action)
+                if not read or not Suite.IsReadable(macro) or macro ~= true then return end
+            else
+                if type(GetActionInfo) ~= "function" then return end
+                local read, kind = pcall(GetActionInfo, action)
+                if not read or not Text(kind) or kind ~= "macro" then return end
+            end
+            local ok, name = pcall(C_ActionBar.GetActionText, action)
+            if ok and Suite.IsReadable(name) then self:Used(name) end
+        end)
+        self.actionHook = true
+    end
+    self:WatchEditor()
+end
+function Macros:CheckAtLogin()
+    if self.loginChecked or not Suite.macroDB then return end
+    self.loginChecked = true
+    Suite.AfterCombat("macroLogin", function()
+        Suite.pending.macroLogin = nil
+        self:SyncGeneral(); self:WatchUses()
+        for _, entry in ipairs(Suite.macroDB.entries) do
+            if entry.created and self:ItemRecipe(entry) then self:Used(entry.name) end
+        end
+    end)
 end
 function Macros:Apply()
     if not Suite.macroDB then return end
     self:SyncGeneral()
+    self:WatchUses()
     local active = Suite.db.macroUpdates or self.visible
     if not active then
         self:Cancel()
@@ -708,8 +857,14 @@ function Macros:Apply()
             self:Queue()
         end)
     end
-    for _, event in ipairs({ "BAG_UPDATE_DELAYED", "PLAYER_ENTERING_WORLD", "PLAYER_LEVEL_UP", "PLAYER_EQUIPMENT_CHANGED",
-        "GET_ITEM_INFO_RECEIVED", "SPELLS_CHANGED", "UNIT_PET", "UNIT_LEVEL", "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED", "UPDATE_MACROS", "ADDON_LOADED" }) do self.events:RegisterEvent(event) end
+    self.events:UnregisterAllEvents()
+    for _, event in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_LEVEL_UP", "SPELLS_CHANGED",
+        "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED", "UPDATE_MACROS", "ADDON_LOADED" }) do self.events:RegisterEvent(event) end
+    if self.visible then
+        for _, event in ipairs({ "BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED", "GET_ITEM_INFO_RECEIVED", "UNIT_PET", "UNIT_LEVEL" }) do
+            self.events:RegisterEvent(event)
+        end
+    end
     self:WatchEditor()
     self:Queue()
 end

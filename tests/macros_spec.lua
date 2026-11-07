@@ -19,6 +19,8 @@ local data = {
     [114] = { name = "Percent Food", sub = 5, description = "Restores 20% of your health over 20 seconds." },
     [115] = { name = "Uncached Reagent", class = 7, noUse = true },
     [116] = { name = "Stronger Bandage", sub = 7, required = 20, description = "Heals 400 damage over 8 seconds." },
+    [4593] = { name = "Bristle Whisker Catfish", sub = 5, required = 15,
+        description = "Use: Restores 530 health over 24 sec.\nMust remain seated while eating. If you spend at least 10 sec eating, you will become well fed and gain 8 Fishing Skill for 15 min. Additionally, experience gained from kills is increased by 5%. (1 Sec Cooldown)" },
     [6290] = { name = "Brilliant Smallfish", sub = 5,
         description = "Use: Restores 58 health over 18 sec. Must remain seated while eating. If you spend at least 10 sec eating, you will become well fed and gain 2 Attack Power for 15 min. Additionally, experience gained from kills is increased by 5%. (1 Sec Cooldown)" },
     [20388] = { name = "Lollipop", sub = 8, description = "Restores 3% of your health and mana per second for 25 sec. Must remain seated while eating." },
@@ -468,6 +470,15 @@ Suite.db.macroUpdates = true
 macros:Apply(); Flush()
 equal(macros:Save(bandage), true, "create bandage for event-driven update regressions")
 local bandageIndex = macros:Find(bandage.name)
+local function UseSupplies()
+    for _, entry in ipairs(Suite.macroDB.entries) do
+        if entry.created and macros:ItemRecipe(entry) then macros:Used(entry.name) end
+    end
+end
+local function SupplyEvent(event, ...)
+    macros.events.OnEvent(macros.events, event, ...)
+    if macros.useEvents and macros.useEvents.OnEvent then macros.useEvents.OnEvent(macros.useEvents, event, ...) end
+end
 -- An existing owned macro from before the fix must update in place, including on the bar.
 local oldBandageBody = "#showtooltip item:107\n/use [@player] item:107"
 native[bandageIndex].body, Suite.db.macroOwnership[bandage.name] = oldBandageBody, oldBandageBody
@@ -480,7 +491,7 @@ equal(macros:Find(bandage.name), bandageIndex, "bandage targeting correction ret
 equal(native[bandageIndex].body, "#showtooltip item:107\n/use item:107", "old owned self-bandage updates to native targeting")
 equal(Suite.db.macroOwnership[bandage.name], native[bandageIndex].body, "corrected bandage remains managed")
 bags, unavailable, weapon[16], weapon[17] = { 100, 104, 116, 3239, 115 }, 115, 204, nil
-macros.events.OnEvent(macros.events, "BAG_UPDATE_DELAYED")
+UseSupplies(); SupplyEvent("BAG_UPDATE_DELAYED")
 macros.events.OnEvent(macros.events, "PLAYER_EQUIPMENT_CHANGED", 16)
 Flush()
 equal(native[1].body:find("item:100", 1, true) ~= nil, true, "bag events update food despite an uncached unrelated reagent")
@@ -492,36 +503,36 @@ equal(requests[115], 1, "unrelated uncached data is still requested once")
 
 bags, unavailable, weapon[16] = { 101, 107, 2862, 3239 }, 101, 201
 local pendingFood = native[1].body
-macros.events.OnEvent(macros.events, "BAG_UPDATE_DELAYED"); Flush()
+UseSupplies(); SupplyEvent("BAG_UPDATE_DELAYED"); Flush()
 equal(native[1].body, pendingFood, "pending relevant food retains its previous action")
 equal(native[2].body:find("item:104", 1, true) ~= nil, true, "unknown recovery item also preserves drink until classified")
 equal(native[bandageIndex].body, "#showtooltip item:107\n/use item:107", "ready bandage updates retain native targeting while food is pending")
 equal(native[mainhandIndex].body:find("item:2862", 1, true) ~= nil, true, "pending food does not pause ready coating updates")
 unavailable = nil
-macros.events.OnEvent(macros.events, "GET_ITEM_INFO_RECEIVED", 101, true); Flush()
+SupplyEvent("GET_ITEM_INFO_RECEIVED", 101, true); Flush()
 equal(native[1].body:find("item:101", 1, true) ~= nil, true, "item data completion fills the previously pending food recipe")
 equal(native[2].body, "#showtooltip", "complete recovery data can clear now-missing water")
 
 bags, unavailable, food.combat = { 100, 105, 107, 2862, 3239 }, 105, false
-macros.events.OnEvent(macros.events, "BAG_UPDATE_DELAYED"); Flush()
+UseSupplies(); SupplyEvent("BAG_UPDATE_DELAYED"); Flush()
 equal(native[1].body:find("item:100", 1, true) ~= nil, true, "pending potion cannot pause food with combat additions off")
 food.combat, bags = true, { 101, 105, 107, 2862, 3239 }
 pendingFood = native[1].body
-macros.events.OnEvent(macros.events, "BAG_UPDATE_DELAYED"); Flush()
+UseSupplies(); SupplyEvent("BAG_UPDATE_DELAYED"); Flush()
 equal(native[1].body, pendingFood, "enabled combat addition waits for its pending potion")
 unavailable = nil
-macros.events.OnEvent(macros.events, "GET_ITEM_INFO_RECEIVED", 105, true); Flush()
+SupplyEvent("GET_ITEM_INFO_RECEIVED", 105, true); Flush()
 equal(native[1].body:find("item:105", 1, true) ~= nil, true, "completed potion data resumes the combat food recipe")
 
 weapon[16], weapon[17] = 204, 202
-macros.events.OnEvent(macros.events, "PLAYER_EQUIPMENT_CHANGED", 17); Flush()
+UseSupplies(); SupplyEvent("PLAYER_EQUIPMENT_CHANGED", 17); Flush()
 local pendingMainhand, pendingOffhand = native[mainhandIndex].body, native[offhandIndex].body
 bags, unavailable, weapon[16] = { 100, 107, 2862, 3239 }, 3239, 204
-macros.events.OnEvent(macros.events, "BAG_UPDATE_DELAYED"); Flush()
+UseSupplies(); SupplyEvent("BAG_UPDATE_DELAYED"); Flush()
 equal(native[offhandIndex].body, pendingOffhand, "pending matching weightstone preserves the off-hand action")
 equal(native[mainhandIndex].body, pendingMainhand, "pending matching weightstone preserves the previous main-hand action")
 weapon[16] = 201
-macros.events.OnEvent(macros.events, "PLAYER_EQUIPMENT_CHANGED", 16); Flush()
+UseSupplies(); SupplyEvent("PLAYER_EQUIPMENT_CHANGED", 16); Flush()
 equal(native[mainhandIndex].body:find("item:2862", 1, true) ~= nil, true, "pending weightstone does not pause a ready sharpening recipe")
 equal(native[1].body:find("item:100", 1, true) ~= nil, true, "pending stone does not pause recovery updates")
 
@@ -533,6 +544,7 @@ equal(diagnostics[1]:find("On", 1, true) ~= nil, true, "macro status reports the
 equal(table.concat(diagnostics, "\n"):find("Matching stone data is loading", 1, true) ~= nil, true, "macro status exposes the actual pending recipe")
 equal(created + edited, diagnosticWrites, "macro status performs no native macro writes")
 Suite.Print = printMessage
+macros:FinishUsed(); Flush()
 bags, unavailable, weapon[16], weapon[17] = originalBags, nil, 201, 202
 macros:Apply(); macros:Queue(); macros:Queue()
 equal(#timers, 1, "event bursts coalesce into one cancellable timer")
@@ -683,7 +695,9 @@ alt = macros:Initialize(nil)
 Suite.db.macroUpdates = true
 bags = { 100, 104, 107, 108, 2862, 3239 }
 macros:Apply(); Flush()
-equal(native[1].body, "#showtooltip [nocombat] item:100\n/use [nocombat] item:100", "normal login work updates shared food for the alt's current supplies")
+equal(native[1].body, ownerFood, "login alone does not recheck unused shared item macros")
+UseSupplies(); Flush()
+equal(native[1].body, "#showtooltip [nocombat] item:100\n/use [nocombat] item:100", "using shared food updates it for the alt's current supplies")
 equal(native[2].body:find("item:104", 1, true) ~= nil, true, "shared drink follows alt supplies through normal queued work")
 equal(native[4].body:find("item:2862", 1, true) ~= nil, true, "shared coating follows the alt's weapon and own recipe choice")
 equal(created, shareCreates, "automatic alt updates reuse existing General slots")
@@ -773,6 +787,7 @@ alt = macros:Initialize(nil)
 equal(alt.entries[1].created, true, "read-only shared recognition is allowed while the native editor is open")
 local editorWrites = edited
 bags = { 101, 107, 108, 2862, 3239 }
+UseSupplies()
 macros:Refresh()
 equal(edited, editorWrites, "shared enrollment cannot discard open native editor text")
 MacroFrame:Hide(); MacroFrame.OnHide(MacroFrame); Flush()
@@ -963,7 +978,7 @@ Suite.db.macroOwnership[pet.name], petNative.body = confirmedPet, petBody
 gui:Select("overview")
 
 bags = {}; Suite.db.macroUpdates = true; macros:Refresh()
-equal(native[petIndex].body, petBody, "depleted food retains the chosen action rather than clearing or substituting it")
+equal(native[petIndex].body:find("/use ", 1, true), nil, "depleted pet food removes its item-use action while retaining care spells")
 equal(macros.statuses[pet]:find("not carried", 1, true) ~= nil, true, "depleted food remains visible as a reminder after automatic refresh")
 bags = { 113 }; macros:Refresh()
 equal(macros.statuses[pet]:find("2 carried", 1, true) ~= nil, true, "restocking clears the depletion message through ordinary bag refresh")
@@ -1113,6 +1128,13 @@ equal(gui.macroRows[6]:IsShown(), false, "category choices survive navigation wi
 gui.macroListHeadings[2].OnClick(); gui.macroListHeadings[3].OnClick()
 equal(gui.macroListContent.height, fullListHeight, "expanding every category restores the full list range")
 assert(loadfile("tests/class_macros_spec.lua"))(Suite, equal, SetCombat, function(value) playerClass = value end, spells, native)
+assert(loadfile("tests/macro_use_spec.lua"))(Suite, equal, SetCombat, {
+    native = function(value) if value then native = value end; return native end,
+    bags = function(value) if value then bags = value end; return bags end,
+    unavailable = function(value) unavailable = value end,
+    loading = function(value) loadingBag = value end,
+    weapon = function(value, replace) if value or replace then weapon[16] = value end; return weapon[16] end,
+})
 UnitClass, C_Spell, C_PetInfo, UnitExists, bags = oldUnitClass, oldSpellAPI, oldPetAPI, oldUnitExists, originalBags
 native, Suite.db, Suite.macroDB = previousNative, previousDB, previousCharacter
 macros.events.RegisterEvent, macros.events.UnregisterAllEvents = eventRegister, eventUnregister

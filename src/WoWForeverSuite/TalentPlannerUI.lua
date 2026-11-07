@@ -125,7 +125,7 @@ function Planner:Attach()
     Button(panel, 14, -134, 76, "New empty", function() self:New() end)
     Button(panel, 98, -134, 76, "Copy native", function() if self:Ready() then self:New("Native copy", self.model.native) end end)
     self.orderButton = Button(panel, 182, -134, 80, "Point order", function() self:OpenOrder() end)
-    self.starterButton = Button(panel, 14, -168, 248, "Starter leveling build", function() self:OpenStarterPanel() end)
+    Button(panel, 14, -168, 248, "Starter leveling build", function() self:OpenStarterPanel() end)
     self.rows, self.page = {}, 1
     for index = 1, 5 do
         local row = Button(panel, 14, -208 - (index - 1) * 29, 248, "", function()
@@ -155,7 +155,7 @@ function Planner:Attach()
     self.redoButton = Button(panel, 142, -462, 120, "Redo", function() self:History(true) end)
     self.code = Input(panel, 14, -506, 248, 16384)
     Label(panel, 10, 14, -492, "Suite build code")
-    self.import = Button(panel, 14, -540, 120, "Import", function() self:Import(self.code:GetText()); self.code:ClearFocus() end)
+    Button(panel, 14, -540, 120, "Import", function() self:Import(self.code:GetText()); self.code:ClearFocus() end)
     self.export = Button(panel, 142, -540, 120, "Export", function()
         local code = self:Export()
         if code then self.code:SetText(code); self.code:SetFocus(); self.code:HighlightText() end

@@ -88,7 +88,7 @@ Setup.pages = {
         { key = "modifierDisenchant", label = "Disenchant shortcut", help = "Modifier-click eligible bag gear.\nDisenchanting destroys that item.", suggested = false },
         { key = "disenchantModifier", label = "Disenchant modifier", help = "Choose Alt, Ctrl or Shift for the\noptional disenchant shortcut above.", choices = { "alt", "ctrl", "shift" }, labels = { alt = "Alt", ctrl = "Ctrl", shift = "Shift" }, suggested = "alt" },
         { key = "chatHistory", label = "Remember chat history", help = "Save recent chat through reloads.\nClear saved messages in Chat settings.", suggested = false },
-        { key = "macroUpdates", label = "Update owned macros", help = "Update macros you explicitly created.\nCreates no new macros during setup.", suggested = false },
+        { key = "macroUpdates", label = "Update class spell macros", help = "Keep created class spell macros current.\nItems check on login/reload and use independently; creates no new macros.", suggested = false },
         { key = "audioSync", label = "Sync audio output", help = "Follow the system's playback device.\nUses the game's audio refresh.", suggested = false },
     } },
     { title = "Review your setup.", short = "Review", description = "Only the changes listed below will apply when you finish.\nBack lets you revise any page. Later discards this draft.",

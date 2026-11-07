@@ -153,7 +153,7 @@ local function ItemInput(value)
     local id = value:match("^%s*(%d+)%s*$") or value:match("|Hitem:(%d+):") or value:match("^item:(%d+)")
     id = id and tonumber(id); return Integer(id, 1, 2147483647) and id or nil
 end
-function Supplies:Open()
+function Supplies:Open(owner)
     if InCombatLockdown() then Suite.Print("Open the Supply Checklist outside combat."); return end
     if not self.db then self:InitializeCharacter(nil) end
     if not self.frame then
@@ -186,8 +186,9 @@ function Supplies:Open()
             for index, row in ipairs(self.db.entries) do if row.id == id then table.remove(self.db.entries, index); break end end
             self.confirmRemove = nil; frame.remove.label:SetText("Remove item"); self:Refresh()
         end)
-        frame.settings = Button(frame, "Settings", 498, -544, 108, function() Suite.GUI:OpenPage("supplies") end)
+        frame.settings = Button(frame, "Settings", 498, -544, 108, function() Suite.GUI:OpenPage("supplies", nil, self.frame) end)
     end
+    Suite.PlaceWindow(self.frame, owner)
     self.requested = {}; self.frame:Show(); self:Apply(); self:Refresh()
 end
 function Supplies:OnHide()
@@ -281,12 +282,13 @@ function Expiry:Refresh()
         or #rows == 0 and "No mailbox recorded. Open a mailbox with recording enabled."
         or "Inbox loading may produce partial records. New letters and mailbox changes need another visit.")
 end
-function Expiry:Open()
+function Expiry:Open(owner)
     if InCombatLockdown() then Suite.Print("Open Mail Deadlines outside combat."); return end
     if not self.frame then
         local frame = Window(self, "WoWForeverSuiteMailDeadlines", "Mail Deadlines")
-        Button(frame, "Settings", 498, -544, 108, function() Suite.GUI:OpenPage("mail") end)
+        Button(frame, "Settings", 498, -544, 108, function() Suite.GUI:OpenPage("mail", nil, self.frame) end)
     end
+    Suite.PlaceWindow(self.frame, owner)
     self.frame:Show(); self:Refresh()
 end
 function Expiry:Cancel()

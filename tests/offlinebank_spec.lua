@@ -424,6 +424,13 @@ equal(bank.frame.title, "Alt Pine · Saved bank", "slot view identifies the sele
 equal(originalSnapshot.tabs[1].slots[1].count, 7, "browsing an alt never overwrites the current character's snapshot")
 equal(calls, readCalls, "opening recorded data makes no live bank scans")
 equal(Suite.db.offlineBank, false, "read-only browsing does not enable recording")
+local launcher, oldGUIFrame = Frame(), Suite.GUI.frame
+launcher:SetSize(500, 500); launcher:Show()
+Suite.GUI.frame = launcher
+equal(bank:OpenFor("Player-alt", 0, launcher), true, "saved bank accepts an explicit launching window")
+equal(launcher:IsShown(), true, "saved bank keeps its launching browser visible")
+equal(bank.frame.point[2], UIParent, "saved bank gets independent screen placement")
+Suite.GUI.frame = oldGUIFrame
 equal(bank:OpenFor("Player-remote", 0), false, "other-region snapshots cannot be opened")
 equal(bank:OpenFor({ secret = true }, 0), false, "restricted owner IDs never reach a saved-data key")
 equal(bank:GetSnapshot(0, "missing"), nil, "missing owner cannot fall back to the current character")

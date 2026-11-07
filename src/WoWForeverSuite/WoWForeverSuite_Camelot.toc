@@ -3,7 +3,7 @@
 ## Notes: A personal collection of optional tools for WoW Forever.
 ## Author: Drockzoids
 ## IconTexture: Interface\AddOns\WoWForeverSuite\Media\ForeverSuiteIcon.tga
-## Version: 1.0.5
+## Version: 1.0.6
 ## Bindings: Bindings.xml
 ## SavedVariables: WoWForeverSuiteDB
 ## SavedVariablesPerCharacter: WoWForeverSuiteCharDB
@@ -11,6 +11,7 @@
 
 Core.lua
 Shortcuts.lua
+WindowPlacement.lua
 Theme.lua
 Profiles.lua
 Bindings.lua

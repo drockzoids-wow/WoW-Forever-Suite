@@ -502,7 +502,7 @@ function Leveling:Build()
         if InCombatLockdown() or self.suppressClick or not self:Enabled() or self.locked then return end
         if button == "RightButton" then
             if Read(IsControlKeyDown) == true then self:ResetPosition()
-            else self:HideTooltip(); Suite.GUI:OpenPage("leveling") end
+            else self:HideTooltip(); Suite.GUI:OpenPage("leveling", nil, self.frame) end
         end
     end
     frame:SetScript("OnMouseDown", MouseDown); frame:SetScript("OnClick", Click)

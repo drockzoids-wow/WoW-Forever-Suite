@@ -1,6 +1,6 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "1.0.5"
+Suite.version = "1.0.6"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {
@@ -175,6 +175,7 @@ events:SetScript("OnEvent", function(_, event, name, second)
         Suite.Profiles:RegisterCharacter()
         Suite.GUI:RegisterSettings()
         Suite.Apply()
+        Suite.Macros:CheckAtLogin()
     elseif event == "ADDON_LOADED" and Suite.db then
         Suite.GUI:RegisterSettings()
     elseif event == "PLAYER_ENTERING_WORLD" then
