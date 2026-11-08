@@ -1,5 +1,33 @@
 # Forever Suite feature plan
 
+## Publish 1.0.8 with persistent contacts — November 8, 2026
+
+User authorizes CurseForge 1.0.8 with the latest contact groups/recovery/class colors, Suite-wide wheel navigation and pending XP-food changes. Preserve twelve explicit player-created contacts/notes through repeated saved-data initialization, disabled mail features and server filtering; profiles exclude the book. Retain the original readable legacy/unfamiliar book during migration/recovery. Keep persistent recipients separate from session-only guild members. Align Core/both TOCs, changelog and README; run final offline/package checks, push main and wait for checks before tagging. User reports a game crash and expects colors to work; this is neither color verification nor an established Suite crash cause. Native wheel/color/taint checks remain pending. No deployment/junction or real SavedVariables edits.
+
+## Mouse-wheel navigation throughout Suite — November 8, 2026
+
+User requests wheel paging across addon pages, including Contact book rows/gaps/footer. Wheel down advances one list page; up returns one, bounded by existing navigation buttons. Cover Contact book (all groups/recovery), mailbox contacts, training, character dashboard/inventory, profile lists/source chooser, buff choices/spell search, talent builds/point order, leveling journal, supply checklist and mail deadlines. Saved bag/bank slots also wheel-page their current snapshot. Settings search and inventory-result popups route wheel over child rows. General settings content and nested text/list panes retain normal scrolling; sliders retain their own wheel actions. No binding changes, new preference, timer, SavedVariables or release/deployment change. Native wheel capture/visual/taint results remain pending.
+
+## Class colors across mail groups — November 8, 2026
+
+Fix Guild names remaining neutral: translate readable native roster class IDs through capability-checked C_CreatureInfo.GetClassInfo and carry class tokens into both contact lists. Enrich matching saved recipients with observed class data, preserving notes/categories and identity; save newly added guild recipients with that class so Other remains colored after departure/reload. Unknown manual-contact classes remain neutral rather than guessed. No new setting, schema, polling or release/deployment change. Native color verification pending.
+
+## Contact book group tabs — November 8, 2026
+
+Add All, Alts, Guild and Other above Contact book search, sharing the mailbox grouping logic. All preserves the complete book view; account identities take priority over guild membership, while the book retains its existing current-character visibility. Keep custom category filtering/notes, class colors and explicit unassigned recovery. Live guild rows can be saved as ordinary contacts, never account alts; unsaved roster rows cannot be removed. Standalone guild browsing works with mailbox switches off, using visible-only event listeners and coalesced/combat-deferred refresh. Closing cancels work/listeners. No new setting, schema, release or deployment change. Native appearance/taint tests pending.
+
+## Recover unassigned mail contacts and color book names — November 8, 2026
+
+Older Contact book allowed blank server types; automatic same-type filtering later hid those saved names. Add an explicit Recover unassigned contacts view in Contact book, restricted to the current region. Select and Save to assign a contact to the current server type while retaining notes/categories. Do not guess a scope or automatically expose unassigned names to Send Mail. Preserve known other-type isolation, duplicate checks, removal markers and combat guards. Color Contact book names using recorded class data, with normal text for unknown/restricted colors. Offline regression reproduces twelve saved/three visible; actual affected data and native recovery/layout results remain pending. No release/deployment changes.
+
+## Mail contact tabs — November 8, 2026
+
+Widen the Send Mail companion from 288 to 336 units and add Alts, Guild and Other above search. Known account characters on the current server type belong in Alts, with the active character hidden. Alts take priority over guild membership. Guild uses the current native guild roster, including available offline members, without saving members as account characters. Manually saved non-alt/non-guild recipients belong in Other. Saved recipients who leave the guild move to Other; unsaved former members disappear. Preserve Contact book categories, notes, server-type/regional scope, search/sort/paging and explicit native sending. Guild entries have no remove-from-roster button. No new setting, schema, version, package or deployment change. Native validation remains pending.
+
+## Prefer experience-bonus food — November 8, 2026
+
+Automatic FS Food prefers the highest disclosed positive kill-XP percentage, followed by existing mage/event/ordinary-food ranking. Stronger restoration breaks ties within those tiers. Promote newly carried XP food over a still-carried automatic non-XP selection during existing checks; retain an equal-bonus current XP choice. Explicit carried preferences override automatic ranking. Use readable live English food tooltips to cover all qualifying IDs, including future discoveries; do not infer XP from Cooking or Well Fed alone. The [100-ID research candidate catalog](research/food-experience-candidates.json) is reference-only, includes drinks and is not exhaustive native verification. No new switch, polling or release action. Native checks are recorded in testing.md.
+
 ## Publish latest fixes as 1.0.7 — November 8, 2026
 
 User explicitly authorizes 1.0.7 publication to CurseForge. Include the corrected bag/bank selectors, saved bag capture, server-type scoping/reset, food bag-opening recheck, low-resource proc tint, Shift bypass and chat input/reload corrections. Retain independent switches/defaults, existing release tags and native-verification qualifications. Separate scoring research is outside this release commit and addon package. Core/both TOCs and release notes advance together; final local package and main CI checks precede the new release tag. No game deployment or junction action.

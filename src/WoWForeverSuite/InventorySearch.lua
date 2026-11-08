@@ -294,6 +294,7 @@ function Search:CreatePopup()
             end
         end)
     end
+    Suite.Theme:RouteWheel(popup, popup:GetScript("OnMouseWheel"))
     return true
 end
 function Search:Cancel() if self.timer then self.timer:Cancel(); self.timer = nil end end

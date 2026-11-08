@@ -4,6 +4,43 @@ Suite.Theme = Theme
 Suite.modules[#Suite.modules + 1] = Theme
 
 local teal = { r = 0.41, g = 0.84, b = 0.75 }
+
+-- Route wheel input on Suite-owned frames, retaining nested controls' own
+-- scrolling/resizing behavior. Leave click and keyboard input unchanged.
+function Theme:RouteWheel(frame, inherited)
+    if InCombatLockdown() or not frame or not frame.GetScript then return end
+    local handler = frame:GetScript("OnMouseWheel") or inherited
+    if handler and frame.EnableMouseWheel then
+        frame:EnableMouseWheel(true)
+        if not frame:GetScript("OnMouseWheel") then frame:SetScript("OnMouseWheel", handler) end
+    end
+    if frame.GetChildren then
+        local forward = handler and function(_, ...) handler(frame, ...) end or nil
+        for _, child in ipairs({ frame:GetChildren() }) do self:RouteWheel(child, forward) end
+    end
+end
+
+function Theme:PageWheel(parent, rows, previous, following, bottom)
+    if InCombatLockdown() or not rows[1] then return end
+    local function Wheel(_, delta)
+        if InCombatLockdown() or not Suite.IsReadable(delta) or type(delta) ~= "number"
+            or delta ~= delta or delta == 0 or math.abs(delta) == math.huge then return end
+        local button = delta > 0 and previous or following
+        if not button:IsShown() or not button:IsEnabled() then return end
+        local click = button:GetScript("OnClick")
+        if click then click(button, "LeftButton") end
+    end
+    local area = CreateFrame("Frame", nil, parent)
+    area:SetFrameLevel(parent:GetFrameLevel())
+    area:SetPoint("TOPLEFT", rows[1], "TOPLEFT")
+    area:SetPoint("TOPRIGHT", rows[1], "TOPRIGHT")
+    area:SetPoint("BOTTOMLEFT", bottom or rows[#rows], "BOTTOMLEFT")
+    area:EnableMouse(false); area:SetScript("OnMouseWheel", Wheel)
+    self:RouteWheel(area, Wheel)
+    for _, row in ipairs(rows) do self:RouteWheel(row, Wheel) end
+    self:RouteWheel(previous, Wheel); self:RouteWheel(following, Wheel)
+    return area
+end
 local function Channel(value)
     return Suite.IsReadable(value) and type(value) == "number" and value == value and value >= 0 and value <= 1
 end

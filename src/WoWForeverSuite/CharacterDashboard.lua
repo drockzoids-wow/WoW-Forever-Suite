@@ -278,6 +278,7 @@ function Dashboard:Build(parent)
     self.skillEmpty = Label(self.details, 12, muted, 12, -122, 756)
     self.previous = Button(0, -100, 85, "Previous", function() self.page = math.max(1, self.page - 1); self:RefreshView() end)
     self.next = Button(695, -100, 85, "Next", function() self.page = self.page + 1; self:RefreshView() end)
+    self.wheelArea = Suite.Theme:PageWheel(panel, self.buttons, self.previous, self.next)
     self.pageLabel = Label(panel, 11, muted, 100, -108, 580); self.pageLabel:SetJustifyH("CENTER")
     panel:SetScript("OnHide", function() self:HideTooltip(); search:ClearFocus() end)
     self:Render(); return root

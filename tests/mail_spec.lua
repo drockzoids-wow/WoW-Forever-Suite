@@ -1,7 +1,7 @@
 local Suite, equal, Frame, SetCombat = ...
 local mail = Suite.Mail
 local names = { "CreateFrame", "C_Timer", "MenuUtil", "UnitGUID", "UnitName", "UnitClass", "UnitLevel", "UnitFactionGroup",
-    "GetCurrentRegion", "GetNormalizedRealmName", "GetRealmName", "C_GameRules", "C_AutoComplete", "Enum", "RAID_CLASS_COLORS", "MailFrame", "SendMailFrame",
+    "GetCurrentRegion", "GetNormalizedRealmName", "GetRealmName", "C_GameRules", "C_AutoComplete", "C_CreatureInfo", "Enum", "RAID_CLASS_COLORS", "MailFrame", "SendMailFrame",
     "MailFrameTab2", "SendMailFrameLockSendMail", "SendMailNameEditBox", "SendMailSubjectEditBox", "MailFrameTab_OnClick", "SendMailFrame_SendMail" }
 local old = {}; for _, name in ipairs(names) do old[name] = _G[name] end
 local oldDB, oldPending = Suite.db, Suite.pending
@@ -243,6 +243,7 @@ equal(mail.ascending, true, "sort direction toggles")
 mail.sortButtons.name.OnClick()
 equal(mail.sort, "name", "name sorting remains available")
 
+mail:SelectContactTab("alts")
 mail:ConfirmRemove(arc.key)
 equal(mail.confirmation:IsShown(), true, "contact removal requires inline confirmation")
 mail.confirmation.cancel.OnClick()
@@ -830,6 +831,23 @@ book.next.OnClick()
 equal(book.page, 2, "book can reach contacts after first eight")
 equal(book.rows[1]:IsShown(), true, "last page includes remaining contact")
 equal(book.rows[2]:IsShown(), false, "last page hides unused rows")
+book.previous:Show(); book.next:Show() -- Substitute frames do not inherit native default visibility.
+book.rows[1]:OnMouseWheel(1)
+equal(book.page, 1, "wheel over contact row returns to previous page")
+book.wheelArea:OnMouseWheel(-1)
+equal(book.page, 2, "wheel over contact list background advances page")
+book.next:OnMouseWheel(-1)
+equal(book.page, 2, "wheel at last contact page remains clamped")
+SetCombat(true); book.rows[1]:OnMouseWheel(1); SetCombat(false)
+equal(book.page, 2, "combat wheel input does not queue contact page changes")
+book.previous:OnMouseWheel(1)
+equal(book.page, 1, "wheel over contact footer changes page")
+book.previous:OnMouseWheel(1)
+equal(book.page, 1, "wheel at first contact page remains clamped")
+for _, delta in ipairs({ 0, 0/0, math.huge, "1", { secret = true } }) do
+    book.rows[1]:OnMouseWheel(delta)
+    equal(book.page, 1, "invalid contact wheel input is ignored")
+end
 book.search:SetText("no such person")
 equal(book.page, 1, "search resets pagination")
 equal(book.empty:IsShown(), true, "empty search explains no results")
@@ -847,6 +865,269 @@ equal(writes, bookWrites, "contact book never writes native recipient")
 equal(sends, bookSends, "contact book never sends mail")
 equal(tabs, bookTabs, "contact book never switches native mail tabs")
 book.frame:Hide()
+
+-- Automatic mailbox buckets use live guild membership without persisting the roster.
+local oldClub, oldGuild = C_Club, C_GuildInfo
+C_CreatureInfo = { GetClassInfo = function(id)
+    equal(id, 8, "guild class lookup uses readable native class ID")
+    return { classFile = "MAGE" }
+end }
+RAID_CLASS_COLORS = { MAGE = { r = 0.2, g = 0.6, b = 0.9 } }
+Suite.db = Suite.InitializeDB(nil); Suite.db.mailHelper = true
+player.name, player.surname, player.guid, player.realm = "Zoids", "Ward", "Player-110-1", "ClassicBetaPvE"
+mail:RecordPlayer()
+local altKey = mail:Store("Account Alt", "PvE", 110, "Account-GUID")
+local friendKey = mail:Store("Friendly Person", "PvE", 110)
+mail:Store("Guild Friend", "PvE", 110)
+local roster = {
+    { name = "Zoids Ward", guid = player.guid, isSelf = true },
+    { name = "Account Alt", guid = "Account-GUID", isSelf = false },
+    { name = "Guild Friend", guid = "Guild-GUID", isSelf = false, level = 40, classID = 8 },
+    { name = "Offline Member", guid = "Offline-GUID", isSelf = false, level = 20, classID = 8 },
+    { name = { secret = true }, guid = "Secret-GUID", isSelf = false },
+    { secret = true },
+}
+local rosterReads, requests = 0, 0
+C_Club = {
+    GetGuildClubId = function() return 7 end,
+    GetClubMembers = function() rosterReads = rosterReads + 1; return { 1, 2, 3, 4, 5, 6 } end,
+    GetMemberInfo = function(_, id) return roster[id] end,
+}
+C_GuildInfo = { GuildRoster = function() requests = requests + 1 end }
+mail:EndVisit(); MailFrame = NewMailFrame(); mail:Apply(); MailFrame:Show(); MailFrameTab_OnClick(nil, 2); Flush()
+equal(mail.frame:GetWidth(), 336, "mail contacts panel widened for three tabs")
+equal(mail.contactTabs.alts.label.text, "Alts", "first bucket tab label")
+equal(mail.contactTabs.guild.label.text, "Guild", "guild bucket tab label")
+equal(mail.contactTabs.other.label.text, "Other", "manual bucket tab label")
+equal(requests, 1, "one roster refresh requested per mailbox visit")
+equal(#mail:ContactList(), 1, "alts contains account character without active player")
+equal(mail:ContactList()[1].key, altKey, "account identity takes priority over guild membership")
+mail.contactTabs.guild.OnClick()
+equal(#mail:ContactList(), 2, "guild includes offline members and deduplicates saved members")
+equal(mail.rows[1].name.textColor[1], 0.2, "saved guild recipient uses observed class color in mailbox")
+equal(mail.rows[2].name.textColor[3], 0.9, "unsaved guild member uses native class color in mailbox")
+equal(Stored("Guild Friend").class, "MAGE", "existing saved guild contact learns observed class")
+equal(mail.rows[1].remove:IsShown(), false, "guild rows have no misleading roster removal action")
+equal(#mail:List(), 3, "live guild roster never seeds saved contacts")
+local guildRows = mail:ContactList()
+mail:Choose(guildRows[1].key)
+equal(SendMailNameEditBox:GetText(), "Guild Friend", "guild selection fills native full recipient")
+mail:Choose(guildRows[2].key)
+equal(SendMailNameEditBox:GetText(), "Offline Member", "unsaved offline guild member can receive mail")
+mail.search:SetText("offline")
+equal(#mail:ContactList(), 1, "guild search filters roster")
+local beforeReads = rosterReads
+mail:Refresh(); mail:Refresh()
+equal(rosterReads, beforeReads, "rendering never polls guild roster")
+mail.search:SetText("")
+mail.page, mail.confirm = 4, altKey
+mail.contactTabs.other.OnClick()
+equal(mail.page, 1, "switching buckets resets pagination")
+equal(mail.confirm, nil, "switching buckets clears pending removal")
+equal(#mail:ContactList(), 1, "other excludes alts and guild members")
+equal(mail:ContactList()[1].key, friendKey, "manual non-guild recipient appears in other")
+SendMailNameEditBox:SetText("New Contact"); mail:SaveRecipient()
+equal(mail.contactTab, "other", "saving a new recipient selects Other")
+equal(#mail:ContactList(), 2, "new recipient automatically belongs in Other")
+mail:SelectContactTab("guild")
+SetCombat(true); mail:SelectContactTab("other")
+equal(mail.contactTab, "guild", "combat prevents tab changes")
+local combatReads = rosterReads
+Fire("CLUB_MEMBERS_UPDATED", 7); Flush()
+equal(rosterReads, combatReads, "combat defers guild queries")
+roster[3], roster[4] = nil, nil
+DrainCombat()
+equal(#mail:ContactList(), 0, "guild member removal refreshes after combat")
+mail:SelectContactTab("other")
+equal(#mail:ContactList(), 3, "saved former guild member moves to Other")
+C_Club.GetGuildClubId = function() return nil end
+Fire("PLAYER_GUILD_UPDATE", "player"); Flush()
+mail:SelectContactTab("guild")
+equal(#mail:ContactList(), 0, "leaving guild clears guild members")
+C_Club.GetGuildClubId = function() return 7 end
+C_Club.GetClubMembers = function() return { secret = true } end
+mail:ReadGuild()
+equal(next(mail.guildEntries), nil, "restricted guild member list remains empty")
+C_Club.GetClubMembers = function() error("not initialized") end
+mail:ReadGuild()
+equal(next(mail.guildEntries), nil, "uninitialized clubs fail quietly")
+C_Club.GetGuildClubId = function() return { secret = true } end
+mail:ReadGuild()
+equal(next(mail.guildEntries), nil, "secret guild identity is never queried")
+Suite.db.mailHelper = false; mail:Apply()
+equal(next(mail.events.registered), nil, "disabled helper unregisters guild events")
+equal(mail.guildEntries, nil, "disabled helper discards transient roster")
+
+-- The same groups work in the standalone book with mailbox options disabled.
+roster[3] = { name = "Guild Friend", guid = "Guild-GUID", isSelf = false, level = 40, classID = 8 }
+roster[4] = { name = "Offline Member", guid = "Offline-GUID", isSelf = false, level = 20, classID = 8 }
+C_Club.GetGuildClubId = function() return 7 end
+C_Club.GetClubMembers = function() rosterReads = rosterReads + 1; return { 1, 2, 3, 4 } end
+Suite.db.mailRememberRecipient = false; mail:Apply()
+book.filter, book.unassigned, book.tab = nil, false, "all"
+mail:OpenBook(); book.search:SetText("")
+equal(book.tabs.alts.label.text, "Alts", "book offers matching Alts tab")
+equal(book.tabs.guild.label.text, "Guild", "book offers matching Guild tab")
+equal(book.tabs.other.label.text, "Other", "book offers matching Other tab")
+equal(mail.active, nil, "standalone groups do not enable mailbox features")
+book.tabs.alts.OnClick()
+equal(#mail:ContactList("alts", "", nil, true), 2, "book alts retain current identity and guild alt precedence")
+equal(book.rows[1].entry.group, "alts", "book renders selected group")
+book.page, book.confirm = 4, friendKey
+book.tabs.guild.OnClick()
+equal(book.page, 1, "book group switch resets paging")
+equal(book.confirm, nil, "book group switch clears removal confirmation")
+equal(#mail:ContactList("guild", "", nil, true), 2, "standalone guild includes offline and saved members once")
+book.search:SetText("Offline")
+equal(book.rows[1].entry.roster, true, "book search finds unsaved guild member")
+equal(book.rows[1].label.textColor[1], 0.2, "book Guild tab uses roster class color")
+book.rows[1].OnClick()
+equal(book.key, nil, "guild selection does not use roster GUID as account identity")
+equal(book.remove.enabled, false, "unsaved guild member cannot be removed from roster")
+book.category:SetText("Friends"); book.notes:SetText("Guild note")
+book.save.OnClick()
+local guildSaved = mail:Database()[book.key]
+equal(guildSaved.guid, nil, "saving guild member does not misclassify it as an account alt")
+equal(guildSaved.notes, "Guild note", "saved guild member retains notes")
+equal(guildSaved.class, "MAGE", "new saved contact retains observed guild class")
+book.tabs.guild.OnClick(); book.search:SetText("Offline")
+equal(book.rows[1].entry.roster, nil, "saved guild member is editable without duplicate live row")
+local bookReads = rosterReads
+mail:RefreshBook(); book.search:SetText(""); book.tabs.other.OnClick()
+equal(rosterReads, bookReads, "book render search and tabs do not poll guild")
+equal(book.rows[1].entry.group, "other", "Other shows saved non-guild contacts")
+book.tabs.guild.OnClick()
+SetCombat(true)
+roster[4] = nil
+book.events.OnEvent(book.events, "CLUB_MEMBERS_UPDATED")
+equal(rosterReads, bookReads, "standalone guild event defers in combat")
+book.tabs.other.OnClick()
+equal(book.tab, "guild", "combat blocks book tab changes")
+DrainCombat()
+book.tabs.other.OnClick(); book.search:SetText("Offline")
+equal(book.rows[1].entry.name, "Offline Member", "saved departed guild member moves to Other")
+equal(book.rows[1].label.textColor[3], 0.9, "Other tab keeps class color after guild departure")
+book.events.OnEvent(book.events, "GUILD_ROSTER_UPDATE")
+book.events.OnEvent(book.events, "CLUB_MEMBERS_UPDATED")
+equal(TimerCount(), 1, "book coalesces roster event bursts")
+book.frame:Hide()
+equal(book.timer, nil, "closing standalone book cancels roster worker")
+equal(next(book.events.registered), nil, "closing book unregisters roster events")
+equal(mail.guildEntries, nil, "closing standalone book drops roster cache")
+Flush()
+Suite.db.mailHelper = true
+mail.contactTab, mail.query = "other", "Offline"
+mail:Refresh()
+equal(mail.rows[1].name.textColor[1], 0.2, "mailbox Other tab retains observed class color")
+Suite.db = Suite.InitializeDB(Suite.Copy(Suite.db))
+equal(Stored("Offline Member").class, "MAGE", "saved recipient class survives reload initialization")
+mail.query = ""
+roster[4] = { name = "Unknown Member", isSelf = false, classID = { secret = true } }
+mail:ReadGuild()
+equal(mail:ContactList("guild", "Unknown")[1].class, nil, "restricted class ID yields neutral live row")
+equal(Stored("Offline Member").class, "MAGE", "unavailable roster class does not erase saved class")
+roster[4].classID = 8
+local classAPI = C_CreatureInfo
+C_CreatureInfo = nil; mail:ReadGuild()
+equal(mail:ContactList("guild", "Unknown")[1].class, nil, "missing class API is optional")
+C_CreatureInfo = { GetClassInfo = function() error("unavailable") end }; mail:ReadGuild()
+equal(mail:ContactList("guild", "Unknown")[1].class, nil, "class API failure is contained")
+C_CreatureInfo = { GetClassInfo = function() return { classFile = { secret = true } } end }; mail:ReadGuild()
+equal(mail:ContactList("guild", "Unknown")[1].class, nil, "restricted class token is omitted")
+C_CreatureInfo = classAPI
+Suite.db.mailHelper = false
+C_Club, C_GuildInfo = oldClub, oldGuild
+
+-- Older books allowed blank server types. Filtering must leave a recovery path.
+Suite.db = Suite.InitializeDB(nil)
+player.realm, player.region = "ClassicBetaPvE", 110
+mail.query = ""
+for _, suffix in ipairs({ "One", "Two", "Three" }) do
+    mail:Store("Known " .. suffix, "PvE", 110)
+end
+local lostKeys = {}
+for _, suffix in ipairs({ "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine" }) do
+    local key = mail:Store("Legacy " .. suffix, nil, 110)
+    mail:Database()[key].category, mail:Database()[key].notes = "Friends", "Keep this note"
+    lostKeys[#lostKeys + 1] = key
+end
+equal(#mail:List(true, ""), 3, "old twelve-contact book reproduces three visible after filtering")
+local recoverySaved = Suite.Copy(Suite.db)
+Suite.db = Suite.InitializeDB(recoverySaved)
+mail:Store("Foreign Person", nil, 1)
+mail:Store("Pvp Person", "PvP", 110)
+book.filter, book.unassigned = nil, false
+mail:OpenBook(); book.search:SetText("")
+book.recovery.OnClick()
+equal(book.unassigned, true, "book offers explicit unassigned recovery")
+equal(#mail:List(true, "", nil, true), 9, "all nine unassigned names survive reload; other scopes excluded")
+equal(book.rows[8]:IsShown(), true, "recovery fills first page")
+book.next.OnClick()
+equal(book.rows[1]:IsShown(), true, "ninth lost contact reachable by paging")
+equal(book.rows[2]:IsShown(), false, "recovery paging hides unused rows")
+book.rows[1].OnClick()
+local recoveredOldKey = book.key
+equal(book.status.text, "Save assigns this contact to PvE.", "recovery discloses server assignment")
+book.save.OnClick()
+equal(book.unassigned, false, "successful recovery returns to current contacts")
+equal(mail:Database()[recoveredOldKey], nil, "recovery replaces only the old unassigned address")
+equal(mail:Database()[book.key].notes, "Keep this note", "recovery preserves notes")
+equal(mail:Database()[book.key].category, "Friends", "recovery preserves category")
+equal(#mail:List(true, ""), 4, "explicit recovery makes one contact available for mail")
+equal(#mail:List(true, "", nil, true), 8, "remaining unassigned contacts remain stored")
+local colored = mail:Store("Colored Person", "PvE", 110, "Colored-Guid", "MAGE")
+RAID_CLASS_COLORS = { MAGE = { r = 0.2, g = 0.6, b = 0.9 } }
+book.search:SetText("Colored Person")
+equal(book.rows[1].entry.key, colored, "book renders recorded class contact")
+equal(book.rows[1].label.textColor[1], 0.2, "book uses recorded class color")
+book.search:SetText("Known One")
+equal(book.rows[1].label.textColor[1], 0.88, "reused row resets unknown class to normal text")
+RAID_CLASS_COLORS.MAGE = { r = { secret = true }, g = 0.6, b = 0.9 }
+book.search:SetText("Colored Person")
+equal(book.rows[1].label.textColor[1], 0.88, "restricted class color safely falls back")
+book.search:SetText("")
+SetCombat(true); book.recovery.OnClick(); SetCombat(false)
+equal(book.unassigned, false, "combat blocks recovery toggle")
+book.recovery.OnClick()
+player.realm = "UnknownVariant"
+equal(#mail:List(true, "", nil, true), 0, "unknown active server cannot recover contacts")
+equal(mail:SaveContact(lostKeys[1], "Legacy One", "Friends", "Keep this note"), nil, "unknown server cannot assign contacts")
+player.realm = "ClassicBetaPvE"
+book.unassigned = false; book.frame:Hide()
+
+-- Explicit player-created contacts are persistent records, independent of roster/UI state.
+Suite.db = Suite.InitializeDB(nil)
+mail.book.unassigned = false
+local permanentKeys = {}
+for _, suffix in ipairs({ "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve" }) do
+    local key = mail:SaveContact(nil, "Permanent " .. suffix, "Friends", "Player-created note")
+    equal(type(key), "string", "player-created contact saves to the account book")
+    permanentKeys[#permanentKeys + 1] = key
+end
+for cycle = 1, 3 do
+    Suite.db = Suite.InitializeDB(Suite.Copy(Suite.db))
+    Suite.db.mailHelper, Suite.db.mailRememberRecipient = false, false
+    mail:Apply(); mail:EndVisit()
+    player.realm = "ClassicBetaPvP"
+    equal(#mail:List(true, "Permanent"), 0, "server-type filtering only hides player contacts")
+    player.realm = "ClassicBetaPvE"
+    equal(#mail:List(true, "Permanent"), 12, "all twelve player-created contacts survive reload and feature disable")
+    for _, key in ipairs(permanentKeys) do
+        equal(mail:Database()[key].notes, "Player-created note", "persistent contact metadata survives reload")
+    end
+end
+equal(Suite.Profiles.excluded.mailContacts, true, "settings profiles exclude persistent contacts")
+local unknownBook = { schema = 99, entries = { keep = { name = "Permanent Unknown", category = "Friends" } }, removed = {} }
+Suite.db.mailContacts = unknownBook
+mail:Database()
+equal(Suite.db.mailContacts.preserved, unknownBook, "unfamiliar contact schema is preserved intact")
+Suite.db = Suite.InitializeDB(Suite.Copy(Suite.db))
+mail:Database()
+equal(Suite.db.mailContacts.preserved.entries.keep.name, "Permanent Unknown", "preserved unfamiliar book survives reload")
+local legacyBook = { schema = 1, entries = { keep = { name = "Permanent Legacy", realm = "ClassicBetaPvE", region = 110 } }, removed = {} }
+Suite.db.mailContacts = legacyBook
+mail:Database()
+equal(Suite.db.mailContacts.preserved, legacyBook, "legacy migration retains its original source book")
 
 SetCombat(false)
 for _, name in ipairs(names) do _G[name] = old[name] end

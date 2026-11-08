@@ -114,6 +114,12 @@ function Items:Read(id, bag, slot, level, english)
             local buff = description:find("well fed", 1, true) or description:find("increases", 1, true)
                 or description:find("gain .- for ")
             item.flags.food = restoresHealth
+            -- Read the actual Forever bonus, not the food's name, source, or
+            -- generic Well Fed text. This covers newly discovered foods too.
+            local bonus = description:match("experience gained from kills is increased by ([%d%.]+)%%")
+                or description:match("experience gained from kills increased by ([%d%.]+)%%")
+            item.experienceBonus = restoresHealth and tonumber(bonus) or 0
+            if not Number(item.experienceBonus) then item.experienceBonus = 0 end
             if not buff then item.flags.water = restoresMana end
         elseif class == 0 and subclass == 1 then
             local special = lower:find("sleep", 1, true) or lower:find("wildvine", 1, true)
@@ -128,6 +134,10 @@ end
 
 local function Better(candidate, current, kind)
     if not current then return true end
+    if kind == "food" then
+        local bonus, previous = candidate.experienceBonus or 0, current.experienceBonus or 0
+        if bonus ~= previous then return bonus > previous end
+    end
     if kind == "food" or kind == "water" then
         if candidate.conjured ~= current.conjured then return candidate.conjured == true end
         if candidate.eventFood ~= current.eventFood then return candidate.eventFood == true end

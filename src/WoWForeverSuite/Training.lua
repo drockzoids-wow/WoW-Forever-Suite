@@ -812,9 +812,9 @@ function Training:Build()
         self.page, self.offset, self.groupTitle = 1, 0, nil; self:Refresh()
     end)
     frame.settings = Button(frame, "Settings", 388, -487, 98, function() Suite.GUI:OpenPage("training", nil, self.frame) end)
-    frame:EnableMouseWheel(true); frame:SetScript("OnMouseWheel", function(_, delta)
-        if Read(delta, "number") and not InCombatLockdown() then self.offset = self.offset - delta * (self.catalogPaging and 6 or 1); self:Refresh() end
-    end)
+    frame.wheelArea = Suite.Theme:PageWheel(frame, frame.rows, frame.previous, frame.next, frame.next)
+    frame:SetScript("OnMouseWheel", frame.wheelArea:GetScript("OnMouseWheel"))
+    Suite.Theme:RouteWheel(frame, frame:GetScript("OnMouseWheel"))
     frame:Hide(); self:Place()
     return true
 end

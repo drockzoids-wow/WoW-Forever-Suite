@@ -3,7 +3,7 @@ local Mail = { rows = {}, page = 1, sort = "name", ascending = true }
 Suite.Mail = Mail
 table.insert(Suite.modules, Mail)
 
-local PAGE_SIZE, WIDTH, HEIGHT = 6, 288, 474
+local PAGE_SIZE, WIDTH, HEIGHT = 6, 336, 506
 local colors = {
     background = { 0.035, 0.05, 0.065 }, row = { 0.07, 0.095, 0.11 },
     accent = { 0.41, 0.84, 0.75 }, text = { 0.88, 0.91, 0.93 }, muted = { 0.55, 0.65, 0.7 },
@@ -86,6 +86,15 @@ local function Entry(name, ruleset, region, guid, class, level, faction, allowIn
     return entry, Key(region, name, entry.ruleset, guid)
 end
 
+local function ClassFromID(id)
+    if not Number(id, 1, 1000) or id ~= math.floor(id) or not C_CreatureInfo
+        or type(C_CreatureInfo.GetClassInfo) ~= "function" then return end
+    local ok, info = pcall(C_CreatureInfo.GetClassInfo, id)
+    if ok and Suite.IsReadable(info) and type(info) == "table" and String(info.classFile, 32) then
+        return info.classFile
+    end
+end
+
 local function Accessible(frame)
     if not Suite.IsReadable(frame) or not frame then return false end
     if InCombatLockdown() and not frame.IsProtected then return false end
@@ -143,7 +152,7 @@ end
 function Mail:Database()
     local db = Suite.db.mailContacts
     if Suite.IsReadable(db) and type(db) == "table" and Suite.IsReadable(db.schema) and db.schema == 1 then
-        local migrated = { schema = 2, entries = {}, removed = {} }
+        local migrated = { schema = 2, entries = {}, removed = {}, preserved = db }
         if Suite.IsReadable(db.entries) and type(db.entries) == "table" then
             for _, old in pairs(db.entries) do
                 if Suite.IsReadable(old) and type(old) == "table" then
@@ -164,7 +173,9 @@ function Mail:Database()
         end
         db = migrated; Suite.db.mailContacts = db
     elseif not Suite.IsReadable(db) or type(db) ~= "table" or not Suite.IsReadable(db.schema) or db.schema ~= 2 then
-        db = { schema = 2, entries = {}, removed = {} }; Suite.db.mailContacts = db
+        -- Keep an unfamiliar readable book intact rather than discarding saved names.
+        local preserved = Suite.IsReadable(db) and type(db) == "table" and db or nil
+        db = { schema = 2, entries = {}, removed = {}, preserved = preserved }; Suite.db.mailContacts = db
     end
     if not Suite.IsReadable(db.entries) or type(db.entries) ~= "table" then db.entries = {} end
     if not Suite.IsReadable(db.removed) or type(db.removed) ~= "table" then db.removed = {} end
@@ -175,6 +186,14 @@ end
 function Mail:Store(name, ruleset, region, guid, class, level, faction, allowIncomplete)
     local entry, key = Entry(name, ruleset, region, guid, class, level, faction, allowIncomplete)
     if not key then return end
+    if not entry.class then
+        for _, member in pairs(self.guildEntries or {}) do
+            if member.region == region and member.ruleset == entry.ruleset and member.name:lower() == entry.name:lower() then
+                entry.class = String(member.class, 32) and member.class or nil
+                break
+            end
+        end
+    end
     local entries = self:Database()
     local manualKey = Key(region, entry.name, entry.ruleset)
     if not entry.guid then
@@ -345,7 +364,7 @@ function Mail:ResolveRecordedNames()
     end
 end
 
-function Mail:List(includeCurrent, search, category)
+function Mail:List(includeCurrent, search, category, unassigned)
     local result, region, ruleset = {}, Region(), Ruleset()
     if not region or not ruleset then return result end
     local query = search
@@ -359,7 +378,9 @@ function Mail:List(includeCurrent, search, category)
             local address, complete
             if normalized then address, complete = Name(normalized.name, true) end
             local current = normalized and self:IsCurrent(normalized)
-            if normalized and normalized.ruleset == ruleset and key == expectedKey and (includeCurrent or not current)
+            local inScope = normalized and (unassigned and normalized.ruleset == nil
+                or not unassigned and normalized.ruleset == ruleset)
+            if inScope and key == expectedKey and (includeCurrent or not current)
                 and (not category or String(entry.category, 32) and entry.category == category)
                 and (normalized.name .. " " .. (normalized.ruleset or "Unknown") .. " "
                     .. (String(entry.category, 32) and entry.category or "") .. " "
@@ -386,6 +407,89 @@ function Mail:List(includeCurrent, search, category)
     return result
 end
 
+-- Guild membership is session-only; roster updates never create saved account identities.
+function Mail:ReadGuild()
+    self.guildEntries = {}
+    if InCombatLockdown() or not (Suite.db.mailHelper or self.book and Shown(self.book.frame)) or not C_Club
+        or type(C_Club.GetGuildClubId) ~= "function" or type(C_Club.GetClubMembers) ~= "function"
+        or type(C_Club.GetMemberInfo) ~= "function" then return end
+    local ok, club = pcall(C_Club.GetGuildClubId)
+    if not ok or not Number(club, 1, math.huge) then return end
+    local success, members = pcall(C_Club.GetClubMembers, club)
+    if not success or not Suite.IsReadable(members) or type(members) ~= "table" then return end
+    local region, ruleset = Region(), Ruleset()
+    if not region or not ruleset then return end
+    for index, id in pairs(members) do
+        if Number(index, 1, 10000) and index == math.floor(index)
+            and (Number(id, 1, math.huge) or String(id, 128)) then
+            local loaded, info = pcall(C_Club.GetMemberInfo, club, id)
+            if loaded and Suite.IsReadable(info) and type(info) == "table"
+                and Suite.IsReadable(info.isSelf) and info.isSelf == false then
+                local entry, key = Entry(info.name, ruleset, region, info.guid, ClassFromID(info.classID), info.level, nil, true)
+                if entry and not self:IsCurrent(entry) then self.guildEntries[key] = entry end
+            end
+        end
+    end
+    -- Retain observed classes for saved recipients, including after guild departure.
+    local classes = {}
+    for _, member in pairs(self.guildEntries) do
+        if member.class then classes[member.name:lower()] = member.class end
+    end
+    local entries = self:Database()
+    for _, saved in ipairs(self:List(true, "")) do
+        local class = classes[saved.name:lower()]
+        if class then entries[saved.key].class = class end
+    end
+end
+
+function Mail:ContactList(tab, search, category, includeCurrent)
+    local saved, result, alts, guildNames = self:List(includeCurrent, ""), {}, {}, {}
+    local region, ruleset = Region(), Ruleset()
+    local group, query = tab or self.contactTab or "alts", (search or self.query or ""):lower()
+    for _, entry in ipairs(saved) do
+        local old = self:Database()[entry.key]
+        if String(old.guid, 128) then alts[old.guid] = true; alts[entry.name:lower()] = true end
+    end
+    for _, entry in pairs(self.guildEntries or {}) do
+        if entry.region == region and entry.ruleset == ruleset then guildNames[entry.name:lower()] = true end
+    end
+    local seen = {}
+    local function Add(entry, bucket)
+        local name = entry.name:lower()
+        if group ~= "all" and bucket ~= group or seen[name] then return end
+        if category and entry.category ~= category then return end
+        if not (entry.name .. " " .. (entry.category or "") .. " " .. (entry.notes or "")):lower():find(query, 1, true) then return end
+        entry.group = bucket
+        seen[name] = true; result[#result + 1] = entry
+    end
+    for _, entry in ipairs(saved) do
+        local old = self:Database()[entry.key]
+        Add(entry, String(old.guid, 128) and "alts" or guildNames[entry.name:lower()] and "guild" or "other")
+    end
+    for key, entry in pairs(self.guildEntries or {}) do
+        if entry.region == region and entry.ruleset == ruleset
+            and not (entry.guid and alts[entry.guid]) and not alts[entry.name:lower()] then
+            local address, complete = Name(entry.name, true)
+            Add({ key = "guild:" .. key, name = entry.name, level = entry.level, class = entry.class,
+                address = complete and address or nil, incomplete = not complete, ruleset = entry.ruleset,
+                roster = true }, "guild")
+        end
+    end
+    table.sort(result, function(a, b)
+        local left, right = a.name:lower(), b.name:lower()
+        if self.sort == "level" then left, right = a.level or 0, b.level or 0 end
+        if left == right then return a.name:lower() < b.name:lower() end
+        if self.ascending then return left < right else return left > right end
+    end)
+    return result
+end
+
+function Mail:SelectContactTab(tab)
+    if InCombatLockdown() or (tab ~= "alts" and tab ~= "guild" and tab ~= "other") then return end
+    self.contactTab, self.page, self.selected, self.confirm = tab, 1, nil, nil
+    self:Refresh()
+end
+
 function Mail:Choose(key)
     if not String(key, 200) or InCombatLockdown() or not Suite.db.mailHelper or not self.visit or self.sendPending
         or not Shown(MailFrame) or not Shown(SendMailFrame) or not Field() or type(MailFrameTab_OnClick) ~= "function" then return end
@@ -394,7 +498,7 @@ function Mail:Choose(key)
     local enabled = Field().IsEnabled and Field():IsEnabled()
     if not Suite.IsReadable(enabled) or enabled == false then return end
     local chosen
-    for _, entry in ipairs(self:List()) do if entry.key == key then chosen = entry; break end end
+    for _, entry in ipairs(self:ContactList()) do if entry.key == key then chosen = entry; break end end
     if not chosen or chosen.current then return end
     MailFrameTab_OnClick(nil, 2)
     local field = Field()
@@ -436,6 +540,13 @@ function Mail:SaveRecipient()
     self.removed[key] = nil
     self.selected, self.confirm = key, nil
     self.query, self.page = "", 1
+    local saved = self:Database()[key]
+    self.contactTab = String(saved.guid, 128) and "alts" or "other"
+    if self.contactTab == "other" then
+        for _, member in pairs(self.guildEntries or {}) do
+            if member.name:lower() == name:lower() then self.contactTab = "guild"; break end
+        end
+    end
     self.search:SetText("")
     self:Refresh()
     self:SetNotice("Recipient saved.")
@@ -506,9 +617,17 @@ function Mail:Create()
     subtitle:SetPoint("TOPLEFT", 14, -39); subtitle:SetText("Contacts on your server type.")
     local settings = Button(frame, 26, "...", function() Suite.GUI:OpenPage("mail", nil, self.frame) end)
     settings:SetPoint("TOPRIGHT", -12, -12)
+    self.contactTabs = {}
+    for index, definition in ipairs({ { "alts", "Alts" }, { "guild", "Guild" }, { "other", "Other" } }) do
+        local tab = definition[1]
+        local button = Button(frame, 98, definition[2], function() self:SelectContactTab(tab) end)
+        button:SetPoint("TOPLEFT", 14 + (index - 1) * 105, -62)
+        button:SetScript("OnLeave", function() if not InCombatLockdown() then self:Refresh() end end)
+        self.contactTabs[tab] = button
+    end
     local search = CreateFrame("EditBox", nil, frame, "BackdropTemplate")
     self.search = search
-    search:SetSize(260, 30); search:SetPoint("TOPLEFT", 14, -64)
+    search:SetSize(WIDTH - 28, 30); search:SetPoint("TOPLEFT", 14, -96)
     Fill(search)
     search:SetAutoFocus(false); search:SetFont("Fonts\\FRIZQT__.TTF", 11, "")
     search:SetTextInsets(9, 9, 0, 0); search:SetMaxLetters(77)
@@ -525,24 +644,24 @@ function Mail:Create()
     search:SetScript("OnEscapePressed", function() search:ClearFocus(); search:SetText("") end)
     search:SetScript("OnEnterPressed", function() search:ClearFocus() end)
     self.sortButtons = {}
-    for index, definition in ipairs({ { "name", "Name", 192 }, { "level", "Level", 60 } }) do
+    for index, definition in ipairs({ { "name", "Name", 240 }, { "level", "Level", 60 } }) do
         local key, label = definition[1], definition[2]
         local button = Button(frame, definition[3], label, function()
             if self.sort == key then self.ascending = not self.ascending
             else self.sort, self.ascending = key, key ~= "level" end
             self.page = 1; self:Refresh()
         end)
-        button:SetPoint("TOPLEFT", 14 + (index == 1 and 0 or 200), -103)
+        button:SetPoint("TOPLEFT", 14 + (index == 1 and 0 or 248), -135)
         button.title = label; self.sortButtons[key] = button
     end
     for index = 1, PAGE_SIZE do
         local row = CreateFrame("Button", nil, frame, "BackdropTemplate")
         Suite.Theme:ButtonFeedback(row)
         self.rows[index] = row
-        row:SetSize(260, 42); row:SetPoint("TOPLEFT", 14, -135 - (index - 1) * 45)
+        row:SetSize(WIDTH - 28, 42); row:SetPoint("TOPLEFT", 14, -167 - (index - 1) * 45)
         Fill(row)
-        row.name = Text(row, 12); row.name:SetPoint("TOPLEFT", 10, -7); row.name:SetWidth(186)
-        row.ruleset = Text(row, 9, colors.muted); row.ruleset:SetPoint("TOPLEFT", 10, -25); row.ruleset:SetWidth(208)
+        row.name = Text(row, 12); row.name:SetPoint("TOPLEFT", 10, -7); row.name:SetWidth(234)
+        row.ruleset = Text(row, 9, colors.muted); row.ruleset:SetPoint("TOPLEFT", 10, -25); row.ruleset:SetWidth(256)
         row.level = Text(row, 10, colors.muted); row.level:SetPoint("TOPRIGHT", -30, -9)
         row.remove = Suite.Theme:IconButton(row, "Remove saved recipient", function()
             if row.entry then self:ConfirmRemove(row.entry.key) end
@@ -554,26 +673,27 @@ function Mail:Create()
         row:SetScript("OnLeave", function() if not InCombatLockdown() then self:Refresh() end end)
     end
     self.empty = Text(frame, 11, colors.muted)
-    self.empty:SetPoint("TOPLEFT", 26, -154); self.empty:SetSize(234, 92)
+    self.empty:SetPoint("TOPLEFT", 26, -186); self.empty:SetSize(WIDTH - 54, 92)
     self.empty:SetWordWrap(true)
     self.previous = Button(frame, 30, "<", function() self.page = self.page - 1; self:Refresh() end)
-    self.previous:SetPoint("TOPLEFT", 14, -409)
+    self.previous:SetPoint("TOPLEFT", 14, -441)
     self.next = Button(frame, 30, ">", function() self.page = self.page + 1; self:Refresh() end)
-    self.next:SetPoint("TOPRIGHT", -14, -409)
-    self.count = Text(frame, 10, colors.muted); self.count:SetPoint("TOP", 0, -416)
+    self.next:SetPoint("TOPRIGHT", -14, -441)
+    self.wheelArea = Suite.Theme:PageWheel(frame, self.rows, self.previous, self.next, self.next)
+    self.count = Text(frame, 10, colors.muted); self.count:SetPoint("TOP", 0, -448)
     self.save = Button(frame, 120, "Save recipient", function() self:SaveRecipient() end)
     self.save:SetPoint("BOTTOMLEFT", 14, 50)
     local book = Button(frame, 120, "Contact book", function() self:OpenBook(self.frame) end)
     book:SetPoint("BOTTOMLEFT", 14, 12)
     frame:SetHeight(HEIGHT + 38)
     self.notice = Text(frame, 9, colors.muted); self.notice:SetPoint("BOTTOMRIGHT", -14, 58)
-    self.notice:SetWidth(130); self.notice:SetHeight(24); self.notice:SetWordWrap(true); self.notice:SetJustifyH("RIGHT")
+    self.notice:SetWidth(178); self.notice:SetHeight(24); self.notice:SetWordWrap(true); self.notice:SetJustifyH("RIGHT")
     self.confirmation = CreateFrame("Frame", nil, frame, "BackdropTemplate")
-    self.confirmation:SetSize(260, 58); self.confirmation:SetPoint("BOTTOMLEFT", 14, 48)
+    self.confirmation:SetSize(WIDTH - 28, 58); self.confirmation:SetPoint("BOTTOMLEFT", 14, 48)
     self.confirmation:EnableMouse(true)
     Fill(self.confirmation, colors.background)
     self.confirmation.label = Text(self.confirmation, 10)
-    self.confirmation.label:SetPoint("TOPLEFT", 8, -6); self.confirmation.label:SetWidth(244)
+    self.confirmation.label:SetPoint("TOPLEFT", 8, -6); self.confirmation.label:SetWidth(WIDTH - 44)
     self.confirmation.remove = Button(self.confirmation, 112, "Remove contact", function() self:RemoveConfirmed() end)
     self.confirmation.remove:SetPoint("BOTTOMLEFT", 6, 5)
     self.confirmation.cancel = Button(self.confirmation, 112, "Cancel", function() self.confirm = nil; self:Refresh() end)
@@ -583,7 +703,11 @@ end
 
 function Mail:Refresh()
     if InCombatLockdown() or not self.frame or not Suite.db.mailHelper then return end
-    local entries = self:List()
+    local entries = self:ContactList()
+    for tab, button in pairs(self.contactTabs) do
+        button.label:SetTextColor(unpack(tab == (self.contactTab or "alts") and colors.accent or colors.muted))
+        button:SetBackdropBorderColor(unpack(tab == (self.contactTab or "alts") and colors.accent or colors.row))
+    end
     local pages = math.max(1, math.ceil(#entries / PAGE_SIZE))
     self.page = math.max(1, math.min(self.page, pages))
     for key, button in pairs(self.sortButtons) do
@@ -601,10 +725,11 @@ function Mail:Refresh()
             if Suite.IsReadable(color) and type(color) == "table" and Number(color.r, 0, 1)
                 and Number(color.g, 0, 1) and Number(color.b, 0, 1) then row.name:SetTextColor(color.r, color.g, color.b)
             else row.name:SetTextColor(unpack(colors.text)) end
-            row.ruleset:SetText((entry.category or "Uncategorized") .. (entry.incomplete and "  ·  Add last name"
+            row.ruleset:SetText((entry.category or ({ alts = "Alt", guild = "Guild member", other = "Contact" })[entry.group] or "Uncategorized") .. (entry.incomplete and "  ·  Add last name"
                 or entry.faction and "  ·  " .. entry.faction or ""))
             row.level:SetText(entry.level and tostring(entry.level) or "—")
             row:SetEnabled(not entry.current and not self.sendPending)
+            row.remove:SetShown(entry.group ~= "guild")
             row.remove:SetEnabled(not entry.current)
             row.remove:RefreshIcon()
             Fill(row, entry.key == self.selected and { 0.1, 0.2, 0.21 } or colors.row)
@@ -612,7 +737,9 @@ function Mail:Refresh()
     end
     self.empty:SetShown(#entries == 0)
     self.empty:SetText(self.query and self.query ~= "" and "No matching contacts.\nTry another name or category."
-        or (Ruleset() and "Add contacts or log into alts on this server type. You can also enter a full name in To and save it here."
+        or (Ruleset() and ((self.contactTab or "alts") == "guild" and "No guild members available yet. Join a guild or wait for its roster to load."
+            or (self.contactTab or "alts") == "alts" and "Log into your other characters to add them here."
+            or "Enter a full name in To and save it here, or add someone in Contact book.")
             or "Server type is not available yet. Contacts will appear when it is known."))
     self.count:SetText(#entries .. " contacts  ·  " .. self.page .. " / " .. pages)
     self.previous:SetEnabled(self.page > 1); self.next:SetEnabled(self.page < pages)
@@ -629,21 +756,30 @@ end
 function Mail:EndVisit()
     self.visit, self.sendPending, self.pendingRecipient, self.lastRecipient = nil, nil, nil, nil
     self.selected, self.confirm, self.query, self.page = nil, nil, "", 1
-    self.nameAttempts = nil
+    self.contactTab = "alts"
+    self.nameAttempts, self.guildEntries, self.guildLoaded, self.guildRequested = nil, nil, nil, nil
     self:Cancel()
     Suite.pending.mailRecipient = nil
     if self.frame and Accessible(self.frame) then self.frame:Hide() end
+    if self.book and Shown(self.book.frame) then self:RefreshBookRoster() end
 end
 
 function Mail:BeginVisit()
     if not self.active or not Shown(MailFrame) then return end
+    local newVisit = not self.visit
     self.visit = true
     if InCombatLockdown() then self:Schedule(); return end
     if not Suite.db.mailHelper or not Shown(SendMailFrame) then
         if self.frame and Accessible(self.frame) then self.frame:Hide() end
         return
     end
-    self:SeedRecordedCharacters(); self:ResolveRecordedNames(); self:Create()
+    if (newVisit or not self.guildRequested) and C_GuildInfo and type(C_GuildInfo.GuildRoster) == "function" then
+        self.guildRequested = true
+        pcall(C_GuildInfo.GuildRoster)
+    end
+    self:SeedRecordedCharacters(); self:ResolveRecordedNames()
+    if not self.guildLoaded then self:ReadGuild(); self.guildLoaded = true end
+    self:Create()
     if not self.frame then return end
     local text = self.search:GetText()
     if Suite.IsReadable(text) and text ~= (self.query or "") then self.search:SetText(self.query or "") end
@@ -729,6 +865,7 @@ function Mail:Schedule()
 end
 
 function Mail:Apply()
+    if not Suite.db.mailHelper then self.guildEntries, self.guildLoaded, self.guildRequested = nil, nil, nil end
     if not Suite.db.mailHelper and not Suite.db.mailRememberRecipient then
         self.active = nil; self:EndVisit(); Suite.pending.mail = nil
         if self.events then self.events:UnregisterAllEvents() end
@@ -751,6 +888,9 @@ function Mail:Apply()
                         if self.frame and Accessible(self.frame) then self.frame:Hide() end
                         self:Schedule()
                     else
+                        if event == "GUILD_ROSTER_UPDATE" or event == "PLAYER_GUILD_UPDATE"
+                            or event:find("^CLUB_") or event == "PLAYER_ENTERING_WORLD"
+                            or event == "GAME_RULES_CHANGED" or event == "ADDON_LOADED" then self.guildLoaded = nil end
                         if event == "UNIT_NAME_UPDATE" and (not Suite.IsReadable(level) or level ~= "player") then return end
                         if event == "ADDON_LOADED" or event == "PLAYER_ENTERING_WORLD" or event == "MAIL_SHOW"
                             or event == "UNIT_NAME_UPDATE" or event == "GAME_RULES_CHANGED" then self.nameAttempts = nil end
@@ -762,7 +902,8 @@ function Mail:Apply()
                 end)
             end
             for _, event in ipairs({ "ADDON_LOADED", "PLAYER_ENTERING_WORLD", "PLAYER_LEVEL_UP", "UNIT_NAME_UPDATE", "GAME_RULES_CHANGED",
-                "MAIL_SHOW", "MAIL_CLOSED", "PLAYER_REGEN_DISABLED" }) do
+                "MAIL_SHOW", "MAIL_CLOSED", "PLAYER_REGEN_DISABLED", "GUILD_ROSTER_UPDATE", "PLAYER_GUILD_UPDATE",
+                "CLUB_ADDED", "CLUB_REMOVED", "CLUB_STREAMS_LOADED", "CLUB_MEMBERS_UPDATED", "CLUB_MEMBER_ADDED", "CLUB_MEMBER_REMOVED", "CLUB_MEMBER_UPDATED" }) do
                 self.events:RegisterEvent(event)
             end
         end
@@ -792,7 +933,9 @@ function Mail:SaveContact(key, name, category, notes)
     if not validCategory or not validNotes then return nil, "Use plain text within the field limits." end
     local entries, old = self:Database(), nil
     if key then
-        for _, entry in ipairs(self:List(true, "")) do if entry.key == key then old = entry; break end end
+        for _, entry in ipairs(self:List(true, "", nil, self.book and self.book.unassigned)) do
+            if entry.key == key then old = entry; break end
+        end
         if not old then return nil, "This contact is no longer available." end
     end
     local region = Region()
@@ -817,7 +960,7 @@ end
 
 function Mail:DeleteContact(key)
     if InCombatLockdown() then return false end
-    for _, entry in ipairs(self:List(true, "")) do
+    for _, entry in ipairs(self:List(true, "", nil, self.book and self.book.unassigned)) do
         if entry.key == key then
             if entry.current then return false end
             self:Database()[key] = nil
@@ -829,9 +972,9 @@ function Mail:DeleteContact(key)
     return false
 end
 
-function Mail:Categories()
+function Mail:Categories(unassigned)
     local categories, seen = {}, {}
-    for _, entry in ipairs(self:List(true, "")) do
+    for _, entry in ipairs(self:List(true, "", nil, unassigned)) do
         if entry.category and not seen[entry.category] then
             seen[entry.category] = true; categories[#categories + 1] = entry.category
         end
@@ -880,35 +1023,67 @@ end
 function Mail:EditContact(entry)
     if InCombatLockdown() then return end
     local book = self.book
-    book.key, book.confirm = entry and entry.key, nil
+    book.key, book.confirm = entry and not entry.roster and entry.key or nil, nil
     for _, field in ipairs({ "name", "category", "notes" }) do
         local value = entry and entry[field]
         book[field]:SetText(value or "")
     end
-    book.status:SetText(entry and "Edit this contact, then Save." or "New contact. Enter a first and last name.")
+    book.status:SetText(entry and (entry.roster and "Save to keep this guild member in your contacts."
+        or not entry.ruleset and "Save assigns this contact to " .. (Ruleset() or "your current server type") .. "."
+        or "Edit this contact, then Save.") or "New contact. Enter a first and last name.")
     book.remove.label:SetText("Remove")
-    book.remove:SetEnabled(entry ~= nil and not entry.current)
+    book.remove:SetEnabled(entry ~= nil and not entry.current and not entry.roster)
 end
 
 function Mail:RefreshBook()
     if InCombatLockdown() or not self.book then return end
     local book = self.book
-    local entries = self:List(true, book.search:GetText(), book.filter)
+    local entries = book.unassigned and self:List(true, book.search:GetText(), book.filter, true)
+        or self:ContactList(book.tab or "all", book.search:GetText(), book.filter, true)
+    for tab, button in pairs(book.tabs) do
+        local selected = not book.unassigned and tab == (book.tab or "all")
+        button.label:SetTextColor(unpack(selected and colors.accent or colors.muted))
+        button:SetBackdropBorderColor(unpack(selected and colors.accent or colors.row))
+    end
     local pages = math.max(1, math.ceil(#entries / 8))
     book.page = math.max(1, math.min(book.page or 1, pages))
     book.filterButton.label:SetText(book.filter or "All categories")
+    book.recovery.label:SetText(book.unassigned and "Show current server contacts" or "Recover unassigned contacts")
     for index, row in ipairs(book.rows) do
         row.entry = entries[(book.page - 1) * 8 + index]
         row:SetShown(row.entry ~= nil)
         if row.entry then
             row.label:SetText(row.entry.name)
-            row.detail:SetText(row.entry.category or "Uncategorized")
+            local classColor = RAID_CLASS_COLORS and row.entry.class and RAID_CLASS_COLORS[row.entry.class]
+            if Suite.IsReadable(classColor) and type(classColor) == "table"
+                and Number(classColor.r, 0, 1) and Number(classColor.g, 0, 1) and Number(classColor.b, 0, 1) then
+                row.label:SetTextColor(classColor.r, classColor.g, classColor.b)
+            else row.label:SetTextColor(unpack(colors.text)) end
+            row.detail:SetText(book.unassigned and "Server type unassigned" or row.entry.category
+                or ({ alts = "Alt", guild = "Guild member", other = "Contact" })[row.entry.group] or "Uncategorized")
             Fill(row, row.entry.key == book.key and { 0.1, 0.2, 0.21 } or colors.row)
         end
     end
     book.count:SetText(#entries .. " contacts · " .. book.page .. " / " .. pages)
     book.previous:SetEnabled(book.page > 1); book.next:SetEnabled(book.page < pages)
     book.empty:SetShown(#entries == 0)
+end
+
+-- The standalone book listens only while visible, independently of mailbox options.
+function Mail:RefreshBookRoster()
+    local book = self.book
+    if not book or not Shown(book.frame) then return end
+    if InCombatLockdown() then
+        Suite.AfterCombat("mailBook", function() self:RefreshBookRoster() end)
+        return
+    end
+    if book.timer or not C_Timer or not C_Timer.NewTimer then return end
+    book.timer = C_Timer.NewTimer(0, function()
+        book.timer = nil
+        if not Shown(book.frame) then return end
+        if InCombatLockdown() then self:RefreshBookRoster(); return end
+        self:ReadGuild(); self:RefreshBook()
+    end)
 end
 
 function Mail:PlaceBook(anchor)
@@ -924,7 +1099,7 @@ function Mail:OpenBook(anchor)
         -- Named only for Blizzard's Escape dismissal registry.
         local frame = CreateFrame("Frame", "WoWForeverSuiteContactBook", UIParent, "BackdropTemplate")
         local book = { frame = frame, rows = {}, page = 1 }; self.book = book
-        frame:SetSize(670, 570); frame:SetPoint("CENTER"); frame:SetFrameStrata("DIALOG")
+        frame:SetSize(670, 602); frame:SetPoint("CENTER"); frame:SetFrameStrata("DIALOG")
         frame:SetClampedToScreen(true); frame:EnableMouse(true); Fill(frame, colors.background)
         frame:SetMovable(true); frame:RegisterForDrag("LeftButton")
         frame:SetScript("OnDragStart", function() if not InCombatLockdown() then frame:StartMoving() end end)
@@ -945,21 +1120,31 @@ function Mail:OpenBook(anchor)
             box:SetText("")
             return box
         end
-        book.search = Input("Search names, categories or notes", 18, -72, 296, 240)
+        book.tabs = {}
+        for index, definition in ipairs({ { "all", "All" }, { "alts", "Alts" }, { "guild", "Guild" }, { "other", "Other" } }) do
+            local tab = definition[1]
+            local button = Button(frame, 68, definition[2], function()
+                book.tab, book.unassigned, book.filter, book.page = tab, false, nil, 1
+                self:EditContact(); self:RefreshBook()
+            end)
+            button:SetPoint("TOPLEFT", 18 + (index - 1) * 76, -72)
+            book.tabs[tab] = button
+        end
+        book.search = Input("Search names, categories or notes", 18, -104, 296, 240)
         book.search:SetScript("OnTextChanged", function() book.page = 1; self:RefreshBook() end)
         book.filterButton = Button(frame, 296, "All categories", function()
-            local categories = self:Categories()
+            local categories = self:Categories(book.unassigned)
             local nextCategory = categories[1]
             if book.filter then
                 for index, value in ipairs(categories) do if value == book.filter then nextCategory = categories[index + 1]; break end end
             end
             book.filter, book.page = nextCategory, 1; self:RefreshBook()
         end)
-        book.filterButton:SetPoint("TOPLEFT", 18, -130)
+        book.filterButton:SetPoint("TOPLEFT", 18, -162)
         book.filterButton.label:SetWidth(276)
         for index = 1, 8 do
             local row = Button(frame, 296, "", function() end); book.rows[index] = row
-            row:SetSize(296, 40); row:SetPoint("TOPLEFT", 18, -164 - (index - 1) * 43)
+            row:SetSize(296, 40); row:SetPoint("TOPLEFT", 18, -196 - (index - 1) * 43)
             row.label:ClearAllPoints(); row.label:SetPoint("TOPLEFT", 9, -6); row.label:SetWidth(278)
             row.detail = Text(row, 10, colors.muted); row.detail:SetPoint("TOPLEFT", 9, -23); row.detail:SetWidth(278)
             row:SetScript("OnClick", function()
@@ -967,11 +1152,12 @@ function Mail:OpenBook(anchor)
             end)
         end
         book.previous = Button(frame, 30, "<", function() book.page = book.page - 1; self:RefreshBook() end)
-        book.previous:SetPoint("TOPLEFT", 18, -514)
+        book.previous:SetPoint("TOPLEFT", 18, -546)
         book.next = Button(frame, 30, ">", function() book.page = book.page + 1; self:RefreshBook() end)
-        book.next:SetPoint("TOPLEFT", 284, -514)
-        book.count = Text(frame, 10, colors.muted); book.count:SetPoint("TOPLEFT", 60, -521)
-        book.empty = Text(frame, 11, colors.muted); book.empty:SetPoint("TOPLEFT", 30, -186)
+        book.next:SetPoint("TOPLEFT", 284, -546)
+        book.wheelArea = Suite.Theme:PageWheel(frame, book.rows, book.previous, book.next, book.next)
+        book.count = Text(frame, 10, colors.muted); book.count:SetPoint("TOPLEFT", 60, -553)
+        book.empty = Text(frame, 11, colors.muted); book.empty:SetPoint("TOPLEFT", 30, -218)
         book.empty:SetSize(272, 70); book.empty:SetWordWrap(true)
         book.empty:SetText("No matching contacts. Add a new contact on the right, or change the search or category.")
         book.name = Input("First and last name", 340, -72, 310, 77)
@@ -979,13 +1165,24 @@ function Mail:OpenBook(anchor)
         book.categoryChoose = Button(frame, 88, "Choose...", function() self:ChooseBookCategory() end)
         book.categoryChoose:SetPoint("TOPLEFT", 562, -159)
         book.notes = Input("Notes", 340, -204, 310, 240)
+        book.recovery = Button(frame, 310, "Recover unassigned contacts", function()
+            book.unassigned = not book.unassigned
+            book.filter, book.page = nil, 1
+            book.search:SetText("")
+            self:EditContact(); self:RefreshBook()
+        end)
+        book.recovery:SetPoint("TOPLEFT", 340, -280)
         local hint = Text(frame, 11, colors.muted); hint:SetPoint("TOPLEFT", 340, -332); hint:SetSize(310, 58)
         hint:SetWordWrap(true); hint:SetText("Choose an existing category or type a new one, then Save. At a mailbox, enable Mail contacts and click a name beside Send Mail.")
         book.status = Text(frame, 11, colors.muted); book.status:SetPoint("TOPLEFT", 340, -400)
         book.status:SetSize(310, 55); book.status:SetWordWrap(true)
         book.save = Button(frame, 96, "Save", function()
             local key, message = self:SaveContact(book.key, book.name:GetText(), book.category:GetText(), book.notes:GetText())
-            if key then book.key = key; book.confirm = nil; book.remove.label:SetText("Remove"); self:RefreshBook() end
+            if key then
+                book.unassigned = false
+                book.tab = "all"
+                book.key = key; book.confirm = nil; book.remove.label:SetText("Remove"); self:RefreshBook()
+            end
             book.status:SetText(message)
             if key then
                 for _, entry in ipairs(self:List(true, "")) do if entry.key == key then book.remove:SetEnabled(not entry.current); break end end
@@ -1003,10 +1200,23 @@ function Mail:OpenBook(anchor)
             book[field]:SetScript("OnTextChanged", function() book.confirm = nil; book.remove.label:SetText("Remove") end)
         end
         frame:SetScript("OnHide", function()
+            book.events:UnregisterAllEvents()
+            if book.timer then book.timer:Cancel(); book.timer = nil end
+            Suite.pending.mailBook = nil
+            if not self.visit then self.guildEntries = nil end
             for _, field in ipairs({ "search", "name", "category", "notes" }) do book[field]:ClearFocus() end
             book.confirm = nil; book.remove.label:SetText("Remove")
         end)
+        book.events = CreateFrame("Frame")
+        book.events:SetScript("OnEvent", function() self:RefreshBookRoster() end)
         self:EditContact()
     end
     self:RefreshBook(); self:PlaceBook(anchor); self.book.frame:Show()
+    for _, event in ipairs({ "GUILD_ROSTER_UPDATE", "PLAYER_GUILD_UPDATE", "CLUB_ADDED", "CLUB_REMOVED",
+        "CLUB_STREAMS_LOADED", "CLUB_MEMBERS_UPDATED", "CLUB_MEMBER_ADDED", "CLUB_MEMBER_REMOVED",
+        "CLUB_MEMBER_UPDATED", "PLAYER_ENTERING_WORLD", "GAME_RULES_CHANGED" }) do
+        self.book.events:RegisterEvent(event)
+    end
+    if C_GuildInfo and type(C_GuildInfo.GuildRoster) == "function" then pcall(C_GuildInfo.GuildRoster) end
+    self:ReadGuild(); self:RefreshBook()
 end

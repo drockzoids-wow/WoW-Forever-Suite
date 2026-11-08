@@ -123,6 +123,51 @@ equal(snapshot.best.healing.health, 80, "range restoration uses its midpoint")
 local body = macros:Generate(food, snapshot)
 equal(body, "#showtooltip [nocombat] item:101\n/use [nocombat] item:101", "food stays outside combat by default")
 do
+    local savedBags, description = bags, data[4593].description
+    data[4606] = { name = "Spongy Morel", sub = 5, required = 15,
+        description = "Use: Restores 530 health over 24 sec. Must remain seated while eating." }
+    bags = { 4606, 100, 102, 101, 20390, 4593, 6290 }
+    local experience = supplies:Scan()
+    equal(experience.best.food.id, 4593, "XP Catfish outranks ordinary, non-XP buff, mage and event food")
+    equal(experience.byID[4593].experienceBonus, 5, "read the Catfish's kill-experience percentage")
+    equal(experience.byID[4606].experienceBonus, 0, "screenshot Morel grants no experience bonus")
+    equal(experience.byID[102].experienceBonus, 0, "Well Fed alone is not evidence of an XP bonus")
+    equal(macros:Generate(food, experience, 4606), "#showtooltip [nocombat] item:4593\n/use [nocombat] item:4593",
+        "new XP food replaces a still-carried automatic ordinary choice")
+    food.item = 4606
+    equal(macros:Generate(food, experience, 101), "#showtooltip [nocombat] item:4606\n/use [nocombat] item:4606",
+        "an explicit ordinary food choice still overrides XP priority")
+    food.item = nil
+    equal(macros:Generate(food, experience, 6290), "#showtooltip [nocombat] item:6290\n/use [nocombat] item:6290",
+        "an automatic XP choice stays carried when its bonus matches the best")
+    data[4593].description = description:gsub("5%%", "10%%")
+    experience = supplies:Scan()
+    equal(experience.best.food.id, 4593, "larger disclosed XP bonuses rank first")
+    equal(macros:Generate(food, experience, 6290):find("item:4593", 1, true) ~= nil, true,
+        "a larger XP bonus promotes over a still-carried lower bonus")
+    for _, text in ipairs({ description:gsub("5%%", "|cffffffff5|r%%"),
+        description:gsub("experience gained", "experience|ngained"),
+        (description:gsub("kills is increased", "kills increased")) }) do
+        data[4593].description = text
+        equal(supplies:Scan().best.food.id, 4593, "XP detection tolerates color markup, wrapping and buff wording")
+    end
+    data[4593].description = description:gsub("5%%", "0%%")
+    equal(supplies:Scan().best.food.id, 6290, "zero bonus is not preferred XP food")
+    data[4593].description, restrictedTooltip = description, 4593
+    experience = supplies:Scan()
+    equal(macros:Generate(food, experience, 4606), nil, "unreadable candidate tooltip preserves current automatic food")
+    restrictedTooltip, unavailable = nil, 4593
+    equal(macros:Generate(food, supplies:Scan(), 4606), nil, "loading candidate metadata preserves current automatic food")
+    unavailable = nil
+    local required = data[4593].required
+    data[4593].required, bags = 60, { 4593, 4606 }
+    equal(supplies:Scan().best.food.id, 4606, "above-level XP food cannot displace usable ordinary food")
+    data[4593].required, bags = required, { 4593 }
+    data[4593].description = "Additionally, experience gained from kills is increased by 5%."
+    equal(supplies:Scan().best.food, nil, "XP text without health restoration cannot create recovery food")
+    data[4593].description, bags = description, savedBags
+end
+do
     local savedBags, description = bags, data[6290].description
     bags = { 6290 }
     for _, text in ipairs({ description,

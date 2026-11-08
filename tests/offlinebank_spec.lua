@@ -53,6 +53,7 @@ CreateFrame = function(kind, name, parent, template)
     assert(template ~= "BankFrameTemplate" and template ~= "BankPanelTemplate" and template ~= "CamelotBankItemButtonTemplate", "Live bank scripts inherited")
     created = created + 1
     local frame = Widget(name); frame.parent, frame.objectType, frame.template = parent, kind, template
+    if parent and parent.children then parent.children[#parent.children + 1] = frame end
     frame.SetPoint = function(self, ...) assert(not InCombatLockdown(), "Combat anchor change"); self.point = { ... } end
     frame.SetHeight = function(self, value) assert(not InCombatLockdown(), "Combat height change"); self.height = value end
     frame.SetScale = function(self, value) assert(not InCombatLockdown(), "Combat scale change"); self.scale = value end
@@ -218,6 +219,16 @@ equal(bank.buttons[11]:IsShown(), false, "buttons beyond partial page hidden")
 Near(bank.frame.point[5], -204, "short final page does not shift the native top edge")
 equal(bank.buttons[1].bankItem, nil, "page switch cannot reuse prior item tooltip")
 equal(GameTooltip:IsShown(), false, "page change dismisses prior hover")
+bank.buttons[1]:OnMouseWheel(1)
+equal(bank.page, 1, "wheel over saved slot returns to previous page")
+bank.frame:OnMouseWheel(-1)
+equal(bank.page, 2, "wheel over saved bank background advances page")
+bank.buttons[10]:OnMouseWheel(-1)
+equal(bank.page, 2, "saved bank wheel clamps at last page")
+SetCombat(true); bank.buttons[1]:OnMouseWheel(1); SetCombat(false)
+equal(bank.page, 2, "combat blocks saved bank wheel paging")
+bank.frame:OnMouseWheel({ secret = true })
+equal(bank.page, 2, "restricted saved bank wheel input is ignored")
 bank.pageTabs[4].customMouseUpHandler(bank.pageTabs[4], "LeftButton", true)
 equal(bank.bankType, 2, "shared-bank page selected")
 equal(bank.buttons[2].bankItem.id, 400, "shared-bank page uses its own slots")

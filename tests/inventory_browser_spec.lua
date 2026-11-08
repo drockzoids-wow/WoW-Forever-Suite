@@ -176,6 +176,11 @@ for _, row in ipairs(browser.buttons) do
 end
 gui:ScrollTo(0)
 IsShiftKeyDown = function() return false end
+browser.buttons[1]:OnMouseWheel(-1)
+equal(browser.page, 2, "ordinary wheel over inventory result pages without Shift")
+equal(gui.scrollOffset, 0, "result wheel does not also scroll outer settings")
+browser.wheelArea:OnMouseWheel(1)
+equal(browser.page, 1, "wheel over inventory list background returns a page")
 browser.panel.OnMouseWheel(browser.panel, -1)
 equal(gui.scrollOffset, 40, "ordinary wheel scrolls the settings viewport so footer controls remain reachable")
 IsShiftKeyDown = function() return true end

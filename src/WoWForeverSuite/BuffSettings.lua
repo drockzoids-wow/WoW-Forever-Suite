@@ -169,6 +169,7 @@ function View:Build()
     end
     self.choicePrev=Button(choices,"Previous",0,-442,160,function() self.page=math.max(1,self.page-1);self:Refresh() end)
     self.choiceNext=Button(choices,"Next",172,-442,160,function() self.page=self.page+1;self:Refresh() end)
+    self.choiceWheelArea=Suite.Theme:PageWheel(choices,self.choiceRows,self.choicePrev,self.choiceNext,self.choiceRows[#self.choiceRows])
     self.choiceCount=Label(choices,"",356,-450,424,11,colors.muted)
     local spells=CreateFrame("Frame",nil,panel);self.spells=spells
     spells:SetPoint("TOPLEFT",0,-80);spells:SetSize(780,650)
@@ -196,6 +197,7 @@ function View:Build()
     end
     self.spellPrev=Button(spells,"Previous",0,-300,160,function() self.spellPage=math.max(1,self.spellPage-1);self:Refresh() end)
     self.spellNext=Button(spells,"Next",172,-300,160,function() self.spellPage=self.spellPage+1;self:Refresh() end)
+    self.spellWheelArea=Suite.Theme:PageWheel(spells,self.results,self.spellPrev,self.spellNext,self.results[#self.results])
     self.spellCount=Label(spells,"",356,-308,424,11,colors.muted)
     self.savedTitle=Label(spells,"",0,-352,780,12,colors.teal);self.saved={}
     self.savedEmpty=Label(spells,"No custom reminders yet. Built-in class reminders work without adding anything here.",0,-384,780,11,colors.muted)

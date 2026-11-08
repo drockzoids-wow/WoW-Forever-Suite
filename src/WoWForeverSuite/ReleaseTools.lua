@@ -58,6 +58,7 @@ local function Window(owner, name, title)
     frame.previous = Button(frame, "Previous", 14, -544, 90, function() owner.page = owner.page - 1; owner:Refresh() end)
     frame.next = Button(frame, "Next", 112, -544, 90, function() owner.page = owner.page + 1; owner:Refresh() end)
     frame.page = Label(frame, 218, -550, 90)
+    frame.wheelArea = Suite.Theme:PageWheel(frame, frame.rows, frame.previous, frame.next, frame.next)
     frame:SetScript("OnHide", function()
         if owner.moving then frame:StopMovingOrSizing(); owner.moving = nil end
         owner.confirmRemove = nil

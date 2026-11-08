@@ -182,7 +182,7 @@ local pages = {
     }, note = "NPCs and vehicles keep their normal health bars. Party and raid use Blizzard's class color setting.\nThreat appears for enemy NPCs; -- means no percentage is available." },
     mail = { title = "A familiar name, a quicker letter.", description = "Keep contacts anywhere, then find them beside Send Mail.", rows = {
         { action = "mailBook", label = "Contact book", help = "Add and edit contacts anywhere, with your own categories and notes.\nOnly contacts on your current server type are shown." },
-        { key = "mailHelper", label = "Mail contacts", help = "Show contacts on your current server type beside Send Mail.\nClick a name to fill To; Blizzard handles delivery rules." },
+        { key = "mailHelper", label = "Mail contacts", help = "Browse Alts, Guild and Other beside Send Mail.\nClick a name to fill To; Blizzard handles delivery rules." },
         { key = "mailRememberRecipient", label = "Remember recipient", help = "Keep the recipient in the To field after a successful send.\nClosing the mailbox clears it for the next visit." },
         { action = "mailDeadlines", label = "Review mail deadlines", help = "Review recorded mailbox deadlines for characters in this region.\nVisit each mailbox to refresh; saved mail may have changed." },
         { key = "mailExpiry", label = "Record mail deadlines and remind at login", help = "Starts off. Record the earliest deadline when visiting a mailbox.\nAt login, flag deadlines within three days or already passed; partial inboxes are labelled." },
@@ -773,6 +773,7 @@ function GUI:BuildLevelingLog()
         self.levelingLogPage = (self.levelingLogPage or 1) + 1; self:RefreshLevelingLog()
     end)
     self.levelingLogCount = Label(panel, 11, palette.muted, 120, -634, width - 240, 22)
+    self.levelingWheelArea = Suite.Theme:PageWheel(panel, self.levelingLogRows, self.levelingLogBack, self.levelingLogNext, self.levelingLogNext)
     self.levelingLogCount:SetJustifyH("CENTER")
     self.levelingJournalNote = Label(panel, 10, palette.muted, 0, -670, width, 48)
 end
@@ -1855,6 +1856,7 @@ function GUI:LayoutPage(key)
     self.content:SetHeight(self.contentHeight)
     self.scrollFrame:SetShown(key ~= "setup")
     self:SyncScrollBar(self.scrollFrame)
+    Suite.Theme:RouteWheel(self.content, self.scrollFrame:GetScript("OnMouseWheel"))
 end
 
 function GUI:ClearSettingHighlight()
@@ -1982,6 +1984,7 @@ function GUI:BuildSettingsSearch(header)
         end
     end)
     search:SetScript("OnTextChanged", function() self:UpdateSearch() end)
+    Suite.Theme:RouteWheel(popup, popup:GetScript("OnMouseWheel"))
     search:SetScript("OnEditFocusGained", function() self:UpdateSearch() end)
     search:SetScript("OnEscapePressed", function() self:ClearSearch() end)
     search:SetScript("OnEnterPressed", function()

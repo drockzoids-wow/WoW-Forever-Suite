@@ -208,6 +208,17 @@ equal(macros.used, nil, "completed bag-open check releases pending work")
 scanStart = scans; Tick(100); Event("BAG_UPDATE_DELAYED"); Tick(100)
 equal(scans, scanStart, "finished bag-open checks leave no idle stock refresh")
 
+fixture.bags({ 4544, 4593, 101, 20390 }); Open(ContainerFrameCombinedBags); Tick()
+equal(Body(food), "#showtooltip [nocombat] item:4593\n/use [nocombat] item:4593",
+    "bag opening promotes XP food while the current ordinary food remains carried")
+equal(macros:Find(food.name), foodIndex, "XP promotion preserves the owned action-bar macro index")
+fixture.bags({ 4544, 101, 20390 }); FinishUse(food)
+equal(Body(food), "#showtooltip [nocombat] item:101\n/use [nocombat] item:101",
+    "depleted XP food falls back through the existing mage-food priority")
+food.item = 4544; fixture.bags({ 4544, 4593 }); Open(ContainerFrame1); Tick()
+equal(Body(food), breadBody, "bag-open XP promotion respects an explicit carried ordinary choice")
+food.item = nil; fixture.bags({ 4544 }); macros:Save(food); scanStart = scans
+
 fixture.bags({ 4593 }); SetCombat(true); Open(ContainerFrameCombinedBags); Tick(100)
 equal(scans, scanStart, "combat bag opening defers the stock scan")
 equal(Body(food), breadBody, "combat bag opening preserves the macro")

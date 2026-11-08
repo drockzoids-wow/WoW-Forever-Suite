@@ -6,7 +6,7 @@ local Items = Suite.MacroItems
 local Number, Text = Items.Number, Items.Text
 
 Macros.recipes = {
-    { key = "food", name = "FS Food", title = "Food / Health", help = "Eat outside combat: mage food, then event food, then regular food, including buff food. Optional combat Healthstone and healing potion." },
+    { key = "food", name = "FS Food", title = "Food / Health", help = "Eat outside combat: experience-bonus food first, then mage food, event food and regular food. Your selected food takes priority. Optional combat Healthstone and healing potion." },
     { key = "water", name = "FS Drink", title = "Drink / Mana", help = "Drink outside combat: mage water, then event drinks, then regular water. Optional combat mana potion." },
     { key = "bandage", name = "FS Bandage", title = "Bandage", help = "Use your strongest carried bandage with normal item targeting. Choose someone to bandage as usual; native targeting and self-cast settings apply." },
     { key = "mainhand", name = "FS Main Hand", title = "Main-hand coating", slot = 16,
@@ -421,6 +421,13 @@ function Macros:Generate(entry, snapshot, currentItem)
             return nil, "Chosen item data is loading. Existing text is kept.", true
         end
         item = snapshot.byID[preferred]
+    end
+    if entry.recipe == "food" and not entry.item and snapshot.english then
+        -- A still-carried automatic choice must not hide newly stocked XP food.
+        -- Wait for relevant tooltips before deciding whether to promote it.
+        if waiting.food then return nil, "Recovery supply data is loading. Existing text is kept.", true end
+        local best = snapshot.best.food
+        if best and (best.experienceBonus or 0) > (item and item.experienceBonus or 0) then item = best end
     end
     if not item and recipe.slot then item, note, pending = Items:WeaponStone(snapshot, recipe.slot)
     elseif not item and entry.recipe == "item" then

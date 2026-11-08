@@ -5,6 +5,59 @@ local saved = { mode = Suite.db.borderColorMode, color = Suite.db.customBorderCo
     borders = theme.borders, pending = Suite.pending, page = gui.page, shown = gui.frame:IsShown() }
 local secret = { secret = true }
 SetCombat(false)
+
+-- Shared wheel routing keeps clicks and nested controls' own wheel semantics.
+local wheelRoot = CreateFrame("Frame")
+local wheelRow = CreateFrame("Button", nil, wheelRoot)
+local wheelChild = CreateFrame("Button", nil, wheelRow)
+local wheelPrev = CreateFrame("Button", nil, wheelRoot)
+local wheelNext = CreateFrame("Button", nil, wheelRoot)
+local wheelPage, wheelClicks = 1, 0
+wheelRoot:Show(); wheelRow:Show(); wheelPrev:Show(); wheelNext:Show()
+local function WheelState()
+    wheelPrev:SetEnabled(wheelPage > 1); wheelNext:SetEnabled(wheelPage < 3)
+end
+wheelPrev:SetScript("OnClick", function() wheelPage = wheelPage - 1; WheelState() end)
+wheelNext:SetScript("OnClick", function() wheelPage = wheelPage + 1; WheelState() end)
+local originalClick = function() wheelClicks = wheelClicks + 1 end
+wheelChild:SetScript("OnClick", originalClick)
+WheelState()
+local wheelArea = theme:PageWheel(wheelRoot, { wheelRow }, wheelPrev, wheelNext, wheelNext)
+wheelChild:OnMouseWheel(-20)
+equal(wheelPage, 2, "wheel magnitude advances only one page per gesture")
+wheelArea:OnMouseWheel(-1)
+equal(wheelPage, 3, "wheel background uses current pager state")
+wheelRow:OnMouseWheel(-1)
+equal(wheelPage, 3, "disabled Next consumes wheel at boundary")
+wheelPrev:OnMouseWheel(1)
+equal(wheelPage, 2, "wheel footer uses Previous")
+wheelChild:OnClick()
+equal(wheelClicks, 1, "wheel routing retains existing child click")
+equal(wheelChild:GetScript("OnClick"), originalClick, "wheel routing never replaces click handlers")
+wheelPrev:Hide(); wheelArea:OnMouseWheel(1)
+equal(wheelPage, 2, "hidden pager cannot be invoked")
+wheelPrev:Show()
+SetCombat(true); wheelArea:OnMouseWheel(-1); SetCombat(false)
+equal(wheelPage, 2, "paging does not mutate view during combat")
+local nested = CreateFrame("ScrollFrame", nil, wheelRoot)
+local nestedChild = CreateFrame("EditBox", nil, nested)
+local nestedOwner, nestedDelta
+local nestedWheel = function(owner, delta) nestedOwner, nestedDelta = owner, delta end
+nested:SetScript("OnMouseWheel", nestedWheel)
+local outerCount = 0
+theme:RouteWheel(wheelRoot, function() outerCount = outerCount + 1 end)
+nestedChild:OnMouseWheel(-1)
+equal(nestedOwner, nested, "nested scrolling receives its original owner through child forwarding")
+equal(nestedDelta, -1, "nested scrolling retains direction")
+equal(outerCount, 0, "nested scroll does not also scroll the outer page")
+equal(nested:GetScript("OnMouseWheel"), nestedWheel, "existing slider or scroll handler is preserved")
+theme:RouteWheel(wheelRoot, function() outerCount = outerCount + 1 end)
+wheelRow:OnMouseWheel(1)
+equal(wheelPage, 1, "repeated outer routing preserves inner list paging")
+equal(outerCount, 0, "paging does not also scroll outer settings")
+local combatFrame = CreateFrame("Frame")
+SetCombat(true); theme:RouteWheel(combatFrame, nestedWheel); SetCombat(false)
+equal(combatFrame:GetScript("OnMouseWheel"), nil, "routing never installs scripts in combat")
 theme.borders, Suite.pending = setmetatable({}, { __mode = "k" }), {}
 local corrupt = { borderColorMode = "bogus", customBorderColor = { r = secret, g = 0.5, b = 0.2 } }
 theme:Initialize(corrupt)

@@ -61,6 +61,7 @@ local function Frame(name)
         SetText = function(self, text) self.text = text end,
         GetText = function(self) return self.text or "" end,
         SetEnabled = function(self, enabled) self.enabled = enabled end,
+        IsEnabled = function(self) return self.enabled ~= false end,
         SetChecked = function(self, checked) self.checked = checked end,
         GetChecked = function(self) return self.checked end,
         SetMultiLine = function() end, SetAutoFocus = function() end, ClearFocus = function() end,

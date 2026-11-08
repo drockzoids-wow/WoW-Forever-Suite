@@ -387,6 +387,16 @@ function Bank:CreateView()
         end)
         button:Hide()
     end
+    frame:EnableMouseWheel(true)
+    frame:SetScript("OnMouseWheel", function(_, delta)
+        if InCombatLockdown() or not Suite.IsReadable(delta) or type(delta) ~= "number"
+            or delta ~= delta or delta == 0 or math.abs(delta) == math.huge then return end
+        local snapshot = self:GetSnapshot(self.bankType)
+        local pages = snapshot and math.max(1, math.ceil(snapshot.totalSlots / PAGE_SIZE)) or 1
+        self.page = math.max(1, math.min(pages, self.page + (delta > 0 and -1 or 1)))
+        self:Refresh()
+    end)
+    Suite.Theme:RouteWheel(frame, frame:GetScript("OnMouseWheel"))
     return true
 end
 
@@ -448,6 +458,7 @@ function Bank:Refresh()
     if Suite.InventorySelectors then Suite.InventorySelectors:UpdateLabels() end
     self:RefreshTabs()
     self:RefreshBags(snapshot)
+    Suite.Theme:RouteWheel(self.frame, self.frame:GetScript("OnMouseWheel"))
     if Suite.db.windowTools then Suite.Windows:Track(FRAME_NAME, self.frame) end
     if hovered and hoverLink and hovered.bankItem and hovered.bankItem.link == hoverLink
         and Visible(self.frame) and hovered.IsMouseOver then

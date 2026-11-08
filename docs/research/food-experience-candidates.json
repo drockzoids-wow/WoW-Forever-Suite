@@ -1,0 +1,408 @@
+{
+  "reviewed": "2026-11-08",
+  "source": "https://www.wowhead.com/forever/news/all-cooking-food-that-currently-gives-xp-buffs-in-wow-forever-382928",
+  "status": "Research candidates; not an exhaustive or independently confirmed XP-food allowlist.",
+  "runtime": "Require a usable carried health-restoring food with a readable English tooltip disclosing a positive kill-experience percentage. Item IDs and crafting source do not confer priority.",
+  "items": [
+    {
+      "id": 724,
+      "url": "https://www.wowhead.com/forever/item=724/goretusk-liver-pie"
+    },
+    {
+      "id": 733,
+      "url": "https://www.wowhead.com/forever/item=733/westfall-stew"
+    },
+    {
+      "id": 787,
+      "url": "https://www.wowhead.com/forever/item=787/slitherskin-mackerel"
+    },
+    {
+      "id": 1017,
+      "url": "https://www.wowhead.com/forever/item=1017/seasoned-wolf-kabob"
+    },
+    {
+      "id": 1082,
+      "url": "https://www.wowhead.com/forever/item=1082/redridge-goulash"
+    },
+    {
+      "id": 2680,
+      "url": "https://www.wowhead.com/forever/item=2680/spiced-wolf-meat"
+    },
+    {
+      "id": 2681,
+      "url": "https://www.wowhead.com/forever/item=2681/roasted-boar-meat"
+    },
+    {
+      "id": 2682,
+      "url": "https://www.wowhead.com/forever/item=2682/cooked-crab-claw"
+    },
+    {
+      "id": 2683,
+      "url": "https://www.wowhead.com/forever/item=2683/crab-cake"
+    },
+    {
+      "id": 2684,
+      "url": "https://www.wowhead.com/forever/item=2684/coyote-steak"
+    },
+    {
+      "id": 2685,
+      "url": "https://www.wowhead.com/forever/item=2685/succulent-pork-ribs"
+    },
+    {
+      "id": 2687,
+      "url": "https://www.wowhead.com/forever/item=2687/dry-pork-ribs"
+    },
+    {
+      "id": 2888,
+      "url": "https://www.wowhead.com/forever/item=2888/beer-basted-boar-ribs"
+    },
+    {
+      "id": 3220,
+      "url": "https://www.wowhead.com/forever/item=3220/blood-sausage"
+    },
+    {
+      "id": 3662,
+      "url": "https://www.wowhead.com/forever/item=3662/crocolisk-steak"
+    },
+    {
+      "id": 3663,
+      "url": "https://www.wowhead.com/forever/item=3663/murloc-fin-soup"
+    },
+    {
+      "id": 3664,
+      "url": "https://www.wowhead.com/forever/item=3664/crocolisk-gumbo"
+    },
+    {
+      "id": 3665,
+      "url": "https://www.wowhead.com/forever/item=3665/curiously-tasty-omelet"
+    },
+    {
+      "id": 3666,
+      "url": "https://www.wowhead.com/forever/item=3666/gooey-spider-cake"
+    },
+    {
+      "id": 3726,
+      "url": "https://www.wowhead.com/forever/item=3726/big-bear-steak"
+    },
+    {
+      "id": 3727,
+      "url": "https://www.wowhead.com/forever/item=3727/hot-lion-chops"
+    },
+    {
+      "id": 3729,
+      "url": "https://www.wowhead.com/forever/item=3729/soothing-turtle-bisque"
+    },
+    {
+      "id": 4457,
+      "url": "https://www.wowhead.com/forever/item=4457/barbecued-buzzard-wing"
+    },
+    {
+      "id": 4592,
+      "url": "https://www.wowhead.com/forever/item=4592/longjaw-mud-snapper"
+    },
+    {
+      "id": 4593,
+      "url": "https://www.wowhead.com/forever/item=4593/bristle-whisker-catfish"
+    },
+    {
+      "id": 4594,
+      "url": "https://www.wowhead.com/forever/item=4594/rockscale-cod"
+    },
+    {
+      "id": 5095,
+      "url": "https://www.wowhead.com/forever/item=5095/rainbow-fin-albacore"
+    },
+    {
+      "id": 5472,
+      "url": "https://www.wowhead.com/forever/item=5472/kaldorei-spider-kabob"
+    },
+    {
+      "id": 5476,
+      "url": "https://www.wowhead.com/forever/item=5476/fillet-of-frenzy"
+    },
+    {
+      "id": 5477,
+      "url": "https://www.wowhead.com/forever/item=5477/strider-stew"
+    },
+    {
+      "id": 5479,
+      "url": "https://www.wowhead.com/forever/item=5479/crispy-lizard-tail"
+    },
+    {
+      "id": 5480,
+      "url": "https://www.wowhead.com/forever/item=5480/lean-venison"
+    },
+    {
+      "id": 6038,
+      "url": "https://www.wowhead.com/forever/item=6038/giant-clam-scorcho"
+    },
+    {
+      "id": 6290,
+      "url": "https://www.wowhead.com/forever/item=6290/brilliant-smallfish"
+    },
+    {
+      "id": 6316,
+      "url": "https://www.wowhead.com/forever/item=6316/loch-frenzy-delight"
+    },
+    {
+      "id": 6888,
+      "url": "https://www.wowhead.com/forever/item=6888/herb-baked-egg"
+    },
+    {
+      "id": 6890,
+      "url": "https://www.wowhead.com/forever/item=6890/smoked-bear-meat"
+    },
+    {
+      "id": 8364,
+      "url": "https://www.wowhead.com/forever/item=8364/mithril-head-trout"
+    },
+    {
+      "id": 8957,
+      "url": "https://www.wowhead.com/forever/item=8957/spinefin-halibut"
+    },
+    {
+      "id": 10841,
+      "url": "https://www.wowhead.com/forever/item=10841/goldthorn-tea"
+    },
+    {
+      "id": 12209,
+      "url": "https://www.wowhead.com/forever/item=12209/lean-wolf-steak"
+    },
+    {
+      "id": 12210,
+      "url": "https://www.wowhead.com/forever/item=12210/roast-raptor"
+    },
+    {
+      "id": 12212,
+      "url": "https://www.wowhead.com/forever/item=12212/jungle-stew"
+    },
+    {
+      "id": 12213,
+      "url": "https://www.wowhead.com/forever/item=12213/carrion-surprise"
+    },
+    {
+      "id": 12214,
+      "url": "https://www.wowhead.com/forever/item=12214/mystery-stew"
+    },
+    {
+      "id": 12215,
+      "url": "https://www.wowhead.com/forever/item=12215/heavy-kodo-stew"
+    },
+    {
+      "id": 12216,
+      "url": "https://www.wowhead.com/forever/item=12216/spiced-chili-crab"
+    },
+    {
+      "id": 12218,
+      "url": "https://www.wowhead.com/forever/item=12218/monster-omelet"
+    },
+    {
+      "id": 12224,
+      "url": "https://www.wowhead.com/forever/item=12224/crispy-bat-wing"
+    },
+    {
+      "id": 13851,
+      "url": "https://www.wowhead.com/forever/item=13851/hot-wolf-ribs"
+    },
+    {
+      "id": 13927,
+      "url": "https://www.wowhead.com/forever/item=13927/cooked-glossy-mightfish"
+    },
+    {
+      "id": 13928,
+      "url": "https://www.wowhead.com/forever/item=13928/grilled-squid"
+    },
+    {
+      "id": 13929,
+      "url": "https://www.wowhead.com/forever/item=13929/hot-smoked-bass"
+    },
+    {
+      "id": 13930,
+      "url": "https://www.wowhead.com/forever/item=13930/filet-of-redgill"
+    },
+    {
+      "id": 13931,
+      "url": "https://www.wowhead.com/forever/item=13931/nightfin-soup"
+    },
+    {
+      "id": 13932,
+      "url": "https://www.wowhead.com/forever/item=13932/poached-sunscale-salmon"
+    },
+    {
+      "id": 13933,
+      "url": "https://www.wowhead.com/forever/item=13933/lobster-stew"
+    },
+    {
+      "id": 13934,
+      "url": "https://www.wowhead.com/forever/item=13934/mightfish-steak"
+    },
+    {
+      "id": 13935,
+      "url": "https://www.wowhead.com/forever/item=13935/baked-salmon"
+    },
+    {
+      "id": 17222,
+      "url": "https://www.wowhead.com/forever/item=17222/spider-sausage"
+    },
+    {
+      "id": 18045,
+      "url": "https://www.wowhead.com/forever/item=18045/tender-wolf-steak"
+    },
+    {
+      "id": 18254,
+      "url": "https://www.wowhead.com/forever/item=18254/runn-tum-tuber-surprise"
+    },
+    {
+      "id": 20074,
+      "url": "https://www.wowhead.com/forever/item=20074/heavy-crocolisk-stew"
+    },
+    {
+      "id": 20452,
+      "url": "https://www.wowhead.com/forever/item=20452/smoked-desert-dumplings"
+    },
+    {
+      "id": 21072,
+      "url": "https://www.wowhead.com/forever/item=21072/smoked-sagefish"
+    },
+    {
+      "id": 21217,
+      "url": "https://www.wowhead.com/forever/item=21217/sagefish-delight"
+    },
+    {
+      "id": 249865,
+      "url": "https://www.wowhead.com/forever/item=249865/peace-tea"
+    },
+    {
+      "id": 249866,
+      "url": "https://www.wowhead.com/forever/item=249866/royal-tea"
+    },
+    {
+      "id": 249867,
+      "url": "https://www.wowhead.com/forever/item=249867/root-tea"
+    },
+    {
+      "id": 249868,
+      "url": "https://www.wowhead.com/forever/item=249868/triage-tea"
+    },
+    {
+      "id": 249869,
+      "url": "https://www.wowhead.com/forever/item=249869/sunny-tea"
+    },
+    {
+      "id": 249870,
+      "url": "https://www.wowhead.com/forever/item=249870/sages-tea"
+    },
+    {
+      "id": 249871,
+      "url": "https://www.wowhead.com/forever/item=249871/venomous-smoothie"
+    },
+    {
+      "id": 249872,
+      "url": "https://www.wowhead.com/forever/item=249872/slimy-smoothie"
+    },
+    {
+      "id": 249873,
+      "url": "https://www.wowhead.com/forever/item=249873/mrrggl-smrrthle"
+    },
+    {
+      "id": 249874,
+      "url": "https://www.wowhead.com/forever/item=249874/calcified-smoothie"
+    },
+    {
+      "id": 249875,
+      "url": "https://www.wowhead.com/forever/item=249875/spicy-smoothie"
+    },
+    {
+      "id": 249876,
+      "url": "https://www.wowhead.com/forever/item=249876/wicked-smoothie"
+    },
+    {
+      "id": 250065,
+      "url": "https://www.wowhead.com/forever/item=250065/savory-stag-sliders"
+    },
+    {
+      "id": 250066,
+      "url": "https://www.wowhead.com/forever/item=250066/soaring-pamplona"
+    },
+    {
+      "id": 250067,
+      "url": "https://www.wowhead.com/forever/item=250067/bat-hachee"
+    },
+    {
+      "id": 250068,
+      "url": "https://www.wowhead.com/forever/item=250068/savory-turtle-stew"
+    },
+    {
+      "id": 250069,
+      "url": "https://www.wowhead.com/forever/item=250069/flank-au-poivre"
+    },
+    {
+      "id": 250070,
+      "url": "https://www.wowhead.com/forever/item=250070/bear-bruscitti"
+    },
+    {
+      "id": 250071,
+      "url": "https://www.wowhead.com/forever/item=250071/steaming-stag-steak"
+    },
+    {
+      "id": 250072,
+      "url": "https://www.wowhead.com/forever/item=250072/swiftstrike-steak"
+    },
+    {
+      "id": 250073,
+      "url": "https://www.wowhead.com/forever/item=250073/raging-raptor-ribs:"
+    },
+    {
+      "id": 250074,
+      "url": "https://www.wowhead.com/forever/item=250074/bear-brisket"
+    },
+    {
+      "id": 250075,
+      "url": "https://www.wowhead.com/forever/item=250075/prehistoric-pulled-raptor"
+    },
+    {
+      "id": 250076,
+      "url": "https://www.wowhead.com/forever/item=250076/raptor-rouladen"
+    },
+    {
+      "id": 250077,
+      "url": "https://www.wowhead.com/forever/item=250077/twice-spiced-raptor-slice"
+    },
+    {
+      "id": 250078,
+      "url": "https://www.wowhead.com/forever/item=250078/giant-scrambled-eggs"
+    },
+    {
+      "id": 250079,
+      "url": "https://www.wowhead.com/forever/item=250079/tasty-raptor-bites"
+    },
+    {
+      "id": 250080,
+      "url": "https://www.wowhead.com/forever/item=250080/breakfast-omelette"
+    },
+    {
+      "id": 263509,
+      "url": "https://www.wowhead.com/forever/item=263509/skywall-souffle"
+    },
+    {
+      "id": 263512,
+      "url": "https://www.wowhead.com/forever/item=263512/pincer-bites"
+    },
+    {
+      "id": 267341,
+      "url": "https://www.wowhead.com/forever/item=267341/sweetpaw-jam"
+    },
+    {
+      "id": 274971,
+      "url": "https://www.wowhead.com/forever/item=274971/briny-seafood-stew"
+    },
+    {
+      "id": 274976,
+      "url": "https://www.wowhead.com/forever/item=274976/plain-ol-paletusk"
+    },
+    {
+      "id": 286152,
+      "url": "https://www.wowhead.com/forever/item=286152/plated-armorfish"
+    }
+  ]
+}

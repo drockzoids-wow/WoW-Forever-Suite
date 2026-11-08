@@ -1,5 +1,15 @@
 # Forever Suite
 
+## 1.0.8 — November 8, 2026
+
+- Recover older contacts with no assigned server type through Contact book's Recover unassigned contacts view. Select a name and Save to assign it to the current server type while preserving notes and categories.
+- Keep player-created contacts in account-wide SavedVariables independently of mail-feature switches, guild membership, settings profiles and filtered views. Preserve the original book during legacy migration or unfamiliar-format recovery. WoW writes SavedVariables on reload or orderly logout; a crash can lose changes made since its last save.
+- Add Alts, Guild and Other tabs beside Send Mail and to Contact book, with All in the book. Include available offline guild members, prioritize known account alts, retain custom categories/notes and save guild members as ordinary contacts.
+- Color names by known class across all mail groups and retain observed guild classes on saved contacts after guild departure and reload. Contacts without known class data retain normal text.
+- Add mouse-wheel paging across Suite lists, including rows, child buttons, list gaps and paging controls. Preserve normal settings/text scrolling and existing slider behavior. Include saved bag/bank pages and standalone tools.
+- Prefer food with a disclosed positive kill-experience bonus in automatic FS Food selection. Explicit carried food choices retain priority; existing combat, editor, item-data and macro-ownership safeguards remain.
+- Offline checks cover persistence, recovery, guild classes and wheel routing; actual in-game wheel capture and detailed color/taint retests remain pending. The reported game crash has not been diagnosed.
+
 ## 1.0.7 — November 8, 2026
 
 - Keep bag selectors hidden during gamepad label refreshes and preserve independently enabled saved bags when bank snapshots are disabled or unrelated settings change.

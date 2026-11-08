@@ -1,5 +1,68 @@
 # Forever Suite in game testing
 
+## 1.0.8 release and contact persistence — November 8, 2026
+
+Local package `dist/WoWForeverSuite-1.0.8.zip` contains 91 entries, all matching shipped source SHA256 with no extras/missing/duplicates. Archive SHA256: `19E71B5801EB11E977DBC675ED619B771156943FE7FB4D9C619CF438FD28F200`; receipt `.cache/release-108/package-receipt.json`. Embedded release workflow checks pass. Remote CI/upload results remain separate.
+
+User authorizes 1.0.8 publication and prioritizes persistent player-created contacts. Offline final checks pass 82 Lua 5.1 files, identical 1.0.8 TOCs/Core and 32,266 behavior assertions. New persistence checks explicitly create twelve contacts and retain all names/notes through three saved-data initialization cycles, disabled helper/remember-recipient and PvP/PvE visibility switches. Profiles exclude the book; original readable legacy/unfamiliar formats survive under mailContacts.preserved, with unfamiliar-source retention also tested through reload initialization. This does not establish native disk persistence or recover pre-flush changes lost to a crash.
+
+Native follow-up: save contacts with notes/categories, `/reload` or log out normally, then relog/restart/update and check every name/metadata across feature switches, filters and guild departure. WoW controls SavedVariables writes; changes since the last successful flush may be lost if the game crashes. User reports a crash and assumes colors work; actual build/Interface, Suite crash attribution and complete color/wheel/taint results remain unavailable. Prior native checklists remain pending. Local package verification and remote main/release/upload results are recorded separately; no deployment, junction or real SavedVariables edits.
+
+## Mouse-wheel navigation throughout Suite — November 8, 2026
+
+Offline validation passes 82 Lua 5.1 files, matching TOCs and 32,208 behavior assertions; whitespace checks pass. New checks cover Contact book row/background/footer/bounds/combat/restricted input, inventory row paging without Shift/outer scroll, popup child paging, saved-bank slot/background/bounds/combat and shared nested-owner/click/disabled/hidden/repeated-routing behavior. Frame substitutes now expose native IsEnabled and saved-bank child parenting for meaningful routing coverage.
+
+Native validation pending; record actual running build/Interface, UI scale, wheel bindings and Lua/blocked-action/taint results. Offline substitutes cannot prove native input capture.
+
+1. Keep the user's normal wheel-up/down action bindings. In Contact book, test All/Alts/Guild/Other and unassigned recovery with more than eight names. Wheel down over a name, row edge/gap, empty list space and footer advances one page; up returns. First/last/empty/single-page lists stay bounded while retaining wheel capture. Hover outside the list/editor/window and verify normal native behavior. Row clicks, category/search inputs, Save/Remove and paging buttons retain their actions.
+2. Repeat wheel paging on Mail contacts, training (catalog and grouped/weapon views), character dashboard, inventory results, profiles and source popup, buff choices/learned spells, talent builds/point order, leveling journal, supply checklist and mail deadlines. Verify paging does not also move the outer settings viewport or invoke a row action, remove, cast, apply settings or send mail. Inventory result rows should page without Shift; surrounding inventory controls retain normal viewport scrolling.
+3. Repeat on recorded bags/personal/shared banks with multiple pages: slot/background/side-tab wheel input changes pages only within the selected snapshot; item modified-click/tooltips remain native view-only behavior. First/last bounds, empty snapshots, changing character/bank type and short final pages remain correct.
+4. On every settings page, hover row controls, labels and blank content and check normal scrolling. Settings search/inventory result popup rows must wheel-page. Nested macro list/preview, setup cards, sliders, meter menus/details and other existing wheel controls retain their own behavior without scrolling both inner/outer panes. Long content remains reachable.
+5. Enter combat while each paginated view is open: wheel paging must do nothing and not replay later. Check invalid/restricted input substitute coverage separately. After combat and close/reopen, paging resumes with no timers, recurring scans or changed keybindings. Native Ctrl-wheel window resizing remains confined to its supported headers.
+
+## Guild/Other class-color follow-up — November 8, 2026
+
+Offline validation passes 82 Lua 5.1 files, matching TOCs and 32,172 behavior assertions; whitespace checks pass. Regressions cover saved/live Guild colors in the mailbox, book Guild/Other colors, mailbox Other colors, existing/new saved class enrichment, departure/reload retention and missing/failed/restricted class APIs.
+
+Screenshot establishes the pre-fix Guild-color defect. Native retest pending: record actual build/Interface and errors/blocked actions/taint. Open Guild in both mailbox helper and `/wfs contacts`; online/offline members with readable class IDs should use their native class colors, including already saved guild members. Save a member through each UI and verify it remains a single Guild row with notes/category intact. After membership changes, its saved Other row should retain class color through reload/relog. Alts and book All retain their colors. Unknown manual contacts remain neutral; paging/search between colored/unknown rows must reset reused text colors. No roster GUID may be stored as an account-alt identity.
+
+## Contact book group tabs — November 8, 2026
+
+Offline: 82 Lua 5.1 files, matching TOCs and 32,153 behavior assertions pass. Native validation pending; record actual build/Interface and Lua/blocked-action/taint results.
+
+1. With mailbox features off, open `/wfs contacts`. Check All/Alts/Guild/Other above search, eight rows, category filter, footer and editor at normal/small UI scales. All shows the complete list; Alts includes recorded account identities (including the book's current character), Guild includes available offline members, Other includes saved non-guild recipients. Account alts in your guild appear under Alts. Search, category filters and pagination work within each tab; switching clears pending edits/removal confirmation and resets paging.
+2. Select an unsaved guild member: Remove must be disabled; Save must retain entered category/notes as an ordinary contact, with no duplicate row or account-alt classification. Confirm it remains after reload and moves to Other if it leaves the guild. Saved guild contacts remain editable/removable without changing native guild membership.
+3. Trigger guild changes while the standalone book is open and during combat; roster refresh defers safely. Close/reopen the book, toggle unrelated settings and open/close mail while the book is visible. Check no stale roster, pending worker or idle polling persists after closing. Repeat unassigned recovery: its list remains separate; selecting a normal tab exits recovery, and explicit Save returns to All without losing metadata. Repeat recorded-class/unknown-class color checks.
+
+## Mail recovery and Contact book class colors — November 8, 2026
+
+Offline: 82 Lua 5.1 files, matching TOCs and 32,105 assertions pass. Regression recreates twelve stored/three visible, saved-data initialization, recovery pagination, explicit assignment with retained notes/category, scope isolation, combat/unknown-server guards and class-color fallback/reused rows. This does not establish the reported person's actual saved contents. Native checks pending; record running build/Interface and errors/blocked actions/taint.
+
+1. Open `/wfs contacts` with older blank-server-type contacts. Click Recover unassigned contacts; search/page the names, select one and check the Save assignment explanation. Save on the intended server type; verify notes/category remain, the name returns to the ordinary book/mail helper and reload/relog retains it. Other unassigned names must remain saved. Search/filter both views and try a duplicate current-server name; duplicate Save must leave both records intact.
+2. Verify another region and known other server types stay excluded. Unknown current server type cannot assign contacts. Combat blocks recovery/edit/save/remove. Ordinary confirmed removal remains deliberate. Check recovery button, status text and list at normal/small UI scales.
+3. Recorded classes should color names in the book; manual contacts without class data should use normal text. Search/page between colored and unknown-class names and check reused rows do not retain a previous color. No class lookup or mail transaction should occur.
+
+## Mail contact tabs — November 8, 2026
+
+Offline validation: `node scripts/check-addon.cjs` passes 82 Lua 5.1 files, matching TOCs and 32,079 behavior assertions; `git diff --check` passes. Native validation pending. Record actual running build/Interface and Lua/blocked-action/taint results. Offline regression checks cover bucket precedence, active-character exclusion, saved/live deduplication, offline guild members, recipient filling, search, paging reset, event caching, member departure, guild departure, combat deferral, restricted/uninitialized APIs and disabled cleanup.
+
+1. Enable Mail contacts, open Send Mail and check the wider panel, Alts/Guild/Other tabs above search, six rows, footer and screen-edge docking at normal and smaller UI scales. Inbox must hide it. Switch tabs, search, sort and page long lists; highlighted tab and count must follow the current list.
+2. Log into another account character, then return. It must appear only in Alts on the matching server type, even in your guild; the current character must stay absent. Existing incomplete alt names retain their completion path. Characters never recorded by Suite require a login before they are known.
+3. Open Guild with online and offline members. Check native full names, click-to-fill To, subject focus and native autocomplete for incomplete names; sending stays manual. Compare against the native guild roster. Guild rows must have no remove-from-roster button. Save a guild recipient explicitly: it must remain a single Guild entry while keeping Contact book notes/categories.
+4. Add a non-guild recipient via To/Save recipient and via Contact book; check Other, search and removal persistence. A saved guild member who leaves should move to Other; an unsaved departing member should disappear. Leave/change guild and check the roster refreshes without stale names. Reload and revisit; ensure no live guild roster was persisted as account characters.
+5. Enter combat during queued roster work, switch guild membership/roster data if possible, then leave combat. Changes and layout must defer safely. Disable helper (also with Remember recipient still enabled), close/reopen mailbox, and check cleanup, no polling, no errors or blocked actions.
+
+## Experience-food priority — November 8, 2026
+
+Native validation pending; user confirmation of improved earlier food behavior predates this change. Record actual running build/Interface and Lua/blocked-action/taint results.
+
+Offline: `node scripts/check-addon.cjs` passes 82 Lua 5.1 files, matching TOCs and 32,031 behavior assertions. Whitespace checks pass. The research catalog contains 100 unique IDs. API substitutes cover ranking/promotion, explicit choices, depletion, guarded metadata and existing macro lifecycle protections; they do not establish native compatibility.
+
+1. With automatic FS Food and class background updates off, carry Spongy Morel and Bristle Whisker Catfish. Open either bag layout: the existing owned macro should select Catfish even while Morel remains carried. Repeat with stronger ordinary food, mage food and event candy. XP food should win. Press FS Food and remain seated at least ten seconds; verify the actual XP buff through the native tooltip.
+2. Explicitly choose Morel: it should remain selected while carried. Return to automatic, carry two XP foods with equal bonuses and confirm fresh selection uses existing restoration ranking. An already-selected equal-bonus XP food should remain until depleted. Deplete XP supplies: fallback should select existing mage/event/regular-food tiers and preserve the macro index.
+3. Restock XP food, then check login/reload, use and bag opening. Combat and the native macro editor defer changes; external macro edits remain protected. Delayed/restricted food metadata keeps existing text. Above-level food, mana-only drinks and Well Fed food lacking an XP disclosure must not receive XP priority. Check existing non-English explicit selection and independent combat potion behavior.
+4. Repeat with another crafted food's actual live tooltip. The [research candidates](research/food-experience-candidates.json) include drinks/unconfirmed entries; only positive, readable XP disclosure on usable health-restoring food grants priority. No exhaustive live database, rendering or taint verification is implied by offline checks.
+
 ## 1.0.7 release validation — November 8, 2026
 
 Final local candidate passes: 82 Lua 5.1 files, identical 1.0.7 TOCs/Core, 32,010 behavior assertions, 68 registered Lua specs, scope/whitespace and release-workflow substitute checks. All 91 package entries match source hashes with no extras/missing/duplicates. Local dist/WoWForeverSuite-1.0.7.zip SHA256: 4520BD525BB8371FC0A1CAD6F2ECB3262FEAB65F95FA4E2FF1007825323E5705. Receipt: .cache/release-107/package-receipt.json. Remote CI/upload results are separate from local validation.
