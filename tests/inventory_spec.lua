@@ -290,6 +290,24 @@ equal(calls, callsBefore, "disabled retained callbacks do not query inventory")
 equal(Suite.db.inventory.characters[identity.guid].bags.items[100], 3, "disable retains saved inventories for reenable")
 
 Suite.db.itemInventory = true
+bags[0][1].hyperlink, bags[0][1].iconFileID = "item:100:321", 1100
+inventory:Apply()
+local bagOwner = Suite.db.inventory.characters[identity.guid]
+local bagView = bagOwner.bagView
+equal(bagView.tabs[1].slots[1].link, "item:100:321", "normal inventory refresh persists slot snapshot")
+bags[0][1].stackCount, bags[0][1].iconFileID = 4, nil
+Fire("BAG_UPDATE_DELAYED"); Flush()
+equal(bagOwner.bagView, bagView, "incomplete artwork preserves last complete bag slot view")
+equal(bagOwner.bags.items[100], 4, "incomplete artwork does not prevent independent count capture")
+bags[0][1].iconFileID = 1100
+Fire("ITEM_DATA_LOAD_RESULT"); Flush()
+equal(bagOwner.bagView.tabs[1].slots[1].count, 4, "item data event completes saved bag slots")
+local persistedBags = Suite.Copy(Suite.db.inventory)
+Suite.db = Suite.InitializeDB({ itemInventory = true, inventory = persistedBags })
+equal(Suite.db.inventory.characters[identity.guid].bagView.tabs[1].slots[1].count, 4,
+    "saved bag slots survive database initialization")
+Suite.db.itemInventory = false; inventory:Apply()
+Suite.db.itemInventory = true
 C_Container.GetContainerItemInfo = nil
 inventory:Apply()
 equal(TimerCount(), 0, "missing container capabilities do not start a retry loop")

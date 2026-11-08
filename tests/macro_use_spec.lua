@@ -180,6 +180,69 @@ equal(macros.useBagWaiting, true, "incomplete stock keeps a bounded bag-completi
 fixture.loading(false); Event("BAG_UPDATE_DELAYED"); Tick()
 equal(Body(food), "#showtooltip [nocombat] item:4593\n/use [nocombat] item:4593", "bag completion finishes the pending Catfish update without a GUI refresh")
 equal(macros.useBagWaiting, nil, "completed stock clears its bag wait")
+
+-- Opening bags is an independent food check, even without an observed macro use.
+local oldCombined, oldIndividual, oldBagWatch = ContainerFrameCombinedBags, ContainerFrame1, macros.bagWatch
+local function BagFrame(id)
+    return { GetID = function() return id end, HookScript = function(self, script, callback)
+        self.hooks = (self.hooks or 0) + 1; self[script] = callback
+    end }
+end
+ContainerFrameCombinedBags, ContainerFrame1 = BagFrame(0), BagFrame(1)
+macros:WatchUses(); macros:WatchUses()
+equal(ContainerFrameCombinedBags.hooks, 1, "combined bag opening observer is installed once")
+equal(ContainerFrame1.hooks, 1, "individual bag opening observer is installed once")
+local function Open(frame) frame.OnShow(frame) end
+fixture.native()[foodIndex].body, Suite.db.macroOwnership[food.name] = staleFood, staleFood
+food.item, food.combat = nil, false
+fixture.bags({ 4544 }); scanStart = scans
+Open(ContainerFrameCombinedBags); Open(ContainerFrame1); Open(ContainerFrameCombinedBags)
+equal(scans, scanStart, "opening bags does not scan or write in the native OnShow stack")
+Tick(0.15)
+equal(scans, scanStart + 1, "combined and individual bag opening bursts coalesce into one check")
+local breadBody = "#showtooltip [nocombat] item:4544\n/use [nocombat] item:4544"
+equal(Body(food), breadBody, "bag opening replaces stale food with the screenshot's Mulgore Spice Bread while background updates are off")
+equal(macros:Find(food.name), foodIndex, "bag-open refresh retains the food macro index")
+equal(macros.lastEvent, "Bags opened", "diagnostics identify the independent bag-open signal")
+equal(macros.used, nil, "completed bag-open check releases pending work")
+scanStart = scans; Tick(100); Event("BAG_UPDATE_DELAYED"); Tick(100)
+equal(scans, scanStart, "finished bag-open checks leave no idle stock refresh")
+
+fixture.bags({ 4593 }); SetCombat(true); Open(ContainerFrameCombinedBags); Tick(100)
+equal(scans, scanStart, "combat bag opening defers the stock scan")
+equal(Body(food), breadBody, "combat bag opening preserves the macro")
+SetCombat(false); Event("PLAYER_REGEN_ENABLED"); Tick()
+equal(Body(food):find("item:4593", 1, true) ~= nil, true, "combat exit finishes the bag-open food check")
+
+MacroFrame:Show(); fixture.bags({ 4544 }); Open(ContainerFrame1); Tick()
+equal(Body(food):find("item:4593", 1, true) ~= nil, true, "native editor pauses bag-open writes")
+MacroFrame:Hide(); MacroFrame.OnHide(MacroFrame); Tick()
+equal(Body(food), breadBody, "editor close resumes the pending bag-open check")
+fixture.native()[foodIndex].body = "/say My custom food"
+fixture.bags({ 4593 }); Open(ContainerFrameCombinedBags); Tick()
+equal(Body(food), "/say My custom food", "bag opening preserves external macro edits")
+macros:Save(food)
+fixture.loading(true); fixture.bags({ 4544 }); Open(ContainerFrame1); Tick()
+equal(Body(food):find("item:4593", 1, true) ~= nil, true, "incomplete bags preserve food on bag opening")
+fixture.loading(false); Event("BAG_UPDATE_DELAYED"); Tick()
+equal(Body(food), breadBody, "bag completion finishes a pending bag-open check")
+fixture.unavailable(4544); Open(ContainerFrame1); Tick(); scanStart = scans; Tick(100)
+equal(scans, scanStart, "bag-open metadata timeout does not poll")
+equal(macros.used, nil, "bag-open metadata timeout releases work")
+fixture.unavailable(nil)
+scanStart = scans
+for _, id in ipairs({ -1, 6, { secret = true } }) do
+    ContainerFrame1.GetID = function() return id end
+    Open(ContainerFrame1); Tick(100)
+end
+equal(scans, scanStart, "bank and restricted bag identities cannot trigger food checks")
+food.created = false; Open(ContainerFrameCombinedBags); Tick(100)
+equal(scans, scanStart, "uncreated food recipes cannot trigger bag-open writes")
+food.created = true
+fixture.native()[foodIndex] = nil
+Open(ContainerFrameCombinedBags); Tick()
+equal(macros:Find(food.name), nil, "bag opening never recreates a missing macro")
+ContainerFrameCombinedBags, ContainerFrame1, macros.bagWatch = oldCombined, oldIndividual, oldBagWatch
 macros:FinishUsed(); macros:Cancel()
 macros.useEvents.RegisterEvent, macros.useEvents.UnregisterAllEvents = register, unregister
 items.Scan, C_Timer.NewTimer = oldScan, oldTimer

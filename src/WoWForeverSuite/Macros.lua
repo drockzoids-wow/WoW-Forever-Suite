@@ -775,6 +775,28 @@ function Macros:WatchUses()
         if entry.created and self:ItemRecipe(entry) then needed = true; break end
     end
     if not needed then return end
+    -- Native combined and individual bag opens both show these frames. BAG_OPEN
+    -- alone does not cover the ordinary Lua toggle paths on build 70862.
+    self.bagWatch = self.bagWatch or {}
+    local function Watch(frame)
+        if not frame or self.bagWatch[frame] or type(frame.HookScript) ~= "function" then return end
+        self.bagWatch[frame] = true
+        frame:HookScript("OnShow", function(owner)
+            local id = owner.GetID and owner:GetID()
+            if not Number(id) or id < 0 or id > 5 or id % 1 ~= 0 then return end
+            for _, entry in ipairs(Suite.macroDB and Suite.macroDB.entries or {}) do
+                if entry.recipe == "food" and entry.created then
+                    self:Used(entry.name)
+                    self.lastEvent = "Bags opened"
+                    self:QueueUsed(0.15)
+                    break
+                end
+            end
+        end)
+    end
+    Watch(ContainerFrameCombinedBags)
+    local count = Number(NUM_CONTAINER_FRAMES) and math.min(20, NUM_CONTAINER_FRAMES) or 7
+    for index = 1, count do Watch(_G["ContainerFrame" .. index]) end
     if not self.useEvents then
         self.useEvents = CreateFrame("Frame")
         self.useEvents:SetScript("OnEvent", function(_, event, id)

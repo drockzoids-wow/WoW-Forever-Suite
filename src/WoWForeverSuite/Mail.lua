@@ -63,6 +63,13 @@ local function ValidRuleset(value)
     return String(value, 64) and value or nil
 end
 
+-- Shared with inventory selectors so server labels and unknown scopes follow
+-- the same policy as the Contact Book without reading or changing contacts.
+function Mail:RecordedRuleset(character)
+    if not Suite.IsReadable(character) or type(character) ~= "table" then return end
+    return RulesetFromServer(character.realm) or ValidRuleset(character.ruleset)
+end
+
 local function Key(region, name, ruleset, guid)
     if guid then return tostring(region) .. ":guid:" .. guid end
     return tostring(region) .. ":name:" .. (ruleset or "?"):lower() .. ":" .. name:lower()
@@ -239,7 +246,7 @@ function Mail:SeedRecordedCharacters()
         if String(guid, 128) and Suite.IsReadable(entry) and type(entry) == "table"
             and Suite.IsReadable(entry.region) and entry.region == region then
             local name = Name(entry.fullName) or Name(entry.name, true)
-            local ruleset = RulesetFromServer(entry.realm) or ValidRuleset(entry.ruleset)
+            local ruleset = self:RecordedRuleset(entry)
             -- Seed once; removed contacts stay removed until that character is logged in again.
             local contacts = self:Database()
             local key = name and Key(region, name, ruleset, guid)

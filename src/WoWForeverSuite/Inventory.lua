@@ -120,6 +120,44 @@ function Inventory:ScanBank(bankType)
     return self:ScanContainers(ids, true)
 end
 
+-- Slot records are separate from aggregate counts: incomplete item artwork/link data
+-- must never erase the last complete view or prevent count recording.
+function Inventory:ScanBagView(ids)
+    if not C_Container or not C_Container.GetContainerNumSlots or not C_Container.GetContainerItemInfo
+        or not C_Container.GetContainerItemID then return end
+    local view = { schema = 1, tabs = {}, totalSlots = 0, at = Timestamp() }
+    for _, bag in ipairs(ids) do
+        local size = C_Container.GetContainerNumSlots(bag)
+        if not Integer(size, 0, 1000) or view.totalSlots + size > 2816 then return end
+        if bag == 0 and size == 0 then return end
+        if size > 0 then
+            local tab = { bag = bag, size = size, slots = {} }
+            for slot = 1, size do
+                local info = C_Container.GetContainerItemInfo(bag, slot)
+                if not Suite.IsReadable(info) then return end
+                if info == nil then
+                    local id = C_Container.GetContainerItemID(bag, slot)
+                    if not Suite.IsReadable(id) or id ~= nil then return end
+                else
+                    if type(info) ~= "table" or not Integer(info.itemID, 1, 2147483647)
+                        or not Integer(info.stackCount, 1, 1000000000) or not Text(info.hyperlink)
+                        or #info.hyperlink > 4096 or tonumber(info.hyperlink:match("item:(%d+)")) ~= info.itemID
+                        or not Integer(info.iconFileID, 1, 2147483647) then return end
+                    tab.slots[slot] = { id = info.itemID, count = info.stackCount, link = info.hyperlink,
+                        icon = info.iconFileID, quality = Integer(info.quality, 0, 8) and info.quality or nil,
+                        name = Text(info.itemName) and info.itemName or nil }
+                    if Suite.IsReadable(info.isBound) and type(info.isBound) == "boolean" then
+                        tab.slots[slot].isBound = info.isBound
+                    end
+                end
+            end
+            view.tabs[#view.tabs + 1] = tab
+            view.totalSlots = view.totalSlots + size
+        end
+    end
+    if view.totalSlots > 0 then return view end
+end
+
 function Inventory:Refresh()
     if not self:Enabled() then return end
     local character, region = self:Character()
@@ -130,6 +168,8 @@ function Inventory:Refresh()
         for bag = 0, limit do ids[#ids + 1] = bag end
         local snapshot = self:ScanContainers(ids)
         if snapshot then character.bags = snapshot end
+        local view = self:ScanBagView(ids)
+        if view then character.bagView = view end
     end
     local types = Enum and Enum.BankType
     if types then

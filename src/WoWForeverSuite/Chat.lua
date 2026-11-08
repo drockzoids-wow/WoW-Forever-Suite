@@ -69,6 +69,23 @@ local function InputGeometry(input)
     local width = input:GetWidth()
     if Number(width) and width > 0 then return { points = points, width = width } end
 end
+function Chat:DeferInput(record)
+    local input = record.input
+    if input then
+        -- Native IM chat keeps an inactive edit box shown. Only focus means
+        -- typing; never infer activity from visibility or read the draft.
+        local ok, focused = false, nil
+        if Available(input) and type(input.HasFocus) == "function" then
+            ok, focused = pcall(input.HasFocus, input)
+        end
+        if not ok or not Read(focused, "boolean") or focused then
+            record.inputPending = true
+            return true
+        end
+    end
+    record.inputPending = nil
+    return false
+end
 function Chat:Options(db)
     db = db or Suite.db or {}
     local size, opacity = db.chatFontSize, db.chatOpacity
@@ -98,6 +115,7 @@ local function Pane(parent, relative)
     pane:SetPoint("BOTTOMRIGHT", relative, "BOTTOMRIGHT", 0, 0)
     pane:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
     pane:EnableMouse(false)
+    pane:Hide() -- Never expose an unpainted default-white backdrop during discovery.
     return pane
 end
 function Chat:PaintTab(record, opacity)
@@ -177,18 +195,18 @@ function Chat:RememberFont(record, object)
     local function Changed()
         if self.changing or not record.applied or not self:Enabled() then return end
         entry.font = Font(object)
-        if InCombatLockdown() then self:Schedule(); return end
-        self:Fonts(record)
+        self:Schedule()
     end
     hooksecurefunc(object, "SetFont", Changed)
     if type(object.SetFontObject) == "function" then hooksecurefunc(object, "SetFontObject", Changed) end
 end
 function Chat:Fonts(record, restore)
     if InCombatLockdown() or not Writable(record.frame) then return end
+    local deferInput = self:DeferInput(record)
     local changing = self.changing; self.changing = true
     local size = self:Options()
     for _, entry in ipairs(record.fonts) do
-        local readable = true
+        local readable = entry.object ~= record.input or not deferInput
         if entry.object == record.frame and record.applied then
             local current, applied = Font(entry.object), entry.appliedFont
             if not current then
@@ -199,7 +217,10 @@ function Chat:Fonts(record, restore)
         end
         if readable and entry.font and Writable(entry.object) then
             local targetSize = restore and entry.font[2] or size
-            entry.object:SetFont(entry.font[1], targetSize, entry.font[3])
+            local current = Font(entry.object)
+            if current and (current[1] ~= entry.font[1] or current[2] ~= targetSize or current[3] ~= entry.font[3]) then
+                entry.object:SetFont(entry.font[1], targetSize, entry.font[3])
+            end
             entry.appliedFont = not restore and { entry.font[1], targetSize, entry.font[3] } or nil
         end
     end
@@ -207,7 +228,7 @@ function Chat:Fonts(record, restore)
 end
 function Chat:InputLayout(record, restore)
     local input = record.input
-    if InCombatLockdown() or not Writable(record.frame) or not Writable(input) then return end
+    if InCombatLockdown() or not Writable(record.frame) or not Writable(input) or self:DeferInput(record) then return end
     if restore then
         local geometry = record.inputGeometry
         if not geometry then return end
@@ -223,6 +244,17 @@ function Chat:InputLayout(record, restore)
         if not Anchorable(background) then return end
         if not record.inputGeometry then record.inputGeometry = InputGeometry(input) end
         if not record.inputGeometry then return end
+        local points = Points(input)
+        if points and #points == 2 then
+            local left, right = false, false
+            for _, point in ipairs(points) do
+                if point[2] == background and point[4] == 0 and point[5] == -3 then
+                    if point[1] == "TOPLEFT" and point[3] == "BOTTOMLEFT" then left = true end
+                    if point[1] == "TOPRIGHT" and point[3] == "BOTTOMRIGHT" then right = true end
+                end
+            end
+            if left and right then return end
+        end
         -- Match the visible chat panel, including its native scrollbar gutter. Keep typing height,
         -- parent, insets, headers and input scripts native, with a small gap below the panel.
         input:ClearAllPoints()
@@ -377,6 +409,13 @@ function Chat:Remember(frame)
             if Suite.ChatCopy.owner == record.frame then Suite.ChatCopy:Hide() end
             self:PaintInputBorder(record)
         end)
+        local function InputIdle()
+            -- Queue outside native focus/send/cancel/hide stacks, including a
+            -- pending disable. IM chat may lose focus without hiding.
+            if record.inputPending then self:Schedule(true) end
+        end
+        input:HookScript("OnHide", InputIdle)
+        input:HookScript("OnEditFocusLost", InputIdle)
     end
     if Available(frame.Selection) and type(frame.SetClampRectInsets) == "function" then
         hooksecurefunc(frame, "SetClampRectInsets", function(_, left, right, top, bottom)
@@ -430,12 +469,13 @@ function Chat:Style(record)
     record.applied = true
     self:Fonts(record)
     self:InputLayout(record)
-    self:EditBounds(record)
+    if not record.inputPending then self:EditBounds(record) end
     for _, entry in ipairs(record.alphas) do if entry.alpha ~= nil and Available(entry.object) then entry.object:SetAlpha(0) end end
     self:Paint(record)
 end
 function Chat:Restore(record)
-    if not record.applied or not Writable(record.frame) then return end
+    if not record.applied then record.inputPending = nil; return end
+    if not Writable(record.frame) or self:DeferInput(record) then return end
     self:Fonts(record, true)
     self:InputLayout(record, true)
     self:EditBounds(record, true)
@@ -478,8 +518,8 @@ function Chat:Initialize()
         end)
     end
 end
-function Chat:Schedule()
-    if not self:Enabled() or self.changing or self.timer then return end
+function Chat:Schedule(allowDisabled)
+    if (not self:Enabled() and not allowDisabled) or self.changing or self.timer then return end
     if InCombatLockdown() then Suite.AfterCombat("chat", function() self:Apply() end); return end
     self.timer = C_Timer.NewTimer(0, function() self.timer = nil; self:Apply() end)
 end

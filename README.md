@@ -1,10 +1,10 @@
 # Forever Suite
 
-**Current source: 1.0.6.** This update fixes automatic item-macro supply checks, adds one recheck at login/reload, scopes mail contacts to the current server type, opens companion tools beside their launcher, updates training facts and preserves native keybind text through separate short-label overlays. It includes the wishlist, checklist, mail deadlines, contact book and other tools from 1.0.5. New optional features start off. The initial feature baseline is described in the [1.0.0 release notes](docs/release-1.0.0.md).
+**Current source: 1.0.7.** This update adds saved bag/bank character selectors with server-type scoping and a return-to-current-character button, rechecks created food macros when bags open, preserves low-resource proc popups, strengthens the Shift conversation bypass and stabilizes chat input/reload styling. Selector fixes preserve gamepad hiding and independently enabled saved bags through unrelated settings changes. Existing tools and settings are retained; new optional features start off. The initial feature baseline is described in the [1.0.0 release notes](docs/release-1.0.0.md).
 
 **Training Planner** has per-character pins and a wishlist cost estimate (`/wfs wishlist`). **Tools → Supply Checklist** saves item targets and optionally counts carried stock (`/wfs checklist`). **Mail → Mail Deadlines** optionally records mailbox deadlines and reminds at login (`/wfs maildeadlines`). Both tracking switches start off. **Suite Settings → What's New** links to recent additions (`/wfs whatsnew`).
 
-**Validation:** 81 Lua files pass Lua 5.1 syntax checks, both TOCs match, and 30,714 behavior assertions pass with API substitutes. The user confirms the automatic food fix works in game; the talent workflow retains user production acceptance. Additional native coverage, including combat/taint checks, remains recorded separately in the [in-game test guide](docs/testing.md). Earlier world-map and quest-tracker combat reports remain open for monitoring at the user's requested deferral. See the [1.0.6 changelog](CHANGELOG.md#106--november-7-2026). Restart WoW to load the new module.
+**Validation:** 82 Lua files pass Lua 5.1 syntax checks, both TOCs match, and 32,010 behavior assertions pass with API substitutes. The user confirmed the requested low-resource proc behavior; new food bag-opening refresh, chat, Shift and selector native retests remain pending in the [in-game test guide](docs/testing.md). The later stale-food report supersedes the earlier broad food-fix confirmation. Earlier world-map and quest-tracker combat reports remain open for monitoring at the user's requested deferral. See the [1.0.7 changelog](CHANGELOG.md#107--november-8-2026). Restart WoW to load the new module.
 
 Optional **Ability proc popups** are under `/wfs actionbars` → **Ability Proc Popups**. Native highlighted class procs and supported reactive skills such as Overpower show a passive spell icon/name during combat. Use **Preview proc popups** outside combat to drag them into place. The feature starts off; cast through your normal keybind/action bar. Native class coverage and appearance still need in-game testing.
 
@@ -18,7 +18,7 @@ Drag the settings window past screen edges to get it out of the way of previews.
 
 **Known vendor items:** enable `/wfs vendor` → **Known Items → Highlight already-known vendor items** for green highlights/checkmarks on learned recipes and collected items. Ordinary items in your bags do not count as learned. Missing data remains unmarked. This feature starts off and does not enable vendor automation. See the [smoke test](docs/testing.md#known-vendor-items---02102).
 
-The official source is **C:\Games\Development\GitHub Repos\WoW Forever Suite** (user-selected October 25, 2026). After restarting with this source, the footer should show **1.0.5**. The readable journey journal, default training catalog, vendor highlights and existing optional tools remain available.
+The official source is **C:\Games\Development\GitHub Repos\WoW Forever Suite** (user-selected October 25, 2026). After restarting with this source, the footer should show **1.0.7**. The readable journey journal, default training catalog, vendor highlights and existing optional tools remain available.
 
 Open /wfs leveling > **Session journal** for six labeled cards and **Summary, Loot, Reputation, Levels and History**. New tracking adds deaths, loot estimates, ordinary reputation, level milestones and confirmed Suite sales/repairs. Old XP/gold/time remains; details not collected earlier show **Not recorded**. No EverCore history is imported. See the [smoke checklist](docs/testing.md#readable-journal-and-default-training-catalog---02103-october-22-2026).
 
@@ -28,7 +28,7 @@ Open **/wfs combat** and enable **Combat indicator**. Gold **IN COMBAT** and gre
 
 ## Seasonal food and water
 
-Automatic food/water selection prefers **mage supplies, then known event supplies, then regular supplies**. Hallow's End Lollipop, Candy Corn and Candy Bar work for both health and mana. Created item-use macros check carried supplies once at login/reload and after use, even with background class updates off. Keep the current item while carried; depleted preferences fall back to suitable supplies without erasing your saved choice. Automatic tooltip classification remains English-only.
+Automatic food/water selection prefers **mage supplies, then known event supplies, then regular supplies**. Hallow's End Lollipop, Candy Corn and Candy Bar work for both health and mana. Created item-use macros check carried supplies once at login/reload and after use, even with background class updates off; created food macros also recheck when bags open. Keep the current item while carried; depleted preferences fall back to suitable supplies without erasing your saved choice. Automatic tooltip classification remains English-only.
 
 ## Quest guidance removed
 

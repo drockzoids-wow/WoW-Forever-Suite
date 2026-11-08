@@ -9,7 +9,7 @@ GetTime = function() return now end
 local oldTexture = C_Texture
 C_Texture = { GetAtlasInfo = function() return { width = 512, height = 512 } end }
 local secret = {}; issecretvalue = function(value) return value == secret end
-local known, usable, cooldowns, glows, infos, timers = {}, {}, {}, {}, {}, {}
+local known, usable, cooldowns, glows, infos, timers, power = {}, {}, {}, {}, {}, {}, {}
 local created = 0
 SetCombat(false); Suite.db, Suite.pending = Suite.InitializeDB(nil), {}
 CreateFrame = function(kind, name, parent)
@@ -21,6 +21,7 @@ CreateFrame = function(kind, name, parent)
         local texture = createTexture(self, ...)
         texture.SetTexCoord = function() end
         texture.SetAtlas = function(self, atlas) self.atlas = atlas end
+        texture.SetVertexColor = function(self, r, g, b) self.tint = { r, g, b } end
         texture.CreateAnimationGroup = function()
             assert(not InCombatLockdown(), "glow animations must be prepared outside combat")
             local group = {
@@ -47,7 +48,7 @@ CreateFrame = function(kind, name, parent)
     return frame
 end
 C_Spell = {
-    IsSpellUsable = function(id) return usable[id] end,
+    IsSpellUsable = function(id) return usable[id], power[id] end,
     GetSpellCooldown = function(id)
         local value = cooldowns[id]
         if type(value) == "function" then return value() end
@@ -127,6 +128,43 @@ alerts:Paint()
 equal(glow.plays, plays, "refreshing an existing proc does not restart the animation")
 equal(alerts.cells[1].OnUpdate, nil, "border needs no Lua frame polling")
 equal(created, before, "combat proc creates no frames")
+usable[11585], power[11585] = false, true
+alerts:OnEvent("UNIT_POWER_UPDATE", "player"); Flush()
+equal(alerts.frame:IsShown(), true, "low rage keeps an available Overpower visible")
+equal(alerts.cells[1].icon.tint[1], 0.5, "low rage uses native action-bar red tint")
+equal(alerts.cells[1].icon.tint[2], 0.5, "low rage uses native action-bar green tint")
+equal(alerts.cells[1].icon.tint[3], 1, "low rage uses native action-bar blue tint")
+equal(glow.playing, true, "low rage preserves the active proc border")
+cooldowns[11585] = { duration = 5, startTime = now }
+alerts:OnEvent("SPELL_UPDATE_COOLDOWN"); Flush()
+equal(alerts.frame:IsShown(), false, "insufficient rage cannot bypass a real cooldown")
+cooldowns[11585] = { isActive = false, duration = secret }
+alerts:OnEvent("SPELL_UPDATE_COOLDOWN"); Flush()
+equal(alerts.frame:IsShown(), true, "low-rage proc can first appear with public inactive cooldown")
+cooldowns[11585].isEnabled = false; alerts:Paint()
+equal(alerts.frame:IsShown(), false, "low rage cannot bypass a disabled cooldown")
+cooldowns[11585] = { isEnabled = true, isActive = true, isOnGCD = true, duration = secret }
+alerts:OnEvent("SPELL_UPDATE_COOLDOWN"); Flush()
+equal(alerts.frame:IsShown(), true, "GCD keeps a low-resource proc visible with restricted times")
+cooldowns[11585] = { isActive = false, duration = secret }
+alerts:OnEvent("SPELL_UPDATE_COOLDOWN"); Flush()
+power[11585] = false; alerts:OnEvent("SPELL_UPDATE_USABLE"); Flush()
+equal(alerts.frame:IsShown(), false, "proc expiry still hides while rage remains low")
+for _, unreadable in ipairs({ secret, "true" }) do
+    power[11585] = unreadable; alerts:Paint()
+    equal(alerts.frame:IsShown(), false, "unreadable or invalid resource flag cannot establish a proc")
+end
+power[11585], usable[11585] = true, secret; alerts:Paint()
+equal(alerts.frame:IsShown(), false, "resource flag cannot bypass restricted usability")
+local usableAPI = C_Spell.IsSpellUsable
+C_Spell.IsSpellUsable = function() error("unavailable") end
+alerts:Paint(); equal(alerts.frame:IsShown(), false, "rejected usability query hides safely")
+C_Spell.IsSpellUsable = usableAPI
+usable[11585], power[11585] = true, false
+alerts:OnEvent("UNIT_POWER_UPDATE", "player"); Flush()
+equal(alerts.frame:IsShown(), true, "regaining rage restores the available proc")
+equal(alerts.cells[1].icon.tint[1], 1, "regaining rage restores full icon brightness")
+equal(alerts.cells[1].icon.tint[2], 1, "regaining rage clears the resource tint")
 equal(alerts.frame.mouseEnabled, false, "live proc frame is click through")
 equal(alerts.frame.wheelEnabled, false, "live popup also passes mouse-wheel input through")
 for _, cell in ipairs(alerts.cells) do
@@ -166,6 +204,11 @@ infos[999] = { name = "Another class proc", iconID = 123 }
 glows[999] = true
 alerts:OnEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 999); Flush()
 equal(alerts.cells[1].name.text, "Another class proc", "native glows support arbitrary class spells")
+usable[999], power[999] = false, true; alerts:OnEvent("UNIT_POWER_UPDATE", "player"); Flush()
+equal(alerts.frame:IsShown(), true, "native highlighted proc remains visible with insufficient power")
+equal(alerts.cells[1].icon.tint[1], 0.5, "native highlighted proc also receives resource tint")
+usable[999], power[999] = true, false; alerts:OnEvent("UNIT_POWER_UPDATE", "player"); Flush()
+equal(alerts.cells[1].icon.tint[1], 1, "native highlighted proc brightens when resources recover")
 alerts:OnEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 999); Flush()
 equal(#alerts:Entries(), 1, "repeated glow events do not duplicate icons")
 alerts:OnEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", secret)

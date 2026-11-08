@@ -1,5 +1,16 @@
 # Forever Suite
 
+## 1.0.7 — November 8, 2026
+
+- Keep bag selectors hidden during gamepad label refreshes and preserve independently enabled saved bags when bank snapshots are disabled or unrelated settings change.
+- Recheck the created food macro when native bags open, even with background updates off; coalesce opening bursts and preserve combat, editor, item-data and manual-edit safeguards.
+- Show concise server types such as PvE in inventory character dropdowns and match Contact Book's region/server-type isolation for bag and bank selections.
+- Add a tiny refresh-icon button beside each inventory character dropdown to return to the current character.
+- Add character dropdowns to bank and backpack/combined bags for saved inventory slots. Keep shortened combined search on the right and stack individual backpack search above its selector; show recording time and view-only status.
+- Keep available ability proc popups visible with the native low-resource icon tint when rage, mana or energy is insufficient; restore brightness when resources recover.
+- Strengthen the Shift bypass for innkeeper, vendor and quest conversations: check physical Shift independently of bindings and latch presses between dialogue events and queued advancement.
+- Keep input fonts and anchors stable while typing; apply pending changes after focus loss or hide and honor combat deferral. Initialize chat appearance even when native inactive input stays shown, hide unpainted backdrops and avoid resetting matching fonts or anchors.
+
 ## 1.0.6 — November 7, 2026
 
 - Use the native macro-with-tooltip predicate for action-bar use detection; a resolved legacy item action must not prevent a supply check. Add one coalesced check of created item-use macros at login/reload, independent of background updates. Finish incomplete stock checks on bounded bag-completion events; retain no idle refresh.

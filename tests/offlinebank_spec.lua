@@ -445,6 +445,209 @@ bank.frame:Hide()
 equal(bank.viewGUID, nil, "closing clears the recorded-owner override")
 equal(bank:GetSnapshot(0), originalSnapshot, "ordinary bank commands return to the current character")
 
+-- Bag selection uses the same view-only slot renderer, with independent source records.
+local selectors = Suite.InventorySelectors
+local oldControls, oldWatched = selectors.controls, selectors.watched
+selectors.controls, selectors.watched = {}, {}
+Suite.db.itemInventory, Suite.db.offlineBank = true, true
+local alt = Suite.db.inventory.characters["Player-alt"]
+GetNormalizedRealmName = function() return "CAMWOWUS2Realm1PvE" end
+Suite.db.inventory.characters[identity].realm = "CAMWOWUS2Realm1PvE"
+alt.realm = "CAMWOW US2 Realm 1 PvE"
+alt.bagView = { schema = 1, at = 222, totalSlots = 2,
+    tabs = { { bag = 0, size = 2, slots = { [1] = {
+        id = 999, count = 4, icon = 1999, link = "item:999", name = "Alt bag item" } } } } }
+local altBags = alt.bagView
+for guid, realm in pairs({ ["Player-pvp"] = "CAMWOW US2 Realm 1 PvP", ["Player-hardcore"] = "Hardcore",
+    ["Player-rp"] = "RP", ["Player-unknown"] = "Unrecognized" }) do
+    Suite.db.inventory.characters[guid] = { name = guid, realm = realm, region = 110, bagView = altBags, bankView = altSnapshot }
+end
+equal(bank:GetSnapshot(0, "Player-alt", true), altBags, "bag snapshot accepts backpack ID zero")
+equal(bank:GetSnapshot(0, "Player-alt"), altSnapshot, "bag data does not replace personal bank data")
+local choices = selectors:Choices(true)
+equal(#choices, 2, "character chooser excludes other regions")
+equal(choices[1].guid, "Player-alt", "character chooser sorts readable names")
+equal(choices[1].recorded, true, "bag chooser recognizes complete slot records")
+equal(choices[1].label, "Alt Pine · PvE", "dropdown replaces verbose realm with canonical server type")
+equal(choices[2].recorded, false, "aggregate-only records are not misrepresented as slot snapshots")
+equal(#selectors:Choices(false), 2, "bank chooser shares Contact Book region and server-type scope")
+equal(selectors:Select("Player-pvp", true), false, "direct bag selection cannot bypass PvE/PvP isolation")
+equal(selectors:Select("Player-hardcore", false), false, "direct bank selection cannot bypass Hardcore isolation")
+local pveRealm = GetNormalizedRealmName
+GetNormalizedRealmName = function() return "CAMWOW US2 Realm 1 PvP" end
+local pvpChoices = selectors:Choices(true)
+equal(#pvpChoices, 1, "switching to PvP lists only matching inventory owners")
+equal(pvpChoices[1].guid, "Player-pvp", "PvP scope selects its own character record")
+equal(selectors:Select("Player-alt", true), false, "stale PvE menu callback is rejected after server-type change")
+GetNormalizedRealmName = function() return "Unrecognized" end
+equal(#selectors:Choices(true), 0, "unknown active server type does not reveal mixed inventories")
+GetNormalizedRealmName = pveRealm
+equal(selectors:Select("Player-alt", true), true, "bag dropdown opens saved alt inventory")
+equal(bank.viewBags, true, "bag dropdown selects bag rendering mode")
+equal(bank.buttons[1].bankItem.id, 999, "saved bags display the selected character's actual item")
+equal(bank.buttons[2].bankItem, nil, "empty saved bag slot stays empty")
+equal(bank.frame.title, "Alt Pine · Saved bags", "saved bag title identifies character and source")
+equal(bank.status.text, "Saved bags · date 222 · View only", "saved bag footer discloses capture time and read-only status")
+equal(bank.bagLabel:IsShown(), false, "saved bags do not inherit bank bag purchase decorations")
+local bagCalls = calls
+SetCombat(true)
+equal(selectors:Select("Player-alt", true), false, "combat rejects dropdown selection")
+equal(calls, bagCalls, "combat selection makes no container scans")
+SetCombat(false)
+equal(selectors:Select({ secret = true }, true), false, "selector rejects restricted owner keys")
+equal(selectors:Select("Player-remote", true), false, "selector rejects another region")
+equal(selectors:Select(identity, true), true, "current character selection returns to live bags")
+equal(bank.frame:IsShown(), false, "return to live bags closes the saved view")
+equal(bank.viewBags, nil, "closing bag view clears source mode")
+equal(selectors:Select("Player-alt", false), true, "same dropdown can switch to saved bank")
+equal(bank.buttons[1].bankItem.count, 19, "bank mode remains independent after browsing bags")
+altBags.tabs[1].slots[1].icon = { secret = true }
+equal(bank:GetSnapshot(0, "Player-alt", true), nil, "restricted saved bag artwork rejects incomplete view")
+altBags.tabs[1].slots[1].icon = 1999
+altBags.tabs[1].bag = 6
+equal(bank:GetSnapshot(0, "Player-alt", true), nil, "bank container IDs cannot masquerade as carried bags")
+altBags.tabs[1].bag = 0
+bank.frame:Hide()
+
+-- Native search keeps its owner and scripts; the individual backpack uses its
+-- existing header space rather than moving protected item buttons.
+local oldCombined, oldInput, oldMenu = ContainerFrameCombinedBags, InputUtil, MenuUtil
+local combined, single, search = Widget(), Widget(), Widget()
+ContainerFrameCombinedBags = combined
+search.parent = combined
+local nativeChanged = function() end
+search:SetScript("OnTextChanged", nativeChanged)
+selectors:LayoutSearch(combined, search)
+equal(search:GetParent(), combined, "shortened native search retains its parent")
+equal(search:GetScript("OnTextChanged"), nativeChanged, "shortened native search retains native filtering")
+equal(search:GetWidth(), 145, "combined search uses requested right-side short field")
+equal(search.point[1], "TOPRIGHT", "combined search occupies right side")
+equal(selectors.watched[combined].point[4], 28, "combined character selector occupies left side")
+search.parent = single
+selectors:LayoutSearch(single, search)
+equal(search:GetWidth(), 96, "individual search preserves native width")
+equal(search.point[5], -28, "individual search moves above its second row")
+equal(selectors.watched[single].point[5], -50, "individual character selector sits below search")
+equal(selectors.watched[single]:GetHeight(), 20, "second row fits above native item grid")
+local singleControl = selectors.watched[single]
+equal(singleControl:GetWidth() + 4 + singleControl.reset:GetWidth(), 150, "icon reset stays within existing individual selector space")
+equal(singleControl.reset.template, "RefreshButtonTemplate", "reset uses the native refresh icon")
+equal(singleControl.reset.point[3], "RIGHT", "reset sits to the right of the dropdown")
+local searchPoint = search.point
+SetCombat(true); selectors:LayoutSearch(single, search)
+equal(search.point, searchPoint, "native search geometry stays untouched in combat")
+SetCombat(false)
+InputUtil = { IsGamepadUIEnabled = function() return true end }
+selectors:LayoutSearch(single, search)
+equal(selectors.watched[single]:IsShown(), false, "gamepad retains native prompt area")
+selectors:UpdateLabels()
+equal(singleControl:IsShown(), false, "label refresh preserves gamepad exclusion")
+equal(selectors.watched[combined]:IsShown(), false, "label refresh hides combined selector in gamepad mode")
+bank:OpenBags("Player-alt")
+bank:Refresh()
+equal(singleControl:IsShown(), false, "saved bag refresh cannot reveal native gamepad selector")
+InputUtil.IsGamepadUIEnabled = function() return { secret = true } end
+selectors:UpdateLabels()
+equal(singleControl:IsShown(), false, "unreadable gamepad state keeps native prompt space clear")
+InputUtil.IsGamepadUIEnabled = function() error("unavailable") end
+selectors:UpdateLabels()
+equal(singleControl:IsShown(), false, "failed gamepad query keeps native prompt space clear")
+InputUtil = nil
+selectors:UpdateLabels()
+equal(singleControl:IsShown(), true, "keyboard layout restores the enabled bag selector")
+local menuRows = {}
+MenuUtil = { CreateContextMenu = function(_, build)
+    build(nil, { CreateTitle = function() end, CreateRadio = function(_, label, selected, callback)
+        local row = { label = label, selected = selected, callback = callback }
+        row.SetEnabled = function(self, enabled) self.enabled = enabled end
+        menuRows[#menuRows + 1] = row
+        return row
+    end })
+end }
+selectors:Menu(selectors.watched[combined])
+equal(#menuRows, 2, "native dropdown lists scoped saved characters")
+equal(menuRows[1].enabled, true, "complete alt snapshot is selectable")
+menuRows[1].callback()
+equal(bank.viewGUID, "Player-alt", "native menu callback selects its own recorded GUID")
+equal(bank.viewBags, true, "native bags menu callback opens saved bags")
+SetCombat(true)
+singleControl.reset:Click()
+equal(bank.viewGUID, "Player-alt", "reset cannot switch character in combat")
+SetCombat(false)
+singleControl.reset:Click()
+equal(bank.frame:IsShown(), false, "bag reset icon returns to live current-character bags")
+bank:OpenFor("Player-alt", 0)
+local savedControl = selectors:Attach(bank.frame, "saved")
+savedControl.reset:Click()
+equal(bank.viewGUID, identity, "saved bank reset returns to current character")
+equal(bank.buttons[1].bankItem.count, 7, "saved bank reset displays current character contents")
+local currentRecord = Suite.db.inventory.characters[identity]
+local currentBank = currentRecord.bankView
+currentRecord.bankView = nil
+bank:OpenFor("Player-alt", 0)
+savedControl.reset:Click()
+equal(bank.viewGUID, identity, "reset can return to current character without a recorded bank")
+equal(bank.buttons[1].bankItem, nil, "unrecorded current bank clears alt items on reset")
+currentRecord.bankView = currentBank
+local nativeControl = selectors:Attach(BankFrame, "bank")
+BankFrame:Show()
+nativeControl.reset:Click()
+equal(BankFrame:IsShown(), true, "reset on native current bank leaves the live bank open")
+BankFrame:Hide()
+bank.frame:Hide()
+
+-- Exercise the actual setting dispatcher without invoking unrelated modules.
+local oldModules = Suite.modules
+Suite.modules = { bank }
+bank:OpenBags("Player-alt")
+Suite.Set("offlineBank", true)
+equal(bank.frame:IsShown(), true, "bank recording enabled preserves saved bags")
+Suite.Set("offlineBank", false)
+equal(bank.frame:IsShown(), true, "disabling bank recording preserves independently enabled saved bags")
+equal(next(bank.events.registered), nil, "preserving saved bags still unregisters bank recording events")
+Suite.Set("chatOpacity", 0.6)
+equal(bank.frame:IsShown(), true, "unrelated setting preserves saved bags with bank snapshots off")
+equal(bank.viewGUID, "Player-alt", "unrelated setting preserves saved bag owner")
+equal(bank.viewBags, true, "unrelated setting preserves saved bag mode")
+local bagPoint, bagScans = bank.frame.point, calls
+SetCombat(true)
+bank:Refresh()
+local bagRefresh = Suite.pending.bankViewRefresh
+Suite.Set("chatOpacity", 0.7)
+equal(bank.frame:IsShown(), true, "combat settings refresh preserves enabled saved bags")
+equal(Suite.pending.bankViewRefresh, bagRefresh, "bank disable cleanup retains pending bag rendering")
+equal(bank.frame.point, bagPoint, "combat settings refresh leaves bag geometry untouched")
+equal(calls, bagScans, "combat settings refresh performs no container scans")
+SetCombat(false)
+pending = Suite.pending; Suite.pending = {}; for _, callback in pairs(pending) do callback() end
+equal(bank.frame:IsShown(), true, "saved bags remain open after deferred refresh")
+equal(bank.buttons[1].bankItem.id, 999, "deferred refresh preserves selected bag contents")
+Suite.Set("itemInventory", false)
+equal(bank.frame:IsShown(), false, "disabling bag recording still closes the saved bag view")
+Suite.Set("itemInventory", true)
+Suite.Set("offlineBank", true)
+bank:OpenFor("Player-alt", 0)
+Suite.Set("offlineBank", false)
+equal(bank.frame:IsShown(), false, "disabling bank recording still closes a saved bank view")
+Suite.modules = oldModules
+ContainerFrameCombinedBags, InputUtil, MenuUtil = oldCombined, oldInput, oldMenu
+
+sizes[0], bags[0] = 2, { [1] = Item(123, 7, "321:654") }
+local view = Suite.Inventory:ScanBagView({ 0 })
+equal(view.totalSlots, 2, "bag capture preserves empty slot capacity")
+equal(view.tabs[1].slots[1].link, bags[0][1].hyperlink, "bag capture preserves full instance links")
+equal(view.tabs[1].slots[1].count, 7, "bag capture retains stack counts")
+equal(view.tabs[1].slots[2], nil, "bag capture preserves empty slots")
+bags[0].pending = { [2] = 777 }
+equal(Suite.Inventory:ScanBagView({ 0 }), nil, "loading occupied slot cannot become false empty snapshot")
+bags[0].pending = nil
+bags[0][1].hyperlink = { secret = true }
+equal(Suite.Inventory:ScanBagView({ 0 }), nil, "restricted bag link is not persisted")
+bags[0][1].hyperlink = "item:999"
+equal(Suite.Inventory:ScanBagView({ 0 }), nil, "mismatched instance link rejects partial capture")
+sizes[0], bags[0] = nil, nil
+selectors.controls, selectors.watched = oldControls, oldWatched
+
 bank:Cancel(); bank:HideTooltip()
 for _, name in ipairs(names) do _G[name] = old[name] end
 Suite.db, Suite.pending, Suite.Print, Suite.Windows, Suite.Items = oldDB, oldPending, oldPrint, oldWindows, oldItems

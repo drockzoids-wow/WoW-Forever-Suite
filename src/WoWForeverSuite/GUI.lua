@@ -106,7 +106,7 @@ local pages = {
     windows = { title = "Put things where you want them.", description = "Window movement, bag sorting and bank snapshots have independent switches.", rows = {
         { key = "windowTools", label = "Move and remember windows", help = "Drag a header to move. Ctrl+scroll to resize.\nCtrl+right-click the header to reset position and size." },
         { action = "reset", label = "Reset all windows", help = "Clear all saved window positions and sizes at once.\nBags return to Blizzard's default arrangement." },
-        { key = "offlineBank", label = "Bank snapshots", help = "Save bank items and slot positions during bank visits.\nView the last recorded bank anywhere, with normal item tooltips." },
+        { key = "offlineBank", label = "Bank snapshots", help = "Save bank items and slot positions during bank visits.\nChoose a recorded character from the bank dropdown to view its saved bank." },
         { action = "bankView", label = "Open bank view", help = "Browse saved character and account bank pages.\nMoving items and buying bank slots require a bank visit." },
         { action = "bankBindings", label = "Bank keybind", help = "Assign Open bank view under Forever Suite in Keybindings.\nYou can also open the saved view with /wfs bank." },
         { key = "sortBagsOnOpen", label = "Sort bags on opening", help = "Use the game's cleanup and bag exclusions once per opening.\nWaits through combat; skips sorting while you hold an item." },
@@ -124,7 +124,7 @@ local pages = {
     }, note = "Special effects, set bonuses and weapon abilities need your judgment.\nHigher item level can still be worse for your build." },
     tooltips = { title = "Useful details, right on hover.", description = "A few additions to the tooltips you already use.", rows = {
         { key = "itemTooltipLevels", label = "Item level", help = "Show item levels for equipment and weapons, including comparisons." },
-        { key = "itemInventory", label = "Item inventory", help = "Show recorded bag and bank counts for characters you've logged into with this on.\nVisit each character's bank to record its counts. Unrecorded locations are hidden; Known total includes only recorded counts." },
+        { key = "itemInventory", label = "Item inventory", help = "Record bag slots and bag/bank counts for characters you play with this on.\nUse the bag character dropdown to view saved bags. Log into each alt after updating to record its slots; visit banks to record bank contents." },
         { key = "playerItemLevel", label = "Player equipment level", help = "Inspect nearby players when possible; recent results are cached." },
         { key = "classNames", label = "Class color names", help = "Use each player's class color for their tooltip name." },
     }, note = "Player equipment details depend on inspect range and availability. New inspect requests pause during combat." },

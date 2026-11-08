@@ -3,7 +3,7 @@
 ## Notes: A personal collection of optional tools for WoW Forever.
 ## Author: Drockzoids
 ## IconTexture: Interface\AddOns\WoWForeverSuite\Media\ForeverSuiteIcon.tga
-## Version: 1.0.6
+## Version: 1.0.7
 ## Bindings: Bindings.xml
 ## SavedVariables: WoWForeverSuiteDB
 ## SavedVariablesPerCharacter: WoWForeverSuiteCharDB
@@ -70,6 +70,7 @@ InventorySearch.lua
 InventoryBrowser.lua
 OfflineBank.xml
 OfflineBank.lua
+InventorySelectors.lua
 Tooltips.lua
 MacroItems.lua
 Macros.lua

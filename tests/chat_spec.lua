@@ -40,6 +40,7 @@ local function Widget(kind, name, parent)
     widget.GetFont = function(self) return self.fontPath or "Fonts\\ARIALN.TTF", self.fontSize or 12, self.fontFlags or "" end
     widget.SetFont = function(self, path, size, flags)
         assert(not inCombat, "chat addon changed a font during combat")
+        self.fontWrites = (self.fontWrites or 0) + 1
         self.fontPath, self.fontSize, self.fontFlags = path, size, flags
     end
     widget.Show = function(self)
@@ -78,6 +79,7 @@ local function Widget(kind, name, parent)
     local clear = widget.ClearAllPoints
     widget.ClearAllPoints = function(self)
         assert(not inCombat, "chat addon cleared anchors during combat")
+        self.anchorClears = (self.anchorClears or 0) + 1
         clear(self); self.points, self.pointOrder = {}, {}
     end
     widget.GetNumPoints = function(self) return self.pointOrder and #self.pointOrder or 0 end
@@ -163,7 +165,13 @@ local function Native(index)
     input:SetPoint("RIGHT", frame.ScrollBar, "RIGHT", 8, 0)
     input:SetScript("OnTextChanged", function() nativeCalls = nativeCalls + 1 end)
     input:SetScript("OnEnterPressed", function() nativeCalls = nativeCalls + 1 end)
+    input:SetScript("OnEditFocusLost", function() nativeCalls = nativeCalls + 1 end)
     input.text = "unsent draft"
+    input.HasFocus = function(self) return self.focused == true end
+    local showInput, hideInput = input.Show, input.Hide
+    input.Show = function(self) self.focused = true; showInput(self) end
+    input.Hide = function(self) self.focused = false; hideInput(self) end
+    input:Hide() -- Native chat input is closed until the player begins typing.
     input.channelColor = { 1, 1, 1 }
     input:SetTextColor(1, 1, 1)
     input.GetTextColor = function(self) return unpack(self.textColor) end
@@ -245,8 +253,13 @@ Combat(true); chat:Apply()
 equal(created, 0, "first enable in combat defers construction")
 Suite.db.chatStyle = false; chat:Apply(); LeaveCombat()
 equal(created, 0, "disable cancels deferred first enable")
+-- Native IM chat may leave the inactive edit box shown after a reload.
+input:Show(); input.focused = false
 Suite.db.chatStyle = true; chat:Apply()
 local record = chat.records[first]
+equal(record.applied, true, "reload styles General even with shown inactive input")
+equal(record.panes[1].backdropAlpha, 0.45, "reload paints the chat panel without a tab switch")
+equal(record.panes[1].backdropColor[1], 0.025, "reload never exposes a default white backdrop")
 equal(first.SetTextCopyable, nativeCopySetter, "copyability secure mixin entry point is never wrapped")
 equal(first.SetOnTextCopiedCallback, nativeCallbackSetter, "copied callback secure mixin entry point is never wrapped")
 equal(first.SetMouseClickEnabled, nativeMouseSetter, "native click setter stays identical to the successful isolated path")
@@ -441,6 +454,87 @@ for _ = 1, 500 do chat.events.OnEvent(chat.events, "UPDATE_CHAT_WINDOWS") end
 equal(TimerCount(), 1, "chat event bursts share one worker")
 Flush()
 equal(record.inputGeometry.points[1][4], -5, "repeated styling keeps the original native input layout")
+local fontWrites, anchorClears = input.fontWrites, input.anchorClears
+chat:Apply()
+equal(input.fontWrites, fontWrites, "unchanged refresh does not reset the input font")
+equal(input.anchorClears, anchorClears, "unchanged refresh does not rebuild input anchors")
+input:Show()
+local typingLeft, typingRight = input.points.TOPLEFT, input.points.TOPRIGHT
+chat:SetOption("chatFontSize", 19)
+chat.events.OnEvent(chat.events, "UPDATE_CHAT_WINDOWS")
+chat.events.OnEvent(chat.events, "PLAYER_ENTERING_WORLD")
+FCFTab_UpdateColors(tab, true)
+Flush()
+equal(input.fontWrites, fontWrites, "event and settings refreshes cannot reset an open input font")
+equal(input.anchorClears, anchorClears, "event and settings refreshes cannot move an open input")
+equal(input.fontSize, 16, "new font preference waits until typing ends")
+equal(input.text, "unsent draft", "deferred changes preserve the draft")
+equal(TimerCount(), 0, "typing deferral does not poll")
+local beforeFocusLost = nativeCalls
+input.focused = false; input.OnEditFocusLost(input)
+equal(nativeCalls, beforeFocusLost + 1, "native focus-loss callback still runs")
+equal(input:IsShown(), true, "native inactive IM input stays shown")
+equal(input.fontSize, 16, "focus-loss observer does not change fonts inside native callback")
+Flush()
+equal(input.fontSize, 19, "focus loss applies pending preference without requiring hide or tab switch")
+equal(input.points.TOPLEFT, typingLeft, "pending font update retains matching left anchor")
+equal(input.points.TOPRIGHT, typingRight, "pending font update retains matching right anchor")
+chat:SetOption("chatFontSize", 16); Flush()
+input:Show()
+input:SetFont("Fonts\\FRIZQT__.TTF", 13, "OUTLINE")
+fontWrites, anchorClears = input.fontWrites, input.anchorClears
+equal(input.fontSize, 13, "native font setter finishes without a synchronous Suite override")
+Flush()
+equal(input.fontWrites, fontWrites, "queued native font observer leaves open input untouched")
+equal(input.anchorClears, anchorClears, "native font observer cannot move open input")
+input:Hide(); Flush()
+equal(input.fontSize, 16, "native font change receives account size after input closes")
+equal(input.fontPath, "Fonts\\FRIZQT__.TTF", "deferred update preserves native font family")
+input:SetFont("Fonts\\ARIALN.TTF", 12, ""); Flush()
+input:Show()
+fontWrites, anchorClears = input.fontWrites, input.anchorClears
+Combat(true); chat:SetOption("chatFontSize", 17); LeaveCombat()
+equal(input.fontWrites, fontWrites, "combat exit cannot reset a still-open input font")
+equal(input.anchorClears, anchorClears, "combat exit cannot move a still-open input")
+input:Hide(); Flush()
+equal(input.fontSize, 17, "combat-deferred preference applies once typing ends")
+chat:SetOption("chatFontSize", 16); Flush()
+local hasFocus = input.HasFocus
+for _, getter in ipairs({ function() return { secret = true } end, function() error("unavailable input visibility") end }) do
+    input.HasFocus = getter
+    fontWrites, anchorClears = input.fontWrites, input.anchorClears
+    chat:SetOption("chatFontSize", 17); Flush()
+    equal(input.fontWrites, fontWrites, "unknown focus defers input font writes")
+    equal(input.anchorClears, anchorClears, "unknown focus defers anchor writes")
+    input.HasFocus = hasFocus
+    chat:SetOption("chatFontSize", 16); Flush()
+end
+input:Show()
+fontWrites, anchorClears = input.fontWrites, input.anchorClears
+Suite.db.chatStyle = false; chat:Apply()
+equal(input.fontWrites, fontWrites, "disable cannot restore fonts during typing")
+equal(input.anchorClears, anchorClears, "disable cannot restore anchors during typing")
+equal(record.applied, true, "pending disable retains the restoration snapshot")
+equal(TimerCount(), 0, "pending disable waits for hide without polling")
+Combat(true); input:Hide()
+equal(TimerCount(), 0, "hide during combat defers restoration without a timer")
+equal(input.anchorClears, anchorClears, "hide cannot restore anchors during combat")
+LeaveCombat()
+equal(record.applied, false, "deferred disable completes after combat without registered events")
+equal(input.fontSize, 12, "deferred disable restores the latest native input font")
+equal(input.points.TOPLEFT[2], first, "deferred disable restores the original native input anchors")
+equal(record.inputPending, nil, "completed disable releases pending input work")
+input:Show()
+fontWrites, anchorClears = input.fontWrites, input.anchorClears
+Suite.db.chatStyle = true; chat:Apply()
+equal(input.fontWrites, fontWrites, "first application waits while input is open")
+equal(input.anchorClears, anchorClears, "first application cannot reposition open input")
+equal(record.applied, true, "focused input does not defer message-panel styling")
+equal(record.panes[1]:IsShown(), true, "focused input leaves the painted message panel visible")
+equal(record.panes[1].backdropColor[1], 0.025, "focused input does not expose a white chat panel")
+input:Hide(); Flush()
+equal(input.fontSize, 16, "pending first application completes after input hides")
+equal(input.points.TOPLEFT[2], first.Background, "pending first application aligns closed input")
 local alignedLeft = input.points.TOPLEFT
 first.Background:SetWidth(720)
 first:SetPoint("BOTTOMLEFT", nil, "BOTTOMLEFT", 140, 120)

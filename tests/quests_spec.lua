@@ -1,6 +1,6 @@
 local Suite, equal, Frame, SetCombat = ...
 local quests = Suite.Quests
-local names = { "CreateFrame", "C_Timer", "UnitGUID", "IsShiftKeyDown", "C_GossipInfo", "Enum", "GetFileIDFromPath",
+local names = { "CreateFrame", "C_Timer", "UnitGUID", "IsShiftKeyDown", "IsKeyDown", "C_GossipInfo", "Enum", "GetFileIDFromPath",
     "C_PlayerInteractionManager", "C_QuestLog",
     "GossipFrame", "QuestFrame", "QuestFrameGreetingPanel", "QuestFrameDetailPanel", "QuestFrameProgressPanel",
     "QuestFrameRewardPanel", "GetQuestID", "QuestFlagsPVP", "QuestGetAutoAccept", "AcceptQuest",
@@ -16,6 +16,7 @@ local active, available, options, forced = {}, {}, {}, false
 local activeCount, availableCount = 0, 0
 local legacyActive, legacyAvailable = {}, {}
 local actionEvent
+local physicalShift = {}
 local dataRequests, dataResult = {}, true
 local function Secret() return { secret = true } end
 local function Called(action, value)
@@ -59,6 +60,10 @@ C_QuestLog = { RequestLoadQuestByID = function(questID)
 end }
 UnitGUID = function() return guid end
 IsShiftKeyDown = function() return shift end
+IsKeyDown = function(key, excludeBindingState)
+    equal(excludeBindingState, true, "gossip bypass reads physical keys independently of bindings")
+    return physicalShift[key] or false
+end
 Enum = { GossipOptionStatus = { Available = 0 } }
 C_GossipInfo = {
     GetActiveQuests = function() return active end,
@@ -105,6 +110,7 @@ local function Show(mode)
     panels[mode]:Show(); Fire(events[mode])
 end
 local function Fresh()
+    physicalShift = {}
     quests:EndVisit(); calls = {}; actionEvent = nil
     dataRequests, dataResult = {}, true
     guid, shift, id, pvp, automatic, complete, cost, choices = "npc:one", false, 101, false, false, true, 0, 0
@@ -484,6 +490,40 @@ equal(#calls, 0, "unavailable home-binding stays manual")
 Shop(); options[1].icon = 135982; Suite.db.autoGossip = true
 Show("gossip"); Flush()
 equal(#calls, 0, "general service shortcut retains unhandled quest entries")
+-- Physical Shift and a brief press between opening and deferred work must both pause.
+for _, key in ipairs({ "LSHIFT", "RSHIFT" }) do
+    Shop(); Suite.db.autoGossip = true; active, available = {}, {}
+    options[1].icon = 135982; physicalShift[key] = true
+    Show("gossip"); physicalShift[key] = false; Flush()
+    equal(#calls, 0, "physical " .. key .. " prevents innkeeper advancement even when aggregate state is false")
+    Fire("GOSSIP_OPTIONS_REFRESHED"); Flush()
+    equal(#calls, 0, "physical Shift bypass stays latched after release")
+    Fire("GOSSIP_CLOSED", false); Show("gossip"); Flush()
+    equal(#calls, 1, "a new innkeeper visit releases the physical Shift bypass")
+
+    Shop(); Show("gossip"); physicalShift[key] = true; Flush()
+    equal(#calls, 0, "physical " .. key .. " is rechecked immediately before deferred execution")
+
+    Shop(); Show("gossip")
+    Fire("MODIFIER_STATE_CHANGED", key, 1); Fire("MODIFIER_STATE_CHANGED", key, 0)
+    Flush(); equal(#calls, 0, "a brief " .. key .. " press cancels deferred vendor advancement")
+    equal(TimerCount(), 0, "modifier bypass leaves no pending worker")
+end
+Shop(); Show("gossip"); Fire("MODIFIER_STATE_CHANGED", "LCTRL", 1); Flush()
+equal(#calls, 1, "other modifiers preserve the Shift-only bypass")
+Shop(); Show("gossip"); Fire("MODIFIER_STATE_CHANGED", Secret(), Secret()); Flush()
+equal(#calls, 0, "unreadable modifier events conservatively pause the visit")
+Shop(); Show("gossip"); Fire("GOSSIP_CLOSED", true)
+Fire("MODIFIER_STATE_CHANGED", "LSHIFT", 1); Show("gossip"); Flush()
+equal(#calls, 0, "Shift during a continuing native transition pauses the next page")
+Shop(); physicalShift.LSHIFT = Secret(); Show("gossip"); Flush()
+equal(#calls, 0, "unreadable physical Shift state leaves the menu manual")
+local physicalKeyQuery = IsKeyDown
+Shop(); IsKeyDown = nil; Show("gossip"); Flush()
+equal(#calls, 1, "clients without physical key queries retain aggregate Shift handling")
+Shop(); IsKeyDown = function() error("unavailable") end; Show("gossip"); Flush()
+equal(#calls, 0, "rejected physical key queries leave the menu manual")
+IsKeyDown = physicalKeyQuery
 Fresh()
 
 Suite.GUI:OpenPage("quests")

@@ -76,8 +76,12 @@ function Quests:CheckClosed()
 end
 
 function Quests:PauseIfShift()
-    -- Latch the bypass so releasing Shift before the worker runs cannot accept a quest.
-    if self.visit and not No(Read(IsShiftKeyDown)) then self.visit.paused = true end
+    -- Include physical state: a binding's modifier state must not defeat the bypass.
+    -- Latch it so releasing Shift before the worker runs cannot advance the visit.
+    if self.visit and (not No(Read(IsShiftKeyDown)) or type(IsKeyDown) == "function"
+        and (not No(Read(IsKeyDown, "LSHIFT", true)) or not No(Read(IsKeyDown, "RSHIFT", true)))) then
+        self.visit.paused = true
+    end
     return not self.visit or self.visit.paused
 end
 
@@ -257,7 +261,15 @@ end
 function Quests:OnEvent(event, continuing, success)
     if not self.active then return end
     if InCombatLockdown() then self:EndVisit(); return end
-    if event == "GOSSIP_SHOW" then self:SetStage("gossip")
+    if event == "MODIFIER_STATE_CHANGED" then
+        -- Observe presses between opening and deferred work, including native continuations.
+        -- Releasing a key never resumes an already paused conversation.
+        if self.visit and (not Suite.IsReadable(continuing) or not Suite.IsReadable(success)
+            or (continuing == "LSHIFT" or continuing == "RSHIFT") and success == 1) then
+            self.visit.paused = true
+            self:Cancel()
+        end
+    elseif event == "GOSSIP_SHOW" then self:SetStage("gossip")
     elseif event == "QUEST_GREETING" then self:SetStage("greeting")
     elseif event == "QUEST_DETAIL" then self:SetStage("detail")
     elseif event == "QUEST_DATA_LOAD_RESULT" then
@@ -305,7 +317,7 @@ function Quests:Apply()
             self.events:SetScript("OnEvent", function(_, event, ...) self:OnEvent(event, ...) end)
         end
         self.active = true
-        for _, event in ipairs({ "GOSSIP_SHOW", "GOSSIP_CLOSED", "MERCHANT_CLOSED", "GOSSIP_OPTIONS_REFRESHED", "GOSSIP_CONFIRM",
+        for _, event in ipairs({ "MODIFIER_STATE_CHANGED", "GOSSIP_SHOW", "GOSSIP_CLOSED", "MERCHANT_CLOSED", "GOSSIP_OPTIONS_REFRESHED", "GOSSIP_CONFIRM",
             "GOSSIP_ENTER_CODE", "QUEST_GREETING", "QUEST_DETAIL", "QUEST_DATA_LOAD_RESULT", "QUEST_PROGRESS", "QUEST_COMPLETE",
             "QUEST_FINISHED", "QUEST_ITEM_UPDATE", "QUEST_LOG_UPDATE", "PLAYER_INTERACTION_MANAGER_FRAME_HIDE",
             "PLAYER_REGEN_DISABLED", "PLAYER_ENTERING_WORLD" }) do

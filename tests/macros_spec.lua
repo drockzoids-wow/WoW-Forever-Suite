@@ -19,6 +19,8 @@ local data = {
     [114] = { name = "Percent Food", sub = 5, description = "Restores 20% of your health over 20 seconds." },
     [115] = { name = "Uncached Reagent", class = 7, noUse = true },
     [116] = { name = "Stronger Bandage", sub = 7, required = 20, description = "Heals 400 damage over 8 seconds." },
+    [4544] = { name = "Mulgore Spice Bread", sub = 5, required = 25,
+        description = "Use: Restores 841 health over 27 sec.\nMust remain seated while eating." },
     [4593] = { name = "Bristle Whisker Catfish", sub = 5, required = 15,
         description = "Use: Restores 530 health over 24 sec.\nMust remain seated while eating. If you spend at least 10 sec eating, you will become well fed and gain 8 Fishing Skill for 15 min. Additionally, experience gained from kills is increased by 5%. (1 Sec Cooldown)" },
     [6290] = { name = "Brilliant Smallfish", sub = 5,

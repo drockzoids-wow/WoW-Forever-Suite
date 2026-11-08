@@ -23,6 +23,13 @@ end
 local function ID(value) return Number(value) and value > 0 and value % 1 == 0 end
 local function Enabled() return Suite.db and Suite.db.procAlerts == true end
 local function Table(value) return Suite.IsReadable(value) and type(value) == "table" end
+local function Usability(id)
+    if not C_Spell or type(C_Spell.IsSpellUsable) ~= "function" then return end
+    local ok, usable, insufficientPower = pcall(C_Spell.IsSpellUsable, id)
+    if not ok or not Suite.IsReadable(usable) or type(usable) ~= "boolean" then return end
+    -- The second result distinguishes a resource shortage from a lost reaction.
+    return usable, Suite.IsReadable(insufficientPower) and insufficientPower == true
+end
 
 function Alerts:IconSize(db)
     local value = (db or Suite.db or Suite.defaults).procAlertIconSize
@@ -117,23 +124,24 @@ function Alerts:CaptureCooldownFlags()
 end
 
 function Alerts:Ready(id)
-    local usable = Read(C_Spell and C_Spell.IsSpellUsable, id)
-    if usable ~= true then return false, usable == false and "not usable" or "usability unavailable" end
+    local usable, insufficientPower = Usability(id)
+    if usable ~= true and not insufficientPower then return false, usable == false and "not usable" or "usability unavailable" end
+    local reason = insufficientPower and usable == false and "available; insufficient power" or "ready"
     local cooldown = Read(C_Spell and C_Spell.GetSpellCooldown, id)
     if not Table(cooldown) then return false, "cooldown unavailable" end
     if Suite.IsReadable(cooldown.isEnabled) and cooldown.isEnabled == false then return false, "cooldown on hold" end
     -- These public flags are NeverSecret in the client's SpellCooldownInfo.
     -- An inactive cooldown needs no access to its potentially secret duration.
-    if Suite.IsReadable(cooldown.isActive) and cooldown.isActive == false then return true, "ready" end
-    if self.cooldownGCD[id] then return true, "ready during global cooldown" end
+    if Suite.IsReadable(cooldown.isActive) and cooldown.isActive == false then return true, reason end
+    if self.cooldownGCD[id] then return true, reason .. " during global cooldown" end
     if not Number(cooldown.duration) then return false, "cooldown timing unavailable" end
-    if cooldown.duration == 0 then return true, "ready" end
+    if cooldown.duration == 0 then return true, reason end
     -- A global cooldown should not make an available reaction blink off.
     local gcd = Read(C_Spell and C_Spell.GetSpellCooldown, 61304)
     local global = Table(gcd) and Number(gcd.duration) and gcd.duration > 0
         and Number(gcd.startTime) and Number(cooldown.startTime)
         and gcd.startTime == cooldown.startTime and gcd.duration == cooldown.duration
-    if global then return true, "ready during global cooldown" end
+    if global then return true, reason .. " during global cooldown" end
     local now = Read(GetTime)
     local delay
     -- A readable end time allows one precise wakeup, rather than waiting for
@@ -175,7 +183,9 @@ function Alerts:Entries()
         local info = Read(C_Spell and C_Spell.GetSpellInfo, id)
         if Table(info) and Suite.IsReadable(info.name) and type(info.name) == "string" and info.name ~= ""
             and ID(info.iconID) and not names[info.name] then
-            entries[#entries + 1] = { id = id, name = info.name, icon = info.iconID }
+            local usable, insufficientPower = Usability(id)
+            entries[#entries + 1] = { id = id, name = info.name, icon = info.iconID,
+                insufficientPower = usable == false and insufficientPower == true }
             names[info.name] = true
         elseif not Table(info) and not self.requested[id] and C_Spell and type(C_Spell.RequestLoadSpellData) == "function" then
             self.requested[id] = true
@@ -204,6 +214,10 @@ function Alerts:Paint()
             cell:ClearAllPoints()
             cell:SetPoint("TOP", self.frame, "TOP", (index - (math.min(#entries, #self.cells) + 1) / 2) * (self.stride or 110), 0)
             cell.icon:SetTexture(entry.icon); cell.name:SetText(entry.name)
+            -- Match the native action bar's insufficient-power tint; always reset
+            -- on reuse so recovered resources and previews regain full brightness.
+            if entry.insufficientPower then cell.icon:SetVertexColor(0.5, 0.5, 1)
+            else cell.icon:SetVertexColor(1, 1, 1) end
             cell:Show()
             self:SetGlow(cell, true)
         else self:SetGlow(cell, false); cell:Hide() end
