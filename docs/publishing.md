@@ -1,5 +1,13 @@
 # GitHub and CurseForge publishing
 
+## Verified 1.0.8 upload — November 8, 2026
+
+User authorized the release in this chat. Tag `v1.0.8` targets `77572c67ed6427a1b9ef5b1db5d8c41f43a7ce29`. [Main checks 42532859302](https://github.com/drockzoids-wow/WoW-Forever-Suite/actions/runs/42532859302) and [Package and Release 42532959285](https://github.com/drockzoids-wow/WoW-Forever-Suite/actions/runs/42532959285) completed successfully. Release job `128891023714` logs the upload of `WoWForeverSuite-v1.0.8-forever.zip` to CurseForge project **1749120** at `2026-11-08T23:00:41Z`, followed by `Success!`. This establishes upload acceptance; CurseForge moderation/public availability has not been independently verified.
+
+[GitHub release v1.0.8](https://github.com/drockzoids-wow/WoW-Forever-Suite/releases/tag/v1.0.8) is published with uploaded `release.json` and `WoWForeverSuite-v1.0.8-forever.zip`. Published ZIP SHA256: `9330d48d22c8d9715bbc928d6e3d3aee95c4650a3d7f9e26c9d85b27ce62742f`. Local candidate was separately checked: 82 Lua 5.1 files, matching TOCs, 32,266 assertions and 91 source-hash-matching package entries. Local ZIP SHA256: `19E71B5801EB11E977DBC675ED619B771156943FE7FB4D9C619CF438FD28F200`; packager archives can differ in line endings/metadata. Receipts/logs are under `.cache/release-108`.
+
+Player-created contacts remain account-wide saved records; twelve-contact persistence/metadata tests pass through repeated reload initialization, disabled mail options and scope filtering. Original readable legacy/unfamiliar books are retained during migration/recovery. WoW writes SavedVariables on successful reload/orderly logout; a crash may lose changes since its last flush. User's crash cause and native color/wheel/taint retests remain unverified. No game deployment/junction or real SavedVariables modifications; separate scoring research remains uncommitted.
+
 ## Project settings
 
 - GitHub: `drockzoids-wow/WoW-Forever-Suite`, public.
