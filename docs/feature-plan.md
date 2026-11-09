@@ -1,5 +1,25 @@
 # Forever Suite feature plan
 
+## Authorized 1.0.9 release — November 9, 2026
+
+User authorizes version bump and CurseForge publication for Random mount (selected icon and mounted dismount) plus item-macro draft discard. Align Core/both TOCs, README and changelog at 1.0.9. Keep pending buff-catalog removal and scoring research outside this release, preserving their working files. Check the isolated committed release tree/package, push main, wait for its checks, then publish through a fresh v1.0.9 tag. Prior 32,456 substitute assertions pass in the working tree; final release-tree results and remote upload evidence are recorded separately. Native mount/dismount/icon/draft-button/taint checks remain pending; authorization does not mark them verified. No game deployment, junction or real SavedVariables edits.
+
+## Random mount also dismounts — November 9, 2026
+
+Extend the Suite recipe: outside combat, an unmounted press randomly selects a usable mount; a mounted press requests dismount only and retains the last selected icon. No collection query, reroll, icon write or summon on the dismount press. Keep ownership/editor/combat guards and guard native mounted-state access; unavailable state/dismount never falls through to mounting. Existing macro text stays unchanged, so reload suffices. No release/deployment change; native dismount validation pending.
+
+## Make unfinished item macros removable — November 9, 2026
+
+Show Discard directly beside uncreated item-macro rows and Discard draft in their selected details. Both remove the unfinished Suite choice immediately outside combat, preserve unrelated selection and remain absent after reload. Created choices retain the existing remove-from-Suite action and keep their game macro. Keep list scrolling/clipping and native macro ownership intact. No native macro deletion, version, release or deployment change; native appearance/input pending.
+
+## Create Random mount through Macros — November 9, 2026
+
+Extend the initial standalone macro with a shared Random mount recipe creating FS Random Mount only on explicit Create. On every press, choose uniformly from collected, usable, character-visible mounts allowed at the current location; update that General macro's native icon while retaining command text, ownership and slot. New mounts require no edits and choices may repeat. Use existing /wfs dispatch, ownership and native-editor guards; combat performs no query/write/summon. No item picker, automatic dismount, favorite-only restriction, extra setting, polling or dynamic tooltip promise. Icon shows the selected attempt; native riding rules determine success. Offline checks pass; native icon/summon/taint remain pending. No release or deployment action.
+
+## Random mount macro — November 9, 2026
+
+Supply a standalone macro at docs/macros/random-mount.txt that reads the full Mounts collection on every press and randomly chooses a collected, usable, character-visible mount. New acquisitions enter automatically; UI search/filter state is untouched. Keep secret-value eligibility guards, combat stop and empty-list handling within 255 characters. Random choices may repeat; riding/location restrictions remain native. This first test does not add a Suite recipe or changing tooltip; no runtime/version/release/deployment changes. Native validation pending.
+
 ## Publish 1.0.8 with persistent contacts — November 8, 2026
 
 User authorizes CurseForge 1.0.8 with the latest contact groups/recovery/class colors, Suite-wide wheel navigation and pending XP-food changes. Preserve twelve explicit player-created contacts/notes through repeated saved-data initialization, disabled mail features and server filtering; profiles exclude the book. Retain the original readable legacy/unfamiliar book during migration/recovery. Keep persistent recipients separate from session-only guild members. Align Core/both TOCs, changelog and README; run final offline/package checks, push main and wait for checks before tagging. User reports a game crash and expects colors to work; this is neither color verification nor an established Suite crash cause. Native wheel/color/taint checks remain pending. No deployment/junction or real SavedVariables edits.

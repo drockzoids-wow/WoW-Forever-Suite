@@ -1,5 +1,12 @@
 # Forever Suite
 
+## 1.0.9 — November 9, 2026
+
+- Add Random mount to the Macros page. Create FS Random Mount once, then press it to choose from collected mounts usable at your location; newly acquired mounts enter automatically and the icon follows the chosen mount. Random choices may repeat, and riding requirements still apply.
+- Press the same macro while mounted to dismount instead. Keep the last selected icon and preserve the existing combat, native-editor and macro-ownership safeguards.
+- Add Discard beside unfinished item-macro rows and Discard draft in their details. Remove a draft without creating or changing a game macro; created choices retain the existing remove-from-Suite action that keeps their game macro.
+- Validate Lua 5.1 syntax, matching TOCs and behavior with API substitutes. Native summoning, dismounting, icon rendering, draft-button input and taint checks remain pending.
+
 ## 1.0.8 — November 8, 2026
 
 - Recover older contacts with no assigned server type through Contact book's Recover unassigned contacts view. Select a name and Save to assign it to the current server type while preserving notes and categories.

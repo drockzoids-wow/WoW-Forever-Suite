@@ -669,11 +669,11 @@ local extra = macros:AddItem()
 equal(extra.name, "FS Item 1", "item variants have stable generated names")
 local restored = macros:Initialize(Suite.macroDB)
 equal(restored.entries[4].item, 108, "chosen coating survives character settings reload")
-equal(restored.entries[6].name, "FS Item 1", "item variant survives character settings reload")
-equal(macros:RemoveItem(restored.entries[6]), true, "remove an item choice independently of its game macro")
-equal(#Suite.macroDB.entries, 5, "removing a choice stops its future updates")
+equal(restored.entries[7].name, "FS Item 1", "item variant survives character settings reload")
+equal(macros:RemoveItem(restored.entries[7]), true, "remove an item choice independently of its game macro")
+equal(#Suite.macroDB.entries, 6, "removing a choice stops its future updates")
 equal(macros:AddItem().name, "FS Item 2", "removed names are not reused for unrelated items")
-local generic = Suite.macroDB.entries[6]
+local generic = Suite.macroDB.entries[7]
 generic.item = 108
 equal(macros:Save(generic), true, "chosen item variant can be created")
 local genericIndex = macros:Find(generic.name)
@@ -691,7 +691,7 @@ equal(macros:Write(food, "#showtooltip\n/use [nocombat] item:100", true), false,
 EditMacro = writeMacro
 local bad = macros:Initialize({ entries = { { recipe = "item", serial = 1, item = -4 },
     { recipe = "item", serial = 1 }, { recipe = "unknown" }, { recipe = "food", item = "invalid", created = true } } })
-equal(#bad.entries, 7, "corrupt saved choices are repaired while existing shared item macros are recognized")
+equal(#bad.entries, 8, "corrupt saved choices are repaired while existing shared item macros are recognized")
 equal(bad.entries[1].item, nil, "invalid saved item IDs do not enter macro text")
 
 -- Exercise shared enrollment through real saves and the normal event lifecycle.
@@ -714,10 +714,10 @@ equal(macros:Save(secondItem), true, "save second shared chosen-item recipe")
 local shareCreates, shareWrites, ownerFood = created, edited, native[1].body
 local alt = macros:Initialize(nil)
 for index = 1, 5 do equal(alt.entries[index].created, true, "every existing fixed General macro is recognized on a fresh alt") end
-equal(#alt.entries, 7, "shared chosen-item recipes appear without adding them on the alt")
-equal(alt.entries[6].name, "FS Item 1", "shared item imports retain stable sorted names")
-equal(alt.entries[6].item, 108, "shared item import recovers its confirmed chosen item")
-equal(alt.entries[7].item, 107, "shared item variants retain independent choices")
+equal(#alt.entries, 8, "shared chosen-item recipes appear without adding them on the alt")
+equal(alt.entries[7].name, "FS Item 1", "shared item imports retain stable sorted names")
+equal(alt.entries[7].item, 108, "shared item import recovers its confirmed chosen item")
+equal(alt.entries[8].item, 107, "shared item variants retain independent choices")
 equal(alt.nextSerial, 3, "new item names advance beyond existing shared names")
 equal(created, shareCreates, "login recognition never creates game macros")
 equal(edited, shareWrites, "login recognition never edits game macros")
@@ -735,9 +735,9 @@ equal(existingAlt.schema, 2, "older character settings migrate to shared discove
 equal(existingAlt.entries[1].created, true, "previously visited alts recognize General macros despite old false flags")
 equal(existingAlt.entries[1].combat, true, "recognition retains the alt's saved combat choice")
 equal(existingAlt.entries[1].item, 100, "recognition retains the alt's saved food override")
-equal(existingAlt.entries[6].created, true, "a saved item choice becomes active without another Create")
-equal(existingAlt.entries[6].item, 107, "existing alt item choices are preserved during recognition")
-equal(existingAlt.entries[7].item, 107, "an unfinished alt item choice recovers the existing shared macro's item")
+equal(existingAlt.entries[7].created, true, "a saved item choice becomes active without another Create")
+equal(existingAlt.entries[7].item, 107, "existing alt item choices are preserved during recognition")
+equal(existingAlt.entries[8].item, 107, "an unfinished alt item choice recovers the existing shared macro's item")
 alt = macros:Initialize(nil)
 Suite.db.macroUpdates = true
 bags = { 100, 104, 107, 108, 2862, 3239 }
@@ -748,17 +748,17 @@ equal(native[1].body, "#showtooltip [nocombat] item:100\n/use [nocombat] item:10
 equal(native[2].body:find("item:104", 1, true) ~= nil, true, "shared drink follows alt supplies through normal queued work")
 equal(native[4].body:find("item:2862", 1, true) ~= nil, true, "shared coating follows the alt's weapon and own recipe choice")
 equal(created, shareCreates, "automatic alt updates reuse existing General slots")
-local altItem = alt.entries[6]
+local altItem = alt.entries[7]
 equal(macros:RemoveItem(altItem), true, "an alt can still remove a shared item choice locally")
-local keptItem = native[6].body
+local keptItem = native[7].body
 macros:Refresh()
-equal(#alt.entries, 6, "refresh does not re-import a deliberately removed item choice")
-equal(native[6].body, keptItem, "local removal keeps the General macro unchanged")
+equal(#alt.entries, 7, "refresh does not re-import a deliberately removed item choice")
+equal(native[7].body, keptItem, "local removal keeps the General macro unchanged")
 alt = macros:Initialize(alt)
-equal(#alt.entries, 6, "reload retains local removal of a shared item choice")
+equal(#alt.entries, 7, "reload retains local removal of a shared item choice")
 equal(alt.ignoredItems[1], true, "removed item serial is remembered on this character")
 local otherAlt = macros:Initialize(nil)
-equal(#otherAlt.entries, 7, "local removal does not hide the shared item from another character")
+equal(#otherAlt.entries, 8, "local removal does not hide the shared item from another character")
 local newItem = macros:AddItem()
 equal(newItem.name, "FS Item 3", "adding on another character cannot reuse an existing shared item name")
 equal(newItem.created, false, "adding a new item choice still requires explicit creation")
@@ -805,11 +805,11 @@ ResetShared()
 GetMacroInfo = nil
 alt = macros:Initialize(nil)
 equal(alt.entries[1].created, false, "missing macro APIs cannot falsely recognize ownership")
-equal(#alt.entries, 5, "missing macro APIs cannot import item choices")
+equal(#alt.entries, 6, "missing macro APIs cannot import item choices")
 GetMacroInfo = readMacro
 macros:Apply(); Flush()
 equal(alt.entries[1].created, true, "late macro API availability recognizes fixed recipes without another Create")
-equal(#alt.entries, 7, "late macro API availability imports shared chosen-item recipes")
+equal(#alt.entries, 8, "late macro API availability imports shared chosen-item recipes")
 for _, restriction in ipairs({ "name", "body", "error" }) do
     ResetShared()
     GetMacroInfo = function(index)
@@ -822,7 +822,7 @@ for _, restriction in ipairs({ "name", "body", "error" }) do
     end
     alt = macros:Initialize(nil)
     equal(alt.entries[1].created, false, "unreadable General listings defer all new ownership recognition")
-    equal(#alt.entries, 5, "unreadable General listings cannot import item recipes")
+    equal(#alt.entries, 6, "unreadable General listings cannot import item recipes")
     GetMacroInfo = readMacro
     macros.events.OnEvent(macros.events, "UPDATE_MACROS"); Flush()
     equal(alt.entries[1].created, true, "a readable later macro event resumes deferred recognition")
@@ -844,7 +844,7 @@ ResetShared()
 SetCombat(true)
 alt = macros:Initialize(nil)
 equal(alt.entries[1].created, false, "first shared discovery defers in combat")
-equal(#alt.entries, 5, "combat cannot import shared item choices")
+equal(#alt.entries, 6, "combat cannot import shared item choices")
 local combatWrites = created + edited
 macros:Apply()
 macros.events.OnEvent(macros.events, "UPDATE_MACROS")
@@ -853,26 +853,26 @@ equal(created + edited, combatWrites, "combat discovery attempts never create or
 SetCombat(false)
 macros.events.OnEvent(macros.events, "PLAYER_REGEN_ENABLED"); Flush()
 equal(alt.entries[1].created, true, "post-combat work recognizes the shared fixed recipe")
-equal(#alt.entries, 7, "post-combat work imports shared item choices")
+equal(#alt.entries, 8, "post-combat work imports shared item choices")
 
 ResetShared()
-native[8] = { name = "FS Item 3", body = "#showtooltip item:108\n/use item:108" }
+native[9] = { name = "FS Item 3", body = "#showtooltip item:108\n/use item:108" }
 alt = macros:Initialize(nil)
-equal(#alt.entries, 7, "unowned item macro names are never imported")
+equal(#alt.entries, 8, "unowned item macro names are never imported")
 for _, text in ipairs({ "#showtooltip item:108\n/use item:107", "#showtooltip item:108\n/use item:108\n/say extra", "#showtooltip item:10000001\n/use item:10000001" }) do
     ResetShared()
-    native[6].body, Suite.db.macroOwnership["FS Item 1"] = text, text
+    native[7].body, Suite.db.macroOwnership["FS Item 1"] = text, text
     alt = macros:Initialize(nil)
-    equal(#alt.entries, 6, "item import requires the exact confirmed generated single-item shape and a valid ID")
+    equal(#alt.entries, 7, "item import requires the exact confirmed generated single-item shape and a valid ID")
 end
 ResetShared()
-native[6].body = "/say Custom item"
+native[7].body = "/say Custom item"
 alt = macros:Initialize(nil)
-equal(#alt.entries, 6, "externally edited chosen-item macros are not imported")
+equal(#alt.entries, 7, "externally edited chosen-item macros are not imported")
 ResetShared()
 native = {}
 alt = macros:Initialize(nil)
-equal(#alt.entries, 5, "ownership history without existing General macros cannot import item choices")
+equal(#alt.entries, 6, "ownership history without existing General macros cannot import item choices")
 macros:Refresh()
 equal(created, shareCreates, "deleted shared macros are never recreated by login or events")
 Suite.db.macroUpdates = false
@@ -887,14 +887,14 @@ for serial = 12, 1, -1 do
     Suite.db.macroOwnership[name] = text
 end
 alt = macros:Initialize(nil)
-equal(#alt.entries, 15, "shared item discovery retains the ten-choice limit")
-equal(alt.entries[6].serial, 1, "bounded item imports choose the earliest serial first")
-equal(alt.entries[15].serial, 10, "bounded item imports are stable despite ownership table order")
+equal(#alt.entries, 16, "shared item discovery retains the ten-choice limit")
+equal(alt.entries[7].serial, 1, "bounded item imports choose the earliest serial first")
+equal(alt.entries[16].serial, 10, "bounded item imports are stable despite ownership table order")
 equal(alt.nextSerial, 13, "name allocation accounts for shared items beyond the local choice limit")
 equal(macros:AddItem(), nil, "full shared item choices keep the existing add limit")
-equal(macros:RemoveItem(alt.entries[6]), true, "shared item removal remains available at the limit")
+equal(macros:RemoveItem(alt.entries[7]), true, "shared item removal remains available at the limit")
 alt = macros:Initialize(alt)
-equal(alt.entries[15].serial, 11, "the next available shared item can fill space after a local removal")
+equal(alt.entries[16].serial, 11, "the next available shared item can fill space after a local removal")
 equal(alt.ignoredItems[1], true, "bounded imports preserve deliberate local removals")
 -- Class recipes share the existing ownership rules, but never appear or update on other classes.
 local oldUnitClass, oldSpellAPI, oldPetAPI, oldUnitExists = UnitClass, C_Spell, C_PetInfo, UnitExists
@@ -908,8 +908,8 @@ C_Spell = { GetSpellInfo = function(id) return spells[id] and { name = spells[id
 native, Suite.db.macroOwnership = {}, {}
 Suite.db.macroUpdates = false
 alt = macros:Initialize(nil)
-equal(#macros:Entries(), 12, "hunter sees seven class recipes alongside shared recipes")
-local redirect, pet = alt.entries[6], alt.entries[7]
+equal(#macros:Entries(), 13, "hunter sees seven class recipes alongside shared recipes")
+local redirect, pet = alt.entries[7], alt.entries[8]
 equal(redirect.recipe, "hunterMisdirection", "hunter recipes precede arbitrary item choices")
 equal(macros:Generate(redirect, { incomplete = true }), "#showtooltip Misdirection\n/cast [@focus,help][@target,help][@pet,exists] Misdirection", "misdirection exactly preserves requested friendly target precedence without bag dependencies")
 equal(macros:Save(redirect), true, "hunter can explicitly create misdirection")
@@ -925,17 +925,17 @@ equal(macros.snapshot.carriedByID[100].count, 4, "explicit picker counts duplica
 equal(macros.snapshot.carriedByID[113].name, "Raw Pet Food", "explicit picker includes ingredients without a use spell")
 gui.macroSelected = pet
 gui:RefreshMacros()
-equal(gui.macroRows[7].entry, pet, "all hunter recipes occupy the scroll child without paging")
-equal(gui.macroRows[7]:GetParent(), gui.macroListContent, "recipe rows belong to the independent list viewport")
+equal(gui.macroRows[8].entry, pet, "all hunter recipes occupy the scroll child without paging")
+equal(gui.macroRows[8]:GetParent(), gui.macroListContent, "recipe rows belong to the independent list viewport")
 equal(gui.macroListHeadings[1].label.text, "− General", "ordinary recipes have their own heading")
 equal(gui.macroListHeadings[2].label.text, "− Hunter Macros", "hunter recipes have a separate heading")
 local outerOffset = gui.scrollOffset
 gui.macroListScroll.suiteScrollBar.OnMouseWheel(gui.macroListScroll.suiteScrollBar, -1000)
 equal(gui.macroListScroll.suiteOffset, gui.macroListScroll.suiteMaximum, "list thumb reaches the last hunter recipe")
 equal(gui.scrollOffset, outerOffset, "list thumb scrolling leaves the surrounding page unchanged")
-gui.macroRows[7].OnClick()
+gui.macroRows[8].OnClick()
 equal(gui.macroSelected, pet, "a scrolled hunter row selects its matching detail view")
-gui.macroRows[7].OnMouseWheel(gui.macroRows[7], 1)
+gui.macroRows[8].OnMouseWheel(gui.macroRows[8], 1)
 equal(gui.macroListScroll.suiteOffset, gui.macroListScroll.suiteMaximum - 40, "wheel over a recipe scrolls its own list")
 equal(gui.scrollOffset, outerOffset, "row wheel input does not scroll the outer page")
 equal(gui.macroChoose:IsShown(), true, "hunter pet care exposes a food picker")
@@ -1105,7 +1105,7 @@ equal(macros:Save(redirect), false, "missing spell metadata does not replace a s
 equal(native[redirectIndex].body, savedRedirect, "missing spell lookup preserves old misdirection text")
 spells[34477] = "Misdirection"
 playerClass = "MAGE"; macros:Refresh(); gui:RefreshMacros()
-equal(#macros:Entries(), 12, "Mage shows its own seven recipes while hiding retained Hunter recipes")
+equal(#macros:Entries(), 13, "Mage shows its own seven recipes while hiding retained Hunter recipes")
 equal(gui.macroListScroll.suiteScrollBar:IsShown(), true, "Mage class recipes extend its list beyond the viewport")
 equal(gui.macroListScroll.suiteOffset <= gui.macroListScroll.suiteMaximum, true, "class changes clamp the position to the new visible list")
 equal(gui.macroListHeadings[2].label.text, "− Mage Macros", "class-filtered heading follows the current class")
@@ -1114,11 +1114,11 @@ equal(macros:Save(pet), false, "another class cannot explicitly rewrite a hunter
 equal(macros:Write(redirect, "/say changed", true), false, "write boundary rejects hidden class recipes")
 equal(native[petIndex].body, petBody, "other-class refresh leaves the shared hunter macro unchanged")
 playerClass = { secret = true }
-equal(#macros:Entries(), 5, "unreadable class never exposes class-only entries")
+equal(#macros:Entries(), 6, "unreadable class never exposes class-only entries")
 local deferredClass = macros:Initialize(nil)
-equal(#deferredClass.entries, 5, "unknown startup class creates only ordinary recipes")
+equal(#deferredClass.entries, 6, "unknown startup class creates only ordinary recipes")
 playerClass = "HUNTER"; macros:SyncGeneral(); macros:SyncGeneral()
-equal(#deferredClass.entries, 12, "late class availability adds each class recipe exactly once")
+equal(#deferredClass.entries, 13, "late class availability adds each class recipe exactly once")
 SetCombat(true)
 equal(macros:Save(pet), false, "combat still blocks explicit class macro changes")
 equal(native[petIndex].body, petBody, "combat cannot rewrite pet-care text")
@@ -1128,7 +1128,7 @@ for i = 1, 9 do equal(macros:AddItem() ~= nil, true, "hunter retains each of the
 gui.macroCollapsed["Item Macros"] = true; gui:RefreshMacros()
 gui.macroAdd.OnClick()
 equal(gui.macroCollapsed["Item Macros"], nil, "adding an item expands its collapsed category before revealing it")
-equal(gui.macroSelected, limited.entries[22], "adding a custom item selects the new scroll-list entry")
+equal(gui.macroSelected, limited.entries[23], "adding a custom item selects the new scroll-list entry")
 equal(gui.macroListScroll.suiteOffset, gui.macroListScroll.suiteMaximum, "newly added items are revealed at the list bottom")
 equal(gui.macroListHeadings[3].label.text, "− Item Macros", "custom item choices are grouped separately")
 local selectedAtBottom = gui.macroSelected
@@ -1141,22 +1141,22 @@ equal(gui.macroListContent.height, listHeight, "combat does not relayout list ge
 equal(type(Suite.pending.macroListLayout), "function", "combat defers list layout through the existing queue")
 SetCombat(false); Suite.pending.macroListLayout()
 equal(Suite.pending.macroListLayout, nil, "deferred layout settles after combat")
-equal(#limited.entries, 22, "class recipes do not reduce arbitrary item capacity")
+equal(#limited.entries, 23, "class recipes do not reduce arbitrary item capacity")
 equal(macros:AddItem(), nil, "hunter still enforces the ten-item cap")
-gui.macroSelected = limited.entries[6]; gui:RefreshMacros()
+gui.macroSelected = limited.entries[7]; gui:RefreshMacros()
 equal(gui.macroChoose:IsShown(), false, "misdirection hides irrelevant item controls")
 local fullListHeight, keptSelection, keptPreview = gui.macroListContent.height, gui.macroSelected, gui.macroPreviewBody
 gui.macroListHeadings[1].OnClick()
 equal(gui.macroListHeadings[1].label.text, "+ General", "collapsed category offers a visible expand indicator")
 equal(gui.macroRows[1]:IsShown(), false, "collapsing General hides its recipe rows")
-equal(gui.macroRows[6]:IsShown(), true, "collapsing General keeps Hunter recipes expanded")
-equal(gui.macroListContent.height, fullListHeight - 260, "collapsed General removes its row space from the scroll range")
+equal(gui.macroRows[7]:IsShown(), true, "collapsing General keeps Hunter recipes expanded")
+equal(gui.macroListContent.height, fullListHeight - 312, "collapsed General removes its row space from the scroll range")
 gui.macroListHeadings[2].OnClick()
-equal(gui.macroRows[6]:IsShown(), false, "Hunter recipes collapse independently")
-equal(gui.macroRows[13]:IsShown(), true, "custom items remain visible when other categories collapse")
+equal(gui.macroRows[7]:IsShown(), false, "Hunter recipes collapse independently")
+equal(gui.macroRows[14]:IsShown(), true, "custom items remain visible when other categories collapse")
 equal(gui.macroSelected, keptSelection, "collapsing the selected category preserves the detail selection")
 equal(gui.macroPreviewBody, keptPreview, "collapse does not change the generated macro preview")
-equal(#limited.entries, 22, "collapse does not remove or change saved recipes")
+equal(#limited.entries, 23, "collapse does not remove or change saved recipes")
 gui.macroListHeadings[3].OnClick()
 equal(gui.macroListScroll.suiteMaximum, 0, "collapsing all categories eliminates list overflow")
 equal(gui.macroListScroll.suiteOffset, 0, "collapsing categories clamps obsolete scroll positions")
@@ -1169,9 +1169,9 @@ SetCombat(true); gui.macroListHeadings[1].OnClick()
 equal(gui.macroListContent.height, collapsedHeight, "combat category clicks defer geometry changes")
 SetCombat(false); Suite.pending.macroListLayout()
 equal(gui.macroRows[1]:IsShown(), true, "deferred category expansion settles after combat")
-equal(gui.macroRows[6]:IsShown(), false, "expanding General preserves the other category's collapsed state")
+equal(gui.macroRows[7]:IsShown(), false, "expanding General preserves the other category's collapsed state")
 gui:Select("overview"); gui:Select("macros")
-equal(gui.macroRows[6]:IsShown(), false, "category choices survive navigation within the login session")
+equal(gui.macroRows[7]:IsShown(), false, "category choices survive navigation within the login session")
 gui.macroListHeadings[2].OnClick(); gui.macroListHeadings[3].OnClick()
 equal(gui.macroListContent.height, fullListHeight, "expanding every category restores the full list range")
 assert(loadfile("tests/class_macros_spec.lua"))(Suite, equal, SetCombat, function(value) playerClass = value end, spells, native)
@@ -1182,6 +1182,51 @@ assert(loadfile("tests/macro_use_spec.lua"))(Suite, equal, SetCombat, {
     loading = function(value) loadingBag = value end,
     weapon = function(value, replace) if value or replace then weapon[16] = value end; return weapon[16] end,
 })
+assert(loadfile("tests/random_mount_spec.lua"))(Suite, equal, SetCombat, function() return native end)
+-- Discard the unfinished choice directly from the list, before any native macro exists.
+do
+    local keptDB, keptOwnership = Suite.macroDB, Suite.db.macroOwnership
+    Suite.db.macroOwnership = {}
+    macros:Initialize(nil)
+    local beforeCreate, beforeEdit = created, edited
+    local recipeCount = #Suite.macroDB.entries
+    local draft = macros:AddItem()
+    gui.macroSelected = draft; gui:RefreshMacros()
+    local row
+    for _, candidate in ipairs(gui.macroRows) do if candidate.entry == draft then row = candidate; break end end
+    equal(row.discard:IsShown(), true, "unfinished item macro has a visible list Discard action")
+    equal(row.discard:GetParent(), row, "Discard stays inside the clipped item row")
+    equal(row.discard:GetFrameLevel() > row:GetFrameLevel(), true, "Discard receives clicks above the selection row")
+    equal(gui.macroRemove.label.text, "Discard draft", "draft detail action clearly explains removal")
+    local serial = draft.serial
+    SetCombat(true); gui:RefreshMacros()
+    equal(row.discard:IsEnabled(), false, "discard action is disabled in combat")
+    row.discard.OnClick()
+    equal(gui.macroSelected, draft, "combat prevents draft removal even through the callback")
+    SetCombat(false); gui:RefreshMacros()
+    macros.statuses[draft], macros.statusErrors[draft] = "Choose an item", true
+    row.discard.OnClick()
+    equal(#Suite.macroDB.entries, recipeCount, "discard removes exactly the unfinished item choice")
+    equal(gui.macroSelected.recipe, "food", "discarding selected draft returns to the first recipe")
+    equal(Suite.macroDB.ignoredItems[serial], true, "discarded draft remains removed across reload initialization")
+    equal(macros.statuses[draft], nil, "discard clears draft status")
+    equal(macros.statusErrors[draft], nil, "discard clears draft error status")
+    local restoredDrafts = macros:Initialize(Suite.macroDB)
+    local found = false
+    for _, record in ipairs(restoredDrafts.entries) do if record.serial == serial then found = true end end
+    equal(found, false, "discarded draft does not return on reload")
+    equal(created, beforeCreate, "discarding a draft never creates a game macro")
+    equal(edited, beforeEdit, "discarding a draft never edits a game macro")
+    draft = macros:AddItem(); gui.macroSelected = draft; gui:RefreshMacros()
+    gui.macroRemove.OnClick()
+    equal(gui.macroSelected.recipe, "food", "detail Discard draft uses the same removal action")
+    draft = macros:AddItem(); gui.macroSelected = draft; gui:RefreshMacros()
+    for _, candidate in ipairs(gui.macroRows) do if candidate.entry == draft then row = candidate; break end end
+    gui.macroSelected = macros:Entries()[1]; gui:RefreshMacros()
+    row.discard.OnClick()
+    equal(gui.macroSelected.recipe, "food", "discarding another row preserves current selection")
+    Suite.macroDB, Suite.db.macroOwnership = keptDB, keptOwnership
+end
 UnitClass, C_Spell, C_PetInfo, UnitExists, bags = oldUnitClass, oldSpellAPI, oldPetAPI, oldUnitExists, originalBags
 native, Suite.db, Suite.macroDB = previousNative, previousDB, previousCharacter
 macros.events.RegisterEvent, macros.events.UnregisterAllEvents = eventRegister, eventUnregister

@@ -13,6 +13,8 @@ Macros.recipes = {
         help = "Match an ordinary stone to your weapon, or choose an oil or poison. Apply outside combat." },
     { key = "offhand", name = "FS Off Hand", title = "Off-hand coating", slot = 17,
         help = "Match an ordinary stone to your weapon, or choose an oil or poison. Apply outside combat." },
+    { key = "randomMount", name = "FS Random Mount", title = "Random mount", body = "#showtooltip\n/stopmacro [combat]\n/wfs randommount",
+        help = "Dismount if mounted; otherwise choose a random collected mount. The icon shows the chosen mount. Requires riding; use outside combat with Blizzard's Macros window closed. Random choices may repeat." },
     { key = "hunterMisdirection", name = "FS Misdirection", title = "Hunter · Misdirection", class = "HUNTER", spell = 34477,
         help = "Cast on a friendly focus, then a friendly target, then your pet. Requires Misdirection to be learned." },
     { key = "hunterPet", name = "FS Pet Care", title = "Hunter · Pet care", class = "HUNTER", foodChoice = true,
@@ -348,6 +350,7 @@ function Macros:RemoveItem(entry)
             table.remove(Suite.macroDB.entries, index)
             Suite.macroDB.ignoredItems[entry.serial] = true
             self.statuses[entry] = nil
+            self.statusErrors[entry] = nil
             return true -- Removing a choice never deletes or changes its game macro.
         end
     end
@@ -596,6 +599,78 @@ end
 
 function Macros:Notify()
     if self.visible and Suite.GUI.RefreshMacros then Suite.GUI:RefreshMacros() end
+end
+
+-- Called only by the explicit slash command in the user's action-bar macro.
+-- Keep its text stable; changing only the native icon retains ownership and slot.
+function Macros:RandomMount()
+    if InCombatLockdown() then return end
+    local entry
+    for _, record in ipairs(Suite.macroDB and Suite.macroDB.entries or {}) do
+        if record.recipe == "randomMount" and record.created then entry = record; break end
+    end
+    if not entry then return end
+    local function Problem(message)
+        self.statuses[entry], self.statusErrors[entry] = message, true
+        Suite.Print(message)
+        self:Notify()
+    end
+    if EditorOpen() then Problem("Close Blizzard's Macros window before using Random mount."); return end
+    local index, problem, body = self:Owned(entry)
+    if problem or not index then Problem(problem or "Create the Random mount macro again."); return end
+    if type(IsMounted) ~= "function" then Problem("Mounted status is unavailable in this client."); return end
+    local checked, mounted = pcall(IsMounted)
+    if not checked or not Suite.IsReadable(mounted) or type(mounted) ~= "boolean" then
+        Problem("Mounted status is unavailable. Try again shortly."); return
+    end
+    if mounted then
+        if type(Dismount) ~= "function" or not pcall(Dismount) then
+            Problem("The client could not dismount."); return
+        end
+        self.statuses[entry], self.statusErrors[entry] = "Dismount requested.", false
+        self:Notify()
+        return -- Never choose, update the icon or summon again on this press.
+    end
+    local journal = C_MountJournal
+    if not journal or type(journal.GetMountIDs) ~= "function" or type(journal.GetMountInfoByID) ~= "function"
+        or type(journal.GetMountUsabilityByID) ~= "function" or type(journal.SummonByID) ~= "function"
+        or type(EditMacro) ~= "function" then
+        Problem("Mount information is unavailable in this client."); return
+    end
+    local ok, ids = pcall(journal.GetMountIDs)
+    if not ok or not Suite.IsReadable(ids) or type(ids) ~= "table" then
+        Problem("Mount information is loading or unavailable."); return
+    end
+    local choices, seen = {}, {}
+    for _, id in ipairs(ids) do
+        if ItemID(id) and not seen[id] then
+            seen[id] = true
+            local read, name, _, icon, _, usable, _, _, _, _, hidden, collected = pcall(journal.GetMountInfoByID, id)
+            if read and Suite.IsReadable(usable) and Suite.IsReadable(hidden) and Suite.IsReadable(collected)
+                and usable == true and collected == true and hidden == false
+                and Number(icon) and icon > 0 and icon % 1 == 0 then
+                local checked, available = pcall(journal.GetMountUsabilityByID, id, true)
+                if checked and Suite.IsReadable(available) and available == true then
+                    choices[#choices + 1] = { id = id, icon = icon, name = Text(name) and name or "Mount" }
+                end
+            end
+        end
+    end
+    if #choices == 0 then Problem("No collected mounts can be used here yet. Check riding requirements and your location."); return end
+    local selected = choices[math.random(#choices)]
+    self.writing = true
+    local changed, result = pcall(EditMacro, index, nil, selected.icon, body)
+    self.writing = nil
+    if not changed or not Number(result) or result ~= index then Problem("The client could not update the mount icon."); return end
+    local name, saved, readable = ReadMacro(index)
+    if not readable or name ~= entry.name or not SameBody(saved, body) then
+        Problem("The client did not confirm the mount macro."); return
+    end
+    local summoned = pcall(journal.SummonByID, selected.id)
+    if not summoned then Problem("The client could not summon the selected mount."); return end
+    -- Selection is not proof of a successful cast; native riding/location rules apply.
+    self.statuses[entry], self.statusErrors[entry] = "Selected: " .. selected.name, false
+    self:Notify()
 end
 function Macros:Refresh(refreshItems)
     if InCombatLockdown() then self.dirty = true; self:Notify(); return end

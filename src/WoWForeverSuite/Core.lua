@@ -1,6 +1,6 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "1.0.8"
+Suite.version = "1.0.9"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {
@@ -236,6 +236,7 @@ SlashCmdList.WOWFOREVERSUITE = function(message)
     elseif command == "maildeadlines" then Suite.MailExpiry:Open()
     elseif command == "wishlist" then Suite.Training.wishlistOnly = true; Suite.Training:SelectView("class"); Suite.Training:Open()
     elseif command == "macrostatus" then Suite.Macros:Status()
+    elseif command == "randommount" then Suite.Macros:RandomMount()
     elseif command == "meters" or command == "damage" then Suite.GUI:OpenMeters()
     elseif commandPages[command] then Suite.GUI:OpenPage(commandPages[command])
     else Suite.GUI:Toggle() end

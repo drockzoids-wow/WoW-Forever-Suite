@@ -1,5 +1,35 @@
 # Forever Suite in game testing
 
+## 1.0.9 final offline release checks — November 9, 2026
+
+Isolated staged release tree passes 82 Lua 5.1 files, matching 1.0.9 Core/TOCs and 32,456 behavior assertions. Release-workflow embedded checks pass. Package.ps1 produces 91 addon-only entries, all matching release-tree SHA256 with no duplicate/missing/extra entries; local ZIP SHA256 is 6FF5D9CF2AE2FFB475009EF0800F614F3F59D039D4780442280B67A1C24020B2 (receipt .cache/release-109/package-receipt.json). Pending buff removal and scoring research remain outside this release. Native tests remain pending; remote CI, release and upload evidence are verified separately.
+
+## Authorized 1.0.9 release — November 9, 2026
+
+User authorizes version bump and CurseForge publication for Random mount (selected icon and mounted dismount) plus item-macro draft discard. Align Core/both TOCs, README and changelog at 1.0.9. Keep pending buff-catalog removal and scoring research outside this release, preserving their working files. Check the isolated committed release tree/package, push main, wait for its checks, then publish through a fresh v1.0.9 tag. Prior 32,456 substitute assertions pass in the working tree; final release-tree results and remote upload evidence are recorded separately. Native mount/dismount/icon/draft-button/taint checks remain pending; authorization does not mark them verified. No game deployment, junction or real SavedVariables edits.
+
+## Random mount dismount toggle — November 9, 2026
+
+After reload, use the existing FS Random Mount without updating its text. Outside combat, mount normally or through the macro, then press once: it must dismount only, retain the last icon and never start another mount cast. Press again while unmounted: it should choose an eligible mount normally. Test mounted in an area with no usable mount choices to confirm dismount does not depend on the journal pool. Combat retains the existing no-action rule; editor/ownership pauses still apply. Record actual running build/Interface, action-bar behavior and Lua/blocked-action/taint results. Offline substitutes verify one dismount, no reroll/query/icon rewrite/summon, retained icon and unavailable/restricted API handling; native results remain pending. This supersedes prior Suite checklist notes saying no explicit dismount.
+
+## Discard item-macro drafts — November 9, 2026
+
+Record actual build/Interface. In Macros, Add item macro, leave its item unchosen and dismiss the picker. The Not created row must show Discard; selected details must show Discard draft. Either action removes the draft, returns to Food when it was selected, and creates/edits/deletes no native macro. Reload to confirm it stays removed. Add two drafts and discard an unselected one: current selection remains. Test wheel over Discard, category collapse, list clipping, long names and multiple UI scales. Enter combat: removal is disabled; after combat it becomes available. Created item choices have no inline draft Discard and retain Remove choice · game macro is kept in details; verify that their native General macros remain. Offline substitutes cover routing/state/removal persistence, not native visual/input correctness.
+
+## Suite Random mount creation and icon — November 9, 2026
+
+Record actual running build/Interface. Reload, open `/wfs macros`, select Random mount in General, and click Create macro with Blizzard's Macros window closed. It must create one FS Random Mount in General, with no inventory picker/combat checkbox. At level 35 or with no eligible mounts, use reports no usable collected mount without Lua errors. Opening settings/login alone must create nothing. Drag the created macro onto an action bar, then close the native editor.
+
+After meeting riding requirements, use while stationary outdoors: each press selects an eligible collected mount and the same action-bar macro shows that mount's icon. Verify the icon after pressing and on repeated uses, reload/relog, different UI scales, and with class-spell automatic updates disabled. Repeats are permitted; icon is selection evidence only. Acquire a new mount and use again without editing; journal search/filter state must not change the collection pool. Test indoors/unsupported locations and combat; combat must do nothing. Test mounted behavior separately (no explicit dismount is added). Confirm no blocked action or taint.
+
+With native Macros open and an unsaved edit, press the macro: execution pauses with an explanation and preserves the editor. Close it, then externally edit the saved macro body, duplicate its General name, delete it, or make an unrelated macro with the same name: no incorrect macro may be overwritten. Explicit Update retains the existing documented ownership rules. Native result remains pending; offline checks use API substitutes for selection, icon writes, slot/body preservation and error/ownership guards.
+
+## Random mount macro — November 9, 2026
+
+Candidate: docs/macros/random-mount.txt, exactly 255 characters with one LF between lines and no terminal newline. Offline Lua 5.1 parsing and substitutes cover eligibility, empty sets, fresh collection reads, choice bounds and restricted eligibility; no in-game result is claimed. No Suite runtime code changed.
+
+Record actual running build/Interface. Create a normal macro named Random Mount, select a fixed mount icon and paste the two lines without extra text. At level 35, verify no Lua/blocked-action errors; no eligible mounts means no action, and this does not establish level-40 usability. Once riding requirements are met, test outdoors while stationary with the collection closed, then searched/filtered: repeated uses should summon from eligible collected mounts; repeats are allowed. Acquire another mount and test without editing. Check indoors/unsupported areas for native restrictions, combat for no action, and mounted behavior separately (no explicit dismount is added). Record native summon result and any taint/error before marking verified.
+
 ## 1.0.8 release and contact persistence — November 8, 2026
 
 Local package `dist/WoWForeverSuite-1.0.8.zip` contains 91 entries, all matching shipped source SHA256 with no extras/missing/duplicates. Archive SHA256: `19E71B5801EB11E977DBC675ED619B771156943FE7FB4D9C619CF438FD28F200`; receipt `.cache/release-108/package-receipt.json`. Embedded release workflow checks pass. Remote CI/upload results remain separate.

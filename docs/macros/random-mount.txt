@@ -1,0 +1,2 @@
+/stopmacro [combat]
+/run local j,t=C_MountJournal,{} for _,i in ipairs(j.GetMountIDs())do local v={j.GetMountInfoByID(i)}if canaccessallvalues(v[5],v[10],v[11])and v[11]and v[5]and not v[10]then t[#t+1]=i end end if t[1]then j.SummonByID(t[random(#t)])end

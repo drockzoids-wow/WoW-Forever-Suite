@@ -2562,6 +2562,12 @@ local function MacroGroup(entry)
         or entry.recipe == "item" and "Item Macros" or "General"
 end
 
+function GUI:RemoveMacroChoice(entry)
+    if not entry or not Suite.Macros:RemoveItem(entry) then return end
+    if self.macroSelected == entry then self.macroSelected = Suite.Macros:Entries()[1] end
+    self:RefreshMacros()
+end
+
 function GUI:BuildMacros()
     if self.macroPanel then self:RefreshMacros(); return end
     local panel = CreateFrame("Frame", nil, self.content)
@@ -2608,6 +2614,15 @@ function GUI:BuildMacros()
         row.subtitle:SetWordWrap(false)
         row:EnableMouseWheel(true)
         row:SetScript("OnMouseWheel", function(_, delta) list:GetScript("OnMouseWheel")(list, delta) end)
+        row.discard = MacroButton(row, 180, -10, 62, "Discard", function()
+            local entry = row.entry
+            if entry and not entry.created then self:RemoveMacroChoice(entry) end
+        end)
+        row.discard:SetHeight(26)
+        row.discard:SetFrameLevel(row:GetFrameLevel() + 1)
+        row.discard:Hide()
+        row.discard:EnableMouseWheel(true)
+        row.discard:SetScript("OnMouseWheel", function(_, delta) list:GetScript("OnMouseWheel")(list, delta) end)
         self.macroRows[i] = row
     end
     self.macroAdd = MacroButton(panel, 0, -357, 248, "+ Add item macro", function()
@@ -2645,10 +2660,7 @@ function GUI:BuildMacros()
         self:RefreshMacros()
     end)
     self.macroRemove = MacroButton(panel, 288, -146, 492, "Remove choice · game macro is kept", function()
-        if Suite.Macros:RemoveItem(self.macroSelected) then
-            self.macroSelected = Suite.Macros:Entries()[1]
-            self:RefreshMacros()
-        end
+        self:RemoveMacroChoice(self.macroSelected)
     end)
     self.macroStatus = Text(panel, 10, palette.muted)
     self.macroStatus:SetPoint("TOPLEFT", 288, -191)
@@ -2752,6 +2764,11 @@ function GUI:RefreshMacros()
     for i, row in ipairs(self.macroRows) do
         local record = entries[i]
         row.entry = record
+        local draft = record and record.recipe == "item" and not record.created
+        row.discard:SetShown(draft == true)
+        row.discard:SetEnabled(not InCombatLockdown())
+        row.label:SetWidth(draft and 154 or 228)
+        row.subtitle:SetWidth(draft and 154 or 228)
         row:SetShown(record ~= nil and not self.macroCollapsed[MacroGroup(record)])
         if record then
             local rowRecipe = macros.byRecipe[record.recipe]
@@ -2778,6 +2795,7 @@ function GUI:RefreshMacros()
     self.macroCombat:SetChecked(entry.combat == true)
     self.macroCombat:SetEnabled(not paused)
     self.macroRemove:SetShown(entry.recipe == "item")
+    self.macroRemove.label:SetText(entry.created and "Remove choice · game macro is kept" or "Discard draft")
     self.macroRemove:SetEnabled(not paused)
     self.macroCombat.label:SetText(entry.recipe == "food" and "Combat: Healthstone + healing potion\nBoth are attempted when pressed." or "Combat: mana potion")
     self.macroPreviewBody = body or "#showtooltip"
