@@ -1,5 +1,9 @@
 # WoW Forever addon development reference
 
+## 1.0.9 publication verified — November 9, 2026
+
+Release commit 10c8ed9ffe2b570388ef9078a32c33e6140248a4 passes main check 42669973625; fresh v1.0.9 tag triggers successful Package and Release run 42670219104 / job 129344461137. Workflow verifies matching version, addon-only archive and uploaded GitHub assets. Log records CurseForge project 1749120 upload at 2026-11-09T18:02:06Z followed by Success at 18:02:07Z. GitHub release: https://github.com/drockzoids-wow/WoW-Forever-Suite/releases/tag/v1.0.9 . Published ZIP SHA256: 8543f17e2e869a93e05be3ab34fd25bc61364538f204d8da71b5d5be17e355f8; publication receipt/log/assets cached under .cache/release-109. CurseForge upload acceptance is verified; public availability/moderation is not independently verified. Native mount/dismount/icon/draft controls and taint remain pending. Buff removal/scoring research remain uncommitted; no game deployment/junction/SavedVariables changes.
+
 ## 1.0.9 final offline release checks — November 9, 2026
 
 Isolated staged release tree passes 82 Lua 5.1 files, matching 1.0.9 Core/TOCs and 32,456 behavior assertions. Release-workflow embedded checks pass. Package.ps1 produces 91 addon-only entries, all matching release-tree SHA256 with no duplicate/missing/extra entries; local ZIP SHA256 is 6FF5D9CF2AE2FFB475009EF0800F614F3F59D039D4780442280B67A1C24020B2 (receipt .cache/release-109/package-receipt.json). Pending buff removal and scoring research remain outside this release. Native tests remain pending; remote CI, release and upload evidence are verified separately.
