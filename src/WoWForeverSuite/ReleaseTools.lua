@@ -68,6 +68,7 @@ local function Window(owner, name, title)
     frame:SetScript("OnShow", function() frame:RegisterEvent("PLAYER_REGEN_DISABLED"); frame:RegisterEvent("PLAYER_REGEN_ENABLED") end)
     frame:SetScript("OnEvent", function()
         if owner.moving then frame:StopMovingOrSizing(); owner.moving = nil end
+        if owner.CancelRefresh then owner:CancelRefresh() end
         owner:Refresh()
     end)
     frame:Hide(); owner.frame = frame; return frame
@@ -140,10 +141,49 @@ function Supplies:Select(index)
     self.confirmRemove = nil; self.frame.item:SetText(tostring(row.id)); self.frame.quantity:SetText(tostring(row.wanted))
     self.frame.remove.label:SetText("Remove item")
 end
+local function SafeTooltip(tip)
+    if not Suite.IsReadable(tip) or (type(tip) ~= "table" and type(tip) ~= "userdata") then return false end
+    for _, method in ipairs({ "IsForbidden", "SetOwner", "SetItemByID", "Show", "Hide", "IsOwned", "GetOwner" }) do
+        if not Suite.IsReadable(tip[method]) then return false end
+    end
+    if type(tip.IsForbidden) == "function" and Call(tip.IsForbidden, tip) ~= false then return false end
+    return true
+end
+local function OwnsTooltip(tip, row)
+    if not SafeTooltip(tip) then return false end
+    if type(tip.IsOwned) == "function" then return Call(tip.IsOwned, tip, row) == true end
+    return type(tip.GetOwner) == "function" and Call(tip.GetOwner, tip) == row
+end
+function Supplies:HideTooltip()
+    local tip, row = self.tooltip, self.hovered
+    self.tooltip, self.hovered = nil, nil
+    if row and OwnsTooltip(tip, row) and type(tip.Hide) == "function" then pcall(tip.Hide, tip) end
+end
+function Supplies:ItemTooltip(row)
+    self:HideTooltip()
+    if InCombatLockdown() or not self.frame or not self.frame:IsShown() or not row:IsShown()
+        or not Integer(row.supplyID, 1, 2147483647) then return end
+    local tip = GameTooltip
+    if not SafeTooltip(tip) or type(tip.SetOwner) ~= "function" or type(tip.SetItemByID) ~= "function"
+        or type(tip.Show) ~= "function" or type(tip.Hide) ~= "function"
+        or (type(tip.IsOwned) ~= "function" and type(tip.GetOwner) ~= "function") then return end
+    self.tooltip, self.hovered = tip, row
+    if not pcall(tip.SetOwner, tip, row, "ANCHOR_RIGHT") then self:HideTooltip(); return end
+    if not OwnsTooltip(tip, row) or not pcall(tip.SetItemByID, tip, row.supplyID) or not OwnsTooltip(tip, row) then self:HideTooltip(); return end
+    if not pcall(tip.Show, tip) then self:HideTooltip() end
+end
 function Supplies:Refresh()
+    self:CancelRefresh()
+    local hovered = self.hovered
+    self:HideTooltip()
     if not self.frame or not self.frame:IsShown() then return end
     self.rows = self:Rows(self:Counts()); Paging(self, self.rows)
-    self.frame.context:SetText("Set targets for reagents, food, water, bandages or coatings. Click a row to edit.\nCounts use carried bags only. Targets belong to this character.")
+    for index, widget in ipairs(self.frame.rows) do
+        local row = self.rows[index + (self.page - 1) * 8]
+        widget.supplyID = row and row.id or nil
+    end
+    if not InCombatLockdown() and hovered and Call(MouseIsOver, hovered) == true then self:ItemTooltip(hovered) end
+    self.frame.context:SetText("Drop an item below, or click a row to edit. Hover a row for item details.\nCounts use carried bags only. Targets belong to this character.")
     self.frame.status:SetText(InCombatLockdown() and "Paused in combat. Retry after combat."
         or not self:Enabled() and "Tracking is off. Enable it in Supply Checklist settings to count carried items."
         or #self.rows == 0 and "Your checklist is empty. Add an item below." or "Select an item to change its target or remove it. No items are bought or used.")
@@ -154,12 +194,36 @@ local function ItemInput(value)
     local id = value:match("^%s*(%d+)%s*$") or value:match("|Hitem:(%d+):") or value:match("^item:(%d+)")
     id = id and tonumber(id); return Integer(id, 1, 2147483647) and id or nil
 end
+function Supplies:ReceiveItem()
+    if InCombatLockdown() or not self.frame or not self.frame:IsShown() then return false end
+    if not Read(GetCursorInfo, "function") or not Read(ClearCursor, "function") then
+        self.frame.status:SetText("Item drops are unavailable. Paste an item ID or link instead."); return false
+    end
+    local ok, kind, id = pcall(GetCursorInfo)
+    if not ok or not Suite.IsReadable(kind) then
+        self.frame.status:SetText("The cursor item is unavailable. Paste an item ID or link instead."); return false
+    end
+    if kind == nil then return false end -- Preserve ordinary editing clicks.
+    if kind ~= "item" or not Integer(id, 1, 2147483647) then
+        self.frame.status:SetText("Drop an available item here, or paste its item ID or link."); return false
+    end
+    local cleared, result = pcall(ClearCursor)
+    if not cleared or not Suite.IsReadable(result) or (result ~= nil and result ~= true) then
+        self.frame.status:SetText("The item drop could not finish. Paste an item ID or link instead."); return false
+    end
+    if InCombatLockdown() then return false end
+    self.frame.item:SetText(tostring(id))
+    self.confirmRemove = nil; self.frame.remove.label:SetText("Remove item")
+    self.frame.item:ClearFocus(); self.frame.quantity:SetFocus()
+    self.frame.status:SetText("Item selected. Choose a quantity and click Save target.")
+    return true
+end
 function Supplies:Open(owner)
     if InCombatLockdown() then Suite.Print("Open the Supply Checklist outside combat."); return end
     if not self.db then self:InitializeCharacter(nil) end
     if not self.frame then
         local frame = Window(self, "WoWForeverSuiteSupplies", "Supply Checklist")
-        -- Leave the list above a compact editor; keep native item links as text input only.
+        -- The drop target only fills this editor; saving remains explicit.
         frame.status:ClearAllPoints(); frame.status:SetPoint("TOPLEFT", 14, -460)
         local function Input(x, width, maximum)
             local box = CreateFrame("EditBox", nil, frame, "BackdropTemplate"); Surface(box)
@@ -170,9 +234,17 @@ function Supplies:Open(owner)
             box:SetScript("OnTextChanged", function() self.confirmRemove = nil; if frame.remove then frame.remove.label:SetText("Remove item") end end)
             return box
         end
-        Label(frame, 14, -486, 250, 10):SetText("Item ID or pasted item link")
+        Label(frame, 14, -486, 250, 10):SetText("Drop item, ID or pasted link")
         Label(frame, 274, -486, 90, 10):SetText("Target quantity")
         frame.item, frame.quantity = Input(14, 250, 512), Input(274, 90, 6)
+        frame.item:EnableMouse(true)
+        frame.item:SetScript("OnReceiveDrag", function() self:ReceiveItem() end)
+        frame.item:HookScript("OnMouseDown", function(_, button) if button == "LeftButton" then self:ReceiveItem() end end)
+        for _, row in ipairs(frame.rows) do
+            row:SetScript("OnEnter", function(owner) self:ItemTooltip(owner) end)
+            row:SetScript("OnLeave", function(owner) if self.hovered == owner then self:HideTooltip() end end)
+            row:HookScript("OnHide", function(owner) if self.hovered == owner then self:HideTooltip() end; owner.supplyID = nil end)
+        end
         frame.save = Button(frame, "Save target", 374, -502, 108, function()
             local quantity = frame.quantity:GetText()
             local id, wanted = ItemInput(frame.item:GetText()), Read(quantity, "string") and tonumber(quantity) or nil
@@ -190,9 +262,11 @@ function Supplies:Open(owner)
         frame.settings = Button(frame, "Settings", 498, -544, 108, function() Suite.GUI:OpenPage("supplies", nil, self.frame) end)
     end
     Suite.PlaceWindow(self.frame, owner)
-    self.requested = {}; self.frame:Show(); self:Apply(); self:Refresh()
+    self.requested = {}; self.frame:Show(); self:Apply()
 end
 function Supplies:OnHide()
+    self:CancelRefresh()
+    self:HideTooltip()
     self.requested = nil
     if self.events then self.events:UnregisterAllEvents() end
     if self.frame then
@@ -200,18 +274,31 @@ function Supplies:OnHide()
         self.frame.remove.label:SetText("Remove item")
     end
 end
+function Supplies:CancelRefresh()
+    if self.refreshTimer then self.refreshTimer:Cancel(); self.refreshTimer = nil end
+end
+function Supplies:QueueRefresh(event, itemID)
+    if not self.frame or not self.frame:IsShown() or InCombatLockdown() then return end
+    if event == "ITEM_DATA_LOAD_RESULT" then
+        if not Integer(itemID, 1, 2147483647) or not self.requested or not self.requested[itemID] then return end
+    elseif event ~= "BAG_UPDATE_DELAYED" or not self:Enabled() then return end
+    if self.refreshTimer then return end
+    if not C_Timer or type(C_Timer.NewTimer) ~= "function" then self:Refresh(); return end
+    self.refreshTimer = C_Timer.NewTimer(0.1, function()
+        self.refreshTimer = nil
+        if self.frame and self.frame:IsShown() and not InCombatLockdown() then self:Refresh() end
+    end)
+end
 function Supplies:Apply()
+    self:CancelRefresh()
     if self.events then self.events:UnregisterAllEvents() end
     if not self.frame or not self.frame:IsShown() then return end
     if not self.events then
         if InCombatLockdown() then return end
         self.events = CreateFrame("Frame")
-        self.events:SetScript("OnEvent", function(_, event)
-            if event == "PLAYER_REGEN_DISABLED" and self.moving then self.frame:StopMovingOrSizing(); self.moving = nil end
-            self:Refresh()
-        end)
+        self.events:SetScript("OnEvent", function(_, event, itemID) self:QueueRefresh(event, itemID) end)
     end
-    self.events:RegisterEvent("PLAYER_REGEN_DISABLED"); self.events:RegisterEvent("PLAYER_REGEN_ENABLED")
+    -- The visible window already owns combat events and immediate status refreshes.
     self.events:RegisterEvent("ITEM_DATA_LOAD_RESULT")
     if self:Enabled() then self.events:RegisterEvent("BAG_UPDATE_DELAYED") end
     self:Refresh()
@@ -282,11 +369,17 @@ function Expiry:Refresh()
     self.frame.status:SetText(not self:Enabled() and "Recording and login reminders are off. Saved records remain available."
         or #rows == 0 and "No mailbox recorded. Open a mailbox with recording enabled."
         or "Inbox loading may produce partial records. New letters and mailbox changes need another visit.")
+    local now = Call(GetServerTime)
+    local stamp = Integer(now, 1, 10000000000) and Call(date, "%b %d, %H:%M", now)
+    self.frame.asOf:SetText("Countdowns updated: " .. (Text(stamp, 80) and stamp or "time unavailable") .. " · Saved inbox records only.")
+    self.frame.refresh:SetEnabled(not InCombatLockdown())
 end
 function Expiry:Open(owner)
     if InCombatLockdown() then Suite.Print("Open Mail Deadlines outside combat."); return end
     if not self.frame then
         local frame = Window(self, "WoWForeverSuiteMailDeadlines", "Mail Deadlines")
+        frame.asOf = Label(frame, 14, -475, 592, 11); frame.asOf:SetHeight(18)
+        frame.refresh = Button(frame, "Refresh times", 374, -544, 108, function() self:Refresh() end)
         Button(frame, "Settings", 498, -544, 108, function() Suite.GUI:OpenPage("mail", nil, self.frame) end)
     end
     Suite.PlaceWindow(self.frame, owner)

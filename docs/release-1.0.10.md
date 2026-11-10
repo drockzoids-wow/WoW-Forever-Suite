@@ -1,0 +1,9 @@
+# Forever Suite 1.0.10
+
+November 10, 2026.
+
+User authorizes a final whole-addon code review and CurseForge publication if no release blocker is found. Reviewed the current 86-file runtime tree with full Lua 5.1/behavior checks, pinned build-70862 API/event/signature/global-write/literal-key scans, lifecycle/action-boundary inspection and release-workflow probes. No new concrete release blocker was established. Two optional guarded legacy pet-journal fallbacks retain their prior qualification. All 34,529 substitute assertions and 11 separate gear research tests pass; 95 addon package inputs and 73 registered Lua specs are accounted for. Core and both TOCs advance to 1.0.10. Include all pending feature/fix work and its research/tests/documentation; cache references never ship. User-confirmed tooltip colors are recorded separately from pending native build/Interface, gear calibration, input/layout/performance and taint results, including the previously deferred map/tracker investigation. Publication does not mark those tests verified. No game deployment, junction or real SavedVariables changes. Final package and remote CI/upload evidence are recorded separately.
+
+Release through the existing main-check → fresh v1.0.10 tag → Package and Release workflow, targeting CurseForge project 1749120 with the Forever flavor. The archive must contain only src/WoWForeverSuite files with matching content hashes and no missing, duplicate or additional entries.
+
+Final local release checks pass: 86 Lua 5.1 files, identical 1.0.10 Core/TOCs and 34,529 substitute assertions. Package.ps1 produced dist/WoWForeverSuite-1.0.10.zip with 95 exact source-hash-matching entries and no extras, duplicates or omissions. Local ZIP SHA256: 40BD4FC64C86EBD292ED6B80EB734B7B2664C94FDCD7F8F7110ADC653CC5B3B5. Receipt: .cache/review-20261110/release-package-receipt.json. Native results and remote publication evidence are separate.

@@ -1,0 +1,573 @@
+{
+  "schema": 1,
+  "source": "https://foreverwow.gg/tool/",
+  "retrievedAt": "2026-11-08T05:08:21.118Z",
+  "sourceConfigSHA256": "56e2191110392a0aebab00a1d7a9443e7a97734af2886e549408aa2e90ef7207",
+  "builds": [
+    "1.60.1.70862"
+  ],
+  "status": "Observed external reference weights; not calibrated Suite defaults.",
+  "profiles": [
+    {
+      "id": "warrior/arms",
+      "class": "Warrior",
+      "spec": "Arms",
+      "weights": {
+        "strength": 1,
+        "agility": 0.7,
+        "attack_power": 0.5,
+        "crit": 1,
+        "hit": 1.1,
+        "haste": 0.85,
+        "expertise": 0.85,
+        "weapon_skill": 1.3,
+        "weapon_damage": 2,
+        "stamina": 0.1,
+        "melee_dps": 6,
+        "ranged_dps": 0.2
+      }
+    },
+    {
+      "id": "warrior/fury",
+      "class": "Warrior",
+      "spec": "Fury",
+      "weights": {
+        "strength": 1,
+        "agility": 0.75,
+        "attack_power": 0.5,
+        "crit": 1,
+        "hit": 1.25,
+        "haste": 0.9,
+        "expertise": 0.9,
+        "weapon_skill": 1.5,
+        "weapon_damage": 2.5,
+        "stamina": 0.1,
+        "melee_dps": 7,
+        "offhand_dps": 3.5,
+        "ranged_dps": 0.2
+      }
+    },
+    {
+      "id": "warrior/protection",
+      "class": "Warrior",
+      "spec": "Protection",
+      "weights": {
+        "stamina": 1,
+        "defense": 1.5,
+        "dodge": 1.2,
+        "parry": 1,
+        "block": 0.6,
+        "block_value": 0.4,
+        "armor": 0.08,
+        "bonus_armor": 0.08,
+        "health": 0.07,
+        "strength": 0.6,
+        "agility": 0.6,
+        "hit": 0.8,
+        "expertise": 0.8,
+        "crit": 0.4,
+        "attack_power": 0.25,
+        "weapon_skill": 0.6,
+        "melee_dps": 2.5,
+        "ranged_dps": 0.1
+      }
+    },
+    {
+      "id": "paladin/holy",
+      "class": "Paladin",
+      "spec": "Holy",
+      "weights": {
+        "healing": 1,
+        "spell_power": 1,
+        "intellect": 0.9,
+        "mp5": 1.6,
+        "crit": 0.8,
+        "haste": 0.6,
+        "spirit": 0.15,
+        "stamina": 0.1
+      }
+    },
+    {
+      "id": "paladin/protection",
+      "class": "Paladin",
+      "spec": "Protection",
+      "weights": {
+        "stamina": 1,
+        "defense": 1.4,
+        "dodge": 1,
+        "parry": 0.9,
+        "block": 0.6,
+        "block_value": 0.5,
+        "armor": 0.06,
+        "bonus_armor": 0.06,
+        "health": 0.07,
+        "spell_power": 0.6,
+        "spell_damage": 0.6,
+        "holy_spell_damage": 0.6,
+        "strength": 0.4,
+        "agility": 0.5,
+        "intellect": 0.3,
+        "hit": 0.6,
+        "mp5": 0.5,
+        "melee_dps": 1.5
+      }
+    },
+    {
+      "id": "paladin/retribution",
+      "class": "Paladin",
+      "spec": "Retribution",
+      "weights": {
+        "strength": 1,
+        "agility": 0.6,
+        "attack_power": 0.5,
+        "crit": 1,
+        "hit": 1.2,
+        "haste": 0.8,
+        "expertise": 0.8,
+        "weapon_skill": 1.2,
+        "weapon_damage": 2,
+        "intellect": 0.15,
+        "spell_power": 0.3,
+        "spell_damage": 0.3,
+        "holy_spell_damage": 0.3,
+        "mp5": 0.3,
+        "stamina": 0.1,
+        "melee_dps": 6.5
+      }
+    },
+    {
+      "id": "hunter/beastmastery",
+      "class": "Hunter",
+      "spec": "Beast Mastery",
+      "weights": {
+        "agility": 1,
+        "ranged_attack_power": 0.45,
+        "attack_power": 0.45,
+        "hit": 1.1,
+        "crit": 0.85,
+        "haste": 0.8,
+        "intellect": 0.3,
+        "mp5": 0.45,
+        "stamina": 0.1,
+        "ranged_dps": 5.5,
+        "melee_dps": 0.4,
+        "offhand_dps": 0.2
+      }
+    },
+    {
+      "id": "hunter/marksmanship",
+      "class": "Hunter",
+      "spec": "Marksmanship",
+      "weights": {
+        "agility": 1,
+        "ranged_attack_power": 0.45,
+        "attack_power": 0.45,
+        "hit": 1.15,
+        "crit": 0.95,
+        "haste": 0.8,
+        "intellect": 0.25,
+        "mp5": 0.4,
+        "stamina": 0.1,
+        "ranged_dps": 6,
+        "melee_dps": 0.4,
+        "offhand_dps": 0.2
+      }
+    },
+    {
+      "id": "hunter/survival",
+      "class": "Hunter",
+      "spec": "Survival",
+      "weights": {
+        "agility": 1,
+        "ranged_attack_power": 0.4,
+        "attack_power": 0.4,
+        "hit": 1.1,
+        "crit": 0.9,
+        "haste": 0.75,
+        "intellect": 0.25,
+        "mp5": 0.4,
+        "stamina": 0.15,
+        "ranged_dps": 5.5,
+        "melee_dps": 0.6,
+        "offhand_dps": 0.3
+      }
+    },
+    {
+      "id": "rogue/assassination",
+      "class": "Rogue",
+      "spec": "Assassination",
+      "weights": {
+        "agility": 1,
+        "strength": 0.5,
+        "attack_power": 0.5,
+        "hit": 1.3,
+        "crit": 1.05,
+        "haste": 0.9,
+        "expertise": 0.9,
+        "weapon_skill": 1.3,
+        "weapon_damage": 2,
+        "stamina": 0.1,
+        "melee_dps": 5.5,
+        "offhand_dps": 3,
+        "ranged_dps": 0.1
+      }
+    },
+    {
+      "id": "rogue/combat",
+      "class": "Rogue",
+      "spec": "Combat",
+      "weights": {
+        "agility": 1,
+        "strength": 0.5,
+        "attack_power": 0.5,
+        "hit": 1.35,
+        "crit": 1,
+        "haste": 0.95,
+        "expertise": 0.95,
+        "weapon_skill": 1.5,
+        "weapon_damage": 2.5,
+        "stamina": 0.1,
+        "melee_dps": 6,
+        "offhand_dps": 3.5,
+        "ranged_dps": 0.1
+      }
+    },
+    {
+      "id": "rogue/combat-daggers",
+      "class": "Rogue",
+      "spec": "Combat (Daggers)",
+      "weights": {
+        "agility": 1,
+        "strength": 0.5,
+        "attack_power": 0.5,
+        "hit": 1.35,
+        "crit": 1,
+        "haste": 0.95,
+        "expertise": 0.95,
+        "weapon_skill": 1.5,
+        "weapon_damage": 2.5,
+        "stamina": 0.1,
+        "melee_dps": 6,
+        "offhand_dps": 3.5,
+        "ranged_dps": 0.1
+      }
+    },
+    {
+      "id": "rogue/subtlety",
+      "class": "Rogue",
+      "spec": "Subtlety",
+      "weights": {
+        "agility": 1,
+        "strength": 0.5,
+        "attack_power": 0.5,
+        "hit": 1.2,
+        "crit": 0.95,
+        "haste": 0.85,
+        "expertise": 0.85,
+        "weapon_skill": 1.2,
+        "weapon_damage": 2,
+        "stamina": 0.15,
+        "melee_dps": 5.5,
+        "offhand_dps": 3,
+        "ranged_dps": 0.1
+      }
+    },
+    {
+      "id": "priest/discipline",
+      "class": "Priest",
+      "spec": "Discipline",
+      "weights": {
+        "healing": 1,
+        "spell_power": 1,
+        "mp5": 1.7,
+        "intellect": 0.8,
+        "spirit": 0.5,
+        "crit": 0.6,
+        "haste": 0.6,
+        "stamina": 0.1,
+        "wand_dps": 0.3
+      }
+    },
+    {
+      "id": "priest/holy",
+      "class": "Priest",
+      "spec": "Holy",
+      "weights": {
+        "healing": 1,
+        "spell_power": 1,
+        "mp5": 1.8,
+        "spirit": 0.7,
+        "intellect": 0.7,
+        "crit": 0.5,
+        "haste": 0.6,
+        "stamina": 0.1,
+        "wand_dps": 0.3
+      }
+    },
+    {
+      "id": "priest/shadow",
+      "class": "Priest",
+      "spec": "Shadow",
+      "weights": {
+        "spell_power": 1,
+        "spell_damage": 1,
+        "shadow_spell_damage": 1,
+        "hit": 1.3,
+        "crit": 0.5,
+        "haste": 0.9,
+        "intellect": 0.3,
+        "spirit": 0.25,
+        "mp5": 0.6,
+        "stamina": 0.15,
+        "spell_penetration": 0.2,
+        "wand_dps": 0.5
+      }
+    },
+    {
+      "id": "shaman/elemental",
+      "class": "Shaman",
+      "spec": "Elemental",
+      "weights": {
+        "spell_power": 1,
+        "spell_damage": 1,
+        "nature_spell_damage": 1,
+        "fire_spell_damage": 0.3,
+        "frost_spell_damage": 0.1,
+        "hit": 1.2,
+        "crit": 0.9,
+        "haste": 0.9,
+        "intellect": 0.4,
+        "mp5": 0.8,
+        "spirit": 0.05,
+        "stamina": 0.1
+      }
+    },
+    {
+      "id": "shaman/enhancement",
+      "class": "Shaman",
+      "spec": "Enhancement",
+      "weights": {
+        "strength": 1,
+        "agility": 0.8,
+        "attack_power": 0.5,
+        "crit": 1,
+        "hit": 1.2,
+        "haste": 0.9,
+        "expertise": 0.8,
+        "weapon_skill": 1.3,
+        "weapon_damage": 2,
+        "intellect": 0.15,
+        "spell_power": 0.15,
+        "spell_damage": 0.15,
+        "nature_spell_damage": 0.1,
+        "fire_spell_damage": 0.1,
+        "mp5": 0.3,
+        "stamina": 0.1,
+        "melee_dps": 6.5
+      }
+    },
+    {
+      "id": "shaman/restoration",
+      "class": "Shaman",
+      "spec": "Restoration",
+      "weights": {
+        "healing": 1,
+        "spell_power": 1,
+        "mp5": 1.8,
+        "intellect": 0.7,
+        "crit": 0.6,
+        "haste": 0.6,
+        "spirit": 0.15,
+        "stamina": 0.1
+      }
+    },
+    {
+      "id": "mage/arcane",
+      "class": "Mage",
+      "spec": "Arcane",
+      "weights": {
+        "spell_power": 1,
+        "spell_damage": 1,
+        "arcane_spell_damage": 1,
+        "frost_spell_damage": 0.5,
+        "fire_spell_damage": 0.5,
+        "hit": 1.2,
+        "crit": 0.85,
+        "haste": 0.9,
+        "intellect": 0.6,
+        "spirit": 0.35,
+        "mp5": 0.7,
+        "stamina": 0.1,
+        "spell_penetration": 0.2,
+        "wand_dps": 0.5
+      }
+    },
+    {
+      "id": "mage/fire",
+      "class": "Mage",
+      "spec": "Fire",
+      "weights": {
+        "spell_power": 1,
+        "spell_damage": 1,
+        "fire_spell_damage": 1,
+        "hit": 1.25,
+        "crit": 1,
+        "haste": 0.9,
+        "intellect": 0.45,
+        "spirit": 0.2,
+        "mp5": 0.6,
+        "stamina": 0.1,
+        "spell_penetration": 0.25,
+        "wand_dps": 0.5
+      }
+    },
+    {
+      "id": "mage/frost",
+      "class": "Mage",
+      "spec": "Frost",
+      "weights": {
+        "spell_power": 1,
+        "spell_damage": 1,
+        "frost_spell_damage": 1,
+        "hit": 1.2,
+        "crit": 0.6,
+        "haste": 0.9,
+        "intellect": 0.45,
+        "spirit": 0.2,
+        "mp5": 0.6,
+        "stamina": 0.15,
+        "spell_penetration": 0.2,
+        "wand_dps": 0.5
+      }
+    },
+    {
+      "id": "warlock/affliction",
+      "class": "Warlock",
+      "spec": "Affliction",
+      "weights": {
+        "spell_power": 1,
+        "spell_damage": 1,
+        "shadow_spell_damage": 1,
+        "fire_spell_damage": 0.15,
+        "hit": 1.25,
+        "crit": 0.35,
+        "haste": 0.8,
+        "intellect": 0.25,
+        "spirit": 0.15,
+        "stamina": 0.35,
+        "mp5": 0.3,
+        "spell_penetration": 0.25,
+        "wand_dps": 0.4
+      }
+    },
+    {
+      "id": "warlock/demonology",
+      "class": "Warlock",
+      "spec": "Demonology",
+      "weights": {
+        "spell_power": 1,
+        "spell_damage": 1,
+        "shadow_spell_damage": 1,
+        "fire_spell_damage": 0.3,
+        "hit": 1.2,
+        "crit": 0.6,
+        "haste": 0.8,
+        "intellect": 0.3,
+        "spirit": 0.15,
+        "stamina": 0.5,
+        "mp5": 0.3,
+        "spell_penetration": 0.2,
+        "wand_dps": 0.4
+      }
+    },
+    {
+      "id": "warlock/destruction",
+      "class": "Warlock",
+      "spec": "Destruction",
+      "weights": {
+        "spell_power": 1,
+        "spell_damage": 1,
+        "shadow_spell_damage": 0.9,
+        "fire_spell_damage": 0.6,
+        "hit": 1.25,
+        "crit": 0.85,
+        "haste": 0.85,
+        "intellect": 0.3,
+        "spirit": 0.1,
+        "stamina": 0.35,
+        "mp5": 0.3,
+        "spell_penetration": 0.25,
+        "wand_dps": 0.4
+      }
+    },
+    {
+      "id": "druid/balance",
+      "class": "Druid",
+      "spec": "Balance",
+      "weights": {
+        "spell_power": 1,
+        "spell_damage": 1,
+        "arcane_spell_damage": 0.9,
+        "nature_spell_damage": 0.8,
+        "hit": 1.2,
+        "crit": 0.8,
+        "haste": 0.9,
+        "intellect": 0.4,
+        "mp5": 0.7,
+        "spirit": 0.25,
+        "stamina": 0.1
+      }
+    },
+    {
+      "id": "druid/feralcat",
+      "class": "Druid",
+      "spec": "Feral (Cat)",
+      "weights": {
+        "agility": 1,
+        "strength": 1,
+        "attack_power": 0.5,
+        "crit": 1,
+        "hit": 1.2,
+        "haste": 0.8,
+        "expertise": 0.9,
+        "stamina": 0.1,
+        "melee_dps": 6
+      }
+    },
+    {
+      "id": "druid/feralbear",
+      "class": "Druid",
+      "spec": "Feral (Bear)",
+      "weights": {
+        "stamina": 1,
+        "agility": 0.8,
+        "armor": 0.12,
+        "bonus_armor": 0.12,
+        "defense": 1.2,
+        "dodge": 1.2,
+        "health": 0.07,
+        "strength": 0.5,
+        "attack_power": 0.25,
+        "hit": 0.6,
+        "expertise": 0.6,
+        "crit": 0.4,
+        "melee_dps": 2.5
+      }
+    },
+    {
+      "id": "druid/restoration",
+      "class": "Druid",
+      "spec": "Restoration",
+      "weights": {
+        "healing": 1,
+        "spell_power": 1,
+        "mp5": 1.6,
+        "spirit": 0.6,
+        "intellect": 0.6,
+        "crit": 0.4,
+        "haste": 0.6,
+        "stamina": 0.1
+      }
+    }
+  ]
+}

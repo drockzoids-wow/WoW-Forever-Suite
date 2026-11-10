@@ -124,7 +124,9 @@ function Tips:ComparisonDetails(tooltip, comparison)
     if comparison.weapon and comparison.preference == "stats" then
         tooltip:AddLine("Compares the complete hand set; off-hand weapon DPS counts at 50%.", 0.55, 0.65, 0.7, true)
     end
-    tooltip:AddLine("Weighted estimate. Unweighted stats, effects and set bonuses need your judgment.", 0.55, 0.65, 0.7, true)
+    tooltip:AddLine(comparison.preference == "stats"
+        and "Weighted score gain, not damage/healing. Unweighted stats, effects and set bonuses need your judgment."
+        or "Item-level comparison. Stats, effects and set bonuses need your judgment.", 0.55, 0.65, 0.7, true)
 end
 
 function Tips:Item(tooltip, data)
@@ -152,8 +154,8 @@ function Tips:Item(tooltip, data)
                         elseif comparison.weapon then text = string.format("Higher item level · +%.1f (%s)", delta, comparison.slot)
                         else text = string.format("Higher item level · +%.1f", delta) end
                     elseif comparison.weapon then
-                        text = "Possible weapon upgrade · " .. Suite.Scoring.Format(delta, true) .. " (" .. preset.label .. "; " .. comparison.slot .. ")"
-                    else text = "Possible stat upgrade · " .. Suite.Scoring.Format(delta, true) .. " (" .. preset.label .. ")" end
+                        text = "Possible weapon upgrade · " .. Suite.Scoring.FormatUpgrade(delta, comparison.baselineScore) .. " (" .. preset.label .. "; " .. comparison.slot .. ")"
+                    else text = "Possible stat upgrade · " .. Suite.Scoring.FormatUpgrade(delta, comparison.baselineScore) .. " (" .. preset.label .. ")" end
                     local red, green, blue, armorNote = Suite.Items:UpgradeColor(info)
                     if red then
                         tooltip:AddLine(text, red, green, blue)
@@ -262,11 +264,86 @@ function Tips:RequestInspect(tooltip, record, unit, guid)
     self:ScheduleInspect(request, 0.1)
 end
 
+function Tips:ColorUnitLevel(tooltip, data, unit)
+    if not Suite.db.unitLevelColors or not UnitLevel or not UnitEffectiveLevel
+        or not GetRelativeDifficultyColor or not tooltip.GetName then return end
+    local level, playerLevel = UnitLevel(unit), UnitEffectiveLevel("player")
+    if not Suite.IsReadable(level) or type(level) ~= "number" or (level <= 0 and level ~= -1) or level >= math.huge
+        or level ~= math.floor(level) or not Suite.IsReadable(playerLevel) or type(playerLevel) ~= "number"
+        or playerLevel <= 0 or playerLevel >= math.huge then return end
+    if not data and tooltip.GetPrimaryTooltipData then data = tooltip:GetPrimaryTooltipData() end
+    if not Suite.IsReadable(data) or type(data) ~= "table" or not Suite.IsReadable(data.lines)
+        or type(data.lines) ~= "table" then return end
+    local types = Enum and Enum.TooltipDataLineType
+    local name = tooltip:GetName()
+    if not Suite.IsReadable(name) or type(name) ~= "string" then return end
+    local ok, color
+    if level == -1 then
+        -- The native unknown/boss sentinel is public; never infer a hidden numeric level.
+        ok, color = true, QuestDifficultyColors and QuestDifficultyColors.impossible
+    else
+        ok, color = pcall(GetRelativeDifficultyColor, playerLevel, level)
+    end
+    if not ok or not Suite.IsReadable(color) or type(color) ~= "table" then return end
+    for _, key in ipairs({ "r", "g", "b" }) do
+        local value = color[key]
+        if not Suite.IsReadable(value) or type(value) ~= "number" or not (value >= 0 and value <= 1) then return end
+    end
+    local prefix = string.format("|cff%02x%02x%02x", math.floor(color.r * 255 + 0.5),
+        math.floor(color.g * 255 + 0.5), math.floor(color.b * 255 + 0.5))
+    local function ColorLine(index, requireLabel)
+        if not Suite.IsReadable(index) or type(index) ~= "number" or not (index > 0 and index < math.huge)
+            or index ~= math.floor(index) then return end
+        local line = _G[name .. "TextLeft" .. index]
+        if not line or not line.GetText or not line.SetText then return end
+        local text = line:GetText()
+        if not Suite.IsReadable(text) or type(text) ~= "string" then return end
+        local record = self:Record(tooltip)
+        if record.unitLevelLine == line and text == record.unitLevelColored then text = record.unitLevelOriginal end
+        -- Only plain native text with one matching number; leave icons/color escapes untouched.
+        if text:find("|", 1, true) then return end
+        local matches, number = 0, level == -1 and "??" or string.format("%d", level)
+        if requireLabel then
+            local template = UNIT_LEVEL_TEMPLATE
+            if not Suite.IsReadable(template) or type(template) ~= "string" then return end
+            local formatted, label = pcall(string.format, template:gsub("%%d", "%%s"), number)
+            if not formatted or label == "" or text:sub(1, #label) ~= label then return end
+            local suffix = text:sub(#label + 1)
+            if suffix ~= "" and not suffix:match("^%s") then return end
+        end
+        local colored = text:gsub(level == -1 and "%?+" or "%d+", function(digits)
+            if digits ~= number then return digits end
+            matches = matches + 1
+            return prefix .. digits .. "|r"
+        end)
+        if matches ~= 1 then return end
+        record.unitLevelLine, record.unitLevelOriginal, record.unitLevelColored = line, text, colored
+        line:SetText(colored)
+        return true
+    end
+    for _, info in ipairs(data.lines) do
+        if Suite.IsReadable(info) and type(info) == "table" and Suite.IsReadable(info.type)
+            and types and types.UnitLevel and info.type == types.UnitLevel then
+            -- Prefer the native rendered row when this client supplies its metadata.
+            if ColorLine(info.lineIndex) then return end
+        end
+    end
+    -- Some unit tooltips expose generic rows or omit the rendered index. Match the
+    -- localized native level label, never just a number in names/quest text.
+    if not tooltip.NumLines then return end
+    local count = tooltip:NumLines()
+    if not Suite.IsReadable(count) or type(count) ~= "number" or not (count >= 2 and count < math.huge) then return end
+    for index = 2, math.min(count, 40) do
+        if ColorLine(index, true) then return end
+    end
+end
+
 function Tips:Unit(tooltip, data)
-    if not Suite.db or (not Suite.db.playerItemLevel and not Suite.db.classNames) then return end
+    if not Suite.db or (not Suite.db.playerItemLevel and not Suite.db.classNames and not Suite.db.unitLevelColors) then return end
     if tooltip.IsForbidden and tooltip:IsForbidden() then return end
     local unit = GetUnit(tooltip, data)
     if not unit then return end
+    self:ColorUnitLevel(tooltip, data, unit)
     local isPlayer = UnitIsPlayer(unit)
     if not Suite.IsReadable(isPlayer) or not isPlayer then return end
     local record = self:Record(tooltip)
@@ -332,7 +409,7 @@ end
 
 function Tips:Apply()
     Suite.pending.tooltipInitialize = nil
-    if Suite.db.itemTooltipLevels or Suite.db.upgradeHints or Suite.db.playerItemLevel or Suite.db.classNames or Suite.db.itemInventory then
+    if Suite.db.itemTooltipLevels or Suite.db.upgradeHints or Suite.db.playerItemLevel or Suite.db.classNames or Suite.db.itemInventory or Suite.db.unitLevelColors then
         if not self.initialized and InCombatLockdown() then
             Suite.AfterCombat("tooltipInitialize", function() self:Apply() end)
         else self:Initialize() end
@@ -348,6 +425,16 @@ function Tips:Apply()
     if not Suite.db.classNames then
         for _, record in pairs(self.records) do
             if record.nameLine and record.originalColor then record.nameLine:SetTextColor(unpack(record.originalColor)) end
+        end
+    end
+    if not Suite.db.unitLevelColors then
+        for tooltip, record in pairs(self.records) do
+            local line = record.unitLevelLine
+            if line and not (tooltip.IsForbidden and tooltip:IsForbidden()) then
+                local text = line:GetText()
+                if Suite.IsReadable(text) and text == record.unitLevelColored then line:SetText(record.unitLevelOriginal) end
+            end
+            record.unitLevelLine, record.unitLevelOriginal, record.unitLevelColored = nil, nil, nil
         end
     end
 end

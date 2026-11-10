@@ -95,16 +95,21 @@ function Gear:ReadDraft()
     if not Suite.IsReadable(label) or type(label) ~= "string" or #label > 48 or label:find("[%c|]")
         or not label:find("%S") then return nil, "Enter a short profile name without chat markup." end
     local profile = { label = label, weights = {}, meleeDPS = 0, rangedDPS = 0 }
+    profile.mainHandSubclass = self.draft.mainHandSubclass
     for _, field in ipairs(self.fields) do
         local text = field.input:GetText()
         local valid = Suite.IsReadable(text) and type(text) == "string" and text:match("^%d*%.?%d*$")
         local decimals = valid and text:match("%.(%d*)$")
         local value = valid and tonumber(text)
-        if not value or value ~= value or value < 0 or value > 1000 or decimals and #decimals > 3 then
+        local original = self.draft[field.key]
+        if original == nil then original = self.draft.weights[field.key] or 0 end
+        local unchanged = Suite.IsReadable(text) and type(text) == "string" and text == tostring(original)
+        if unchanged then value = original end
+        if not value or value ~= value or value < 0 or value > 1000 or not unchanged and decimals and #decimals > 3 then
             return nil, field.label .. ": enter 0 to 1000, with up to three decimal places."
         end
         if field.key == "meleeDPS" or field.key == "rangedDPS" then profile[field.key] = value
-        elseif value > 0 then profile.weights[field.key] = value end
+        elseif value > 0 or self.draft.weights[field.key] ~= nil then profile.weights[field.key] = value end
     end
     return profile
 end
@@ -161,11 +166,11 @@ end
 function Gear:BuildPicker()
     local panel = self.panel
     self.picker = CreateFrame("Frame", nil, panel); self.picker:SetSize(780, 410); self.picker:SetPoint("TOPLEFT")
-    Label(self.picker, "Ready-made profiles", 0, 0, 780, 15)
-    local intro = Label(self.picker, "Choose a starter or your own saved weights. Editing is optional.\nAutomatic is a class-aware leveling starter; choose a role for a different build.", 0, -25, 780, 11, colors.muted)
+    Label(self.picker, "Specs, roles & custom weights", 0, 0, 780, 15)
+    local intro = Label(self.picker, "Choose your intended spec manually, a broad role or your own saved weights.\nAutomatic keeps the existing class-aware starter. Spec choices do not change your talents.", 0, -25, 780, 11, colors.muted)
     intro:SetHeight(34); intro:SetWordWrap(true)
     self.profileButtons = {}
-    for index = 1, 6 + Scoring.maxProfiles do
+    for index = 1, 6 + Scoring.maxSpecs + Scoring.maxProfiles do
         local button
         button = Button(self.picker, "", ((index - 1) % 3) * 264, -72 - math.floor((index - 1) / 3) * 58, 252,
             function() if button.id then self:Choose(button.id) end end)
@@ -198,8 +203,15 @@ function Gear:BuildEditor()
         local field = { key = stat.key, label = stat.label }
         local x, y = ((index - 1) % 3) * 264, -204 - math.floor((index - 1) / 3) * 48
         Label(self.editor, stat.label, x, y, 244, 11)
-        field.input = Input(self.editor, x, y - 17, 244, 8)
+        field.input = Input(self.editor, x, y - 17, 244, 32)
         field.value = Label(self.editor, "", x + 7, y - 23, 230, 12, colors.teal)
+        field.input:SetScript("OnEditFocusGained", function()
+            if InCombatLockdown() or not GUI.scrollFrame then return end
+            local top = (GUI.controlsOffset or 0) - y
+            local offset, height = GUI.scrollOffset or 0, GUI.scrollFrame:GetHeight()
+            if top < offset then GUI:ScrollTo(top - 8)
+            elseif top + 48 > offset + height then GUI:ScrollTo(top + 56 - height) end
+        end)
         field.input:SetScript("OnEscapePressed", function()
             if self.draft then
                 local value = self.draft[field.key]
@@ -222,15 +234,18 @@ function Gear:BuildEditor()
     self.nameInput:SetScript("OnTabPressed", function()
         if not InCombatLockdown() and self.fields[1].input.SetFocus then self.fields[1].input:SetFocus() end
     end)
-    self.detailsButton = Button(self.editor, "", 0, -456, 384, function()
+    local controlsY = 216 + math.ceil(#definitions / 3) * 48
+    self.editorHeight = controlsY + 130
+    self.editor:SetHeight(self.editorHeight)
+    self.detailsButton = Button(self.editor, "", 0, -controlsY, 384, function()
         local state = Scoring:State()
         if state then state.details = not state.details end
         self:Refresh()
     end)
-    Button(self.editor, "Choose another profile", 396, -456, 384, function() self:Open("picker") end)
-    self.saveButton = Button(self.editor, "Save & use profile", 0, -496, 384, function() self:Save() end)
-    self.cancelButton = Button(self.editor, "Cancel edits", 396, -496, 384, function() self:Cancel() end)
-    self.status = Label(self.editor, "", 0, -537, 780, 11, colors.muted)
+    Button(self.editor, "Choose another profile", 396, -controlsY, 384, function() self:Open("picker") end)
+    self.saveButton = Button(self.editor, "Save & use profile", 0, -controlsY - 40, 384, function() self:Save() end)
+    self.cancelButton = Button(self.editor, "Cancel edits", 396, -controlsY - 40, 384, function() self:Cancel() end)
+    self.status = Label(self.editor, "", 0, -controlsY - 81, 780, 11, colors.muted)
     self.status:SetHeight(42); self.status:SetWordWrap(true)
 end
 
@@ -255,12 +270,15 @@ function Gear:Refresh()
                 Suite.Theme:Backdrop(button, entry.id == active and 1 or 0.35)
             end
         end
-        self.panel:SetHeight(72 + math.ceil(#list / 3) * 58)
+        local height = 72 + math.ceil(#list / 3) * 58
+        self.picker:SetHeight(height); self.panel:SetHeight(height)
         return
     end
     local profile, active, state = self.draft or Scoring:Profile(), Scoring:ActiveID(), Scoring:State()
     local custom = active:match("^custom%d+$") ~= nil
-    self.explanation:SetText("Saved for this character. Built-in presets work without editing.\nWeapon speed, talents, procs and set bonuses are not modeled.")
+    self.explanation:SetText("Character-only weights. Ratings use raw points, not percentages. School-only bonuses need English tooltips.\nEffective spell/healing totals replace overlapping legacy spell fields; use one approach.\n"
+        .. (profile.mainHandSubclass == 15 and "Dagger main hand required. " or "")
+        .. "Weapon speed, talents, procs and sets are not modeled.")
     self.nameInput:SetShown(self.draft ~= nil); self.nameLabel:SetShown(self.draft == nil)
     self.nameLabel:SetText(profile.label)
     local newDraft = self.renderedDraft ~= self.draft
@@ -285,6 +303,6 @@ function Gear:Refresh()
     self.detailsButton.label:SetText(state and state.details and "Tooltip: full breakdown" or "Tooltip: summary")
     self.status:SetText(self.message or "Higher scores mean improvements under these weights. Unweighted stats and special effects still need your judgment.")
     self.status:SetTextColor(unpack(colors.muted))
-    self.panel:SetHeight(586)
+    self.panel:SetHeight(self.editorHeight)
     self.renderedDraft = self.draft
 end

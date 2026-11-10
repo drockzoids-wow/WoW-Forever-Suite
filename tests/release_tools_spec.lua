@@ -59,6 +59,38 @@ equal(supplies.rows[1].detail:find("Stocked", 1, true) ~= nil, true, "surplus is
 supplies:Save(101, 20); supplies:Refresh(); supplies:Refresh()
 equal(loads, 1, "unknown item data requested once per opening")
 equal(supplies.rows[2].count, 0, "complete scan knows an absent item is zero")
+local beforeBurst = scans
+supplies.events.OnEvent(supplies.events, "ITEM_DATA_LOAD_RESULT", 999)
+equal(scans, beforeBurst, "unrelated item metadata never rescans checklist bags")
+for index = 1, 12 do supplies.events.OnEvent(supplies.events, "BAG_UPDATE_DELAYED") end
+supplies.events.OnEvent(supplies.events, "ITEM_DATA_LOAD_RESULT", 101)
+equal(scans, beforeBurst, "visible checklist defers event bursts")
+Flush()
+equal(scans, beforeBurst + 1, "one event burst performs one complete carried-bag scan")
+beforeBurst = scans
+supplies.events.OnEvent(supplies.events, "BAG_UPDATE_DELAYED")
+Combat(true); supplies.frame.OnEvent(supplies.frame, "PLAYER_REGEN_DISABLED"); Flush()
+equal(scans, beforeBurst, "combat cancels queued checklist bag work")
+equal(supplies.refreshTimer, nil, "combat releases the pending checklist timer")
+Combat(false); supplies.frame.OnEvent(supplies.frame, "PLAYER_REGEN_ENABLED")
+equal(scans, beforeBurst + 1, "combat exit refreshes carried stock exactly once")
+beforeBurst = scans
+supplies.events.OnEvent(supplies.events, "BAG_UPDATE_DELAYED")
+supplies.frame:Hide(); Flush()
+equal(scans, beforeBurst, "hiding cancels queued checklist scans")
+supplies:Open(launcher)
+equal(scans, beforeBurst + 1, "opening the enabled checklist scans bags once")
+beforeBurst = scans
+supplies.events.OnEvent(supplies.events, "ITEM_DATA_LOAD_RESULT", { secret = true })
+equal(supplies.refreshTimer, nil, "unreadable metadata identifiers cannot queue checklist work")
+supplies.events.OnEvent(supplies.events, "BAG_UPDATE_DELAYED")
+supplies:Refresh(); Flush()
+equal(scans, beforeBurst + 1, "explicit refresh absorbs pending checklist work")
+beforeBurst = scans
+supplies.events.OnEvent(supplies.events, "BAG_UPDATE_DELAYED")
+Suite.db.supplyChecklist = false; supplies:Apply(); Flush()
+equal(scans, beforeBurst, "disabling cancels queued carried-bag work")
+Suite.db.supplyChecklist = true; supplies:Apply()
 Suite.Inventory.ScanContainers = function() return nil end; supplies:Refresh()
 equal(supplies.rows[1].count, nil, "incomplete bag data never produces a false shortage")
 equal(supplies:Save(100, 0), false, "zero target rejected")
@@ -109,6 +141,29 @@ equal(mail:Summary(previous, now):find("Recorded deadline passed", 1, true) ~= n
 equal(mail:Validate({ at = 1, count = 1, total = 0, deadline = 5 }), nil, "invalid inbox totals rejected")
 mail:Open(launcher); equal(#mail:Rows(), 1, "saved mail remains readable when disabled")
 equal(mail.frame.point[1], "BOTTOMLEFT", "mail deadlines uses its launcher for placement")
+local oldMailboxRead, mailboxReads = GetInboxNumItems, 0
+local oldDate = date
+date = function(_, at) return "Time " .. tostring(at) end
+GetInboxNumItems = function() mailboxReads = mailboxReads + 1; return oldMailboxRead() end
+now = previous.deadline - 7200; mail:Refresh()
+equal(mail.frame.rows[1].detail.text:find("in 2h", 1, true) ~= nil, true, "mail countdown uses the current server time")
+equal(mail.frame.asOf.text:find("Saved inbox records only", 1, true) ~= nil, true, "refresh freshness never implies a new mailbox observation")
+local oldStamp = mail.frame.asOf.text
+now = now + 3600; mail.frame.refresh.OnClick()
+equal(mail.frame.rows[1].detail.text:find("in 1h", 1, true) ~= nil, true, "manual refresh updates an open deadline countdown")
+equal(mail.frame.asOf.text ~= oldStamp, true, "manual refresh advances the displayed calculation timestamp")
+equal(character.mailExpiry, previous, "refresh times preserves the saved observation and check time")
+equal(mailboxReads, 0, "refresh times never queries a mailbox away from the mailbox")
+Combat(true); mail.frame.OnEvent(mail.frame, "PLAYER_REGEN_DISABLED")
+equal(mail.frame.refresh.enabled, false, "refresh times is disabled in combat")
+now = now + 3600; local combatStamp = mail.frame.asOf.text; mail.frame.refresh.OnClick()
+equal(mail.frame.asOf.text, combatStamp, "manual refresh is inert in combat")
+Combat(false); mail.frame.OnEvent(mail.frame, "PLAYER_REGEN_ENABLED")
+local clock = GetServerTime
+GetServerTime = function() return secret end; mail:Refresh()
+equal(mail.frame.asOf.text:find("time unavailable", 1, true) ~= nil, true, "unreadable server time cannot produce a misleading freshness stamp")
+GetServerTime, date = clock, oldDate
+GetInboxNumItems = oldMailboxRead
 Suite.db.mailExpiry = true; mail:Apply(); mail.warned = nil
 local printed = #messages; mail:OnEvent("PLAYER_ENTERING_WORLD"); mail:OnEvent("PLAYER_ENTERING_WORLD")
 equal(#messages, printed + 1, "near or passed deadline reminds only once per login")

@@ -85,6 +85,7 @@ function Planner:Attach()
     RegisterStateDriver(root, "visibility", "[combat] hide; show")
     self.driver = true
     root:HookScript("OnHide", function()
+        self:CloseImport()
         if self.tooltipOwner and GameTooltip then GameTooltip:Hide(); self.tooltipOwner = nil end
         if self.notesEdit then self.notesEdit:ClearFocus() end
         if self.starterLevelInput then self.starterLevelInput:ClearFocus() end
@@ -154,9 +155,9 @@ function Planner:Attach()
     self.delete = Button(panel, 182, -428, 80, "Delete", function() self:Delete() end)
     self.undoButton = Button(panel, 14, -462, 120, "Undo", function() self:History(false) end)
     self.redoButton = Button(panel, 142, -462, 120, "Redo", function() self:History(true) end)
-    self.code = Input(panel, 14, -506, 248, 16384)
-    Label(panel, 10, 14, -492, "Suite build code")
-    Button(panel, 14, -540, 120, "Import", function() self:Import(self.code:GetText()); self.code:ClearFocus() end)
+    self.code = Input(panel, 14, -506, 248, self.shareLimit)
+    Label(panel, 10, 14, -492, "Plan code · includes point order and notes")
+    self.import = Button(panel, 14, -540, 120, "Review import", function() self:OpenImport(); self.code:ClearFocus() end)
     self.export = Button(panel, 142, -540, 120, "Export", function()
         local code = self:Export()
         if code then self.code:SetText(code); self.code:SetFocus(); self.code:HighlightText() end
@@ -264,6 +265,10 @@ function Planner:Render()
     self:HideGuideMarks()
     if self.notesFrame and (not self.expanded or self.notesBuild ~= build) then self:CloseNotes() end
     if self.orderFrame and (not self.expanded or self.orderBuild ~= build) then self:CloseOrder() end
+    if self.importFrame and (not self.expanded or not self.importCode or self.importOwner ~= build
+        or not self:Ready() or self.importContext ~= self.model.config
+        or self.importTree ~= self.model.tree or self.importHash ~= self.model.hash
+        or self.importClass ~= self.model.class) then self:CloseImport() end
     if self.starterPanel and (not self.expanded or not self.starter or not self.model) then self:CloseStarterPanel() end
     if self.tooltipOwner and GameTooltip then GameTooltip:Hide(); self.tooltipOwner = nil end
     for _, button in pairs(self.buttons) do button:Hide() end
@@ -580,6 +585,7 @@ function Planner:OpenOrder()
     if not self:Ready() or self.starter or not self:Current() then return end
     local order = self:Sequence(self:Current())
     if not order then self:Message("Resolve this draft's requirements before editing its order."); return end
+    self:CloseImport()
     self:CloseNotes()
     if not self.orderFrame then
         local frame = CreateFrame("Frame", nil, self.panel, "BackdropTemplate"); self.orderFrame = frame
@@ -619,6 +625,71 @@ function Planner:OpenOrder()
     self:RenderOrder(); self.orderFrame:Show()
 end
 
+function Planner:CloseImport()
+    self.importCode, self.importText, self.importOwner = nil, nil, nil
+    self.importContext, self.importTree, self.importHash, self.importClass = nil, nil, nil, nil
+    if self.importEdit then self.importEdit:ClearFocus(); self.importEdit:SetText("") end
+    if self.importFrame and not InCombatLockdown() then self.importFrame:Hide() end
+end
+
+function Planner:OpenImport()
+    if not self:Ready() or not self.panel or not self.expanded then return end
+    local text = self.code:GetText()
+    local plan, reason = self:DecodeImport(text)
+    if not plan then self:CloseImport(); self:Message(reason); return end
+    self:CloseNotes(); self:CloseOrder()
+    if not self.importFrame then
+        local frame = CreateFrame("Frame", nil, self.panel, "BackdropTemplate"); self.importFrame = frame
+        frame:SetAllPoints(self.panel); frame:SetFrameLevel(self.panel:GetFrameLevel() + 20)
+        Surface(frame); frame:SetBackdropColor(0.035, 0.05, 0.065, 1); frame:EnableMouse(true)
+        Label(frame, 17, 14, -16, "Review talent plan")
+        self.importTitle = Label(frame, 11, 14, -46, "", 248); self.importTitle:SetWordWrap(false)
+        self.importSummary = Label(frame, 11, 14, -74, "", 248); self.importSummary:SetHeight(64)
+        local scroll = CreateFrame("ScrollFrame", nil, frame, "InputScrollFrameTemplate")
+        self.importScroll, self.importEdit = scroll, scroll.EditBox
+        scroll:SetPoint("TOPLEFT", 14, -148); scroll:SetPoint("BOTTOMRIGHT", -34, 126)
+        if scroll.CharCount then scroll.CharCount:Hide() end
+        local edit = self.importEdit
+        edit:SetMultiLine(true); edit:SetAutoFocus(false); edit:SetMaxLetters(0)
+        edit:SetWidth(224); edit:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+        edit:HookScript("OnTextChanged", function(box, user) if user then box:SetText(self.importText or "") end end)
+        edit:SetScript("OnEscapePressed", function() self:CloseImport() end)
+        self.importConfirm = Button(frame, 14, -550, 120, "Import as new", function()
+            if not self:Ready() or not self.importCode or self.importOwner ~= self:Current()
+                or self.importContext ~= self.model.config or self.importTree ~= self.model.tree
+                or self.importHash ~= self.model.hash or self.importClass ~= self.model.class then self:CloseImport(); return end
+            -- Reparse the reviewed code, not mutable preview widgets or a newer
+            -- paste. New rechecks library capacity and current-level rules.
+            if self:Import(self.importCode) then self:CloseImport()
+            else self.importStatus:SetText(self.notice or "Unable to import this plan.") end
+        end)
+        self.importCancel = Button(frame, 142, -550, 120, "Cancel", function() self:CloseImport() end)
+        self.importConfirm:SetFrameLevel(edit:GetFrameLevel() + 2)
+        self.importCancel:SetFrameLevel(edit:GetFrameLevel() + 2)
+        self.importStatus = Label(frame, 10, 14, -593, "", 248); self.importStatus:SetHeight(48)
+        frame:SetScript("OnHide", function()
+            self.importCode, self.importText, self.importOwner = nil, nil, nil
+            self.importContext, self.importTree, self.importHash, self.importClass = nil, nil, nil, nil
+            edit:ClearFocus(); edit:SetText("")
+        end)
+    end
+    local lines = { "Build: " .. plan.name, "", "Notes", plan.notes ~= "" and plan.notes or "(No notes)", "", "Point order" }
+    for index, step in ipairs(plan.sequence) do
+        local entry = self.model.nodes[step.node].entries[step.entry]
+        lines[#lines + 1] = index .. ". " .. entry.name .. " (rank " .. step.rank .. ")"
+    end
+    if #plan.sequence == 0 then lines[#lines + 1] = "(Empty plan)" end
+    self.importCode, self.importText, self.importOwner = text, table.concat(lines, "\n"), self:Current()
+    self.importContext, self.importTree, self.importHash, self.importClass = self.model.config, self.model.tree, self.model.hash, self.model.class
+    self.importTitle:SetText(plan.name)
+    self.importSummary:SetText(#plan.sequence .. " planned points. Creates a separate saved draft.\n"
+        .. (plan.version == 1 and "Legacy code: generated order, no notes." or "Includes the shared point order and notes."))
+    local analysis = self:Analyze(plan.ranks, self:RulesEnabled())
+    self.importStatus:SetText(analysis.valid and "No talent points are learned. Notes are included when you share this plan."
+        or "To import the full plan, turn off Limit to current level or resolve its requirements.")
+    self.importEdit:SetText(self.importText); self.importScroll:SetVerticalScroll(0); self.importFrame:Show()
+end
+
 function Planner:CloseNotes()
     if InCombatLockdown() then return end
     if self.notesEdit then self.notesEdit:ClearFocus() end
@@ -628,6 +699,7 @@ end
 function Planner:OpenNotes()
     if self.starter then return end
     if not self:Ready() or not self:Current() then return end
+    self:CloseImport()
     self:CloseOrder()
     if not self.notesFrame then
         local frame = CreateFrame("Frame", nil, self.panel, "BackdropTemplate")

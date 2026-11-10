@@ -137,7 +137,7 @@ do
     equal(bootsRecord.arrow.textColor[1], 0.2, "preferred Warrior mail marker is green")
     equal(bootsRecord.arrow.textColor[2], 1, "preferred Warrior mail marker keeps full green")
     local bootsTip = Frame(); Suite.Tooltips:Item(bootsTip, { hyperlink = "chainBoots" })
-    equal(bootsTip.lines[1][1], "Possible stat upgrade · +0.6 (Automatic · Physical)", "armor tooltip and bag marker share scoring")
+    equal(bootsTip.lines[1][1], "Possible stat upgrade · +3000% (Automatic · Physical)", "armor tooltip and bag marker share scoring")
     -- Armor preference colors a qualifying hint; it never overrides the score.
     records.chainBoots.stats = { RESISTANCE0_NAME = 2 }
     equal(Suite.Items:UpgradeDelta("chainBoots"), nil, "mail type alone does not invent an upgrade")
@@ -173,7 +173,7 @@ equal(sum, delta, "displayed contribution changes reconcile with the marker's ga
 equal(comparison.breakdown[1].points, 10, "largest contribution is first")
 equal(comparison.breakdown[2].points, -2, "negative tradeoffs remain visible")
 local tip = Frame(); Suite.Tooltips:Item(tip, { hyperlink = "new" })
-equal(tip.lines[1][1], "Possible stat upgrade · +8.0 (Detailed caster)", "tooltip uses the same character weights as icons")
+equal(tip.lines[1][1], "Possible stat upgrade · +57% (Detailed caster)", "tooltip uses the same character weights as icons")
 equal(tip.lines[2][1], "Not your preferred armor type (Mail preferred).", "armor explanation preserves the full custom comparison below it")
 equal(tip.lines[3][1], "Score · equipped -> candidate", "score label uses a font-safe comparison separator")
 equal(tip.lines[3][2], "14.0 -> 22.0", "tooltip shows exact equipped/candidate basis")
@@ -247,12 +247,14 @@ equal(gear:Choose("automatic"), true, "Automatic is always one deliberate select
 equal(#scoring:State().profiles, 1, "switching back to built-ins preserves the custom profile")
 equal(Suite.SettingsCatalog:Search("custom stat weights")[1].key, "weights", "custom comparisons are discoverable through settings search")
 gear:Open("editor")
-equal(gear.panel.height, 586, "advanced editor reserves the entire footer and status area")
+local _, _, detailsY = gear.detailsButton:GetPoint()
+local _, _, statusY = gear.status:GetPoint()
+equal(gear.panel.height >= -statusY + 42, true, "advanced editor reserves the entire footer and status area")
 equal(gui.contentHeight >= gui.controlsOffset + gear.panel.height + 36, true, "every editor control can scroll above the fixed settings footer")
 for _, field in ipairs(gear.fields) do
     local _, x, y = field.input:GetPoint()
     equal(x >= 0 and x + field.input:GetWidth() <= 780, true, "weight inputs stay within the three-column content width")
-    equal(-y + field.input:GetHeight() < 456, true, "weight inputs cannot overlap the tooltip and save controls")
+    equal(-y + field.input:GetHeight() < -detailsY, true, "weight inputs cannot overlap the tooltip and save controls")
 end
 gear:Dismiss()
 

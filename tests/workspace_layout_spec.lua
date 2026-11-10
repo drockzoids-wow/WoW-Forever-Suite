@@ -72,7 +72,7 @@ equal(gui.groupTabs.suite:IsShown(),true,"Suite Settings remains visible from Ho
 gui.groupTabs.suite.OnClick(gui.groupTabs.suite)
 equal(gui.page,"browse_suite","Suite Settings lists all its utility pages")
 equal(gui.groupTabs.suite.point[2],12,"Suite Settings aligns with other sections")
-equal(routes, 32, "all existing routes plus Supply Checklist and What's New remain accessible")
+equal(routes, 33, "all existing routes plus Support remain accessible")
 local gear = Suite.GearSettings
 gear:Open("picker")
 for _, card in ipairs(gear.profileButtons) do
@@ -81,9 +81,9 @@ end
 gear:Open("editor")
 for _, field in ipairs(gear.fields) do
     equal(field.input.point[2] + field.input:GetWidth() <= gear.panel:GetWidth(), true, "three-column weight fields stay within panel")
-    equal(-field.input.point[3] + field.input:GetHeight() < 456, true, "weight fields clear the relocated footer")
+    equal(-field.input.point[3] + field.input:GetHeight() < -gear.detailsButton.point[3], true, "weight fields clear the relocated footer")
 end
-equal(gear.panel:GetHeight(), 586, "wider weights reduce editor height by 144 units")
+equal(gear.panel:GetHeight() >= -gear.status.point[3] + gear.status:GetHeight(), true, "expanded weights keep the status inside the scrollable panel")
 gear:Dismiss()
 equal(gui.macroCombat.point[2] >= 280, true, "macro checkbox aligns with the wider detail pane")
 equal(gui.setupReviewChild:GetWidth(), 750, "setup review text fills its wider viewport")
@@ -124,7 +124,7 @@ for _, group in ipairs(catalog.groups) do
     end
 end
 local reached = 0; for _ in pairs(reachable) do reached = reached + 1 end
-equal(reached, 32, "all destinations including Supply Checklist and What's New can be browsed without search")
+equal(reached, 33, "all destinations including Support can be browsed without search")
 for _, route in ipairs({ "bags", "items", "actionbars", "buffs" }) do
     local ever = {}
     for _, view in ipairs(catalog.pages[route].views) do

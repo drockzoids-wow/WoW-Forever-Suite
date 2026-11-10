@@ -18,8 +18,6 @@ Suite.BuffCatalog = {
     { key = "aspect", class = "HUNTER", roots = { 13165, 13163, 13161, 13159, 5118, 20043 } },
     { key = "trueshot", class = "HUNTER", roots = { 19506 }, physical = true, group = true, party = true, upkeep = true, toggle = true },
     { key = "armor", class = "WARLOCK", roots = { 706, 687, 28176 } },
-    { key = "breathing", class = "WARLOCK", roots = { 5697 }, group = true, incoming = true },
-    { key = "detection", class = "WARLOCK", roots = { 132 }, group = true, incoming = true },
     { key = "blessing", class = "PALADIN", roots = { 19740, 19742, 20217, 20911, 19977, 1038,
         25782, 25894, 25898, 25899, 25890, 25895 }, manaRoots = { [19742]=true, [25894]=true },
         physicalRoots = { [19740]=true, [25782]=true }, group = true, incoming = true },

@@ -15,6 +15,7 @@ local function Notes(v)
         and not v:find("%z") and not v:find("[\001-\008\011\012\014-\031\127|]")
         and #(v:gsub("[\128-\191]", "")) <= 512
 end
+function Planner:ValidNotes(value) return Notes(value) end
 local function Read(fn, ...)
     if type(fn) ~= "function" then return end
     local ok, value = pcall(fn, ...)
@@ -306,36 +307,6 @@ function Planner:Delete()
     self.notice = nil
     self:Render()
 end
-function Planner:Export()
-    local build = self:Current()
-    if not build or not self:Ready() then return end
-    local parts = {}
-    for _, id in ipairs(self.model.order) do
-        local rank = build.ranks[id]
-        if rank then parts[#parts + 1] = id .. "." .. rank.entry .. "." .. rank.rank end
-    end
-    return "WFS1:" .. self.model.class .. ":" .. build.tree .. ":" .. build.hash .. ":" .. table.concat(parts, ",")
-end
-function Planner:Import(text)
-    if not self:Ready() or not Suite.IsReadable(text) or type(text) ~= "string" or #text > 16384 then return end
-    local class, tree, hash, payload = text:match("^WFS1:([A-Z]+):(%d+):([0-9a-f]+):([%d%.,]*)$")
-    if class ~= self.model.class or tonumber(tree) ~= self.model.tree or hash ~= self.model.hash then
-        self:Message("Paste a Suite build for this class and talent-tree revision."); return
-    end
-    local ranks, count = {}, 0
-    if payload ~= "" then
-        for segment in (payload .. ","):gmatch("(.-),") do
-            local id, entry, rank = segment:match("^(%d+)%.(%d+)%.(%d+)$")
-            id, entry, rank = tonumber(id), tonumber(entry), tonumber(rank)
-            count = count + 1
-            if not id or count > 512 or ranks[id] then self:Message("Invalid Suite build code."); return end
-            ranks[id] = { entry = entry, rank = rank }
-        end
-    end
-    if not self:Validate(ranks) then self:Message("Invalid talent ranks in this build."); return end
-    return self:New("Imported build", ranks)
-end
-
 function Planner:Refresh()
     if InCombatLockdown() then return end
     if not self:Enabled() then if self.root then self.root:Hide() end; return end
@@ -343,6 +314,7 @@ function Planner:Refresh()
     if not self.root then return end
     local model = self:Snapshot()
     if not model then
+        self:CloseImport()
         self.model, self.preview = nil, false
         self.guiding = false
         if self.guideHighlight then self.guideHighlight:Hide() end
@@ -372,6 +344,7 @@ function Planner:Apply()
     Suite.pending.talentPlanner = nil
     if self.events then self.events:UnregisterAllEvents() end
     if not self:Enabled() then
+        self:CloseImport()
         Suite.AfterCombat("talentPlanner", function()
             if self.root then
                 if self.driver then UnregisterStateDriver(self.root, "visibility"); self.driver = nil end
@@ -387,6 +360,7 @@ function Planner:Apply()
             self.events = CreateFrame("Frame")
             self.events:SetScript("OnEvent", function(_, event)
                 if event == "PLAYER_REGEN_DISABLED" then
+                    self:CloseImport()
                     if self.timer then self.timer:Cancel(); self.timer = nil end
                 else self:Queue() end
             end)

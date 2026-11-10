@@ -1,4 +1,30 @@
 {
+  "supplyInput20261109": {
+    "date": "2026-11-09",
+    "request": "Add drag-and-drop item input and item tooltips to Supply Checklist.",
+    "evidence": "Pinned build-70862 GameCursorDocumentation.lua GetCursorInfo/ClearCursor; Blizzard_ArtifactUI/Blizzard_ArtifactPerks.lua:762 item cursor tuple; Blizzard_SharedXMLGame/Tooltip/TooltipDataHandler.lua:525 SetItemByID/GetItemByID mapping and native GameTooltip.lua call sites.",
+    "implementation": "Explicit editor-only drop/click placement with guarded numeric item ID and cursor cancellation, unchanged quantity and explicit Save. Current-row native item-ID tooltips with owner checks, async/page rebinding and hide/combat cleanup. No fallback recovery from a hidden cursor ID, native item actions, new polling or SavedVariables schema change.",
+    "validation": "85 Lua 5.1 files, matching TOCs/Core 1.0.9, 34083 substitute assertions, 94 expected shipped inputs and 72 registered Lua specs; static API/registered-event/literal-key/whitespace checks pass.",
+    "qualification": "Native drag input, tooltip rendering, permissions, other-addon coexistence and taint still require in-game tests; API substitutes do not establish those. No version/release/deployment/junction or real SavedVariables changes."
+  },
+  "supportReport20261109": {
+    "date": "2026-11-09",
+    "request": "Add a copyable support report and capability diagnostics explaining unavailable/paused features.",
+    "evidence": "Current module capability guards and exact deferred keys; pinned build-70862 generated DamageMeterDocumentation.lua IsDamageMeterAvailable and existing Audio.lua C_CVar.GetCVarInfo permission-flag handling. Diagnostic C_* names all occur in matching generated API docs; function presence is not ordinary-addon permission proof.",
+    "implementation": "Allowlisted read-only metadata/settings/context snapshot, function/member checks and guarded public predicates. Off/Unavailable/Paused/Waiting/Ready/Unknown reasons, private-data/error omission, selectable native input, explicit refresh, captured combat reports without UI/automatic opening, Support settings/search and slash commands. No settings, feature, gameplay, upload or SavedVariables changes.",
+    "validation": "85 Lua 5.1 files, matching TOCs/Core 1.0.9, 33997 substitute assertions, 94 expected inputs, 71 registered Lua specs; static API/path/deferred-key/whitespace checks pass.",
+    "qualification": "Snapshot and listed probes only; native clipboard, focus/input, rendering, API permissions and taint remain unverified. Personal records and raw errors are never included."
+  },
+  "gearModel20261109": {
+    "date": "2026-11-09",
+    "request": "Add missing gear stats and manual spec selection while preserving existing custom weights.",
+    "clientSource": "Pinned build 70862 export at 9dc84f0d3bbae1768ac3405b3716000bd93eda06: ItemDocumentation.lua GetItemStats and TooltipInfoDocumentation.lua GetHyperlink; signatures and restriction predicates only, not a complete stat-key/unit index.",
+    "reference": "https://github.com/VgerMods/Pawn/blob/main/Pawn.lua",
+    "referenceScope": "Read-only terminology/API-versus-tooltip review, plus installed ForeverWoWBiS stat-key index. No implementation or numeric coefficient maps copied. New starters derive from Suite's own existing roles.",
+    "implementation": "46 stat weights, guarded ordered aliases, English static school equip-text adapter, 29 manual class-filtered spec choices, unchanged legacy custom arithmetic and exact coefficient preservation. Details: docs/gear-modeling.md.",
+    "validation": "84 Lua 5.1 files, matching TOCs/Core 1.0.9, 33812 substitute assertions, 93 expected shipped inputs, 70 registered Lua specs; whitespace and matching-source static API checks pass.",
+    "qualification": "Native alias units/total semantics, school coverage, ordinary-addon permission, role calibration, appearance and taint remain pending. No ratings-to-percent conversion, effects/set/cap inference, automatic spec selection, version or deployment change."
+  },
   "release10620261107": {
     "date": "2026-11-07",
     "version": "1.0.6",

@@ -27,6 +27,10 @@ local function Text(parent, size, color)
 end
 
 local pages = {
+    support = { title = "Support", singleColumn = true, description = "Review unavailable or paused features and copy a support snapshot.", rows = {
+        { action = "supportOpen", label = "Open support report", help = "Copy client/build details, feature switches and capability reasons.\nNames, contacts, chat, inventory contents and custom weights are omitted." },
+        { passive = true, label = "Current status in chat", help = "Use /wfs status, including during combat. /wfs support also captures in combat;\nrun it again afterward to copy that snapshot. Refresh captures current state." },
+    }, note = "Reports are snapshots. Refresh to capture current reasons. Ready means capabilities are present;\nit does not verify gameplay, visuals or taint safety. Nothing is uploaded automatically." },
     whatsnew = { title = "What's New", singleColumn = true, description = "Recent additions · Choose a feature to find its controls.", rows = {
         { action = "newsTraining", label = "Pin your next training", help = "Pin class skills and ranks in Training Planner. Review their estimated total\nwith trained skills excluded, then choose base or recorded prices." },
         { action = "newsSupplies", label = "Keep a supply checklist", help = "Choose item targets for this character and see what your bags are missing.\nCarried-item tracking starts off; purchases and item use stay manual." },
@@ -37,7 +41,7 @@ local pages = {
         { action = "newsShortcuts", label = "Open Blizzard tools quickly", help = "Optional chat shortcuts open key bindings, Edit Mode, macros and more.\nExisting commands keep priority; enable shortcuts in their settings." },
     }, note = "New tracking features start off independently. Find this page in Suite Settings or type /wfs whatsnew.\nOpening a feature's settings keeps your existing choices." },
     supplies = { title = "Supply Checklist", singleColumn = true, description = "Plan the items you want to carry for your next trip.", rows = {
-        { action = "suppliesOpen", label = "Open Supply Checklist", help = "Save up to 32 item IDs or pasted item links with target quantities.\nClick an existing row to edit or remove it. Targets save per character." },
+        { action = "suppliesOpen", label = "Open Supply Checklist", help = "Drop an item into the editor, or paste an ID/link, then Save target.\nHover rows for item details; click to edit. Targets save per character." },
         { key = "supplyChecklist", label = "Track carried supplies", help = "Starts off. Count current bags while the checklist is open.\nBank stock is excluded; unreadable inventory is shown as unavailable." },
     }, note = "Open directly with /wfs checklist. Targets remain available with tracking off.\nNo automatic purchases, item use or changes to your macros." },
     shortcuts = { title = "Chat Shortcuts", singleColumn = true, description = "Open familiar Blizzard tools with a short chat command.", rows = {
@@ -118,7 +122,7 @@ local pages = {
         { key = "characterItemLevel", label = "Character frame item level", help = "Show your equipped average above the character model.\nThe level and class line keeps its full space." },
         { key = "upgradeHints", label = "Possible upgrades", help = "Green +: preferred armor; yellow +: another usable armor type.\nMarks possible upgrades or empty slots under your chosen comparison." },
         { action = "upgradePreference", label = "Prefer", help = "Click to prefer Stats or Item level. Stats includes role weights and DPS.\nWeapon comparisons include the hands being replaced." },
-        { action = "preset", label = "Comparison profile", help = "Ready-made class and role presets work without editing.\nChoose Automatic, a role, or your own saved weights for this character." },
+        { action = "preset", label = "Comparison profile", help = "Choose your intended spec, a broad role or saved custom weights.\nManual and character-only; Automatic keeps the class-aware starter." },
         { action = "weights", label = "Details & custom weights", help = "See how scores are calculated and choose tooltip detail.\nOptionally create or edit your own weights; built-in presets stay intact." },
         { key = "equipmentSetToggle", label = "Equipment set slot toggle", help = "Show a small button when an existing equipment set is selected.\nIgnore or include non-weapon slots; weapons and ammo stay unchanged. Use Save to keep changes." },
     }, note = "Special effects, set bonuses and weapon abilities need your judgment.\nHigher item level can still be worse for your build." },
@@ -127,6 +131,7 @@ local pages = {
         { key = "itemInventory", label = "Item inventory", help = "Record bag slots and bag/bank counts for characters you play with this on.\nUse the bag character dropdown to view saved bags. Log into each alt after updating to record its slots; visit banks to record bank contents." },
         { key = "playerItemLevel", label = "Player equipment level", help = "Inspect nearby players when possible; recent results are cached." },
         { key = "classNames", label = "Class color names", help = "Use each player's class color for their tooltip name." },
+        { key = "unitLevelColors", label = "Level difficulty colors", help = "Color the level number in unit tooltips by difficulty relative to your level." },
     }, note = "Player equipment details depend on inspect range and availability. New inspect requests pause during combat." },
     macros = { title = "Useful macros, without the setup.", description = "Shared recipes and macros for your class. Choose, preview, then create.\nGeneral macros are shared; the last character to update sets their supplies.", rows = {},
         note = "Create never uses an item. Drag the macro from Blizzard's General tab onto your action bar." },
@@ -247,6 +252,7 @@ function GUI:Action(action)
     elseif action == "upgradePreference" then
         Suite.Scoring:SetPreference(Suite.Scoring.Preference(Suite.db) == "stats" and "ilevel" or "stats")
         self:Select(self.page)
+    elseif action == "supportOpen" then Suite.Diagnostics:Open(self.frame)
     elseif action == "preset" then Suite.GearSettings:Open("picker")
     elseif action == "weights" then Suite.GearSettings:Open("editor")
     elseif action == "campingPose" then

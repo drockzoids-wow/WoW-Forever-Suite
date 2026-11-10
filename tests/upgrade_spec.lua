@@ -206,10 +206,21 @@ end
 local tooltip = Frame()
 Suite.Tooltips:Item(tooltip, { hyperlink = "staffWorse" })
 equal(tooltip.lines[1][1], "Higher weapon-set item level · +20.0 (Both hands)", "weapon tooltip identifies level basis and replaced hands")
+equal(tooltip.lines[#tooltip.lines][1], "Item-level comparison. Stats, effects and set bonuses need your judgment.", "item-level advice explains its actual comparison basis")
 Suite.db.upgradePreference, Suite.db.scorePreset = "stats", "caster"
 tooltip = Frame()
 Suite.Tooltips:Item(tooltip, { hyperlink = "staff" })
-equal(tooltip.lines[1][1], "Possible weapon upgrade · +5.0 (Caster; Both hands)", "weapon tooltip discloses stat preset")
+equal(tooltip.lines[1][1], "Possible weapon upgrade · +25% (Caster; Both hands)", "weapon tooltip discloses rounded relative gain and stat preset")
+equal(tooltip.lines[#tooltip.lines][1], "Weighted score gain, not damage/healing. Unweighted stats, effects and set bonuses need your judgment.", "upgrade percentages are explicitly score changes rather than output predictions")
+equal(Suite.Scoring.FormatUpgrade(3.773, 187.977), "+2%", "screenshot score gain becomes a whole percentage")
+equal(Suite.Scoring.FormatUpgrade(1.49, 100), "+1%", "whole percentage rounds down")
+equal(Suite.Scoring.FormatUpgrade(1.5, 100), "+2%", "whole percentage rounds up")
+equal(Suite.Scoring.FormatUpgrade(1, 100), "+1%", "one percent has no decimal")
+equal(Suite.Scoring.FormatUpgrade(0.63, 100), "+0.6%", "sub-one-percent gains retain a decimal")
+equal(Suite.Scoring.FormatUpgrade(0.001, 100), "+<0.1%", "tiny gains do not read as zero")
+equal(Suite.Scoring.FormatUpgrade(5, 0), "+5.0 pts", "zero baseline uses explicit score points")
+equal(Suite.Scoring.FormatUpgrade(5, -2), "+5.0 pts", "negative baseline does not invent a relative gain")
+equal(Suite.Scoring.FormatUpgrade(5, { secret = true }), "+5.0 pts", "unreadable baseline is not used in arithmetic")
 
 records.plainGloves.stats=nil;equipment[10]=nil
 local gloveButton,gloveRecord=Frame(),{}

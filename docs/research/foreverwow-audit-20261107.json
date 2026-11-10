@@ -1,0 +1,1163 @@
+{
+  "schema": 1,
+  "retrievedAt": "2026-11-08T05:08:21.118Z",
+  "builds": [
+    "1.60.1.70862"
+  ],
+  "levels": [
+    1,
+    10,
+    20,
+    40,
+    60
+  ],
+  "classCount": 9,
+  "specCount": 29,
+  "requests": 203,
+  "itemRows": 17914,
+  "pureChecks": 4074,
+  "pureMatches": 4074,
+  "failures": [],
+  "rankCoverage": {
+    "sha256": "377b1ffa2f34274bd952d8341cc5b3a6cc557e6c4d5bd9ded4310ea50f390ef7",
+    "version": "2026.11.08-220a211",
+    "bands": 225014,
+    "coveredSpecLevelFactions": 3480,
+    "expected": 3480,
+    "missing": [],
+    "invalid": []
+  },
+  "specs": [
+    {
+      "id": "warrior/arms",
+      "class": "Warrior",
+      "spec": "Arms",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 55,
+          "slots": 13
+        },
+        {
+          "level": 10,
+          "rows": 110,
+          "slots": 13
+        },
+        {
+          "level": 20,
+          "rows": 130,
+          "slots": 14
+        },
+        {
+          "level": 40,
+          "rows": 139,
+          "slots": 14
+        },
+        {
+          "level": 60,
+          "rows": 140,
+          "slots": 14
+        }
+      ],
+      "pureChecks": 127,
+      "pureMatches": 127,
+      "scoredEffects": 7,
+      "unscoredEffects": 11,
+      "setRows": 37,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "warrior/fury",
+      "class": "Warrior",
+      "spec": "Fury",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 65,
+          "slots": 14
+        },
+        {
+          "level": 10,
+          "rows": 120,
+          "slots": 14
+        },
+        {
+          "level": 20,
+          "rows": 150,
+          "slots": 16
+        },
+        {
+          "level": 40,
+          "rows": 159,
+          "slots": 16
+        },
+        {
+          "level": 60,
+          "rows": 160,
+          "slots": 16
+        }
+      ],
+      "pureChecks": 147,
+      "pureMatches": 147,
+      "scoredEffects": 7,
+      "unscoredEffects": 11,
+      "setRows": 31,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "warrior/protection",
+      "class": "Warrior",
+      "spec": "Protection",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 121,
+          "slots": 14
+        },
+        {
+          "level": 10,
+          "rows": 129,
+          "slots": 14
+        },
+        {
+          "level": 20,
+          "rows": 141,
+          "slots": 15
+        },
+        {
+          "level": 40,
+          "rows": 150,
+          "slots": 15
+        },
+        {
+          "level": 60,
+          "rows": 150,
+          "slots": 15
+        }
+      ],
+      "pureChecks": 136,
+      "pureMatches": 136,
+      "scoredEffects": 4,
+      "unscoredEffects": 10,
+      "setRows": 32,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "paladin/holy",
+      "class": "Paladin",
+      "spec": "Holy",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 42,
+          "slots": 13
+        },
+        {
+          "level": 10,
+          "rows": 112,
+          "slots": 13
+        },
+        {
+          "level": 20,
+          "rows": 133,
+          "slots": 14
+        },
+        {
+          "level": 40,
+          "rows": 140,
+          "slots": 14
+        },
+        {
+          "level": 60,
+          "rows": 140,
+          "slots": 14
+        }
+      ],
+      "pureChecks": 131,
+      "pureMatches": 131,
+      "scoredEffects": 8,
+      "unscoredEffects": 4,
+      "setRows": 25,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "paladin/protection",
+      "class": "Paladin",
+      "spec": "Protection",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 111,
+          "slots": 13
+        },
+        {
+          "level": 10,
+          "rows": 119,
+          "slots": 13
+        },
+        {
+          "level": 20,
+          "rows": 132,
+          "slots": 14
+        },
+        {
+          "level": 40,
+          "rows": 140,
+          "slots": 14
+        },
+        {
+          "level": 60,
+          "rows": 140,
+          "slots": 14
+        }
+      ],
+      "pureChecks": 126,
+      "pureMatches": 126,
+      "scoredEffects": 4,
+      "unscoredEffects": 11,
+      "setRows": 32,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "paladin/retribution",
+      "class": "Paladin",
+      "spec": "Retribution",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 45,
+          "slots": 12
+        },
+        {
+          "level": 10,
+          "rows": 101,
+          "slots": 12
+        },
+        {
+          "level": 20,
+          "rows": 121,
+          "slots": 13
+        },
+        {
+          "level": 40,
+          "rows": 130,
+          "slots": 13
+        },
+        {
+          "level": 60,
+          "rows": 130,
+          "slots": 13
+        }
+      ],
+      "pureChecks": 115,
+      "pureMatches": 115,
+      "scoredEffects": 7,
+      "unscoredEffects": 10,
+      "setRows": 35,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "hunter/beastmastery",
+      "class": "Hunter",
+      "spec": "Beast Mastery",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 57,
+          "slots": 14
+        },
+        {
+          "level": 10,
+          "rows": 118,
+          "slots": 14
+        },
+        {
+          "level": 20,
+          "rows": 152,
+          "slots": 16
+        },
+        {
+          "level": 40,
+          "rows": 160,
+          "slots": 16
+        },
+        {
+          "level": 60,
+          "rows": 160,
+          "slots": 16
+        }
+      ],
+      "pureChecks": 145,
+      "pureMatches": 145,
+      "scoredEffects": 7,
+      "unscoredEffects": 12,
+      "setRows": 38,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "hunter/marksmanship",
+      "class": "Hunter",
+      "spec": "Marksmanship",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 57,
+          "slots": 14
+        },
+        {
+          "level": 10,
+          "rows": 118,
+          "slots": 14
+        },
+        {
+          "level": 20,
+          "rows": 152,
+          "slots": 16
+        },
+        {
+          "level": 40,
+          "rows": 160,
+          "slots": 16
+        },
+        {
+          "level": 60,
+          "rows": 160,
+          "slots": 16
+        }
+      ],
+      "pureChecks": 145,
+      "pureMatches": 145,
+      "scoredEffects": 7,
+      "unscoredEffects": 11,
+      "setRows": 37,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "hunter/survival",
+      "class": "Hunter",
+      "spec": "Survival",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 57,
+          "slots": 14
+        },
+        {
+          "level": 10,
+          "rows": 118,
+          "slots": 14
+        },
+        {
+          "level": 20,
+          "rows": 152,
+          "slots": 16
+        },
+        {
+          "level": 40,
+          "rows": 160,
+          "slots": 16
+        },
+        {
+          "level": 60,
+          "rows": 160,
+          "slots": 16
+        }
+      ],
+      "pureChecks": 146,
+      "pureMatches": 146,
+      "scoredEffects": 7,
+      "unscoredEffects": 12,
+      "setRows": 38,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "rogue/assassination",
+      "class": "Rogue",
+      "spec": "Assassination",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 48,
+          "slots": 13
+        },
+        {
+          "level": 10,
+          "rows": 119,
+          "slots": 14
+        },
+        {
+          "level": 20,
+          "rows": 140,
+          "slots": 15
+        },
+        {
+          "level": 40,
+          "rows": 149,
+          "slots": 15
+        },
+        {
+          "level": 60,
+          "rows": 150,
+          "slots": 15
+        }
+      ],
+      "pureChecks": 138,
+      "pureMatches": 138,
+      "scoredEffects": 7,
+      "unscoredEffects": 11,
+      "setRows": 35,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "rogue/combat",
+      "class": "Rogue",
+      "spec": "Combat",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 48,
+          "slots": 13
+        },
+        {
+          "level": 10,
+          "rows": 119,
+          "slots": 14
+        },
+        {
+          "level": 20,
+          "rows": 140,
+          "slots": 15
+        },
+        {
+          "level": 40,
+          "rows": 149,
+          "slots": 15
+        },
+        {
+          "level": 60,
+          "rows": 150,
+          "slots": 15
+        }
+      ],
+      "pureChecks": 139,
+      "pureMatches": 139,
+      "scoredEffects": 7,
+      "unscoredEffects": 10,
+      "setRows": 35,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "rogue/combat-daggers",
+      "class": "Rogue",
+      "spec": "Combat (Daggers)",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 48,
+          "slots": 13
+        },
+        {
+          "level": 10,
+          "rows": 119,
+          "slots": 14
+        },
+        {
+          "level": 20,
+          "rows": 140,
+          "slots": 15
+        },
+        {
+          "level": 40,
+          "rows": 149,
+          "slots": 15
+        },
+        {
+          "level": 60,
+          "rows": 150,
+          "slots": 15
+        }
+      ],
+      "pureChecks": 138,
+      "pureMatches": 138,
+      "scoredEffects": 7,
+      "unscoredEffects": 11,
+      "setRows": 35,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "rogue/subtlety",
+      "class": "Rogue",
+      "spec": "Subtlety",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 48,
+          "slots": 13
+        },
+        {
+          "level": 10,
+          "rows": 119,
+          "slots": 14
+        },
+        {
+          "level": 20,
+          "rows": 140,
+          "slots": 15
+        },
+        {
+          "level": 40,
+          "rows": 149,
+          "slots": 15
+        },
+        {
+          "level": 60,
+          "rows": 150,
+          "slots": 15
+        }
+      ],
+      "pureChecks": 138,
+      "pureMatches": 138,
+      "scoredEffects": 7,
+      "unscoredEffects": 11,
+      "setRows": 36,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "priest/discipline",
+      "class": "Priest",
+      "spec": "Discipline",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 24,
+          "slots": 15
+        },
+        {
+          "level": 10,
+          "rows": 128,
+          "slots": 15
+        },
+        {
+          "level": 20,
+          "rows": 151,
+          "slots": 16
+        },
+        {
+          "level": 40,
+          "rows": 160,
+          "slots": 16
+        },
+        {
+          "level": 60,
+          "rows": 160,
+          "slots": 16
+        }
+      ],
+      "pureChecks": 147,
+      "pureMatches": 147,
+      "scoredEffects": 10,
+      "unscoredEffects": 12,
+      "setRows": 27,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "priest/holy",
+      "class": "Priest",
+      "spec": "Holy",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 24,
+          "slots": 15
+        },
+        {
+          "level": 10,
+          "rows": 128,
+          "slots": 15
+        },
+        {
+          "level": 20,
+          "rows": 151,
+          "slots": 16
+        },
+        {
+          "level": 40,
+          "rows": 160,
+          "slots": 16
+        },
+        {
+          "level": 60,
+          "rows": 160,
+          "slots": 16
+        }
+      ],
+      "pureChecks": 147,
+      "pureMatches": 147,
+      "scoredEffects": 10,
+      "unscoredEffects": 12,
+      "setRows": 27,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "priest/shadow",
+      "class": "Priest",
+      "spec": "Shadow",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 24,
+          "slots": 15
+        },
+        {
+          "level": 10,
+          "rows": 128,
+          "slots": 15
+        },
+        {
+          "level": 20,
+          "rows": 151,
+          "slots": 16
+        },
+        {
+          "level": 40,
+          "rows": 160,
+          "slots": 16
+        },
+        {
+          "level": 60,
+          "rows": 160,
+          "slots": 16
+        }
+      ],
+      "pureChecks": 149,
+      "pureMatches": 149,
+      "scoredEffects": 6,
+      "unscoredEffects": 8,
+      "setRows": 19,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "shaman/elemental",
+      "class": "Shaman",
+      "spec": "Elemental",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 36,
+          "slots": 14
+        },
+        {
+          "level": 10,
+          "rows": 120,
+          "slots": 14
+        },
+        {
+          "level": 20,
+          "rows": 143,
+          "slots": 15
+        },
+        {
+          "level": 40,
+          "rows": 150,
+          "slots": 15
+        },
+        {
+          "level": 60,
+          "rows": 150,
+          "slots": 15
+        }
+      ],
+      "pureChecks": 138,
+      "pureMatches": 138,
+      "scoredEffects": 6,
+      "unscoredEffects": 9,
+      "setRows": 20,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "shaman/enhancement",
+      "class": "Shaman",
+      "spec": "Enhancement",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 48,
+          "slots": 14
+        },
+        {
+          "level": 10,
+          "rows": 119,
+          "slots": 14
+        },
+        {
+          "level": 20,
+          "rows": 141,
+          "slots": 15
+        },
+        {
+          "level": 40,
+          "rows": 150,
+          "slots": 15
+        },
+        {
+          "level": 60,
+          "rows": 150,
+          "slots": 15
+        }
+      ],
+      "pureChecks": 137,
+      "pureMatches": 137,
+      "scoredEffects": 7,
+      "unscoredEffects": 9,
+      "setRows": 21,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "shaman/restoration",
+      "class": "Shaman",
+      "spec": "Restoration",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 36,
+          "slots": 14
+        },
+        {
+          "level": 10,
+          "rows": 120,
+          "slots": 14
+        },
+        {
+          "level": 20,
+          "rows": 143,
+          "slots": 15
+        },
+        {
+          "level": 40,
+          "rows": 150,
+          "slots": 15
+        },
+        {
+          "level": 60,
+          "rows": 150,
+          "slots": 15
+        }
+      ],
+      "pureChecks": 141,
+      "pureMatches": 141,
+      "scoredEffects": 9,
+      "unscoredEffects": 5,
+      "setRows": 7,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "mage/arcane",
+      "class": "Mage",
+      "spec": "Arcane",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 27,
+          "slots": 15
+        },
+        {
+          "level": 10,
+          "rows": 128,
+          "slots": 15
+        },
+        {
+          "level": 20,
+          "rows": 151,
+          "slots": 16
+        },
+        {
+          "level": 40,
+          "rows": 160,
+          "slots": 16
+        },
+        {
+          "level": 60,
+          "rows": 160,
+          "slots": 16
+        }
+      ],
+      "pureChecks": 150,
+      "pureMatches": 150,
+      "scoredEffects": 6,
+      "unscoredEffects": 10,
+      "setRows": 35,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "mage/fire",
+      "class": "Mage",
+      "spec": "Fire",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 27,
+          "slots": 15
+        },
+        {
+          "level": 10,
+          "rows": 128,
+          "slots": 15
+        },
+        {
+          "level": 20,
+          "rows": 151,
+          "slots": 16
+        },
+        {
+          "level": 40,
+          "rows": 160,
+          "slots": 16
+        },
+        {
+          "level": 60,
+          "rows": 160,
+          "slots": 16
+        }
+      ],
+      "pureChecks": 150,
+      "pureMatches": 150,
+      "scoredEffects": 8,
+      "unscoredEffects": 7,
+      "setRows": 23,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "mage/frost",
+      "class": "Mage",
+      "spec": "Frost",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 27,
+          "slots": 15
+        },
+        {
+          "level": 10,
+          "rows": 128,
+          "slots": 15
+        },
+        {
+          "level": 20,
+          "rows": 151,
+          "slots": 16
+        },
+        {
+          "level": 40,
+          "rows": 160,
+          "slots": 16
+        },
+        {
+          "level": 60,
+          "rows": 160,
+          "slots": 16
+        }
+      ],
+      "pureChecks": 150,
+      "pureMatches": 150,
+      "scoredEffects": 6,
+      "unscoredEffects": 9,
+      "setRows": 26,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "warlock/affliction",
+      "class": "Warlock",
+      "spec": "Affliction",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 27,
+          "slots": 15
+        },
+        {
+          "level": 10,
+          "rows": 128,
+          "slots": 15
+        },
+        {
+          "level": 20,
+          "rows": 151,
+          "slots": 16
+        },
+        {
+          "level": 40,
+          "rows": 160,
+          "slots": 16
+        },
+        {
+          "level": 60,
+          "rows": 160,
+          "slots": 16
+        }
+      ],
+      "pureChecks": 150,
+      "pureMatches": 150,
+      "scoredEffects": 6,
+      "unscoredEffects": 9,
+      "setRows": 27,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "warlock/demonology",
+      "class": "Warlock",
+      "spec": "Demonology",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 27,
+          "slots": 15
+        },
+        {
+          "level": 10,
+          "rows": 128,
+          "slots": 15
+        },
+        {
+          "level": 20,
+          "rows": 151,
+          "slots": 16
+        },
+        {
+          "level": 40,
+          "rows": 160,
+          "slots": 16
+        },
+        {
+          "level": 60,
+          "rows": 160,
+          "slots": 16
+        }
+      ],
+      "pureChecks": 148,
+      "pureMatches": 148,
+      "scoredEffects": 7,
+      "unscoredEffects": 10,
+      "setRows": 39,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "warlock/destruction",
+      "class": "Warlock",
+      "spec": "Destruction",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 27,
+          "slots": 15
+        },
+        {
+          "level": 10,
+          "rows": 128,
+          "slots": 15
+        },
+        {
+          "level": 20,
+          "rows": 151,
+          "slots": 16
+        },
+        {
+          "level": 40,
+          "rows": 160,
+          "slots": 16
+        },
+        {
+          "level": 60,
+          "rows": 160,
+          "slots": 16
+        }
+      ],
+      "pureChecks": 148,
+      "pureMatches": 148,
+      "scoredEffects": 7,
+      "unscoredEffects": 10,
+      "setRows": 39,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "druid/balance",
+      "class": "Druid",
+      "spec": "Balance",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 33,
+          "slots": 14
+        },
+        {
+          "level": 10,
+          "rows": 120,
+          "slots": 14
+        },
+        {
+          "level": 20,
+          "rows": 143,
+          "slots": 15
+        },
+        {
+          "level": 40,
+          "rows": 150,
+          "slots": 15
+        },
+        {
+          "level": 60,
+          "rows": 150,
+          "slots": 15
+        }
+      ],
+      "pureChecks": 140,
+      "pureMatches": 140,
+      "scoredEffects": 7,
+      "unscoredEffects": 4,
+      "setRows": 17,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "druid/feralcat",
+      "class": "Druid",
+      "spec": "Feral (Cat)",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 48,
+          "slots": 14
+        },
+        {
+          "level": 10,
+          "rows": 115,
+          "slots": 14
+        },
+        {
+          "level": 20,
+          "rows": 140,
+          "slots": 15
+        },
+        {
+          "level": 40,
+          "rows": 149,
+          "slots": 15
+        },
+        {
+          "level": 60,
+          "rows": 150,
+          "slots": 15
+        }
+      ],
+      "pureChecks": 137,
+      "pureMatches": 137,
+      "scoredEffects": 9,
+      "unscoredEffects": 10,
+      "setRows": 21,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "druid/feralbear",
+      "class": "Druid",
+      "spec": "Feral (Bear)",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 107,
+          "slots": 14
+        },
+        {
+          "level": 10,
+          "rows": 121,
+          "slots": 14
+        },
+        {
+          "level": 20,
+          "rows": 141,
+          "slots": 15
+        },
+        {
+          "level": 40,
+          "rows": 150,
+          "slots": 15
+        },
+        {
+          "level": 60,
+          "rows": 150,
+          "slots": 15
+        }
+      ],
+      "pureChecks": 131,
+      "pureMatches": 131,
+      "scoredEffects": 6,
+      "unscoredEffects": 18,
+      "setRows": 42,
+      "weightChanges": [],
+      "examples": []
+    },
+    {
+      "id": "druid/restoration",
+      "class": "Druid",
+      "spec": "Restoration",
+      "levels": [
+        {
+          "level": 1,
+          "rows": 33,
+          "slots": 14
+        },
+        {
+          "level": 10,
+          "rows": 120,
+          "slots": 14
+        },
+        {
+          "level": 20,
+          "rows": 143,
+          "slots": 15
+        },
+        {
+          "level": 40,
+          "rows": 150,
+          "slots": 15
+        },
+        {
+          "level": 60,
+          "rows": 150,
+          "slots": 15
+        }
+      ],
+      "pureChecks": 140,
+      "pureMatches": 140,
+      "scoredEffects": 11,
+      "unscoredEffects": 5,
+      "setRows": 18,
+      "weightChanges": [],
+      "examples": []
+    }
+  ]
+}

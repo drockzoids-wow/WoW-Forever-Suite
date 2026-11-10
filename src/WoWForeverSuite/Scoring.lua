@@ -27,6 +27,23 @@ Scoring.stats = {
     { key = "SPELL_POWER", label = "Spell power" }, { key = "SPELL_DAMAGE_DONE", label = "Spell damage" },
     { key = "SPELL_HEALING_DONE", label = "Healing power" }, { key = "MANA_REGENERATION", label = "Mana per 5 seconds" },
     { key = "DEFENSE_SKILL_RATING", label = "Defense rating" },
+    { key = "HIT_RATING", label = "Physical hit rating" }, { key = "HIT_SPELL_RATING", label = "Spell hit rating" },
+    { key = "CRIT_RATING", label = "Physical crit rating" }, { key = "CRIT_SPELL_RATING", label = "Spell crit rating" },
+    { key = "HASTE_RATING", label = "Physical haste rating" }, { key = "HASTE_SPELL_RATING", label = "Spell haste rating" },
+    { key = "RANGED_HIT_RATING", label = "Ranged hit rating" }, { key = "RANGED_CRIT_RATING", label = "Ranged crit rating" },
+    { key = "RANGED_HASTE_RATING", label = "Ranged haste rating" },
+    { key = "EXPERTISE_RATING", label = "Expertise rating" }, { key = "DODGE_RATING", label = "Dodge rating" },
+    { key = "PARRY_RATING", label = "Parry rating" }, { key = "BLOCK_RATING", label = "Block rating" },
+    { key = "BLOCK_VALUE", label = "Block value" }, { key = "ARMOR_PENETRATION_RATING", label = "Armor penetration rating" },
+    { key = "SPELL_PENETRATION", label = "Spell penetration" }, { key = "HEALTH", label = "Health" },
+    { key = "MANA", label = "Mana" }, { key = "HEALTH_REGEN", label = "Health per 5 seconds" },
+    { key = "SPELL_DAMAGE_TOTAL", label = "Effective spell damage" }, { key = "HEALING_TOTAL", label = "Effective healing" },
+    { key = "HOLY_DAMAGE", label = "Holy-only spell damage" }, { key = "FIRE_DAMAGE", label = "Fire-only spell damage" },
+    { key = "NATURE_DAMAGE", label = "Nature-only spell damage" }, { key = "FROST_DAMAGE", label = "Frost-only spell damage" },
+    { key = "SHADOW_DAMAGE", label = "Shadow-only spell damage" }, { key = "ARCANE_DAMAGE", label = "Arcane-only spell damage" },
+    { key = "HOLY_RESISTANCE", label = "Holy resistance" }, { key = "FIRE_RESISTANCE", label = "Fire resistance" },
+    { key = "NATURE_RESISTANCE", label = "Nature resistance" }, { key = "FROST_RESISTANCE", label = "Frost resistance" },
+    { key = "SHADOW_RESISTANCE", label = "Shadow resistance" }, { key = "ARCANE_RESISTANCE", label = "Arcane resistance" },
 }
 Scoring.maxProfiles = 8
 local function Table(value) return Suite.IsReadable(value) and type(value) == "table" end
@@ -45,21 +62,31 @@ function Scoring:ValidateProfile(value)
     local label = value.label:match("^%s*(.-)%s*$")
     if label == "" then return end
     local profile = { label = label, meleeDPS = value.meleeDPS, rangedDPS = value.rangedDPS, weights = {} }
+    if Suite.IsReadable(value.mainHandSubclass) and value.mainHandSubclass == 15 then profile.mainHandSubclass = 15 end
     local positive = profile.meleeDPS > 0 or profile.rangedDPS > 0
     for _, stat in ipairs(self.stats) do
         local weight = value.weights[stat.key]
         if not Suite.IsReadable(weight) or weight ~= nil and not Weight(weight) then return end
-        if weight and weight > 0 then profile.weights[stat.key], positive = weight, true end
+        if weight ~= nil then profile.weights[stat.key] = weight end
+        if weight and weight > 0 then positive = true end
+    end
+    -- Effective totals are alternatives to the old independent spell fields.
+    -- Old profiles have no total weights and keep their exact arithmetic.
+    local weights = profile.weights
+    if (weights.SPELL_DAMAGE_TOTAL or 0) > 0 and ((weights.SPELL_POWER or 0) > 0 or (weights.SPELL_DAMAGE_DONE or 0) > 0)
+        or (weights.HEALING_TOTAL or 0) > 0 and ((weights.SPELL_POWER or 0) > 0 or (weights.SPELL_HEALING_DONE or 0) > 0) then
+        return nil, "Use effective spell/healing totals or the overlapping legacy spell fields, not both."
     end
     if not positive then return end
     return profile
 end
 
 function Scoring:InitializeCharacter(saved, legacy)
+    self:Automatic()
     saved = Table(saved) and saved or {}
     local state = { schema = 1, active = "automatic", preference = "stats", details = false, profiles = {}, nextID = 1 }
     local active = Suite.IsReadable(saved.active) and saved.active or nil
-    if Text(active, 24) and (active == "automatic" or self.presets[active] or ProfileID(active)) then state.active = active end
+    if Text(active, 32) and (active == "automatic" or self.presets[active] or self:Spec(active) or ProfileID(active)) then state.active = active end
     if Suite.IsReadable(saved.preference) and saved.preference == "ilevel" then state.preference = "ilevel" end
     if Suite.IsReadable(saved.details) and saved.details == true then state.details = true end
     if Suite.IsReadable(saved.schema) and saved.schema == nil and Table(legacy) then
@@ -89,7 +116,7 @@ function Scoring:InitializeCharacter(saved, legacy)
     if Number(saved.nextID) and saved.nextID >= 1 and saved.nextID <= 1000001 and saved.nextID == math.floor(saved.nextID) then
         state.nextID = math.max(state.nextID, saved.nextID)
     end
-    local found = state.active == "automatic" or self.presets[state.active] ~= nil
+    local found = state.active == "automatic" or self.presets[state.active] ~= nil or self:Spec(state.active) ~= nil
     for _, profile in ipairs(state.profiles) do if profile.id == state.active then found = true end end
     if not found then state.active = "automatic" end
     self.character, self.owner = state, Suite.db
@@ -126,9 +153,10 @@ end
 
 function Scoring:Resolve(value)
     if Table(value) and Table(value.weights) then return value end
-    if not Text(value, 24) then return end
+    if not Text(value, 32) then return end
     if value == "automatic" then return self:Automatic() end
     if self.presets[value] then return self.presets[value] end
+    if self:Spec(value) then return self:Spec(value) end
     local state = self:State()
     if state then for _, profile in ipairs(state.profiles) do if profile.id == value then return profile end end end
 end
@@ -137,6 +165,10 @@ function Scoring:Profile() return self:Resolve(self:ActiveID()) or self.presets.
 
 function Scoring:List()
     local list = { { id = "automatic", label = "Automatic", help = "Class-aware leveling starter. No editing required." } }
+    self:Automatic()
+    for _, profile in ipairs(self.specs or {}) do
+        if profile.class == self.class then list[#list + 1] = { id = profile.id, label = profile.label, help = profile.help } end
+    end
     local descriptions = { balanced = "A general mix of primary attributes and survivability.",
         physical = "Physical damage: attributes, attack power and weapon DPS.", caster = "Spell damage: intellect, spell bonuses and some recovery.",
         healer = "Healing: intellect, spirit, healing bonuses and mana recovery.", tank = "Survivability: stamina, armor, defense and attributes." }
@@ -153,7 +185,7 @@ function Scoring:Changed()
 end
 
 function Scoring:SetProfile(id)
-    if not Text(id, 24) or not self:Resolve(id) then return false end
+    if InCombatLockdown() or not Text(id, 32) or not self:Resolve(id) then return false end
     local state = self:State()
     if state then state.active = id
     elseif self.presets[id] then Suite.db.scorePreset = id
@@ -173,16 +205,17 @@ end
 function Scoring:SaveProfile(value, id)
     local state = self:State()
     if not state then return nil, "Character settings are not ready." end
-    local profile = self:ValidateProfile(value)
-    if not profile then return nil, "Use a name and weights from 0 to 1000, with at least one positive weight." end
+    local profile, message = self:ValidateProfile(value)
+    if not profile then return nil, message or "Use a name and weights from 0 to 1000, with at least one positive weight." end
     local replace
     if id ~= nil then
         if not ProfileID(id) then return nil, "Built-in presets cannot be overwritten. Create a custom copy." end
         for index, other in ipairs(state.profiles) do if other.id == id then replace = index end end
         if not replace then return nil, "That custom profile is no longer available." end
     end
+    local unchangedName = replace and state.profiles[replace].label:lower() == profile.label:lower()
     for _, entry in ipairs(self:List()) do
-        if entry.id ~= id and entry.label:lower() == profile.label:lower() then return nil, "Choose a different profile name." end
+        if not unchangedName and entry.id ~= id and entry.label:lower() == profile.label:lower() then return nil, "Choose a different profile name." end
     end
     if not replace and (#state.profiles >= self.maxProfiles or state.nextID > 1000000) then
         return nil, "This character already has eight custom profiles. Edit or remove one first."
@@ -209,6 +242,7 @@ end
 
 function Scoring:Value(stats, key)
     if not Table(stats) then return end
+    if Suite.GearStats then return Suite.GearStats:Value(stats, key) end
     local value = stats["ITEM_MOD_" .. key .. "_SHORT"]
     if key == "ARMOR" then
         value = stats.RESISTANCE0_NAME
@@ -237,7 +271,7 @@ function Scoring:Terms(stats, selected, info, slot)
         local weight = kind == "ranged" and profile.rangedDPS or profile.meleeDPS
         if not Weight(weight) then return end
         if weight > 0 then
-            local dps = stats.ITEM_MOD_DAMAGE_PER_SECOND_SHORT
+            local dps = self:Value(stats, "DAMAGE_PER_SECOND")
             if not Number(dps) or dps <= 0 then return end
             local effective = dps * (slot == 17 and 0.5 or 1)
             rows.weaponDPS = { label = kind == "ranged" and "Ranged DPS" or "Weapon DPS", value = effective,
@@ -263,6 +297,18 @@ function Scoring:Breakdown(candidate, removed)
         return a.key < b.key
     end)
     return result
+end
+
+function Scoring.FormatUpgrade(delta, baseline)
+    if not Number(delta) then return "--" end
+    if Number(baseline) and baseline > 0 then
+        local percent = delta / baseline * 100
+        if Number(percent) then
+            if percent > 0 and percent < 0.1 then return "+<0.1%" end
+            return string.format(math.abs(percent) < 1 and "%+.1f%%" or "%+.0f%%", percent)
+        end
+    end
+    return Scoring.Format(delta, true) .. " pts"
 end
 
 function Scoring.Format(value, signed)
@@ -306,6 +352,10 @@ function Scoring.WeaponScore(info, stats, presetName, preference, slot)
     end
     local profile = Scoring:Resolve(presetName)
     if not profile then return nil end
+    if not Suite.IsReadable(profile.mainHandSubclass) then return nil end
+    if profile.mainHandSubclass and slot == 16 then
+        if not Number(info.subclassID) or info.subclassID ~= profile.mainHandSubclass then return nil end
+    end
     local score = Scoring.Score(stats, presetName)
     if not Number(score) then return nil end
     if kind == "melee" or kind == "ranged" then
@@ -315,7 +365,7 @@ function Scoring.WeaponScore(info, stats, presetName, preference, slot)
         -- Unknown/restricted DPS must never become an assumed zero. Caster/healer
         -- melee preferences intentionally assign it zero and only score bonuses.
         if weight > 0 then
-            local dps = stats.ITEM_MOD_DAMAGE_PER_SECOND_SHORT
+            local dps = Scoring:Value(stats, "DAMAGE_PER_SECOND")
             if not Number(dps) or dps <= 0 then return nil end
             score = score + dps * weight * (slot == 17 and 0.5 or 1)
         end

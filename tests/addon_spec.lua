@@ -1108,6 +1108,108 @@ local noUnit = Frame()
 tooltipCallbacks[2](noUnit, {})
 equal(Suite.Tooltips.records[noUnit], nil, "unit callbacks without GetUnit or readable GUID are harmless")
 
+do
+    local oldLevel, oldEffective, oldColor, oldPlayer = UnitLevel, UnitEffectiveLevel, GetRelativeDifficultyColor, UnitIsPlayer
+    local level, playerLevel = 33, 38
+    UnitLevel = function() return level end
+    UnitEffectiveLevel = function() return playerLevel end
+    GetRelativeDifficultyColor = function(player, target)
+        equal(player, 38, "difficulty uses readable player level")
+        equal(target, 33, "difficulty uses hovered level")
+        return { r = 0.25, g = 0.75, b = 0.25 }
+    end
+    UnitIsPlayer = function() return false end
+    Enum.TooltipDataLineType.UnitLevel = 47
+    local tip, line = Frame("DifficultyTooltip"), { text = "Level 33 Beast" }
+    function line:GetText() return self.text end
+    function line:SetText(text) self.text = text end
+    _G.DifficultyTooltipTextLeft2 = line
+    local data = { guid = UnitGUID("mouseover"), lines = { { type = 0 }, { type = 0 }, { type = 47, lineIndex = 2 } } }
+    equal(Suite.db.unitLevelColors, false, "level difficulty colors default off")
+    Suite.db.unitLevelColors = true
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Level |cff40bf4033|r Beast", "NPC tooltip colors only the matching level number")
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Level |cff40bf4033|r Beast", "repeated unit callbacks do not nest colors")
+    Suite.db.unitLevelColors = false
+    Suite.Tooltips:Apply()
+    equal(line.text, "Level 33 Beast", "disabling restores existing native level text")
+    Suite.db.unitLevelColors = true
+    for _, hidden in ipairs({ { secret = true }, -1, 0, math.huge }) do
+        level = hidden
+        tooltipCallbacks[2](tip, data)
+        equal(line.text, "Level 33 Beast", "unknown or restricted levels stay native")
+    end
+    level, playerLevel = 33, { secret = true }
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Level 33 Beast", "restricted player level stays native")
+    playerLevel = 38
+    data.lines[3].type = 0
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Level 33 Beast", "unclassified rows without a localized level label stay native")
+    local oldTemplate = UNIT_LEVEL_TEMPLATE
+    UNIT_LEVEL_TEMPLATE = "Level %d"
+    tip.NumLines = function() return 3 end
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Level |cff40bf4033|r Beast", "generic NPC level row is colored using localized native label")
+    line.text = "Level 33 Beast"
+    data.lines[3].type, data.lines[3].lineIndex = 47, nil
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Level |cff40bf4033|r Beast", "missing native rendered index uses level-label fallback")
+    line.text = "Quest 33 Beast"
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Quest 33 Beast", "fallback never colors unrelated numbers")
+    UNIT_LEVEL_TEMPLATE = "Niveau %d"
+    line.text = "Niveau 33 Bête"
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Niveau |cff40bf4033|r Bête", "fallback uses localized level label")
+    UNIT_LEVEL_TEMPLATE = oldTemplate
+    data.lines[3].lineIndex = 2
+    data.lines[3].type = 47
+    line.text = "Level 133 Beast"
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Level 133 Beast", "level matching does not replace substrings")
+    local oldPalette = QuestDifficultyColors
+    QuestDifficultyColors = { impossible = { r = 1, g = 0.1, b = 0.1 } }
+    level, line.text = -1, "Level ?? Beast"
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Level |cffff1a1a??|r Beast", "unknown level question marks use native impossible red")
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Level |cffff1a1a??|r Beast", "unknown level color remains idempotent")
+    Suite.db.unitLevelColors = false
+    Suite.Tooltips:Apply()
+    equal(line.text, "Level ?? Beast", "disabling restores question marks")
+    Suite.db.unitLevelColors = true
+    level = { secret = true }
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Level ?? Beast", "secret level is not treated as the public unknown sentinel")
+    GetRelativeDifficultyColor = function(player, target)
+        equal(player, 38, "all difficulty colors use player level")
+        equal(target, level, "all difficulty colors use target level")
+        return QuestDifficultyColors.test
+    end
+    for _, case in ipairs({
+        { 10, 0.5, 0.5, 0.5, "808080" },
+        { 33, 0.25, 0.75, 0.25, "40bf40" },
+        { 38, 1, 1, 0, "ffff00" },
+        { 41, 1, 0.5, 0.25, "ff8040" },
+        { 43, 1, 0.1, 0.1, "ff1a1a" },
+    }) do
+        level, line.text = case[1], "Level " .. case[1] .. " Beast"
+        QuestDifficultyColors.test = { r = case[2], g = case[3], b = case[4] }
+        tooltipCallbacks[2](tip, data)
+        equal(line.text, "Level |cff" .. case[5] .. case[1] .. "|r Beast", "native difficulty palette passes through for level " .. case[1])
+    end
+    QuestDifficultyColors = oldPalette
+    line.text = { secret = true }
+    tooltipCallbacks[2](tip, data)
+    equal(issecretvalue(line.text), true, "restricted native text stays untouched")
+    Suite.db.unitLevelColors = false
+    Suite.Tooltips:Apply()
+    UnitLevel, UnitEffectiveLevel, GetRelativeDifficultyColor, UnitIsPlayer = oldLevel, oldEffective, oldColor, oldPlayer
+    _G.DifficultyTooltipTextLeft2 = nil
+end
+
 -- Native minimap ownership, coordinate clearance, restoration and ticker lifetime.
 MinimapCluster = CreateFrame("Frame", "MinimapCluster")
 MinimapCluster:SetScale(1.25)
@@ -1589,6 +1691,7 @@ assert(loadfile("tests/items_spec.lua"))(Suite, equal)
 assert(loadfile("tests/upgrade_spec.lua"))(Suite, equal, Frame)
 assert(loadfile("tests/armor_upgrade_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/gear_profiles_spec.lua"))(Suite, equal, Frame, function(value) combat = value end, frames[1])
+assert(loadfile("tests/gear_model_spec.lua"))(Suite, equal, Frame, function(value) combat = value end, frames[1])
 assert(loadfile("tests/quests_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/loot_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/bagsort_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
@@ -1625,5 +1728,7 @@ assert(loadfile("tests/equipment_sets_spec.lua"))(Suite, equal, Frame, function(
 assert(loadfile("tests/talent_planner_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/shortcuts_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/release_tools_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/supply_input_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/window_placement_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/diagnostics_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 print("Behavior checks passed: " .. checks)

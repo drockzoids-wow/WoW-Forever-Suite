@@ -1,6 +1,6 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "1.0.9"
+Suite.version = "1.0.10"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {
@@ -31,7 +31,7 @@ Suite.defaults = {
     itemLevels = false, itemTooltipLevels = false, characterItemLevel = false, upgradeHints = false, equipmentSetToggle = false,
     itemInventory = false, inventorySearch = false, characterDashboard = false, inventory = { schema = 1, characters = {}, accountBanks = {} },
     inventoryBrowser = { schema = 1, favorites = {} },
-    scorePreset = "balanced", upgradePreference = "stats", playerItemLevel = false, classNames = false,
+    scorePreset = "balanced", upgradePreference = "stats", playerItemLevel = false, classNames = false, unitLevelColors = false,
     macroUpdates = false, macroOwnership = {},
     campingBar = false, campingPose = "sit", campingPosition = {},
     levelingBar = false, trainingPlanner = false, trainingAuto = true, trainingLevelUp = true, trainingSpellbook = true,
@@ -131,11 +131,7 @@ function Suite.Set(key, value)
 end
 
 function Suite.Status()
-    local version, build, _, interface = GetBuildInfo()
-    Suite.Print("v" .. Suite.version .. " · client " .. version .. " (" .. build .. ") · interface " .. interface)
-    local APIs = { "C_Item", "C_Container", "C_DamageMeter", "TooltipDataProcessor", "Settings", "issecretvalue" }
-    for _, name in ipairs(APIs) do Suite.Print(name .. ": " .. (_G[name] and "available" or "missing")) end
-    Suite.Print("Settings loaded from disk at startup: " .. (Suite.loadedSavedVariables and "yes" or "no / first launch"))
+    Suite.Diagnostics:PrintStatus()
 end
 
 local events = CreateFrame("Frame")
@@ -208,6 +204,7 @@ local commandPages = {
 SlashCmdList.WOWFOREVERSUITE = function(message)
     local command = message:match("^%s*(%S*)"):lower()
     if command == "status" then Suite.Status()
+    elseif command == "support" or command == "diagnostics" then Suite.Diagnostics:Open()
     elseif command == "commands" then Suite.Shortcuts:Help()
     elseif Suite.Shortcuts:Handle(command) then return
     elseif command == "copychat" or command == "chatcopy" then

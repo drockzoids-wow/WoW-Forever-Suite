@@ -7,7 +7,7 @@ local Catalog = { groups = {
     { key = "journey", label = "Quests & Leveling", description = "Quests, looting, the leveling tracker and camping.", pages = { { "quests", "Quests, Loot & Tracker" }, { "leveling", "Leveling Tracker" }, { "camping", "Camping" } } },
     { key = "everyday", label = "Vendors & Mail", description = "Repairs, junk selling, shops and mail recipients.", pages = { { "vendor", "Vendor" }, { "mail", "Mail" } } },
     { key = "tools", label = "Tools", description = "Characters and inventory, training costs, supplies, talent builds, macros and chat shortcuts.", pages = { { "characters", "Characters & Inventory" }, { "training", "Training Planner" }, { "supplies", "Supply Checklist" }, { "talents", "Talent Builds" }, { "macros", "Macro Builder" }, { "shortcuts", "Chat Shortcuts" } } },
-    { key = "suite", label = "Suite Settings", utility = true, description = "What's new, appearance, settings profiles and guided setup.", pages = { { "whatsnew", "What's New" }, { "appearance", "Appearance" }, { "profiles", "Profiles" }, { "setup", "Setup Guide" } } },
+    { key = "suite", label = "Suite Settings", utility = true, description = "What's new, appearance, settings profiles, support and guided setup.", pages = { { "whatsnew", "What's New" }, { "appearance", "Appearance" }, { "profiles", "Profiles" }, { "support", "Support" }, { "setup", "Setup Guide" } } },
 } }
 Suite.SettingsCatalog = Catalog
 Catalog.sections = {
@@ -17,7 +17,7 @@ Catalog.sections = {
     windows = { [1] = "Window Layout" },
     bags = { [1] = "Bag Tools", [3] = "Recorded Inventory", [4] = "Bank Snapshots", [7] = "Low Bag Space", [9] = "Container Opening", [10] = "Bag Order" },
     items = { [1] = "Item Levels", [4] = "Upgrade Comparisons", [8] = "Equipment Manager" },
-    tooltips = { [1] = "Item Information", [3] = "Player Information" },
+    tooltips = { [1] = "Item Information", [3] = "Player Information", [5] = "Unit Information" },
     camping = { [1] = "Camping Bar", [3] = "Position & Reset" },
     buffs = { [1] = "Missing Buff Bar", [2] = "Reminder Filters", [6] = "Position & Choices" },
     vendor = { [1] = "Repairs", [3] = "Junk Selling", [6] = "Vendor Conversation", [7] = "Known Items" },
@@ -109,7 +109,7 @@ local synonyms = { characterDashboard = "recorded characters dashboard alts mone
     buffAppearance = "scale icon size header movement preview position", missingBuffExpiry = "expiry expiring duration refresh timer",
     missingBuffCombat = "combat shout thorns lightning shield righteous fury reminders",
     missingBuffWeapons = "weapon coating oil stone poison mainhand offhand",
-    bagSpaceReset = "blacklist protect trash items", preset = "weights upgrades role automatic class character profile custom", weights = "editable custom stat weights score breakdown tooltip details", scorePreset = "weights upgrades role", missingBuffClass = "poison imbue aspect upkeep" }
+    bagSpaceReset = "blacklist protect trash items", preset = "weights upgrades role spec specialization feral cat bear fury frost automatic class character profile custom", weights = "editable custom stat weights score breakdown tooltip details hit crit haste expertise dodge parry block school spell resistance", scorePreset = "weights upgrades role spec", missingBuffClass = "poison imbue aspect upkeep" }
 
 function Catalog:Configure(pages)
     self.pages, self.pageGroup, self.labels, self.entries = pages, {}, {}, {}

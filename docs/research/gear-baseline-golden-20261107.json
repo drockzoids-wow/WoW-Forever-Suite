@@ -1,0 +1,613 @@
+{
+  "schema": 1,
+  "source": "ForeverWoW.gg public API with no_sets=1 and no_on_use=1; one static example per spec.",
+  "build": "1.60.1.70862",
+  "fixtures": [
+    {
+      "profile": "warrior/arms",
+      "itemID": 21276,
+      "sourceSlot": "Two-Hand",
+      "expectedScore": 481.02,
+      "tolerance": 0.040999999999999995,
+      "gear": {
+        "main": {
+          "known": true,
+          "instance": "fixture:21276",
+          "stats": {
+            "armor": 0
+          },
+          "weapon": true,
+          "dps": 80.17,
+          "twoHand": true
+        }
+      }
+    },
+    {
+      "profile": "warrior/fury",
+      "itemID": 21126,
+      "sourceSlot": "Main Hand",
+      "expectedScore": 489.23,
+      "tolerance": 0.046,
+      "gear": {
+        "main": {
+          "known": true,
+          "instance": "fixture:21126",
+          "stats": {
+            "stamina": 10,
+            "attack_power": 38,
+            "armor": 0,
+            "weapon_skill": 3
+          },
+          "weapon": true,
+          "dps": 66.39
+        }
+      }
+    },
+    {
+      "profile": "warrior/protection",
+      "itemID": 21269,
+      "sourceSlot": "Off Hand",
+      "expectedScore": 284.12,
+      "tolerance": 0.011,
+      "gear": {
+        "off": {
+          "known": true,
+          "instance": "fixture:21269",
+          "stats": {
+            "stamina": 20,
+            "block": 15,
+            "block_value": 15,
+            "defense": 8,
+            "armor": 2964
+          }
+        }
+      }
+    },
+    {
+      "profile": "paladin/holy",
+      "itemID": 240040,
+      "sourceSlot": "Head",
+      "expectedScore": 159.4,
+      "tolerance": 0.011,
+      "gear": {
+        "head": {
+          "known": true,
+          "instance": "fixture:240040",
+          "stats": {
+            "stamina": 19,
+            "intellect": 19,
+            "crit": 28,
+            "haste": 20,
+            "spell_power": 35,
+            "healing": 71,
+            "armor": 886
+          }
+        }
+      }
+    },
+    {
+      "profile": "paladin/protection",
+      "itemID": 21269,
+      "sourceSlot": "Off Hand",
+      "expectedScore": 225.54,
+      "tolerance": 0.011,
+      "gear": {
+        "off": {
+          "known": true,
+          "instance": "fixture:21269",
+          "stats": {
+            "stamina": 20,
+            "block": 15,
+            "block_value": 15,
+            "defense": 8,
+            "armor": 2964
+          }
+        }
+      }
+    },
+    {
+      "profile": "paladin/retribution",
+      "itemID": 19167,
+      "sourceSlot": "Two-Hand",
+      "expectedScore": 457.53,
+      "tolerance": 0.0435,
+      "gear": {
+        "main": {
+          "known": true,
+          "instance": "fixture:19167",
+          "stats": {
+            "strength": 35,
+            "stamina": 15,
+            "fire_resistance": 10,
+            "crit": 14,
+            "armor": 0
+          },
+          "weapon": true,
+          "dps": 62.62,
+          "twoHand": true
+        }
+      }
+    },
+    {
+      "profile": "hunter/beastmastery",
+      "itemID": 23557,
+      "sourceSlot": "Ranged",
+      "expectedScore": 290.44,
+      "tolerance": 0.0385,
+      "gear": {
+        "ranged": {
+          "known": true,
+          "instance": "fixture:23557",
+          "stats": {
+            "crit": 14,
+            "attack_power": 18,
+            "armor": 0
+          },
+          "weapon": true,
+          "dps": 49.17
+        }
+      }
+    },
+    {
+      "profile": "hunter/marksmanship",
+      "itemID": 23557,
+      "sourceSlot": "Ranged",
+      "expectedScore": 316.42,
+      "tolerance": 0.040999999999999995,
+      "gear": {
+        "ranged": {
+          "known": true,
+          "instance": "fixture:23557",
+          "stats": {
+            "crit": 14,
+            "attack_power": 18,
+            "armor": 0
+          },
+          "weapon": true,
+          "dps": 49.17
+        }
+      }
+    },
+    {
+      "profile": "hunter/survival",
+      "itemID": 23557,
+      "sourceSlot": "Ranged",
+      "expectedScore": 290.24,
+      "tolerance": 0.0385,
+      "gear": {
+        "ranged": {
+          "known": true,
+          "instance": "fixture:23557",
+          "stats": {
+            "crit": 14,
+            "attack_power": 18,
+            "armor": 0
+          },
+          "weapon": true,
+          "dps": 49.17
+        }
+      }
+    },
+    {
+      "profile": "rogue/assassination",
+      "itemID": 21126,
+      "sourceSlot": "Main Hand",
+      "expectedScore": 389.04,
+      "tolerance": 0.0385,
+      "gear": {
+        "main": {
+          "known": true,
+          "instance": "fixture:21126",
+          "stats": {
+            "stamina": 10,
+            "attack_power": 38,
+            "armor": 0,
+            "weapon_skill": 3
+          },
+          "weapon": true,
+          "dps": 66.39
+        }
+      }
+    },
+    {
+      "profile": "rogue/combat",
+      "itemID": 21126,
+      "sourceSlot": "Main Hand",
+      "expectedScore": 422.84,
+      "tolerance": 0.040999999999999995,
+      "gear": {
+        "main": {
+          "known": true,
+          "instance": "fixture:21126",
+          "stats": {
+            "stamina": 10,
+            "attack_power": 38,
+            "armor": 0,
+            "weapon_skill": 3
+          },
+          "weapon": true,
+          "dps": 66.39
+        }
+      }
+    },
+    {
+      "profile": "rogue/combat-daggers",
+      "itemID": 21126,
+      "sourceSlot": "Main Hand",
+      "expectedScore": 422.84,
+      "tolerance": 0.040999999999999995,
+      "gear": {
+        "main": {
+          "known": true,
+          "instance": "fixture:21126",
+          "stats": {
+            "stamina": 10,
+            "attack_power": 38,
+            "armor": 0,
+            "weapon_skill": 3
+          },
+          "weapon": true,
+          "dps": 66.39,
+          "weaponFamily": "dagger"
+        }
+      }
+    },
+    {
+      "profile": "rogue/subtlety",
+      "itemID": 21126,
+      "sourceSlot": "Main Hand",
+      "expectedScore": 389.25,
+      "tolerance": 0.0385,
+      "gear": {
+        "main": {
+          "known": true,
+          "instance": "fixture:21126",
+          "stats": {
+            "stamina": 10,
+            "attack_power": 38,
+            "armor": 0,
+            "weapon_skill": 3
+          },
+          "weapon": true,
+          "dps": 66.39
+        }
+      }
+    },
+    {
+      "profile": "priest/discipline",
+      "itemID": 22514,
+      "sourceSlot": "Head",
+      "expectedScore": 114.3,
+      "tolerance": 0.011,
+      "gear": {
+        "head": {
+          "known": true,
+          "instance": "fixture:22514",
+          "stats": {
+            "spirit": 22,
+            "intellect": 22,
+            "stamina": 22,
+            "healing": 75,
+            "mp5": 5,
+            "armor": 108
+          }
+        }
+      }
+    },
+    {
+      "profile": "priest/holy",
+      "itemID": 22514,
+      "sourceSlot": "Head",
+      "expectedScore": 117,
+      "tolerance": 0.011,
+      "gear": {
+        "head": {
+          "known": true,
+          "instance": "fixture:22514",
+          "stats": {
+            "spirit": 22,
+            "intellect": 22,
+            "stamina": 22,
+            "healing": 75,
+            "mp5": 5,
+            "armor": 108
+          }
+        }
+      }
+    },
+    {
+      "profile": "priest/shadow",
+      "itemID": 21348,
+      "sourceSlot": "Head",
+      "expectedScore": 59.1,
+      "tolerance": 0.011,
+      "gear": {
+        "head": {
+          "known": true,
+          "instance": "fixture:21348",
+          "stats": {
+            "intellect": 22,
+            "spirit": 16,
+            "stamina": 22,
+            "bonus_armor": 50,
+            "spell_power": 28,
+            "mp5": 7,
+            "hit": 10,
+            "armor": 100
+          }
+        }
+      }
+    },
+    {
+      "profile": "shaman/elemental",
+      "itemID": 21372,
+      "sourceSlot": "Head",
+      "expectedScore": 56.2,
+      "tolerance": 0.011,
+      "gear": {
+        "head": {
+          "known": true,
+          "instance": "fixture:21372",
+          "stats": {
+            "agility": 8,
+            "strength": 12,
+            "intellect": 22,
+            "spirit": 12,
+            "stamina": 22,
+            "spell_power": 32,
+            "crit": 14,
+            "armor": 416
+          }
+        }
+      }
+    },
+    {
+      "profile": "shaman/enhancement",
+      "itemID": 21276,
+      "sourceSlot": "Two-Hand",
+      "expectedScore": 521.11,
+      "tolerance": 0.0435,
+      "gear": {
+        "main": {
+          "known": true,
+          "instance": "fixture:21276",
+          "stats": {
+            "armor": 0
+          },
+          "weapon": true,
+          "dps": 80.17,
+          "twoHand": true
+        }
+      }
+    },
+    {
+      "profile": "shaman/restoration",
+      "itemID": 22466,
+      "sourceSlot": "Head",
+      "expectedScore": 106,
+      "tolerance": 0.011,
+      "gear": {
+        "head": {
+          "known": true,
+          "instance": "fixture:22466",
+          "stats": {
+            "stamina": 26,
+            "intellect": 30,
+            "healing": 68,
+            "mp5": 8,
+            "armor": 449
+          }
+        }
+      }
+    },
+    {
+      "profile": "mage/arcane",
+      "itemID": 22498,
+      "sourceSlot": "Head",
+      "expectedScore": 86.8,
+      "tolerance": 0.011,
+      "gear": {
+        "head": {
+          "known": true,
+          "instance": "fixture:22498",
+          "stats": {
+            "stamina": 22,
+            "intellect": 23,
+            "spell_power": 35,
+            "hit": 10,
+            "crit": 28,
+            "armor": 108
+          }
+        }
+      }
+    },
+    {
+      "profile": "mage/fire",
+      "itemID": 22498,
+      "sourceSlot": "Head",
+      "expectedScore": 88.05,
+      "tolerance": 0.011,
+      "gear": {
+        "head": {
+          "known": true,
+          "instance": "fixture:22498",
+          "stats": {
+            "stamina": 22,
+            "intellect": 23,
+            "spell_power": 35,
+            "hit": 10,
+            "crit": 28,
+            "armor": 108
+          }
+        }
+      }
+    },
+    {
+      "profile": "mage/frost",
+      "itemID": 22498,
+      "sourceSlot": "Head",
+      "expectedScore": 77.45,
+      "tolerance": 0.011,
+      "gear": {
+        "head": {
+          "known": true,
+          "instance": "fixture:22498",
+          "stats": {
+            "stamina": 22,
+            "intellect": 23,
+            "spell_power": 35,
+            "hit": 10,
+            "crit": 28,
+            "armor": 108
+          }
+        }
+      }
+    },
+    {
+      "profile": "warlock/affliction",
+      "itemID": 22506,
+      "sourceSlot": "Head",
+      "expectedScore": 71.35,
+      "tolerance": 0.011,
+      "gear": {
+        "head": {
+          "known": true,
+          "instance": "fixture:22506",
+          "stats": {
+            "stamina": 28,
+            "intellect": 25,
+            "spell_power": 33,
+            "crit": 28,
+            "hit": 10,
+            "armor": 108
+          }
+        }
+      }
+    },
+    {
+      "profile": "warlock/demonology",
+      "itemID": 22506,
+      "sourceSlot": "Head",
+      "expectedScore": 83.3,
+      "tolerance": 0.011,
+      "gear": {
+        "head": {
+          "known": true,
+          "instance": "fixture:22506",
+          "stats": {
+            "stamina": 28,
+            "intellect": 25,
+            "spell_power": 33,
+            "crit": 28,
+            "hit": 10,
+            "armor": 108
+          }
+        }
+      }
+    },
+    {
+      "profile": "warlock/destruction",
+      "itemID": 22506,
+      "sourceSlot": "Head",
+      "expectedScore": 86.6,
+      "tolerance": 0.011,
+      "gear": {
+        "head": {
+          "known": true,
+          "instance": "fixture:22506",
+          "stats": {
+            "stamina": 28,
+            "intellect": 25,
+            "spell_power": 33,
+            "crit": 28,
+            "hit": 10,
+            "armor": 108
+          }
+        }
+      }
+    },
+    {
+      "profile": "druid/balance",
+      "itemID": 21353,
+      "sourceSlot": "Head",
+      "expectedScore": 52.2,
+      "tolerance": 0.011,
+      "gear": {
+        "head": {
+          "known": true,
+          "instance": "fixture:21353",
+          "stats": {
+            "agility": 12,
+            "strength": 15,
+            "intellect": 22,
+            "spirit": 12,
+            "stamina": 22,
+            "spell_power": 27,
+            "crit": 14,
+            "armor": 192
+          }
+        }
+      }
+    },
+    {
+      "profile": "druid/feralcat",
+      "itemID": 279253,
+      "sourceSlot": "Head",
+      "expectedScore": 45.1,
+      "tolerance": 0.011,
+      "gear": {
+        "head": {
+          "known": true,
+          "instance": "fixture:279253",
+          "stats": {
+            "stamina": 31,
+            "agility": 21,
+            "crit": 21,
+            "armor": 160
+          }
+        }
+      }
+    },
+    {
+      "profile": "druid/feralbear",
+      "itemID": 21693,
+      "sourceSlot": "Head",
+      "expectedScore": 104.1,
+      "tolerance": 0.011,
+      "gear": {
+        "head": {
+          "known": true,
+          "instance": "fixture:21693",
+          "stats": {
+            "stamina": 36,
+            "agility": 19,
+            "strength": 17,
+            "bonus_armor": 70,
+            "dodge": 12,
+            "armor": 180
+          }
+        }
+      }
+    },
+    {
+      "profile": "druid/restoration",
+      "itemID": 22490,
+      "sourceSlot": "Head",
+      "expectedScore": 99.1,
+      "tolerance": 0.011,
+      "gear": {
+        "head": {
+          "known": true,
+          "instance": "fixture:22490",
+          "stats": {
+            "spirit": 20,
+            "intellect": 31,
+            "stamina": 25,
+            "healing": 66,
+            "armor": 205
+          }
+        }
+      }
+    }
+  ]
+}

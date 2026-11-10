@@ -1,5 +1,61 @@
 # Forever Suite feature plan
 
+## Final review and authorized 1.0.10 release — November 10, 2026
+
+User authorizes a final whole-addon code review and CurseForge publication if no release blocker is found. Reviewed the current 86-file runtime tree with full Lua 5.1/behavior checks, pinned build-70862 API/event/signature/global-write/literal-key scans, lifecycle/action-boundary inspection and release-workflow probes. No new concrete release blocker was established. Two optional guarded legacy pet-journal fallbacks retain their prior qualification. All 34,529 substitute assertions and 11 separate gear research tests pass; 95 addon package inputs and 73 registered Lua specs are accounted for. Core and both TOCs advance to 1.0.10. Include all pending feature/fix work and its research/tests/documentation; cache references never ship. User-confirmed tooltip colors are recorded separately from pending native build/Interface, gear calibration, input/layout/performance and taint results, including the previously deferred map/tracker investigation. Publication does not mark those tests verified. No game deployment, junction or real SavedVariables changes. Final package and remote CI/upload evidence are recorded separately.
+
+## Tooltip level difficulty colors — November 10, 2026
+
+User confirms the fallback fix works in game and tooltip colors now change. This resolves the reported white-level failure. Running build/Interface and separate red ??/persistence/combat checks remain unreported; earlier pending notes below describe the pre-confirmation state.
+
+Follow-up: enabled option still shows a white Level 32 in the user's Sparkleshell Borer screenshot. Support absent/generic row metadata by matching the localized native level label in bounded rendered rows; retain metadata as the preferred route and avoid coloring unrelated numbers. Substitute regressions pass; native retest pending.
+
+Add independent default-off Bags & Gear → Tooltips → Level difficulty colors. Color only the readable level number in the native unit-level row using Blizzard's relative difficulty palette; the requested level-33 creature at player level 38 should be green. Preserve surrounding native text; the public unknown-level sentinel (-1) colors a plain ?? display with Blizzard's impossible (red) palette. Skull textures remain native. Use supplied tooltip data and its rendered line index, validate levels/text/colors before operations, restore owned text on disable, and add no inspection, polling or events. Native appearance/nameplate comparison remains pending; no version, release or deployment change.
+
+## Full talent-plan sharing — November 10, 2026
+
+Export saved plans as WFS2 with the name, final ranks/choices, exact per-point leveling order and notes. Keep WFS1 imports working with their original Imported build name, empty notes and a generated legal order. Do not share local favorites, build IDs, undo history or learning-guide state. Existing notes limits and SavedVariables shapes remain unchanged.
+
+Replace the immediate UI import with Review import, showing the name, full scrollable notes/order, point count and legacy limitations. Import as new explicitly creates a separate saved draft; Cancel/Escape/hide/combat/disable/context changes discard the pending review. Revalidate the originally reviewed code, tree/class, structure, point order, library capacity and current-level limits at confirmation. Refuse an over-budget plan instead of truncating it; the user can turn off Limit to current level to import a future plan. Never learn native talent points or overwrite a saved build.
+
+Bound WFS2 input at 32,768 ASCII bytes and 512 final records/point steps; encode name/notes text bytes without delimiter ambiguity or executable payloads. Preserve the WFS1 16,384-byte limit. Verify Unicode/multiline notes, custom orders, malformed/secret data, atomic failures and native-input-script preservation. Native clipboard, scrolling, layout and taint remain pending; no release/deployment change.
+
+## Whole-addon follow-up — November 10, 2026
+
+Reject zero-capacity backpack observations in the shared aggregate reader so transient unavailable data cannot overwrite complete inventory counts or invent Supply Checklist shortages. Keep zero-slot unequipped bags valid, retain last complete records and resume on existing events; add no setting, schema or polling. Regression coverage passes; native occurrence/recovery remains unverified.
+
+The previous review's gear/spec expansion, capability report and checklist input recommendations are implemented in the pending working tree. Next priorities are focused native regressions and gear calibration, followed by full talent-plan sharing and sourced profession planning as separately scoped features. Measure native cost before broader optimization. [Updated whole-addon review](addon-review-2026-11-09.md#whole-addon-follow-up--november-10-2026).
+
+## Supply Checklist item drops and tooltips — November 9, 2026
+
+Accept an item dropped/click-placed into the existing item editor, using the readable native cursor item ID. Keep pasted IDs/links. Validate before cancelling cursor placement; preserve quantity and saved targets until explicit Save target, cancel stale removal confirmation and focus quantity. Reject non-item, invalid/restricted, failed/unavailable and combat/hidden input without clearing the cursor or changing the draft. No item use, purchase, deletion or transfer is added.
+
+Give checklist rows native item-ID tooltips independently of carried tracking. Bind IDs to the current page, refresh a stationary hover after recycling/metadata loading, and clear stale/hidden/closed/combat tooltips. Hide only a tooltip still owned by the checklist row; guard forbidden widgets, missing methods, native errors and ownership changes during callbacks. Keep row clicks, wheel paging, coalesced scans, ID-based counts, per-character targets and SavedVariables shape unchanged. Native input/rendering/taint results remain pending; no new setting/version/release/deployment action.
+
+## Copyable support report and capability reasons — November 9, 2026
+
+Implement Suite Settings → Support plus `/wfs support` / `/wfs diagnostics`. Expand existing `/wfs status` with function-level capability problems and paused/unknown reasons. Report Off/Unavailable/Paused/Waiting/Ready/Unknown with conservative scope: Ready is listed capabilities/component presence, not gameplay or taint proof. Respect parent switches and actual deferred keys; explain combat action pauses, native editor/movie pauses, missing context, school-parser locale, native meter availability and audio output permission flags.
+
+Capture requested combat snapshots without creating UI or scheduling an automatic window. Explicit opening after combat copies the original filtered text; Refresh captures current state. Use native selectable text/Ctrl+C, bounded static data and privacy allowlists; no error/settings dumps, personal records, device IDs, custom names/weights, scans/actions/retries/polling, upload, setting changes or SavedVariables. [Report behavior and coverage](support-report.md). Native layout/clipboard/input/taint checks remain pending; no version/release/deployment action.
+
+## Gear modeling first step — November 9, 2026
+
+Implement manual character-only spec selection alongside Automatic, the five broad roles and saved custom profiles. Provide 29 class-filtered spec/role choices, explicitly distinguishing Cat/Bear and ranged Survival and enforcing the Combat Daggers main-hand constraint in stat mode. Spec coefficients are original editable preference starters, not copied external maps or calibrated output predictions. Automatic/old roles remain unchanged.
+
+Expand the editor to 46 stat weights: ratings by physical/spell/ranged usage, expertise, defenses/block, penetration, health/mana/recovery, effective spell/healing totals, schools and resistances. Share guarded raw-stat/English-static-school parsing between markers and explanations. Suppress unavailable/secret/ambiguous sources; never convert rating points into percentage points or add overlapping aliases. Preserve all existing custom coefficients/names/IDs/selection/preferences, including precise unchanged values when editing. Resize the scrollable editor below all inputs and reveal keyboard-focused fields. See [model contract](gear-modeling.md).
+
+Remaining work: native item-stat/tooltip samples and role calibration; validated effects/set thresholds, caps, weapon-family skill and Feral mechanics remain outside this step. No new defaults, automatic spec inference, release or deployment action.
+
+## Addon quality improvements — November 9, 2026
+
+Following the whole-addon comparison, prioritize existing-feature depth and native reliability. Implement checklist event coalescing/requested-metadata filtering and single opening scan; add Mail Deadlines manual countdown refresh plus calculation freshness; clarify weighted-score percentage versus damage/healing and item-level comparison wording. Preserve all defaults and saved-data semantics. Offline checks pass; native controls/appearance remain pending.
+
+Next work, in order: focused native regression results; validated gear stat/spec coverage preserving custom profiles; copyable capability diagnostics; checklist drop input/item tooltips; full talent-plan export with order/notes; sourced profession planning. Measure performance before broad optimization and extract GUI responsibilities incrementally. Detailed comparisons, all-file coverage and acceptance criteria: [November 9 quality review](addon-review-2026-11-09.md). These larger items are recommendations, not newly implemented features or release authorization.
+
+## Rounded upgrade percentages — November 9, 2026
+
+Show stat/weapon upgrade headlines as score gain divided by the positive equipped score: nearest whole percent from 1% upward, one decimal below 1%, and +<0.1% for tiny positive gains. Zero/negative baselines retain explicitly labeled score points. Keep detailed score/stat contributions and item-level comparisons unchanged. No new setting or release/deployment action.
+
 ## Authorized 1.0.9 release — November 9, 2026
 
 User authorizes version bump and CurseForge publication for Random mount (selected icon and mounted dismount) plus item-macro draft discard. Align Core/both TOCs, README and changelog at 1.0.9. Keep pending buff-catalog removal and scoring research outside this release, preserving their working files. Check the isolated committed release tree/package, push main, wait for its checks, then publish through a fresh v1.0.9 tag. Prior 32,456 substitute assertions pass in the working tree; final release-tree results and remote upload evidence are recorded separately. Native mount/dismount/icon/draft-button/taint checks remain pending; authorization does not mark them verified. No game deployment, junction or real SavedVariables edits.
@@ -19,6 +75,14 @@ Extend the initial standalone macro with a shared Random mount recipe creating F
 ## Random mount macro — November 9, 2026
 
 Supply a standalone macro at docs/macros/random-mount.txt that reads the full Mounts collection on every press and randomly chooses a collected, usable, character-visible mount. New acquisitions enter automatically; UI search/filter state is untouched. Keep secret-value eligibility guards, combat stop and empty-list handling within 255 characters. Random choices may repeat; riding/location restrictions remain native. This first test does not add a Suite recipe or changing tooltip; no runtime/version/release/deployment changes. Native validation pending.
+
+## Waylaid crate right-click taint investigation — November 8, 2026
+
+User's native UseContainerItem blocked-action report clears after reload: user confirms the crate works on retry. Earlier taint origin remains unidentified; retain existing native item input rather than introduce a speculative replacement. Capture a fresh taint log and preceding interactions if it recurs. No runtime or release change; actual running build/Interface remains unreported.
+
+## Remove situational warlock buff reminders — November 8, 2026
+
+Remove Detect Invisibility and Unending Breath (water breathing) from the built-in Missing Buffs catalog at the user's request. Neither produces self, outgoing group or incoming reminders, and neither appears among built-in buff choices. Explicit custom spell reminders remain available.
 
 ## Publish 1.0.8 with persistent contacts — November 8, 2026
 
@@ -59,6 +123,10 @@ Both recorded selector defects are corrected offline: label refresh respects nat
 ## Release gate for the current fixes — November 8, 2026
 
 [Readiness review](release-readiness-2026-11-08.md) passes whole-addon offline/package validation but identifies two remaining selector interactions: shared label refresh must preserve gamepad exclusion, and disabling bank snapshots must preserve a still-enabled saved-bag view through unrelated settings changes. Keep the independent recording switches and current defaults. No runtime correction or new feature was implemented during review. Complete the relevant native retests and prepare a fresh version after already-tagged 1.0.6 before release; earlier user confirmations retain their stated scope.
+
+## Establish all-class upgrade assessment baseline — November 7, 2026
+
+User requests evaluation across all classes and a baseline algorithm. Deliver [all-class evidence, policies and executable reference](gear-upgrade-baseline.md), including all 29 observed spec weight maps, arithmetic/coverage audit and meaningful offline comparisons. Keep current runtime scoring unchanged in this research step. Future runtime integration should preserve custom profiles/independent settings, support broader validated stats and explicit spec choice, compare legal complete equipment changes, count actual set breakpoints, and disclose caps/effect/build uncertainty. Do not adopt speculative per-piece set value as an immediate upgrade benefit. API arithmetic agreement is not class-weight calibration or native verification.
 
 ## Food refresh when bags open — November 7, 2026
 

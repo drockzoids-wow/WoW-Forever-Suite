@@ -84,8 +84,9 @@ function Inventory:ScanContainers(ids, bank)
         if not Integer(bag, 0, 1000) or seen[bag] then return end
         seen[bag] = true
         local slots = C_Container.GetContainerNumSlots(bag)
-        -- A purchased bank tab with zero slots is not ready, even if the tab list is.
-        if not Integer(slots, bank and 1 or 0, 1000) then return end
+        -- The backpack always has capacity; zero means its data is not ready.
+        -- Optional unequipped bags may be empty, but purchased bank tabs may not.
+        if not Integer(slots, (bank or bag == 0) and 1 or 0, 1000) then return end
         for slot = 1, slots do
             local info = C_Container.GetContainerItemInfo(bag, slot)
             if not Suite.IsReadable(info) then return end

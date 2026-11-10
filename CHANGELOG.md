@@ -1,5 +1,29 @@
 # Forever Suite
 
+## 1.0.10 — November 10, 2026
+
+- Add optional tooltip level difficulty colors using the native relative-difficulty palette. Preserve surrounding text and restore owned text when disabled; the user confirmed colors change in game.
+- Remove Detect Invisibility and Unending Breath from built-in missing-buff reminders; explicit custom reminders remain independent.
+
+- Share complete talent plans with build names, exact per-point order and notes. Keep existing WFS1 codes working with a generated legal order and empty notes.
+- Review a pasted talent plan before explicitly importing it as a separate draft. Validate class/tree revision, ranks, prerequisite order and limits; cancel stale/combat reviews without changing existing builds or spending native talent points.
+
+- Preserve complete inventory counts when backpack capacity is temporarily unavailable; keep Supply Checklist quantities unknown until a complete carried scan is possible.
+
+- Add item drops and click-to-place input to Supply Checklist's item field while preserving the chosen quantity and explicit Save target action. Keep ID/link input and reject invalid/restricted/non-item or combat cursor input.
+- Add native item tooltips to checklist rows, including page/metadata refresh and ownership-safe cleanup on leaving, hiding or combat. Keep row clicks, wheel paging and optional carried tracking independent.
+
+- Add Suite Settings → Support and `/wfs support` / `/wfs diagnostics` for a copyable capability snapshot. Expand `/wfs status` with unavailable/paused/unknown reasons. Capture combat context without opening a window, then copy the exact snapshot afterward or Refresh for current state.
+- Report allowlisted switches, build/Interface/locale, known deferred work, function-level requirements, selected-profile school-parser limits, meter availability and audio permission flags. Omit private records, custom names/weights and raw native errors. No scans, retries, uploads or automatic feature changes are performed.
+
+- Add 29 manual class spec/role choices and expand gear weights to 46 stats, including hit/crit/haste, expertise, defenses, penetration, school bonuses and resistances. Preserve existing custom coefficients, names, active choice and comparison preferences, including unchanged high-precision values when editing.
+- Share guarded native stat/alias and English static school-tooltip reading between markers and explanations. Keep old custom spell-field arithmetic, provide nonoverlapping effective spell/healing totals for new spec starters, and keep new editor controls scrollable.
+
+- Show stat/weapon upgrade hints as rounded weighted-score percentages: whole percentages from 1% upward, one decimal below 1%, and a less-than-0.1% label for tiny gains. Keep labeled points when a percentage has no positive baseline, and clarify that the percentage is not a damage/healing prediction.
+- Combine Supply Checklist bag/item-data event bursts into one refresh, ignore unrelated metadata and avoid duplicate scans when opening. Cancel pending work on combat, closing, disabling or an explicit refresh.
+- Add Refresh times and a calculation timestamp to Mail Deadlines. Recalculate saved countdowns without changing the original mailbox check time.
+- Offline checks pass; native appearance, input and taint checks remain pending.
+
 ## 1.0.9 — November 9, 2026
 
 - Add Random mount to the Macros page. Create FS Random Mount once, then press it to choose from collected mounts usable at your location; newly acquired mounts enter automatically and the icon follows the chosen mount. Random choices may repeat, and riding requirements still apply.

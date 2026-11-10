@@ -103,7 +103,7 @@ function Items:WeaponUpgrade(info, preference, explain)
     local slots = (kind == "ranged" or kind == "relic") and { 18 } or { 16, 17 }
     local current, baseline = {}, 0
     local function Score(value, slot)
-        local stats = preference == "stats" and Read(C_Item.GetItemStats, value.link) or nil
+        local stats = preference == "stats" and Suite.GearStats:Read(value.link, profile) or nil
         return scoring.WeaponScore(value, stats, profile, preference, slot), stats
     end
     for _, slot in ipairs(slots) do
@@ -198,7 +198,7 @@ function Items:UpgradeDelta(item, explain)
     -- Filling a known empty armor/accessory slot is independent of stat data.
     -- GetItemStats may return nothing even after the item's identity is loaded.
     if emptySlot then return 1, { preference = preference, emptySlot = true } end
-    local stats = preference == "stats" and Read(C_Item.GetItemStats, info.link) or nil
+    local stats = preference == "stats" and Suite.GearStats:Read(info.link, profile) or nil
     local score = preference == "ilevel" and info.level or Suite.Scoring.Score(stats, profile)
     if not Number(score) then return nil end
     local lowest, replacement
@@ -207,7 +207,7 @@ function Items:UpgradeDelta(item, explain)
         if link then
             local equippedInfo = self:GetInfo(link)
             if not equippedInfo then return nil end
-            local oldStats = preference == "stats" and Read(C_Item.GetItemStats, link) or nil
+            local oldStats = preference == "stats" and Suite.GearStats:Read(link, profile) or nil
             local equippedScore = preference == "ilevel" and equippedInfo.level
                 or Suite.Scoring.Score(oldStats, profile)
             if not equippedScore then return nil end

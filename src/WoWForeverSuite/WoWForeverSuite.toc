@@ -3,7 +3,7 @@
 ## Notes: A personal collection of optional tools for WoW Forever.
 ## Author: Drockzoids
 ## IconTexture: Interface\AddOns\WoWForeverSuite\Media\ForeverSuiteIcon.tga
-## Version: 1.0.9
+## Version: 1.0.10
 ## Bindings: Bindings.xml
 ## SavedVariables: WoWForeverSuiteDB
 ## SavedVariablesPerCharacter: WoWForeverSuiteCharDB
@@ -16,6 +16,9 @@ Theme.lua
 Profiles.lua
 Bindings.lua
 Scoring.lua
+GearStats.lua
+GearSpecs.lua
+Diagnostics.lua
 Minimap.lua
 MinimapButton.lua
 MinimapDrawer.lua
@@ -48,6 +51,7 @@ ReleaseTools.lua
 TalentPlanner.lua
 TalentPlannerRules.lua
 TalentPlannerOrder.lua
+TalentPlannerSharing.lua
 TalentPlannerStarterData.lua
 TalentPlannerStarters.lua
 TalentPlannerUI.lua

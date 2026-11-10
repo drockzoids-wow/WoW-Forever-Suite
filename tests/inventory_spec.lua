@@ -212,6 +212,20 @@ equal(first.bags.items[100], 5, "readable inventory refreshes during combat")
 equal(frames, beforeCombatFrames, "combat inventory refresh creates no frames")
 SetCombat(false)
 local lastBags = first.bags
+local backpackSize = bags[0].slots
+bags[0].slots = 0
+Fire("BAG_UPDATE_DELAYED"); Flush()
+equal(first.bags, lastBags, "unloaded backpack preserves the last complete aggregate snapshot")
+equal(inventory:ScanContainers({ 0, 5 }), nil, "zero backpack capacity is incomplete even when another bag is readable")
+Suite.db.supplyChecklist = true
+equal(Suite.SupplyChecklist:Counts(), nil, "unloaded backpack cannot create false checklist shortages")
+bags[0].slots = backpackSize
+equal(Suite.SupplyChecklist:Counts()[100], 5, "readable backpack restores complete checklist quantities")
+Suite.db.supplyChecklist = false
+equal(inventory:ScanContainers({ 1 }).items[100], nil, "unequipped optional bag remains a valid empty container")
+Fire("BAG_UPDATE_DELAYED"); Flush()
+equal(first.bags.items[100], 5, "readable backpack resumes aggregate capture")
+lastBags = first.bags
 bags[0].pending = { [3] = 888 }
 Fire("BAG_UPDATE_DELAYED"); Flush()
 equal(first.bags, lastBags, "occupied slot with loading data preserves complete previous bags")

@@ -627,6 +627,7 @@ planner:Change(102,1,true)
 equal(orderedBuild.sequence[#orderedBuild.sequence].entry,203,"choice changes reconcile sequence entries")
 planner:History(false)
 equal(orderedBuild.sequence[#orderedBuild.sequence].entry,202,"undo restores the original choice sequence")
+assert(loadfile("tests/talent_sharing_spec.lua"))(Suite, equal, Frame, SetCombat)
 local nativeClick=function()end;native[101].OnClick=nativeClick
 planner:InitializeGuide(nil);planner:StartGuide()
 local first=orderedBuild.sequence[1]
