@@ -7,3 +7,9 @@ User authorizes a final whole-addon code review and CurseForge publication if no
 Release through the existing main-check → fresh v1.0.10 tag → Package and Release workflow, targeting CurseForge project 1749120 with the Forever flavor. The archive must contain only src/WoWForeverSuite files with matching content hashes and no missing, duplicate or additional entries.
 
 Final local release checks pass: 86 Lua 5.1 files, identical 1.0.10 Core/TOCs and 34,529 substitute assertions. Package.ps1 produced dist/WoWForeverSuite-1.0.10.zip with 95 exact source-hash-matching entries and no extras, duplicates or omissions. Local ZIP SHA256: 40BD4FC64C86EBD292ED6B80EB734B7B2664C94FDCD7F8F7110ADC653CC5B3B5. Receipt: .cache/review-20261110/release-package-receipt.json. Native results and remote publication evidence are separate.
+
+## Publication verified
+
+Release commit 7cf8562be47adaddbef131ab0cb8d81e51b3a8e0 passed [main checks 42857916836](https://github.com/drockzoids-wow/WoW-Forever-Suite/actions/runs/42857916836). Fresh v1.0.10 triggered [Package and Release 42858141099](https://github.com/drockzoids-wow/WoW-Forever-Suite/actions/runs/42858141099); release job 129976677204 completed every step successfully, including version, addon-only archive and published-asset verification.
+
+The job logged the upload to CurseForge project 1749120 at 2026-11-10T16:48:21Z and Success at 16:48:23Z. This verifies upload acceptance; moderation/public availability was not independently verified. [GitHub release v1.0.10](https://github.com/drockzoids-wow/WoW-Forever-Suite/releases/tag/v1.0.10) contains uploaded release.json and WoWForeverSuite-v1.0.10-forever.zip. Published ZIP SHA256: ce462524e3097d68345b4f0f29901e089127ee4bc91adbc72118265ebd7b88d3. Local and packager archives can differ in line endings/metadata. Logs and release metadata are cached under .cache/review-20261110. Native test limits remain as recorded above.

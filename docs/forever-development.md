@@ -2,6 +2,8 @@
 
 ## Final review and authorized 1.0.10 release — November 10, 2026
 
+Publication verified: release commit 7cf8562be47adaddbef131ab0cb8d81e51b3a8e0 passes main run 42857916836. Fresh v1.0.10 completes release run 42858141099/job 129976677204, with successful CurseForge project 1749120 upload at 2026-11-10T16:48:23Z and verified GitHub ZIP/release.json. [Detailed receipts](release-1.0.10.md#publication-verified). Moderation/public availability and pending native tests remain separate.
+
 User authorizes a final whole-addon code review and CurseForge publication if no release blocker is found. Reviewed the current 86-file runtime tree with full Lua 5.1/behavior checks, pinned build-70862 API/event/signature/global-write/literal-key scans, lifecycle/action-boundary inspection and release-workflow probes. No new concrete release blocker was established. Two optional guarded legacy pet-journal fallbacks retain their prior qualification. All 34,529 substitute assertions and 11 separate gear research tests pass; 95 addon package inputs and 73 registered Lua specs are accounted for. Core and both TOCs advance to 1.0.10. Include all pending feature/fix work and its research/tests/documentation; cache references never ship. User-confirmed tooltip colors are recorded separately from pending native build/Interface, gear calibration, input/layout/performance and taint results, including the previously deferred map/tracker investigation. Publication does not mark those tests verified. No game deployment, junction or real SavedVariables changes. Final package and remote CI/upload evidence are recorded separately.
 
 ## Tooltip level difficulty colors — November 10, 2026

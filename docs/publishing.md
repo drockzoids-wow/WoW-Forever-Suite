@@ -1,5 +1,11 @@
 # GitHub and CurseForge publishing
 
+## Verified 1.0.10 upload — November 10, 2026
+
+The authorized final code review established no new concrete release blocker. Release commit 7cf8562be47adaddbef131ab0cb8d81e51b3a8e0 passed [main checks 42857916836](https://github.com/drockzoids-wow/WoW-Forever-Suite/actions/runs/42857916836); fresh v1.0.10 completed [Package and Release 42858141099](https://github.com/drockzoids-wow/WoW-Forever-Suite/actions/runs/42858141099). Job 129976677204 logged upload to CurseForge project 1749120 at 2026-11-10T16:48:21Z, followed by Success at 16:48:23Z. Upload acceptance is verified; moderation/public availability is separate and was not independently verified.
+
+[GitHub release v1.0.10](https://github.com/drockzoids-wow/WoW-Forever-Suite/releases/tag/v1.0.10) has its uploaded addon ZIP and release.json. Published ZIP SHA256: ce462524e3097d68345b4f0f29901e089127ee4bc91adbc72118265ebd7b88d3. Final local checks pass 86 Lua 5.1 files, 34,529 assertions and 95 source-hash-matching archive entries. [Review](addon-review-2026-11-10.md) and [release evidence](release-1.0.10.md) preserve remaining native calibration/input/layout/taint limits. No game deployment, junction or real SavedVariables changes.
+
 ## Verified 1.0.8 upload — November 8, 2026
 
 User authorized the release in this chat. Tag `v1.0.8` targets `77572c67ed6427a1b9ef5b1db5d8c41f43a7ce29`. [Main checks 42532859302](https://github.com/drockzoids-wow/WoW-Forever-Suite/actions/runs/42532859302) and [Package and Release 42532959285](https://github.com/drockzoids-wow/WoW-Forever-Suite/actions/runs/42532959285) completed successfully. Release job `128891023714` logs the upload of `WoWForeverSuite-v1.0.8-forever.zip` to CurseForge project **1749120** at `2026-11-08T23:00:41Z`, followed by `Success!`. This establishes upload acceptance; CurseForge moderation/public availability has not been independently verified.
