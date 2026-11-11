@@ -2,6 +2,8 @@
 
 ## Authorized 1.0.12 release — November 11, 2026
 
+Publication verified: release commit 1fe977f181ecdd88602cb650327db41d67b10bd4 passes main checks 43060261742. Fresh v1.0.12 completes release run 43060483233/job 130661389504, with successful CurseForge project 1749120 upload and published GitHub ZIP/release.json checks. [Receipts](release-1.0.12.md#publication-verified). Public availability and remaining native checks stay separate.
+
 User authorizes publishing the pending changes as the next version to CurseForge. Advance Core and both TOCs to 1.0.12 and include reputation tracking/primary-region mappings, three-way progress lines, shared health/mana tonic restoration and combat-only Warrior shouts with tests/docs. Preserve existing user-confirmed reputation/appearance results and narrower pending native checks. Recurring bag-use taint remains open; no fix is claimed. [Release validation and receipts](release-1.0.12.md). No game deployment, junction or real SavedVariables edits.
 
 ## Progress bar line spacing — November 11, 2026

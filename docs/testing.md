@@ -2,6 +2,8 @@
 
 ## Authorized 1.0.12 release — November 11, 2026
 
+Publication verified: main checks 43060261742 and release run 43060483233/job 130661389504 pass, including successful CurseForge project 1749120 upload and published GitHub asset checks. [Receipts](release-1.0.12.md#publication-verified). Public availability and native behavior beyond reported confirmations remain unverified.
+
 User authorizes 1.0.12 and CurseForge publication of pending reputation tracking/primary-zone maps, three-way progress lines, shared health/mana tonic parsing and combat-only Warrior shouts. [Release validation and receipts](release-1.0.12.md). User-confirmed switching/appearance retain their reported scope; detailed native checklists below and recurring bag-use taint investigation remain separate. No game deployment, junction or real SavedVariables changes.
 
 ## None / 10% / 5% progress lines — November 11, 2026

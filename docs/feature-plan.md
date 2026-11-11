@@ -2,6 +2,8 @@
 
 ## Authorized 1.0.12 release — November 11, 2026
 
+Publication verified: v1.0.12 passes release run 43060483233/job 130661389504, including successful CurseForge project 1749120 upload and GitHub asset checks. [Receipts](release-1.0.12.md#publication-verified). Public availability and native test limits remain separate.
+
 Publish the pending reputation/primary-region tracking, None / 10% / 5% progress lines, shared tonic restoration and combat-only Warrior shout changes as user-authorized 1.0.12. Preserve old settings and existing native confirmations; remaining native checks and bag-use taint investigation stay qualified. [Release checks and receipts](release-1.0.12.md). No game deployment, junction or real SavedVariables edits.
 
 ## Progress bar line spacing — November 11, 2026
