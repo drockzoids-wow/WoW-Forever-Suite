@@ -250,8 +250,62 @@ equal(scans, scanStart, "bank and restricted bag identities cannot trigger food 
 food.created = false; Open(ContainerFrameCombinedBags); Tick(100)
 equal(scans, scanStart, "uncreated food recipes cannot trigger bag-open writes")
 food.created = true
+-- Inventory refresh survives FinishUsed and works with settings and bags closed.
+local function FoodEvent(event) macros.foodEvents.OnEvent(macros.foodEvents, event) end
+local oldLevel = fixture.level(35)
+local untouchedBandage = Body(bandage)
+food.item, food.combat = nil, false
+fixture.bags({ 4544 }); macros:Save(food)
+fixture.bags({ 4603 }); scanStart = scans
+FoodEvent("BAG_UPDATE_DELAYED"); FoodEvent("BAG_UPDATE_DELAYED"); FoodEvent("BAG_UPDATE_DELAYED")
+equal(scans, scanStart, "inventory signal never scans synchronously")
+Tick(0.15)
+local yellowtailBody = "#showtooltip [nocombat] item:4603\n/use [nocombat] item:4603"
+equal(scans, scanStart + 1, "idle food inventory bursts coalesce with background updates off")
+equal(Body(food), yellowtailBody, "newly carried Raw Spotted Yellowtail replaces depleted food without GUI or use")
+equal(Body(bandage), untouchedBandage, "food inventory checks leave unrelated supplies alone")
+equal(macros.used, nil, "inventory check completes temporary work")
+scanStart = scans; Tick(100)
+equal(scans, scanStart, "completed inventory check has no idle timer")
+fixture.bags({ 4544 }); FoodEvent("BAG_UPDATE_DELAYED"); Tick()
+equal(Body(food), breadBody, "later inventory changes are still observed after FinishUsed")
+SetCombat(true); fixture.bags({ 4603 }); FoodEvent("BAG_UPDATE_DELAYED"); Tick(100)
+equal(Body(food), breadBody, "inventory-triggered food edits wait through combat")
+SetCombat(false); Event("PLAYER_REGEN_ENABLED"); Tick()
+equal(Body(food), yellowtailBody, "combat exit applies pending inventory food")
+MacroFrame:Show(); fixture.bags({ 4544 }); FoodEvent("BAG_UPDATE_DELAYED"); Tick()
+equal(Body(food), yellowtailBody, "inventory refresh pauses while the native editor is open")
+MacroFrame:Hide(); MacroFrame.OnHide(MacroFrame); Tick()
+equal(Body(food), breadBody, "closing editor applies the inventory refresh")
+fixture.native()[foodIndex].body = "/say Keep this food edit"
+fixture.bags({ 4603 }); FoodEvent("BAG_UPDATE_DELAYED"); Tick()
+equal(Body(food), "/say Keep this food edit", "inventory refresh preserves external food edits")
+macros:Save(food)
+fixture.loading(true); fixture.bags({ 4544 }); FoodEvent("BAG_UPDATE_DELAYED"); Tick()
+equal(Body(food), yellowtailBody, "incomplete inventory preserves existing food")
+fixture.loading(false); FoodEvent("BAG_UPDATE_DELAYED"); Event("BAG_UPDATE_DELAYED"); Tick()
+equal(Body(food), breadBody, "inventory completion resumes with a single deferred check")
+fixture.unavailable(4603); fixture.bags({ 4603 }); FoodEvent("BAG_UPDATE_DELAYED"); Tick(); Tick(100)
+equal(Body(food), breadBody, "uncached food retains text through the bounded data wait")
+fixture.unavailable(nil); FoodEvent("BAG_UPDATE_DELAYED"); Tick()
+equal(Body(food), yellowtailBody, "a later inventory signal recovers even after metadata wait expiry")
+fixture.level(34); FoodEvent("BAG_UPDATE_DELAYED"); Tick()
+equal(Body(food), "#showtooltip", "under-level Yellowtail is not selected")
+fixture.level(35); FoodEvent("PLAYER_LEVEL_UP"); Tick()
+equal(Body(food), yellowtailBody, "level-up rechecks newly eligible carried food after the level settles")
+local potionOnly = "#showtooltip [combat] item:1710\n/use [combat] item:1710"
+fixture.native()[foodIndex].body, Suite.db.macroOwnership[food.name] = potionOnly, potionOnly
+food.combat, macros.loginChecked = true, nil
+scanStart = scans; macros:CheckAtLogin(); Tick()
+equal(scans, scanStart + 1, "reload checks live cooking-class food without settings")
+equal(Body(food), yellowtailBody, "reload adds cooking-class Yellowtail to the user's potion-only owned macro")
+food.combat = false
+food.created = false; scanStart = scans
+FoodEvent("BAG_UPDATE_DELAYED"); Tick(100)
+equal(scans, scanStart, "inventory refresh never scans or creates an uncreated food recipe")
+food.created = true; fixture.level(oldLevel)
 fixture.native()[foodIndex] = nil
-Open(ContainerFrameCombinedBags); Tick()
+FoodEvent("BAG_UPDATE_DELAYED"); Open(ContainerFrameCombinedBags); Tick()
 equal(macros:Find(food.name), nil, "bag opening never recreates a missing macro")
 ContainerFrameCombinedBags, ContainerFrame1, macros.bagWatch = oldCombined, oldIndividual, oldBagWatch
 macros:FinishUsed(); macros:Cancel()

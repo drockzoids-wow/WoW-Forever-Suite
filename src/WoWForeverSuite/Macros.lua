@@ -183,6 +183,15 @@ Macros.recipes = {
     { key = "warlockSpellLock", name = "FS Spell Lock", title = "Warlock · Spell Lock", class = "WARLOCK", spell = 19647,
         conditions = "[@focus,harm,nodead][@mouseover,harm,nodead][harm,nodead]",
         help = "PvP / interrupt: have your Felhunter Spell Lock a living enemy focus, then enemy mouseover, then enemy target. Requires the active pet to know the ability; does not summon or switch pets." },
+    { key = "warriorCharge", name = "FS Charge", title = "Warrior · Charge / Intercept", class = "WARRIOR",
+        body = "#showtooltip\n/cast [stance:1/2,combat]Berserker Stance\n/cast [stance:3,combat]Intercept\n/cast [stance:2/3,nocombat]Battle Stance\n/cast [stance:1,nocombat]Charge",
+        help = "Switch to Battle Stance outside combat for Charge, or Berserker Stance in combat for Intercept. Intercept is attempted only in combat. Uses English spell names; stance changes may require another press. Native range, Rage and cooldown rules apply." },
+    { key = "warriorInterrupt", name = "FS Interrupt", title = "Warrior · Stance interrupt", class = "WARRIOR",
+        body = "#showtooltip [stance:1/3] Pummel;[stance:2]Shield Bash\n/cast [stance:1]Berserker Stance\n/cast [stance:2]Shield Bash\n/cast [stance:3]Pummel",
+        help = "From Battle Stance, switch to Berserker Stance for Pummel; in Defensive Stance, use Shield Bash. Uses English spell names; stance changes may require another press. Shield Bash requires a shield. Native Rage, range and cooldown rules apply." },
+    { key = "warriorOverpower", name = "FS Overpower", title = "Warrior · Overpower", class = "WARRIOR",
+        body = "#showtooltip Overpower\n/cast [stance:2] Battle Stance\n/cast [stance:1] Overpower",
+        help = "Switch from Defensive Stance to Battle Stance, then attempt Overpower. Does not switch from Berserker Stance. Uses English spell names; stance changes may require another press. Requires the native Overpower opportunity and enough Rage." },
     { key = "warriorStrike", name = "FS Heroic Strike", title = "Warrior · Heroic Strike & attack", class = "WARRIOR", spell = 78, nonToggle = true, startattack = true,
         conditions = "[harm,nodead]",
         help = "Queue Heroic Strike and start melee attacks against your living enemy target. Repeated presses do not deliberately unqueue it. Costs Rage." },
@@ -848,6 +857,16 @@ function Macros:Used(macro)
         end
     end
 end
+function Macros:CheckFood(reason)
+    for _, entry in ipairs(Suite.macroDB and Suite.macroDB.entries or {}) do
+        if entry.recipe == "food" and entry.created then
+            self:Used(entry.name)
+            self.lastEvent = reason
+            self:QueueUsed(0.15)
+            return
+        end
+    end
+end
 function Macros:WatchUses()
     if InCombatLockdown() then Suite.AfterCombat("macroUseWatch", function() self:WatchUses() end); return end
     Suite.pending.macroUseWatch = nil
@@ -866,14 +885,7 @@ function Macros:WatchUses()
         frame:HookScript("OnShow", function(owner)
             local id = owner.GetID and owner:GetID()
             if not Number(id) or id < 0 or id > 5 or id % 1 ~= 0 then return end
-            for _, entry in ipairs(Suite.macroDB and Suite.macroDB.entries or {}) do
-                if entry.recipe == "food" and entry.created then
-                    self:Used(entry.name)
-                    self.lastEvent = "Bags opened"
-                    self:QueueUsed(0.15)
-                    break
-                end
-            end
+            self:CheckFood("Bags opened")
         end)
     end
     Watch(ContainerFrameCombinedBags)
@@ -891,6 +903,14 @@ function Macros:WatchUses()
                 if ItemID(id) and self.useWaiting and self.useWaiting[id] then self:QueueUsed(0.15) end
             elseif not self.useWaiting or self.useBagWaiting or event == "PLAYER_REGEN_ENABLED" then self:QueueUsed(0.15) end
         end)
+    end
+    -- Keep food inventory observation separate from the temporary data/use wait:
+    -- FinishUsed releases that wait, but new stock must still prepare FS Food.
+    if not self.foodEvents then
+        self.foodEvents = CreateFrame("Frame")
+        self.foodEvents:SetScript("OnEvent", function(_, event) self:CheckFood(event) end)
+        self.foodEvents:RegisterEvent("BAG_UPDATE_DELAYED")
+        self.foodEvents:RegisterEvent("PLAYER_LEVEL_UP")
     end
     if not self.runHook and type(RunMacro) == "function" then
         hooksecurefunc("RunMacro", function(macro) self:Used(macro) end); self.runHook = true

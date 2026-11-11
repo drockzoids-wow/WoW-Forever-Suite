@@ -23,6 +23,8 @@ local data = {
         description = "Use: Restores 841 health over 27 sec.\nMust remain seated while eating." },
     [4593] = { name = "Bristle Whisker Catfish", sub = 5, required = 15,
         description = "Use: Restores 530 health over 24 sec.\nMust remain seated while eating. If you spend at least 10 sec eating, you will become well fed and gain 8 Fishing Skill for 15 min. Additionally, experience gained from kills is increased by 5%. (1 Sec Cooldown)" },
+    [4603] = { name = "Raw Spotted Yellowtail", class = 7, sub = 8, required = 35,
+        description = "Use: Restores 841 health over 27 sec.\nMust remain seated while eating.\nCrafting Reagent" },
     [6290] = { name = "Brilliant Smallfish", sub = 5,
         description = "Use: Restores 58 health over 18 sec. Must remain seated while eating. If you spend at least 10 sec eating, you will become well fed and gain 2 Attack Power for 15 min. Additionally, experience gained from kills is increased by 5%. (1 Sec Cooldown)" },
     [20388] = { name = "Lollipop", sub = 8, description = "Restores 3% of your health and mana per second for 25 sec. Must remain seated while eating." },
@@ -122,6 +124,35 @@ equal(snapshot.best.food.health, 600, "restoration is read from item text")
 equal(snapshot.best.healing.health, 80, "range restoration uses its midpoint")
 local body = macros:Generate(food, snapshot)
 equal(body, "#showtooltip [nocombat] item:101\n/use [nocombat] item:101", "food stays outside combat by default")
+do
+    local savedBags, savedLevel = bags, level
+    local fish = data[4603]
+    local description = fish.description
+    bags, level = { 4603 }, 39
+    local raw = supplies:Scan()
+    equal(raw.best.food and raw.best.food.id, 4603, "live class-7 subclass-8 Yellowtail is restorative food")
+    equal(raw.best.food.health, 841, "live Yellowtail restoration matches the tooltip")
+    equal(#supplies:Choices(raw, "food"), 1, "edible cooking reagent appears in food choices")
+    equal(#supplies:Choices(raw, "water"), 0, "edible cooking reagent does not broaden drink choices")
+    fish.description = "Restores 841 health over 27 sec."
+    equal(supplies:Scan().best.food, nil, "restoration alone does not turn a cooking reagent into eating food")
+    fish.description = "Must remain seated while eating."
+    equal(supplies:Scan().best.food, nil, "eating instruction without health restoration is insufficient")
+    fish.description, fish.noUse = description, true
+    equal(supplies:Scan().best.food, nil, "cooking ingredients without a use spell remain excluded")
+    fish.noUse, restrictedTooltip = nil, 4603
+    raw = supplies:Scan()
+    equal(raw.pending.food, true, "unreadable cooking food tooltip pauses automatic food decisions")
+    equal(macros:Generate(food, raw), nil, "unreadable raw food cannot clear the current macro")
+    restrictedTooltip, unavailable = nil, 4603
+    equal(supplies:Scan().pending.food, true, "uncached cooking food metadata pauses food decisions")
+    unavailable = nil
+    fish.class, fish.sub = 7, 0
+    equal(supplies:Scan().best.food, nil, "unrelated trade-goods subclasses remain excluded")
+    fish.class, fish.sub = 7, 8
+    bags, level = savedBags, savedLevel
+end
+
 do
     local savedBags, description = bags, data[4593].description
     data[4606] = { name = "Spongy Morel", sub = 5, required = 15,
@@ -1180,6 +1211,7 @@ assert(loadfile("tests/macro_use_spec.lua"))(Suite, equal, SetCombat, {
     bags = function(value) if value then bags = value end; return bags end,
     unavailable = function(value) unavailable = value end,
     loading = function(value) loadingBag = value end,
+    level = function(value) local previous = level; if value then level = value end; return previous end,
     weapon = function(value, replace) if value or replace then weapon[16] = value end; return weapon[16] end,
 })
 assert(loadfile("tests/random_mount_spec.lua"))(Suite, equal, SetCombat, function() return native end)

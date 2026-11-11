@@ -1,5 +1,27 @@
 # Forever Suite in game testing
 
+## Edible cooking reagent food correction — November 10, 2026
+
+Native result confirmed by user: "That worked, the food macro picked up the Yellowtail automatically after reloading." Mark automatic Yellowtail selection after reload passed, superseding the pending selection retest below. Actual running build/Interface, consumption, restocking, preference/ranking cases and combat/taint remain unreported.
+
+User's macrostatus records eight item checks, BAG_UPDATE_DELAYED and FS Food Current, establishing that checks run. Live query reports Yellowtail 4603 required 35, class 7, subclass 8, player 39, use Food / 1127. Correcting the earlier test fixture from 0/5 to 7/8 reproduces the missing-food failure; classifier now permits cooking reagents with a use spell and tooltip-confirmed restorative seated eating. Full offline suite passes 86 Lua 5.1 files, matching TOCs and 34,652 substitute assertions; git diff --check passes. Added negative/data-wait coverage and exact potion-only-owned-body reload regression. Earlier native failure remains historical evidence; the category fix needs a new native result.
+
+Retest with existing Yellowtail: reload this source without clicking Update, then hover/press FS Food on CM4 outside combat. Its tooltip/action should now select Yellowtail and consume it normally. Check acquiring/restocking after depletion, requirements below level 35, explicit preferred food, XP-food priority, combat deferral and retained native edits. Record actual build/Interface and errors/taint before marking verified.
+
+## Food inventory refresh — November 10, 2026
+
+Native retest failed per user: after reload, FS Food on CM4 still does not refresh with five Yellowtail carried. Current game junction points to canonical source; last disk-saved food body matches account ownership and contains only combat potion 1710 commands. The earlier offline passes do not resolve this native failure. Awaiting `/wfs macrostatus` before manual Update; exact running build/Interface and in-memory failure cause remain unknown.
+
+User reports six carried Raw Spotted Yellowtail do not enter FS Food until GUI Update. Screenshot shows required level 35 and 841 health over 27 sec; actual running build/Interface and prior trigger sequence are unreported. Separate food inventory/level-up observation now survives completion of temporary use checks. Offline checks pass: 86 Lua 5.1 files, matching TOCs and 34,639 substitute assertions. Tests cover the supplied food tooltip/level requirement, repeated inventory events with settings closed and class updates off, coalescing, no idle timer, unaffected other recipes, combat/editor/manual edits, incomplete data, timeout recovery and missing/uncreated macros. Native behavior remains pending.
+
+Native retest: record running build/Interface, reload this source and close Suite settings and Blizzard's macro editor. With FS Food already created, acquire Yellowtail at level 35+ after the previous food is depleted; test with bags closed and already open. The existing action-bar macro should update automatically and eat on the next press without GUI Update. Repeat another inventory change after the first check completes, consume the last stack, restock, and test turning level 35 while carrying it. Keep explicit carried preferences and XP-food priority intact. Combat must defer edits until exit; an open native editor must defer until closed, and custom native text must stay untouched. Check delayed item loading and errors/taint before marking verified.
+
+## Warrior stance macros — November 10, 2026
+
+Offline validation passes: node scripts/check-addon.cjs checks 86 Lua 5.1 files, matching TOCs and 34,620 substitute assertions; git diff --check is clean. Existing class-library fixtures now cover all three exact static bodies, native-substitute saves, class filtering/reload discovery, ownership/manual-edit/combat protections and the expanded 26-row pool with all ten custom items.
+
+Native smoke test pending: record running build/Interface. On a Warrior, reload and open /wfs macros; confirm Charge / Intercept, Stance interrupt and Overpower appear alongside the existing Pummel recipe without automatically creating game macros. Create each outside combat and compare the saved text with its preview (Charge follows the revised five-line body: combat Berserker Stance, combat Intercept, out-of-combat Battle Stance, out-of-combat Charge). Drag to action bars and test all three stances inside/outside combat, recording any second press needed after changing stance. Confirm Charge/Intercept selection, conditional Pummel/Shield Bash tooltips and shield requirement; Overpower changes Defensive to Battle only and leaves Berserker unchanged. Test native Rage/range/cooldowns and the dodge opportunity. Check reload without duplicates, other-class filtering, blocked combat updates, preserved manual edits and the last custom-item row. Record native execution/layout/taint results before calling verified.
+
 ## Final 1.0.10 offline review — November 10, 2026
 
 Publication follow-up: release commit 7cf8562be47adaddbef131ab0cb8d81e51b3a8e0 passes main run 42857916836; v1.0.10 release run 42858141099/job 129976677204 passes all checks and logs successful CurseForge project 1749120 upload at 2026-11-10T16:48:23Z. GitHub assets are published and verified. [Receipts](release-1.0.10.md#publication-verified). Upload acceptance does not establish moderation or native test results.

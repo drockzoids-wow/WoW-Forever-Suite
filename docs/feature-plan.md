@@ -1,5 +1,23 @@
 # Forever Suite feature plan
 
+## Edible cooking reagents — November 10, 2026
+
+User confirms FS Food automatically picked up Yellowtail after reloading. The reported reload-selection failure is resolved; broader native checks remain separate.
+
+User's runtime item query identifies Yellowtail as class 7 / subclass 8 with a Food use spell, rather than the class 0 / subclass 5 assumed in the previous regression fixture. Correct the fixture and allow cooking reagents in automatic food and the food picker when their live English tooltip confirms health restoration and seated eating. Keep required-level/use/data checks, ranking, explicit preferences, drink scope and existing-only macro writes. Category-correct regression fails before this fix and passes afterward, including reload from the user's potion-only body. Offline checks pass; native retest pending. This supersedes the unresolved-classification notes below.
+
+## Food follows inventory changes — November 10, 2026
+
+Follow-up: user reports reload still leaves FS Food stale with Yellowtail carried. Keep this issue unresolved; canonical game junction and matching last-saved ownership/body are confirmed read-only. Need runtime macrostatus evidence before attributing the remaining failure or claiming another correction.
+
+Carried Raw Spotted Yellowtail still requires GUI Update according to the user. Refresh created FS Food on coalesced bag changes and level-up, independently of the GUI and class-update preference. Preserve existing selection/ranking, metadata, ownership, combat and editor guards; never create missing macros. Keep bag-open/startup/use checks and use no polling. This supersedes earlier instructions that ordinary inventory changes must never refresh idle food; other item recipes retain their existing triggers. Offline checks pass; native retest pending.
+
+## Warrior stance macros — November 10, 2026
+
+Offline checks pass: 86 Lua 5.1 files, matching TOCs and 34,620 substitute assertions; git diff --check is clean.
+
+Add Warrior-only Charge / Intercept, Stance interrupt and Overpower recipes using the supplied English macro bodies. Charge follows the revised exact order: combat Berserker Stance, combat Intercept, out-of-combat Battle Stance, then out-of-combat Charge. Keep the separate existing Pummel recipe. Preserve Overpower switching only from Defensive Stance. Reuse explicit Create / update and existing ownership/combat guards. Ten Warrior recipes plus six shared and ten item slots fit the computed 26-row pool. No automatic creation or new setting is needed. Native stance timing, tooltip selection, casts and taint require in-game results.
+
 ## Final review and authorized 1.0.10 release — November 10, 2026
 
 User authorizes a final whole-addon code review and CurseForge publication if no release blocker is found. Reviewed the current 86-file runtime tree with full Lua 5.1/behavior checks, pinned build-70862 API/event/signature/global-write/literal-key scans, lifecycle/action-boundary inspection and release-workflow probes. No new concrete release blocker was established. Two optional guarded legacy pet-journal fallbacks retain their prior qualification. All 34,529 substitute assertions and 11 separate gear research tests pass; 95 addon package inputs and 73 registered Lua specs are accounted for. Core and both TOCs advance to 1.0.10. Include all pending feature/fix work and its research/tests/documentation; cache references never ship. User-confirmed tooltip colors are recorded separately from pending native build/Interface, gear calibration, input/layout/performance and taint results, including the previously deferred map/tracker investigation. Publication does not mark those tests verified. No game deployment, junction or real SavedVariables changes. Final package and remote CI/upload evidence are recorded separately.

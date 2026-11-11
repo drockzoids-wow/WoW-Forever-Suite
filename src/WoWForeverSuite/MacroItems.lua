@@ -78,6 +78,10 @@ local function Restoration(description, resource)
     return result
 end
 
+local function CookingReagent(class, subclass)
+    return class == 7 and subclass == 8
+end
+
 function Items:Read(id, bag, slot, level, english)
     if not Number(id) or id < 1 or id > 10000000 or id % 1 ~= 0 then return nil, true end
     if not C_Item or type(C_Item.GetItemInfo) ~= "function" then return nil, true end
@@ -110,7 +114,11 @@ function Items:Read(id, bag, slot, level, english)
         local restoresHealth = item.health > 0 or description:find("%% of your health") ~= nil
         local restoresMana = item.mana > 0 or description:find("%% of your mana") ~= nil
             or description:find("%% of your health and mana") ~= nil
-        if class == 0 and (subclass == 5 or item.eventFood) then
+        -- Forever's edible raw fish can be Trade Goods / Cooking, rather than
+        -- Consumable / Food & Drink. Require the native eating instruction too.
+        local edibleReagent = CookingReagent(class, subclass)
+            and description:find("must remain seated while eating", 1, true) ~= nil
+        if class == 0 and (subclass == 5 or item.eventFood) or edibleReagent then
             local buff = description:find("well fed", 1, true) or description:find("increases", 1, true)
                 or description:find("gain .- for ")
             item.flags.food = restoresHealth
@@ -120,13 +128,14 @@ function Items:Read(id, bag, slot, level, english)
                 or description:match("experience gained from kills increased by ([%d%.]+)%%")
             item.experienceBonus = restoresHealth and tonumber(bonus) or 0
             if not Number(item.experienceBonus) then item.experienceBonus = 0 end
-            if not buff then item.flags.water = restoresMana end
+            if not buff and not edibleReagent then item.flags.water = restoresMana end
         elseif class == 0 and subclass == 1 then
             local special = lower:find("sleep", 1, true) or lower:find("wildvine", 1, true)
                 or description:find("asleep", 1, true)
             if not special then item.flags.healing, item.flags.mana = restoresHealth, restoresMana end
         end
-    elseif english and class == 0 and (subclass == 5 or subclass == 1 or item.eventFood) then
+    elseif english and (class == 0 and (subclass == 5 or subclass == 1 or item.eventFood)
+        or CookingReagent(class, subclass)) then
         return item, true, class, subclass -- Keep actions that depend on this incomplete tooltip.
     end
     return item
@@ -168,6 +177,7 @@ local function Pending(snapshot, id, class, subclass)
     end
     -- Missing full metadata for gear/reagents must not freeze unrelated recipes.
     -- Unknown classes still pause recovery choices that could depend on this item.
+    if CookingReagent(class, subclass) then snapshot.pending.food = true end
     if not Number(class) or class == 0 then
         if not Number(class) or not Number(subclass) or subclass == 5 or eventFoods[id] then
             snapshot.pending.food, snapshot.pending.water = true, true
@@ -316,7 +326,8 @@ function Items:Choices(snapshot, recipe)
     for _, item in ipairs(snapshot.list) do
         local recovery = recipe == "food" or recipe == "water"
         local weapon = recipe == "mainhand" or recipe == "offhand"
-        if recipe == "item" or recovery and item.class == 0 and (item.subclass == 5 or item.eventFood)
+        if recipe == "item" or recovery and (item.class == 0 and (item.subclass == 5 or item.eventFood)
+                or recipe == "food" and CookingReagent(item.class, item.subclass) and item.flags.food)
             or recipe == "bandage" and item.flags.bandage
             or weapon and self:IsWeaponCoating(item) then
             choices[#choices + 1] = item

@@ -64,6 +64,9 @@ local cases = {
     { "SHAMAN", "shamanChainHeal", 1064, "Chain Heal", "[@mouseover,help,nodead][help,nodead][@player]" },
     { "WARLOCK", "warlockRecall", nil, nil, nil, "recall" },
     { "WARLOCK", "warlockDrain", 689, "Drain Life", "[nochanneling,harm,nodead]" },
+    { "WARRIOR", "warriorCharge", nil, nil, nil, "static", "#showtooltip\n/cast [stance:1/2,combat]Berserker Stance\n/cast [stance:3,combat]Intercept\n/cast [stance:2/3,nocombat]Battle Stance\n/cast [stance:1,nocombat]Charge" },
+    { "WARRIOR", "warriorInterrupt", nil, nil, nil, "static", "#showtooltip [stance:1/3] Pummel;[stance:2]Shield Bash\n/cast [stance:1]Berserker Stance\n/cast [stance:2]Shield Bash\n/cast [stance:3]Pummel" },
+    { "WARRIOR", "warriorOverpower", nil, nil, nil, "static", "#showtooltip Overpower\n/cast [stance:2] Battle Stance\n/cast [stance:1] Overpower" },
     { "WARRIOR", "warriorStrike", 78, "Heroic Strike", "[harm,nodead]", "attack" },
     { "WARRIOR", "warriorTaunt", 355, "Taunt", "[@mouseover,harm,nodead][harm,nodead]" },
 }
@@ -77,7 +80,7 @@ for _, word in ipairs({ "leveling", "pvp", "hibernate", "repentance", "spell loc
     end
     equal(found, true, "leveling and PvP utilities are discoverable: " .. word)
 end
-equal(macros:VisibleCapacity(), 24, "visible row capacity includes eight Druid recipes and ten item choices")
+equal(macros:VisibleCapacity(), 26, "visible row capacity includes ten Warrior recipes and ten item choices")
 local classes, names = {}, {}
 for _, case in ipairs(cases) do
     SetClass(case[1])
@@ -85,10 +88,10 @@ for _, case in ipairs(cases) do
         SetClass(case[1]);Suite.db.macroOwnership = {}
         for index in pairs(native) do native[index] = nil end
         macros:Initialize(nil)
-        equal(#macros:Entries(), case[1] == "DRUID" and 14 or 13, "each supported class receives its recipes plus six shared recipes")
+        equal(#macros:Entries(), case[1] == "WARRIOR" and 16 or (case[1] == "DRUID" and 14 or 13), "each supported class receives its recipes plus six shared recipes")
         equal(next(native), nil, "listing class recipes never creates a game macro")
         macros:EnsureClassRecipes();macros:EnsureClassRecipes()
-        equal(#Suite.macroDB.entries, case[1] == "DRUID" and 14 or 13, "repeated discovery never duplicates class recipes")
+        equal(#Suite.macroDB.entries, case[1] == "WARRIOR" and 16 or (case[1] == "DRUID" and 14 or 13), "repeated discovery never duplicates class recipes")
         for _, entry in ipairs(macros:Entries()) do
             local recipe = macros.byRecipe[entry.recipe]
             equal(not recipe.class or recipe.class == case[1], true, "class list excludes foreign recipes")
@@ -103,7 +106,8 @@ for _, case in ipairs(cases) do
     names[entry.name] = true
     local body, note, pending, ready = macros:Generate(entry, { incomplete = true })
     local expected
-    if case[6] == "recall" then expected = "/petpassive\n/petfollow"
+    if case[6] == "static" then expected = case[7]
+    elseif case[6] == "recall" then expected = "/petpassive\n/petfollow"
     elseif case[6] == "prowl" then expected = "#showtooltip prowl\n/cast [noform:2] !cat form\n/cast [form:2] prowl"
     else
         expected = "#showtooltip " .. case[4]
@@ -125,7 +129,7 @@ for _, case in ipairs(cases) do
     equal(native[index].body, body, "client substitute confirms the exact written body")
     equal(Suite.db.macroOwnership[entry.name], body, "only confirmed text establishes macro ownership")
     local retained = macros:Initialize(Suite.macroDB)
-    equal(#macros:Entries(), case[1] == "DRUID" and 14 or 13, "reload exposes current-class recipes while retaining inactive records")
+    equal(#macros:Entries(), case[1] == "WARRIOR" and 16 or (case[1] == "DRUID" and 14 or 13), "reload exposes current-class recipes while retaining inactive records")
     for _, candidate in ipairs(retained.entries) do if candidate.recipe == case[2] then entry = candidate end end
     gui:Select("macros");gui.macroSelected = entry;gui:RefreshMacros()
     equal(gui.macroChoose:IsShown(), false, "spell/static class recipes hide unrelated item picker")
@@ -176,16 +180,16 @@ SetClass({ secret = true })
 equal(#macros:Entries(), 6, "restricted class exposes only shared recipes")
 SetClass("UNKNOWN")
 equal(#macros:Entries(), 6, "unsupported classes receive no invented recipes")
-SetClass("DRUID");macros:Initialize(nil)
+SetClass("WARRIOR");macros:Initialize(nil)
 local lastItem
 for index = 1, 10 do
     lastItem = macros:AddItem()
     equal(lastItem ~= nil, true, "largest class retains every custom-item slot")
 end
-equal(#macros:Entries(), 24, "largest class plus ten custom items fills the bounded row pool")
+equal(#macros:Entries(), 26, "largest class plus ten custom items fills the bounded row pool")
 gui.macroCollapsed = {};gui:Select("macros");gui.macroSelected = lastItem;gui:RefreshMacros()
-equal(gui.macroRows[24].entry, lastItem, "last custom item has a real row in the largest class list")
-equal(gui.macroRows[24]:IsShown(), true, "last row remains available in the expanded list")
+equal(gui.macroRows[26].entry, lastItem, "last custom item has a real row in the largest class list")
+equal(gui.macroRows[26]:IsShown(), true, "last row remains available in the expanded list")
 equal(macros:AddItem(), nil, "larger class library retains the ten-item limit")
 for id in pairs(spells) do spells[id] = nil end
 for id, value in pairs(originalSpells) do spells[id] = value end
