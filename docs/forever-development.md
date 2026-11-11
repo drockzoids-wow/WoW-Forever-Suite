@@ -2,6 +2,8 @@
 
 ## Authorized 1.0.13 review and release — November 11, 2026
 
+Publication verified: main checks 43105871510 and release run 43106059568 pass for 68548bb17adfeb4c53c12f93c3bac02bf7aba2e9/v1.0.13. Job 130809567145 records CurseForge upload Success and uploaded GitHub assets; [receipts](release-1.0.13.md#publication-verified). Native smoke tests and public moderation availability are not established by this upload.
+
 User authorizes review of all addon code and CurseForge publication if it looks good. Full offline validation, AST/global-write audit and focused review of all pending runtime changes identify no new concrete release blocker; native permissions, rendering, batch/deposit execution and existing bag-use taint remain qualified. Core/TOCs advance to 1.0.13, README/changelog describe current behavior, and the source-only archive matches all 98 input files by SHA256. [Review](addon-review-2026-11-11.md), [release receipts](release-1.0.13.md). No deployment, junction or live SavedVariables edits.
 
 ## Profession Leveling flyout — November 11, 2026

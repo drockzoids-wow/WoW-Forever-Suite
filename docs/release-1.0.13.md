@@ -9,3 +9,11 @@ Local checks: 89 Lua 5.1 files, matching TOCs and 37,439 substitute behavior ass
 scripts/Package.ps1 produced dist/WoWForeverSuite-1.0.13.zip. Archive verification compared all 98 non-directory entries and their SHA256 hashes with src/WoWForeverSuite: no extra, duplicate, omitted or mismatched files. ZIP SHA256: F32EF9A0527CAFBA833B2D53A52AA80443018AB0066B8F58D89E6EF3A24EE44F. Remote main matched local HEAD 5dfe045d84f4fae340166ac48a6881fdd8ea0c72; v1.0.13 was absent during preflight. CI/upload not yet observed.
 
 Use the existing v1.0.13 tag workflow for CurseForge project 1749120 with Forever flavor. Native permission/input/layout/batch/taint smoke tests remain pending and are not established by publication; the existing bag-use taint investigation remains open. CurseForge upload acceptance and public moderation availability are separate observations.
+
+## Publication verified
+
+Release commit 68548bb17adfeb4c53c12f93c3bac02bf7aba2e9 passes [main checks 43105871510](https://github.com/drockzoids-wow/WoW-Forever-Suite/actions/runs/43105871510). Fresh annotated v1.0.13 triggers [Package and Release 43106059568](https://github.com/drockzoids-wow/WoW-Forever-Suite/actions/runs/43106059568); job 130809567145 completes every step successfully, including the repeated 37,439-assertion checks, tag/version match, CurseForge authentication, addon-only archive comparison, upload and GitHub asset verification.
+
+Job logs record uploading WoWForeverSuite-v1.0.13-forever.zip as a 1.60.1 release to CurseForge project 1749120 at 2026-11-11T21:47:50Z, followed by Success at 21:47:50Z (November 11, 2026, 3:47 p.m. America/Chicago). Upload acceptance is verified; CurseForge moderation/public availability was not independently verified.
+
+[GitHub release v1.0.13](https://github.com/drockzoids-wow/WoW-Forever-Suite/releases/tag/v1.0.13) is published with uploaded release.json and WoWForeverSuite-v1.0.13-forever.zip. GitHub reports published ZIP SHA256 19d88bf5935b11a5d81d7d847e88ab0bc71703be0ad85bf89b534b9ad541432a. Local and packager archive hashes can differ because of line endings/metadata. Native limitations in the review/testing records remain unchanged.

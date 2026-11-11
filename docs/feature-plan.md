@@ -2,6 +2,8 @@
 
 ## Authorized 1.0.13 release — November 11, 2026
 
+Publication verified: release run 43106059568/job 130809567145 succeeds, including CurseForge project 1749120 upload and GitHub asset verification. [Receipts](release-1.0.13.md#publication-verified). Native verification and public moderation availability remain separate.
+
 User requests addon-wide review and CurseForge publication if the code looks good. Offline review identifies no new concrete blocker; 89 Lua files, 37,439 assertions, 11 gear-baseline tests and an exact 98-file source/hash archive comparison pass. Prepare 1.0.13 for the existing Forever-flavor/project-1749120 tag workflow. [Review](addon-review-2026-11-11.md) and [release receipts](release-1.0.13.md) retain unverified native selection/batch/deposit/rendering/taint limits.
 
 ## Profession Leveling flyout — November 11, 2026
