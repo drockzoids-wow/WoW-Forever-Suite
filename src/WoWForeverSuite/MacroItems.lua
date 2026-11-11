@@ -74,6 +74,16 @@ local function Restoration(description, resource)
     end
     for amount in description:gmatch("restores?%s+([%d,]+)%s+" .. resource) do result = math.max(result, Value(amount)) end
     for amount in description:gmatch("and%s+([%d,]+)%s+" .. resource) do result = math.max(result, Value(amount)) end
+    -- A shared amount can name this resource second (for example Tessa's
+    -- "720 to 880 mana and health"). Do not borrow separately stated amounts.
+    local other = resource == "health" and "mana" or "health"
+    local shared = other .. "%s+and%s+" .. resource .. "%f[%A]"
+    for low, high in description:gmatch("restores?%s+([%d,]+)%s+to%s+([%d,]+)%s+" .. shared) do
+        result = math.max(result, (Value(low) + Value(high)) / 2)
+    end
+    for amount in description:gmatch("restores?%s+([%d,]+)%s+" .. shared) do
+        result = math.max(result, Value(amount))
+    end
     -- Percentage items are classified, but never converted using restricted player health/power.
     return result
 end

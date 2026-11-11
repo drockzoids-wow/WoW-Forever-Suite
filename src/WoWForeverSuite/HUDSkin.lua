@@ -16,6 +16,10 @@ local function ButtonPixel(parent)
 end
 local function Enabled(key) return Suite.db and Read(Suite.db[key], "boolean") and Suite.db[key] end
 local function AnyEnabled() return Enabled("statusBarSkin") or Enabled("bagBarSkin") or Enabled("microBarSkin") end
+function Skin:SegmentPercent(db)
+    db = db or Suite.db
+    return Read(db, "table") and Read(db.progressBarSegmentPercent, "number") and db.progressBarSegmentPercent == 5 and 5 or 10
+end
 local function Usable(object)
     if not Suite.IsReadable(object) or (type(object) ~= "table" and type(object) ~= "userdata") then return false end
     if type(object.IsForbidden) == "function" then
@@ -274,23 +278,25 @@ function Skin:Progress(bar, pass, customSize)
     if not panel then return end
     local width = type(bar.StatusBar.GetWidth) == "function" and bar.StatusBar:GetWidth()
     if Enabled("progressBarSegments") and Positive(width) then
-        if not panel.segments then
-            panel.segments = {}
-            for index = 1, 9 do
-                local line = bar.StatusBar:CreateTexture(nil, "OVERLAY", nil, 6)
-                line:SetWidth(1); Suite.Theme:Texture(line, 0.35)
-                panel.segments[index] = line
-            end
+        local percent = self:SegmentPercent()
+        local sections = 100 / percent
+        panel.segments = panel.segments or {}
+        for index = #panel.segments + 1, sections - 1 do
+            local line = bar.StatusBar:CreateTexture(nil, "OVERLAY", nil, 6)
+            line:SetWidth(1); Suite.Theme:Texture(line, 0.35)
+            panel.segments[index] = line
         end
-        if panel.segmentWidth ~= width then
-            panel.segmentWidth = width
+        if panel.segmentWidth ~= width or panel.segmentPercent ~= percent then
+            panel.segmentWidth, panel.segmentPercent = width, percent
             for index, line in ipairs(panel.segments) do
-                line:ClearAllPoints()
-                line:SetPoint("TOPLEFT", bar.StatusBar, "TOPLEFT", width * index / 10, -1)
-                line:SetPoint("BOTTOMLEFT", bar.StatusBar, "BOTTOMLEFT", width * index / 10, 1)
+                if index < sections then
+                    line:ClearAllPoints()
+                    line:SetPoint("TOPLEFT", bar.StatusBar, "TOPLEFT", width * index / sections, -1)
+                    line:SetPoint("BOTTOMLEFT", bar.StatusBar, "BOTTOMLEFT", width * index / sections, 1)
+                end
             end
         end
-        for _, line in ipairs(panel.segments) do line:Show() end
+        for index, line in ipairs(panel.segments) do if index < sections then line:Show() else line:Hide() end end
     elseif panel.segments then
         for _, line in ipairs(panel.segments) do line:Hide() end
     end

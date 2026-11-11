@@ -155,7 +155,7 @@ local pages = {
         { action = "buffChoices", label = "Restore buff choices", help = "Undo hidden families, selected alternatives and chosen poisons." },
         { key = "missingBuffExpiry", label = "Warn before buffs expire", help = "Short buffs warn at 15 seconds; long buffs use your chosen interval.\nUnknown expiry never counts as an expiring buff." },
         { action = "buffWarning", label = "Long-buff warning interval", help = "Cycle 30, 60 or 120 seconds for buffs lasting at least 30 minutes and coatings." },
-        { key = "missingBuffCombat", label = "Combat buff reminders", help = "Show passive checks for your learned buffs when missing or nearing expiry.\nOne icon per buff; hover for affected names. Active buffs stay hidden.\nUses your self, class and party/raid scopes; refresh from your action bar." },
+        { key = "missingBuffCombat", label = "Combat buff reminders", help = "Show passive checks for your learned buffs when missing or nearing expiry.\nBattle Shout and Commanding Shout reminders appear only in combat.\nUses your self, class and party/raid scopes; refresh from your action bar." },
         { key = "missingBuffWeapons", label = "Weapon coating reminders", help = "Use main/off-hand choices from Macros for stones, oils and poisons.\nCarried compatible supplies appear on the bar.\nMissing supplies use local chat reminders." },
         { action = "buffCustom", label = "Custom learned buff spells", help = "Find learned spells by name and icon; add up to eight reminders.\nChoose Self or Party / raid; custom spells stay outside combat." },
         { action = "buffManage", label = "Manage buff reminders", help = "See hidden families, restore individual reminders and choose learned alternatives." },
@@ -210,7 +210,7 @@ local pages = {
         { key = "quickLoot", label = "Quick loot", help = "Collect auto-loot as soon as it is ready.\nUses the game's Auto Loot setting and modifier key." },
         { key = "questTrackerSkin", label = "Suite quest tracker skin", help = "A slate tracker with one outline, underlined headers and teal buttons.\nKeep native quest colors, controls and text-size settings." },
         { key = "questItemButton", label = "Nearby quest-item button", help = "A compact, draggable item icon near quest objectives; left-click to use it.\nHides in combat. Ctrl-right-click resets its position; bind it under Forever Suite." },
-        { key = "zoneReputation", label = "Track reputation for this zone", help = "Watch the home-city faction in known outdoor zones and towns.\nUnmapped zones and instances keep your watched faction." },
+        { key = "zoneReputation", label = "Track reputation for this zone", help = "Watch the primary quest faction in known outdoor zones.\nLocal towns and faction hubs take priority; reputation changes also update the watch.\nManual choices stay until another reputation change or zone change; instances keep your watch." },
         { key = "questTrackerRemember", label = "Remember tracker collapse", help = "Keep your last expanded or minimized choice through reloads and loading screens.\nSaved separately for each character. Changes during combat wait until it ends." },
     }, note = "Hold Shift when talking to pause quests. Repeatable quests run once per visit.\nLoot rolls and bind confirmations keep their normal behavior." },
 }
@@ -1270,7 +1270,12 @@ function GUI:BuildProgress()
         return function() Suite.Set(key, not (Suite.IsReadable(Suite.db[key]) and Suite.db[key] == true)) end
     end
     Button("progressBarValues", "Always show values", 0, 24, Toggle("progressBarValues"))
-    Button("progressBarSegments", "10% sections", 264, 24, Toggle("progressBarSegments"))
+    Button("progressBarSegments", "Lines", 264, 24, function()
+        if not (Suite.IsReadable(Suite.db.progressBarSegments) and Suite.db.progressBarSegments == true) then
+            Suite.Set("progressBarSegmentPercent", 10); Suite.Set("progressBarSegments", true)
+        elseif Suite.HUDSkin:SegmentPercent() == 10 then Suite.Set("progressBarSegmentPercent", 5)
+        else Suite.Set("progressBarSegments", false) end
+    end)
     Button("progressBarCustomSize", "Custom size", 0, 64, Toggle("progressBarCustomSize"))
     Button("reset", "Use Edit Mode size", 264, 64, function() Suite.Set("progressBarCustomSize", false) end)
     local function Field(key, label, x, low, high)
@@ -1320,13 +1325,15 @@ function GUI:BuildProgress()
     Field("progressBarHeight", "Thickness (6–40)", 264, 6, 40)
     local help = Text(panel, 10, palette.muted)
     help:SetPoint("TOPLEFT", 0, -168); help:SetWidth(508)
-    help:SetText("Type an exact size and press Enter, or use sliders and scroll for small changes.\nCustom size applies to both progress bars. Your Edit Mode position is kept.")
+    help:SetText("Click Lines to cycle None, 10% (10 bubbles), or 5% (20 bubbles).\nType a size and press Enter, or use sliders. Your Edit Mode position is kept.")
 end
 function GUI:RefreshProgress()
     if not self.progressPanel then return end
     for key, control in pairs(self.progressControls) do
         local active = Suite.IsReadable(Suite.db[key]) and Suite.db[key] == true
-        control.button.label:SetText(control.label .. (key ~= "reset" and (active and ": On" or ": Off") or ""))
+        if key == "progressBarSegments" then
+            control.button.label:SetText(active and ("Lines: " .. Suite.HUDSkin:SegmentPercent() .. "%") or "Lines: None")
+        else control.button.label:SetText(control.label .. (key ~= "reset" and (active and ": On" or ": Off") or "")) end
     end
     local width, height = Suite.HUDSkin:Options()
     self.progressSyncing = true

@@ -1,5 +1,14 @@
 # Forever Suite
 
+## 1.0.12 — November 11, 2026
+
+- Expand automatic reputation tracking to primary-faction outdoor regions, including Riverglades, Zephras Isle, Mount Hyjal and neutral reputation zones. Local hubs such as Powderfuse Port and Shadowgale Forest take priority.
+- Follow native reputation changes for factions under Other, even with their reputation headers collapsed. Preserve instance tracking and defer switches during combat.
+- Add None, 10% and 5% progress-bar line choices under Other bars. Five-percent spacing gives twenty bubbles; existing enabled settings retain ten-percent spacing.
+- Recognize shared health-and-mana restoration wording, such as Tessa's Tonic, when choosing combat potions for FS Food and FS Drink.
+- Show Battle Shout and Commanding Shout upkeep reminders only during combat, preserving learned ranks, reminder scopes and hidden-family choices.
+- The user confirmed reputation switching and progress-bar appearance in game. Other detailed native checks remain documented separately; the recurring native bag-use taint investigation remains open.
+
 ## 1.0.11 — November 10, 2026
 
 - Add Warrior Charge / Intercept, Stance interrupt and Overpower macros, with stance and equipment requirements explained in their previews.

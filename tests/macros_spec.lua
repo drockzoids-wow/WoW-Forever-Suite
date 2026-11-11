@@ -305,6 +305,46 @@ end
 equal(Actions(body, false), "101", "out-of-combat health recipe only eats")
 equal(Actions(body, true), "5512,105", "combat health recipe attempts both supplies in order")
 equal(Actions(macros:Generate(water, snapshot), true), "106", "combat mana recipe drinks no water")
+do
+    -- Synthetic ID: the screenshot establishes the tooltip, not the native item ID.
+    local savedBags, savedLevel = bags, level
+    local tonic = { name = "Tessa's Tonic", sub = 1, required = 35,
+        description = "Use: Restores 720 to 880 mana and health." }
+    data[117], bags, level = tonic, { 105, 106, 117 }, 39
+    local recovery = supplies:Scan()
+    equal(recovery.byID[117].health, 800, "Tessa's shared range supplies its health midpoint")
+    equal(recovery.byID[117].mana, 800, "Tessa's shared range supplies its mana midpoint")
+    equal(recovery.best.healing.id, 117, "Tessa's Tonic outranks weaker healing potions")
+    equal(recovery.best.mana.id, 117, "Tessa's Tonic outranks weaker mana potions")
+    equal(Actions(macros:Generate(food, recovery), true), "117", "health macro includes the shared-resource tonic")
+    equal(Actions(macros:Generate(water, recovery), true), "117", "mana macro includes the shared-resource tonic")
+    for _, description in ipairs({
+        "Use: Restores 720 to 880 health and mana.",
+        "Use: Restores 800 mana and health.",
+        "Use: Restores 800 health and mana.",
+        "Use: Restores |cff00ff00720 to 880|r mana\nand health.",
+    }) do
+        tonic.description = description
+        recovery = supplies:Scan()
+        equal(recovery.byID[117].health, 800, "shared restoration supports either resource order and formatted text")
+        equal(recovery.byID[117].mana, 800, "shared restoration retains both resource amounts")
+    end
+    tonic.description = "Use: Restores 720 to 880 mana and 100 health."
+    recovery = supplies:Scan()
+    equal(recovery.byID[117].health, 100, "separate amounts do not inherit the first resource range")
+    equal(recovery.byID[117].mana, 800, "separate amounts retain the first resource range")
+    tonic.description = "Use: Restores 720 to 880 mana and increases health by 100."
+    equal(supplies:Scan().byID[117].flags.healing, false, "a health buff is not shared health restoration")
+    tonic.description = "Use: Restores 720 to 880 mana and health."
+    level = 34
+    equal(supplies:Scan().byID[117], nil, "Tessa's required level still gates both recovery macros")
+    level, restrictedTooltip = 39, 117
+    recovery = supplies:Scan()
+    equal(recovery.pending.healing, true, "restricted tonic tooltip pauses healing selection")
+    equal(recovery.pending.mana, true, "restricted tonic tooltip pauses mana selection")
+    restrictedTooltip = nil
+    data[117], bags, level = nil, savedBags, savedLevel
+end
 equal(macros:Generate(bandage, snapshot), "#showtooltip item:107\n/use item:107", "automatic bandage preserves native item targeting")
 bandage.item = 107
 equal(macros:Generate(bandage, snapshot), "#showtooltip item:107\n/use item:107", "explicit bandage choice preserves native item targeting")

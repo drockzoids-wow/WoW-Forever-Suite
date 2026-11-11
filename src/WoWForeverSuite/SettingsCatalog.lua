@@ -51,7 +51,7 @@ local extras = {
     { page = "actionbars", key = "keybindOutline", label = "Keybind outline", target = "keybindControls.outline" },
     { page = "actionbars", key = "keybindBold", label = "Bold keybind text", target = "keybindControls.keybindBold" },
     { page = "bars", key = "progressBarValues", label = "Always show progress values", target = "progressControls.progressBarValues.button", words = "xp experience honor reputation numbers text" },
-    { page = "bars", key = "progressBarSegments", label = "Progress bar sections", target = "progressControls.progressBarSegments.button", words = "xp ten percent ticks" },
+    { page = "bars", key = "progressBarSegments", label = "Progress bar lines", target = "progressControls.progressBarSegments.button", words = "xp reputation honor none five ten percent ticks bubbles 5% 10%" },
     { page = "bars", key = "progressBarCustomSize", label = "Custom progress bar size", target = "progressControls.progressBarCustomSize.button" },
     { page = "bars", key = "progressBarWidth", label = "Progress bar width", target = "progressFields.progressBarWidth.input" },
     { page = "bars", key = "progressBarHeight", label = "Progress bar height", target = "progressFields.progressBarHeight.input" },

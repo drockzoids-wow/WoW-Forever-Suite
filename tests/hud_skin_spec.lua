@@ -454,6 +454,14 @@ local options = {
     { { progressBarWidth = secret, progressBarHeight = math.huge }, 600, 14 },
     { { progressBarWidth = 0 / 0, progressBarHeight = -1 }, 600, 14 },
 }
+for _, value in ipairs({5, 10, 1, 20, -5, math.huge, 0/0, "5", secret}) do
+    local db = Suite.InitializeDB({progressBarSegments=true, progressBarSegmentPercent=value})
+    equal(db.progressBarSegmentPercent, value == 5 and 5 or 10, "line interval accepts only supported public percentages")
+    equal(db.progressBarSegments,true,"spacing normalization preserves an existing enabled line preference")
+end
+equal(Suite.InitializeDB({progressBarSegments=true}).progressBarSegmentPercent,10,"existing enabled sections retain ten-percent spacing")
+equal(Suite.InitializeDB(nil).progressBarSegments,false,"fresh settings retain no lines")
+equal(Suite.Profiles:Settings({progressBarSegments=true,progressBarSegmentPercent=5}).progressBarSegmentPercent,5,"profiles retain five-percent spacing")
 for _, data in ipairs(options) do
     local db = Suite.InitializeDB(data[1])
     equal(db.progressBarWidth, data[2], "progress width is normalized")
@@ -490,6 +498,36 @@ for _, container in ipairs({ first, second }) do
     equal(PanelShown(container.bars[4].StatusBar), false, "other bar types retain native presentation")
 end
 local xp, honor = first.bars[1], first.bars[2]
+local beforeFivePercent=textures
+Combat(true);Suite.db.progressBarSegmentPercent=5;skin:Apply()
+equal(textures,beforeFivePercent,"switching spacing in combat cannot construct more textures")
+equal(#skin.panels[xp.StatusBar].segments,9,"combat preserves the existing divider layout")
+LeaveCombat()
+for _,container in ipairs({first,second})do
+    for index=1,3 do
+        local bar=container.bars[index]
+        local panel=skin.panels[bar.StatusBar]
+        equal(#panel.segments,19,"five-percent mode has nineteen boundaries for twenty bubbles")
+        for boundary,line in ipairs(panel.segments)do
+            equal(line.shown,true,"five-percent boundaries are visible")
+            equal(line.points[1][4],251*boundary/20,"five-percent boundaries follow exact width")
+            equal(DrawsAbove(line,bar.ExhaustionLevelFillBar),true,"five-percent boundaries remain above rested prediction")
+        end
+    end
+end
+local fivePercentTextures=textures
+Suite.db.progressBarWidth=301;skin:Apply()
+equal(skin.panels[xp.StatusBar].segments[19].points[1][4],301*19/20,"five-percent final boundary follows custom resizing")
+Suite.db.progressBarWidth=251;skin:Apply()
+Suite.db.progressBarSegmentPercent=10;skin:Apply()
+local panel=skin.panels[xp.StatusBar]
+equal(panel.segments[1].points[1][4],25.1,"switching back repositions existing boundaries")
+for index,line in ipairs(panel.segments)do equal(line.shown,index<10,"switching to ten percent hides surplus boundaries") end
+Suite.db.progressBarSegments=false;skin:Apply()
+for _,line in ipairs(panel.segments)do equal(line.shown,false,"None hides every allocated boundary") end
+Suite.db.progressBarSegments=true;Suite.db.progressBarSegmentPercent=5;skin:Apply()
+equal(textures,fivePercentTextures,"switching spacing and None reuses allocated textures")
+Suite.db.progressBarSegmentPercent=10;skin:Apply()
 beforeTextures, beforeHooks = textures, hooks
 skin:Apply(); skin:Apply()
 equal(textures, beforeTextures, "progress controls reuse their labels and dividers")
@@ -664,6 +702,18 @@ for _, key in ipairs({ "progressBarValues", "progressBarSegments" }) do
     equal(Suite.db[key], true, "progress toggle enables its own preference: " .. key)
     equal(Suite.db.statusBarSkin, false, "progress toggle does not enable its skin: " .. key)
 end
+local linesButton=Suite.GUI.progressControls.progressBarSegments.button
+equal(linesButton.label.text,"Lines: 10%","legacy line setting displays ten-percent selection")
+linesButton:OnClick()
+equal(Suite.db.progressBarSegmentPercent,5,"line selector advances from ten to five percent")
+equal(linesButton.label.text,"Lines: 5%","line selector displays five-percent selection")
+linesButton:OnClick()
+equal(Suite.db.progressBarSegments,false,"line selector advances from five percent to None")
+equal(linesButton.label.text,"Lines: None","line selector displays None")
+linesButton:OnClick()
+equal(Suite.db.progressBarSegmentPercent,10,"line selector starts ten-percent spacing after None")
+equal(Suite.db.progressBarSegments,true,"line selector reenables lines after None")
+equal(Suite.db.statusBarSkin,false,"cycling line modes never enables the progress skin")
 Suite.GUI:Select("actionbars")
 equal(Suite.GUI.progressPanel:IsShown(), false, "action-bar page hides progress controls")
 Suite.GUI:Select("bars")

@@ -85,7 +85,7 @@ TooltipDataProcessor={AddTooltipPostCall=function()end}; Enum={TooltipDataType={
 local instance,side,zone,subzone=false,"Alliance","Dun Morogh",""
 IsInInstance=function()return instance end; UnitFactionGroup=function()return side end
 GetRealZoneText=function()return zone end; GetSubZoneText=function()return subzone end
-local areas={[1]="Dun Morogh",[12]="Elwynn",[392]="Ratchet",[14]="Durotar"}
+local areas={[1]="Dun Morogh",[12]="Elwynn",[392]="Ratchet",[14]="Durotar",[16591]="Riverglades"}
 C_Map={GetAreaInfo=function(id)return areas[id]end}
 local writes,watched=0,72
 C_Reputation={GetFactionDataByID=function(id)return {name="Faction "..id,isHeader=false,isHeaderWithRep=false}end,
@@ -334,8 +334,108 @@ zone="Elwynn";SetCombat(true);rep.events.OnEvent(rep.events,"ZONE_CHANGED")
 equal(watched,47,"combat defers reputation changes")
 SetCombat(false);Suite.pending.zoneReputation();Suite.pending.zoneReputation=nil
 equal(watched,72,"post-combat uses the current zone")
+zone="Riverglades";rep.events.OnEvent(rep.events,"ZONE_CHANGED_NEW_AREA");Drain()
+equal(watched,2826,"arriving in Riverglades selects Brotherhood without a reputation change")
+zone="Les Clairieres";areas[16591]=zone
+equal(rep:Desired(),2826,"Riverglades mapping uses the native localized area name")
+areas[16591]="Riverglades";zone="Riverglades"
+side="Horde";equal(rep:Desired(),2782,"Horde Riverglades selects Bolder'ok rather than Brotherhood");side="Alliance"
+instance=true;equal(rep:Desired(),nil,"Riverglades mapping does not apply inside an instance");instance=false
+watched=72;rep.events.OnEvent(rep.events,"UPDATE_FACTION");Drain()
+equal(watched,72,"manual watch remains after the Riverglades arrival selection")
+rep.events.OnEvent(rep.events,"PLAYER_ENTERING_WORLD");Drain()
+equal(watched,2826,"world entry in Riverglades selects Brotherhood without questing")
+zone="Elwynn";SetCombat(true);rep.events.OnEvent(rep.events,"ZONE_CHANGED_NEW_AREA")
+zone="Riverglades";rep.events.OnEvent(rep.events,"ZONE_CHANGED_NEW_AREA")
+watched=72
+SetCombat(false);Suite.pending.zoneReputation();Suite.pending.zoneReputation=nil
+equal(watched,2826,"combat recovery selects the final Riverglades zone without a standing event")
+local regionalCases={
+    {331,69,76},{406,69,76},{357,69,81},{267,72,68},{15,72,76},
+    {4,72,nil},{46,72,nil},{47,471,nil},{3,nil,76},{8,nil,76},{400,nil,81},
+    {16593,2779,2778},{28,529,529},{139,529,529},{51,59,59},
+    {493,609,609},{1377,609,609},{440,369,369},{616,2765,2765},
+}
+for _,row in ipairs(regionalCases)do
+    areas[row[1]]="Localized area "..row[1];zone=areas[row[1]];subzone=""
+    for index,factionSide in ipairs({"Alliance","Horde"})do
+        side=factionSide
+        equal(rep:Desired(),row[index+1],"regional primary reputation: "..factionSide.." area "..row[1])
+        if row[index+1] then
+            watched=72;rep.events.OnEvent(rep.events,"ZONE_CHANGED_NEW_AREA");Drain()
+            equal(watched,row[index+1],"region entry selects its primary faction without reputation events")
+        end
+    end
+end
+areas[16727]="Localized Powderfuse";areas[16631]="Localized Shadowgale"
+for _,factionSide in ipairs({"Alliance","Horde"})do
+    side=factionSide;zone="Riverglades";subzone=areas[16727]
+    rep.events.OnEvent(rep.events,"ZONE_CHANGED");Drain()
+    equal(watched,2827,"Powderfuse Port overrides either Riverglades primary faction")
+    subzone="";rep.events.OnEvent(rep.events,"ZONE_CHANGED");Drain()
+    equal(watched,factionSide=="Alliance" and 2826 or 2782,"leaving Powderfuse restores the regional primary faction")
+    zone=areas[16593];subzone=areas[16631]
+    equal(rep:Desired(),2758,"Shadowgale Forest selects Nightclaw Druids for either side")
+end
+for _,unmapped in ipairs({"Desolace","Felwood","Un'Goro Crater","Azshara","Winterspring","Shen'dralas"})do
+    zone=unmapped;subzone=""
+    equal(rep:Desired(),nil,"mixed or unestablished zones do not guess a primary faction")
+end
+side="Alliance";zone="Riverglades";subzone=""
+equal(rep.events.registered.FACTION_STANDING_CHANGED,true,"tracking observes native faction IDs for Other factions")
+zone="Riverglades";rep.events.OnEvent(rep.events,"ZONE_CHANGED");Drain()
+local factionGetter=C_Reputation.GetFactionDataByID
+-- Synthetic ID: the screenshot establishes the name, not the native faction ID.
+C_Reputation.GetFactionDataByID=function(id)
+    if id==9001 then return {name="Brotherhood of the Horse",isHeader=false,isHeaderWithRep=false} end
+    if id==9002 then return {name="Other",isHeader=true,isHeaderWithRep=false} end
+    if id==9003 then return {name="Restricted",isHeader={secret=true},isHeaderWithRep=false} end
+    if id==9004 then return nil end
+    return factionGetter(id)
+end
+C_Reputation.GetNumFactions=function()error("tracking must not enumerate visible reputation headers")end
+C_Reputation.ExpandFactionHeader=function()error("tracking must not expand collapsed Other headers")end
+rep.events.OnEvent(rep.events,"FACTION_STANDING_CHANGED",9001,3371);Drain()
+equal(watched,9001,"Riverglades faction changes select Brotherhood beneath a collapsed Other header")
+local beforeFeedback=writes
+rep.events.OnEvent(rep.events,"UPDATE_FACTION");Drain()
+equal(writes,beforeFeedback,"generic faction feedback does not repeat the write")
+watched=47;rep.events.OnEvent(rep.events,"UPDATE_FACTION");Drain()
+equal(watched,47,"manual choice survives generic faction updates after an Other faction change")
+rep.events.OnEvent(rep.events,"FACTION_STANDING_CHANGED",9001,3372);Drain()
+equal(watched,9001,"the next standing change resumes tracking even for the same faction")
+zone="Elwynn";rep.events.OnEvent(rep.events,"ZONE_CHANGED");Drain()
+equal(watched,72,"zone arrival clears the changed-faction override")
+rep.events.OnEvent(rep.events,"FACTION_STANDING_CHANGED",9001,3373);Drain()
+equal(watched,9001,"changed faction takes priority over a mapped city region")
+for _,payload in ipairs({{0,1},{1.5,1},{2147483648,1},{{secret=true},1},{72,{secret=true}},{72,"100"}})do
+    rep.events.OnEvent(rep.events,"FACTION_STANDING_CHANGED",payload[1],payload[2]);Drain()
+    equal(watched,9001,"invalid or restricted event fields cannot change watched faction")
+end
+for _,id in ipairs({9002,9003,9004})do
+    rep.events.OnEvent(rep.events,"FACTION_STANDING_CHANGED",id,1);Drain()
+    equal(watched,9001,"plain headers, restricted flags and missing faction data cannot be selected")
+end
+instance=true;rep.events.OnEvent(rep.events,"FACTION_STANDING_CHANGED",47,10);Drain()
+equal(watched,9001,"instance standing changes preserve the watched faction");instance=false
+SetCombat(true)
+rep.events.OnEvent(rep.events,"FACTION_STANDING_CHANGED",47,10)
+rep.events.OnEvent(rep.events,"FACTION_STANDING_CHANGED",9001,3374)
+equal(watched,9001,"combat events cannot write the native watch")
+watched=72;SetCombat(false);Suite.pending.zoneReputation();Suite.pending.zoneReputation=nil
+equal(watched,9001,"combat recovery uses the latest changed faction")
+rep.events.OnEvent(rep.events,"FACTION_STANDING_CHANGED",47,11)
+rep.events.OnEvent(rep.events,"FACTION_STANDING_CHANGED",9001,3375)
+local beforeBurst=writes;Drain()
+equal(writes,beforeBurst,"coalesced updates already watching the latest faction do not write")
+rep.events.OnEvent(rep.events,"FACTION_STANDING_CHANGED",47,12)
 Suite.db.zoneReputation=false;rep:Apply();local previous=writes;rep:Queue();Drain()
 equal(writes,previous,"disabled reputation tracking stays inert")
+equal(rep.changedFaction,nil,"disable forgets the last faction change")
+equal(rep.events.registered.FACTION_STANDING_CHANGED,nil,"disable unregisters standing events")
+rep.events.OnEvent(rep.events,"FACTION_STANDING_CHANGED",47,13);Drain()
+equal(writes,previous,"stale standing callbacks cannot switch tracking after disable")
+C_Reputation.GetFactionDataByID=factionGetter
 equal(Suite.SettingsCatalog:Search("disenchant")[1].page,"professions","profession tools are searchable")
 equal(Suite.SettingsCatalog:Search("castbar sizes")[1].page,"castbars","castbar controls are searchable")
 local gui=Suite.GUI

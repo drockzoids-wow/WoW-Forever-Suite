@@ -1,5 +1,37 @@
 # Forever Suite feature plan
 
+## Authorized 1.0.12 release — November 11, 2026
+
+Publish the pending reputation/primary-region tracking, None / 10% / 5% progress lines, shared tonic restoration and combat-only Warrior shout changes as user-authorized 1.0.12. Preserve old settings and existing native confirmations; remaining native checks and bag-use taint investigation stay qualified. [Release checks and receipts](release-1.0.12.md). No game deployment, junction or real SavedVariables edits.
+
+## Progress bar line spacing — November 11, 2026
+
+User confirms the progress-bar appearance looks great in game. Individual mode/bar-type coverage, build/Interface, persistence and combat/taint checks remain unreported.
+
+Other bars → Progress bar options offers one Lines control cycling None → 10% → 5% → None. Ten-percent spacing gives ten sections; five-percent spacing gives twenty. Keep existing enabled users at 10%, disabled/fresh settings at None, and the original skin dependency. Retain the optional boolean plus a validated saved 5/10 interval, shared through existing profiles. Reuse divider textures and defer combat layout; preserve native fill/rested/text behavior. Full offline checks pass; native visuals/persistence/taint pending. No version/release/deployment or real SavedVariables edits.
+
+## Primary faction selection across outdoor zones — November 11, 2026
+
+User confirms reputation switching works and clarifies the full addon, rather than test addon, was installed. Treat the reported switching failure as resolved; loaded revision, exact trigger, running build/Interface and remaining per-zone checks are unreported.
+
+User clarifies that Riverglades must select Brotherhood on arrival and requests the same rule across zones with one primary faction. Expand the optional zone reputation map across faction quest regions and neutral reputation zones. Riverglades selects Brotherhood for Alliance and Bolder'ok for Horde; Zephras selects High Order/Windshapers; Hyjal, Plaguelands, Silithus/Moonglade, Searing Gorge and Tanaris select their primary local reputations. Powderfuse Port and Shadowgale Forest override their parent regions. [Complete mapping and research limits](zone-reputation-mapping.md). Mixed/unestablished regions keep current tracking until a standing change. Existing any-faction event tracking and lifecycle guards remain. Supersedes the previous no-Riverglades-arrival limitation. Full offline checks pass; native arrival/rendering/taint tests pending. No default/version/release/deployment or SavedVariables change.
+
+## Recurring native bag-use taint — November 11, 2026
+
+Four more native right-click UseContainerItem blocks reported, increasingly frequent. Reopen the November 8 investigation: reload success was temporary recovery, not resolution. Existing disk taint log remains November 5. No originating write established by native dependency/Suite bag-interaction review; retain native input and capture a fresh detailed taintLog 2 chain before choosing a runtime correction. Actual build/Interface, item and preceding interactions remain unreported. No runtime or release/deployment change.
+
+## Reputation tracking includes Other factions — November 11, 2026
+
+Extend Track reputation for this zone to follow native standing changes for any readable, watchable faction, including Brotherhood of the Horse and factions beneath collapsed Other headers. The prior short zone/town mapping omitted Riverglades; retain that mapping on arrival while allowing subsequent standing changes (gains or losses) to take priority. Keep manual choices until another standing or zone change, preserve tracking in instances, coalesce events, defer combat writes and cancel on disable. Use native event faction IDs and direct lookup; no custom faction-ID guesses, UI header expansion or new setting/default. This supersedes the earlier limited-map contract. Full offline checks pass; native Riverglades/event/rendering/taint retest remains pending. No release/deployment or SavedVariables edits.
+
+## Combat-only short shout upkeep — November 11, 2026
+
+Battle Shout and Commanding Shout reminders now appear only in combat, retaining existing native missing/expiry rendering, learned ranks, recipient scopes and optional combat switch. Hide their out-of-combat personal, outgoing and incoming reminders. Keep longer-lasting buffs unchanged; `combat` alone does not mean short duration. Last disk-saved Warrior shout choice is explicitly Off (`0`); preserve it and use Buff choices → Battle Shout → Show reminder to restore. Automated regressions pass; native retest pending. No settings migration, version/release/deployment/junction or real SavedVariables edits.
+
+## Shared health/mana tonic restoration — November 11, 2026
+
+Recognize shared restoration text such as Tessa's Tonic's “720 to 880 mana and health” for both combat recovery macros. Rank the shared amount independently against each resource's other carried potions, preserving requirements, existing potion categories, optional combat additions and macro ownership/write guards. No name/ID exception or Warrior-specific behavior. Screenshot confirms wording, not native category/ID; regression uses a synthetic potion fixture. Health failure reproduced offline; native health retest and mana-character test remain pending.
+
 ## Authorized 1.0.11 release — November 10, 2026
 
 Publication verified: v1.0.11 passes release run 42955499218/job 130309497219, including successful CurseForge project 1749120 upload and GitHub asset checks. [Receipts](release-1.0.11.md#publication-verified). Moderation/public availability and pending native tests remain separate.

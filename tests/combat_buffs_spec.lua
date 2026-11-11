@@ -317,6 +317,43 @@ Suite.db.missingBuffSelf = true; Suite.db.missingBuffExpiry = false; reject = tr
 combat:Prepare(); local failedMade = made; combat:Prepare()
 equal(made, failedMade, "rejected setup is not retried on every aura refresh")
 reject = false
+do
+    local spellLookup = buffs.Spell
+    roster[1].class, selectedSpell, selectedName = "WARRIOR", 11549, "Battle Shout"
+    buffs.Spell = function(self, id)
+        if id == 6673 then return { id = id, name = selectedName, icon = 123 } end
+        return spellLookup(self, id)
+    end
+    buffs.bookDirty = true
+    Suite.db.missingBuffExpiry = true
+    Suite.db.missingBuffChoices["WARRIOR:shout"] = 0
+    combat:Prepare()
+    equal(combat.count, 0, "saved Off choice reproduces the absent Battle Shout reminder")
+    equal(Suite.db.missingBuffChoices["WARRIOR:shout"], 0, "preparing combat reminders preserves explicit Off")
+    Suite.db.missingBuffChoices["WARRIOR:shout"] = nil
+    combat:Prepare()
+    local shout = combat.records["WARRIOR:shout"]
+    equal(combat.coverage["WARRIOR:shout"], true, "combat-only shout still prepares native combat detection")
+    equal(shout.descriptor.spell.id, 11549, "Battle Shout uses learned rank four instead of its root")
+    equal(shout.descriptor.members[1].ids[5242], true, "Battle Shout covers lower aura ranks")
+    equal(shout.descriptor.members[1].ids[11549], true, "Battle Shout covers the learned aura rank")
+    combat:RefreshVisibility()
+    equal(Icons(), 0, "missing Battle Shout is hidden outside combat")
+    local shoutMade = made
+    SetCombat(true); combat:RefreshVisibility(); Aura("player", false, 0)
+    equal(Icons(), 1, "missing Battle Shout appears on combat entry")
+    Aura("player", true, 120)
+    equal(Icons(), 0, "healthy Battle Shout hides its combat reminder")
+    Aura("player", true, 15)
+    equal(Icons(), 1, "Battle Shout still warns at the short expiry boundary")
+    Aura("player", false, 0)
+    equal(Icons(), 1, "Battle Shout removal reveals the combat reminder again")
+    equal(made, shoutMade, "Battle Shout transitions create no combat widgets")
+    SetCombat(false); combat:RefreshVisibility()
+    equal(Icons(), 0, "missing Battle Shout disappears on combat exit")
+    buffs.Spell = spellLookup
+    Suite.db.missingBuffExpiry = false
+end
 for _, sample in ipairs({ {"PRIEST",1243}, {"DRUID",1126}, {"HUNTER",13165}, {"WARLOCK",687},
     {"PALADIN",465}, {"SHAMAN",324}, {"WARRIOR",6673}, {"ROGUE",9005} }) do
     roster[1].class, selectedSpell = sample[1], sample[2]

@@ -321,16 +321,14 @@ equal(Find("incoming", "aura"), nil, "incoming party auras do not infer coverage
 units.raid4.class, units.raid4.party = "PRIEST", true
 units.raid2.class,units.raid4.class="HUNTER","ROGUE"
 units.player.class, learned = "WARRIOR", { 6673 }; buffs.bookDirty = true; buffs:Refresh()
-equal(#Find("group", "shout").names, 3, "party-wide casts include self and exclude other raid subgroups")
+equal(Find("group", "shout"), nil, "missing party shouts stay hidden outside combat")
+equal(Find("self", "shout"), nil, "missing personal shout stays hidden outside combat")
 auras.player = { { name = "Battle Shout", spellId = 6673 } }; buffs:Refresh()
-local shout, shoutButton = Find("group", "shout")
-equal(shoutButton.attributes.unit, "player", "party-wide shout uses the native self cast")
-shoutButton:PreClick("LeftButton")
-equal(shoutButton.attributes.type1, "spell", "already buffed caster can still buff missing party members")
-units.raid2.party = false
-shoutButton:PreClick("LeftButton")
-equal(shoutButton.attributes.type1, nil, "a changed raid subgroup cancels stale party-only casts")
-units.raid2.party = true; Flush()
+equal(Find("group", "shout"), nil, "missing party coverage cannot reveal an out-of-combat shout")
+units.player.class, learned = "ROGUE", {}; buffs.bookDirty = true; auras.player = {}; buffs:Refresh()
+units.raid2.class = "WARRIOR"; buffs:Refresh()
+equal(Find("incoming", "shout"), nil, "incoming shout suggestions stay hidden outside combat")
+units.raid2.class = "HUNTER"; Flush()
 raid = false; auras.player = {}; units.player.class, learned = "ROGUE", {}; buffs.bookDirty, buffs.itemsDirty = true, true
 weapons[16], weapons[17], enchants[0], enchants[1] = 1, 99, { { hasEnchant = true, enchantType = 2 } }, {}
 buffs:Refresh()

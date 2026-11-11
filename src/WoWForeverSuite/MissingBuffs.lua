@@ -318,7 +318,7 @@ function Buffs:Collect()
         local personalFamily = self:Recipient(family,player.class)
         local spell, catalog = personalFamily.spell, family.catalog
         local personalEntry
-        if spell then
+        if spell and not catalog.combatOnly then
             local personal = not catalog.group or catalog.upkeep
             local present, remaining = self:Present(personalFamily, auras.player, true)
             if catalog.weapon then
@@ -330,7 +330,7 @@ function Buffs:Collect()
                 entries[#entries + 1] = personalEntry
             end
         end
-        if catalog.group and Suite.db.missingBuffOutgoing and #family.choices > 0 then
+        if not catalog.combatOnly and catalog.group and Suite.db.missingBuffOutgoing and #family.choices > 0 then
             local buckets,ordered={},{}
             for index=2,#roster do
                 local member=roster[index]
@@ -382,7 +382,7 @@ function Buffs:Collect()
                 local catalog = family.catalog
                 local recipient=self:Recipient(family,player.class)
                 local present,remaining=self:Present(recipient,auras.player,true)
-                if catalog.incoming and Suite.db.missingBuffChoices[family.key] ~= 0
+                if catalog.incoming and not catalog.combatOnly and Suite.db.missingBuffChoices[family.key] ~= 0
                     and not seen[family.key] and (provider.class ~= player.class or self.learnedComplete == true)
                     and present == false then
                     local spell

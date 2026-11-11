@@ -154,7 +154,10 @@ equal(result[1].key, "inventorySearch", "an exact phrase finds the existing acco
 equal(result[1].page, "bags", "inventory search routes to the combined bag page")
 equal(#catalog:Search("  METER TEXT SIZE  "), 1, "search handles case and surrounding spaces for advanced controls")
 equal(catalog:Search("meter text size")[1].key, "meter_fontSize", "meter font controls are included in the index")
-equal(catalog:Search("%")[1].key, "targetThreat", "literal percent search finds the setting whose help contains a percentage")
+local percentMatches = {}
+for _, entry in ipairs(catalog:Search("%")) do percentMatches[entry.key] = true end
+equal(percentMatches.targetThreat, true, "literal percent search still finds threat percentage help")
+equal(percentMatches.progressBarSegments, true, "literal percent search also finds the new line-spacing choices")
 equal(#catalog:Search({ secret = true }), 0, "restricted text cannot become search terms")
 equal(#catalog:Search("\n"), 0, "control characters do not reach matching or labels")
 equal(#catalog:Search(string.rep("a", 101)), 0, "search length is bounded")

@@ -26,5 +26,7 @@ Suite.BuffCatalog = {
         partyRoots = { [465]=true, [7294]=true, [19746]=true, [20218]=true }, group = true, party = true, upkeep = true, toggle = true, incoming = true },
     { key = "shield", class = "SHAMAN", combat = true, roots = { 324, 24398 } },
     { key = "imbue", class = "SHAMAN", roots = { 8232, 8024, 8017, 8033 }, weapon = true },
-    { key = "shout", class = "WARRIOR", combat = true, roots = { 6673, 469 }, physicalRoots = { [6673]=true }, group = true, party = true, incoming = true },
+    -- Short shout upkeep matters during combat; keep the family available for
+    -- precombat native preparation and the user's choices, but not prep reminders.
+    { key = "shout", class = "WARRIOR", combat = true, combatOnly = true, roots = { 6673, 469 }, physicalRoots = { [6673]=true }, group = true, party = true, incoming = true },
 }

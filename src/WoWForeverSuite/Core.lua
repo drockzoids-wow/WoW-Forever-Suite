@@ -1,6 +1,6 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "1.0.11"
+Suite.version = "1.0.12"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {
@@ -18,6 +18,7 @@ Suite.defaults = {
     procAlerts = false, procAlertPosition = {}, procAlertIconSize = 42,
     statusBarSkin = false, bagBarSkin = false, microBarSkin = false, playerBuffBorders = false,
     progressBarValues = false, progressBarCustomSize = false, progressBarWidth = 600, progressBarHeight = 14, progressBarSegments = false,
+    progressBarSegmentPercent = 10,
     shortKeybinds = false, keybindFontStyle = false, keybindFont = "default", keybindSize = 12,
     keybindOutline = "default", keybindBold = false,
     autoRepair = false, repairSource = "personal", autoSellJunk = false, junkMode = "slow", autoVendor = false, vendorKnownItems = false,
@@ -86,6 +87,7 @@ function Suite.InitializeDB(saved)
     db.keybindFont, db.keybindSize, db.keybindOutline, db.keybindBold = Suite.Keybinds:Options(db)
     db.procAlertIconSize = Suite.ProcAlerts:IconSize(db)
     db.progressBarWidth, db.progressBarHeight = Suite.HUDSkin:Options(db)
+    db.progressBarSegmentPercent = Suite.HUDSkin:SegmentPercent(db)
     -- Retain the native text preference across reloads until Always show values releases it.
     local nativeText = db.progressBarTextRestore
     if not Suite.IsReadable(nativeText) or type(nativeText) ~= "string" or (nativeText ~= "0" and nativeText ~= "1") then
