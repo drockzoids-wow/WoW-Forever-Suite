@@ -2,6 +2,8 @@
 
 ## Authorized 1.0.11 release — November 10, 2026
 
+Publication verified: v1.0.11 passes release run 42955499218/job 130309497219, including successful CurseForge project 1749120 upload and GitHub asset checks. [Receipts](release-1.0.11.md#publication-verified). Moderation/public availability and pending native tests remain separate.
+
 User authorizes publishing the Warrior stance macros, food inventory refresh and edible cooking reagent correction as 1.0.11 to CurseForge. Core and both TOCs advance together; existing native confirmations and pending smoke tests retain their scope. [Release checks and receipts](release-1.0.11.md). No game deployment, junction or real SavedVariables changes.
 
 ## Edible cooking reagent food correction — November 10, 2026
