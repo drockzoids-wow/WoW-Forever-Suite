@@ -1,5 +1,12 @@
 # Forever Suite
 
+## 1.0.11 — November 10, 2026
+
+- Add Warrior Charge / Intercept, Stance interrupt and Overpower macros, with stance and equipment requirements explained in their previews.
+- Refresh existing FS Food macros automatically after inventory changes and level-ups, including when settings and bags are closed. Preserve combat, native-editor and manual-edit safeguards.
+- Recognize edible cooking reagents such as Raw Spotted Yellowtail when their use spell and English tooltip confirm restorative seated eating. Include qualifying items in food choices without broadening drink choices.
+- The user confirmed Yellowtail is selected automatically after reload. Warrior execution, restocking, actual running build/Interface and combat/taint checks remain pending.
+
 ## 1.0.10 — November 10, 2026
 
 - Add optional tooltip level difficulty colors using the native relative-difficulty palette. Preserve surrounding text and restore owned text when disabled; the user confirmed colors change in game.

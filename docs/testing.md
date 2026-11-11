@@ -1,5 +1,9 @@
 # Forever Suite in game testing
 
+## Authorized 1.0.11 release — November 10, 2026
+
+User authorizes publishing the Warrior stance macros, food inventory refresh and edible cooking reagent correction as 1.0.11 to CurseForge. Core and both TOCs advance together; existing native confirmations and pending smoke tests retain their scope. [Release checks and receipts](release-1.0.11.md). No game deployment, junction or real SavedVariables changes.
+
 ## Edible cooking reagent food correction — November 10, 2026
 
 Native result confirmed by user: "That worked, the food macro picked up the Yellowtail automatically after reloading." Mark automatic Yellowtail selection after reload passed, superseding the pending selection retest below. Actual running build/Interface, consumption, restocking, preference/ranking cases and combat/taint remain unreported.

@@ -1,5 +1,9 @@
 # WoW Forever addon development reference
 
+## Authorized 1.0.11 release — November 10, 2026
+
+User authorizes publishing the Warrior stance macros, food inventory refresh and edible cooking reagent correction as 1.0.11 to CurseForge. Core and both TOCs advance together; existing native confirmations and pending smoke tests retain their scope. [Release checks and receipts](release-1.0.11.md). No game deployment, junction or real SavedVariables changes.
+
 ## Edible cooking reagents in automatic food — November 10, 2026
 
 Native confirmation: user reports, "That worked, the food macro picked up the Yellowtail automatically after reloading." This verifies the reported Yellowtail selection after reload and resolves that failure. Actual running build/Interface, item consumption, restocking and combat/taint results remain unreported.

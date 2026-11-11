@@ -1,5 +1,9 @@
 # Forever Suite feature plan
 
+## Authorized 1.0.11 release — November 10, 2026
+
+User authorizes publishing the Warrior stance macros, food inventory refresh and edible cooking reagent correction as 1.0.11 to CurseForge. Core and both TOCs advance together; existing native confirmations and pending smoke tests retain their scope. [Release checks and receipts](release-1.0.11.md). No game deployment, junction or real SavedVariables changes.
+
 ## Edible cooking reagents — November 10, 2026
 
 User confirms FS Food automatically picked up Yellowtail after reloading. The reported reload-selection failure is resolved; broader native checks remain separate.
