@@ -180,6 +180,7 @@ function Inventory:Refresh()
         if account then self:Database().accountBanks[region] = account end
     end
     if Suite.InventorySearch then Suite.InventorySearch:InventoryChanged() end
+    if Suite.ProfessionLeveling then Suite.ProfessionLeveling:InventoryChanged() end
     if Suite.CharacterDashboard then Suite.CharacterDashboard:RefreshView() end
 end
 
@@ -237,15 +238,16 @@ local function Count(snapshot, id)
     if Integer(value, 0, 1000000000) then return value end
 end
 
-function Inventory:Summary(id)
+function Inventory:Summary(id, includeEmpty)
     if not Integer(id, 1, 2147483647) then return end
     local region = Region()
     if not region then return end
-    local db, rows, total, incomplete = self:Database(), {}, 0, false
+    local db, rows, total, incomplete, observed = self:Database(), {}, 0, false, false
     for guid, character in pairs(db.characters) do
         if Text(guid) and type(character) == "table" and Text(character.name) and Text(character.realm)
             and RegionID(character.region) and character.region == region then
             local bags, bank = Count(character.bags, id), Count(character.bank, id)
+            if bags ~= nil or bank ~= nil then observed = true end
             if bags == nil or bank == nil then incomplete = true end
             local amount = (bags or 0) + (bank or 0)
             if amount > 0 then
@@ -262,10 +264,11 @@ function Inventory:Summary(id)
         return a.guid < b.guid
     end)
     local account = Count(db.accountBanks[region], id)
+    if account ~= nil then observed = true end
     if account == nil then incomplete = true end
     total = total + (account or 0)
-    if total == 0 then return end
-    return { rows = rows, total = total, account = account, incomplete = incomplete }
+    if total == 0 and not includeEmpty then return end
+    return { rows = rows, total = total, account = account, incomplete = incomplete, observed = observed }
 end
 
 local function Component(value)

@@ -19,8 +19,8 @@ end
 local function Enabled() return Suite.db and Suite.db.missingBuffs == true end
 local function ActiveCombat() return Enabled() and Suite.db.missingBuffCombat == true and InCombatLockdown() end
 local function Surface(frame)
-    frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-    frame:SetBackdropColor(0.035, 0.05, 0.065, 0.94); Suite.Theme:Backdrop(frame, 0.65)
+    frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+    frame:SetBackdropColor(0.035, 0.05, 0.065, 0.94); Suite.Theme:BuffIconBorder(frame, 0.65)
 end
 local function Label(parent, size)
     local font = parent:CreateFontString(nil, "OVERLAY"); font:SetFont("Fonts\\FRIZQT__.TTF", size, "OUTLINE")

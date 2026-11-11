@@ -37,3 +37,5 @@ SOFTWARE.
 Training catalog facts are adapted from fusionpit/WhatsTraining (MIT), Forever revision dd4256471d65149ad6e8d00ad1f18fa7c31e7a6e. Its complete notice is included in TrainingCatalog-LICENSE.txt. Spell names/ranks are Blizzard game data. Suite journal and planner UI/runtime implementation are original.
 
 ChatCopyPaste 1.41 by Novaspark/Venomisto is a behavior reference for the on-demand chat copy window. Suite's implementation and presentation are original; no ChatCopyPaste source, assets or libraries are included.
+
+Profession leveling summaries are original short references informed by the WoW Forever articles at https://www.wow-professions.com/forever/, reviewed November 11, 2026. Each entry includes its source URL. Website articles, images, maps and macros are not reproduced. WoW-Professions is not affiliated with or an endorser of Forever Suite.

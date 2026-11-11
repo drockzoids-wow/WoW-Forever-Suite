@@ -51,6 +51,14 @@ function Profiles:Settings(source, partial)
         if Suite.IsReadable(value) and type(value) == type(Suite.defaults[key]) then result[key] = Copy(value)
         elseif not partial then result[key] = Copy(Suite.defaults[key]) end
     end
+    if not partial and (not Suite.IsReadable(source.professionLevelingViewVersion) or source.professionLevelingViewVersion ~= 1) then
+        result.professionLevelingHideDone, result.professionLevelingViewVersion = true, 1
+    end
+    local autoRecipe = source.professionLevelingAutoRecipe
+    if (not partial or (Suite.IsReadable(autoRecipe) and type(autoRecipe) == "boolean"))
+        and (not Suite.IsReadable(source.professionLevelingAutoRecipeVersion) or source.professionLevelingAutoRecipeVersion ~= 1) then
+        result.professionLevelingAutoRecipe, result.professionLevelingAutoRecipeVersion = true, 1
+    end
     return result
 end
 function Profiles:Find(id)
@@ -131,6 +139,9 @@ function Profiles:SaveActive()
     if self.activePersonal then
         local overrides = {}
         for key,value in pairs(values) do if not Same(value,entry.values[key]) then overrides[key] = Copy(value) end end
+        if overrides.professionLevelingAutoRecipe ~= nil then
+            overrides.professionLevelingAutoRecipeVersion = values.professionLevelingAutoRecipeVersion
+        end
         self.state.overrides[self.activeID] = overrides
     else entry.values = self:Settings(values) end
     if self.guid and self.store.characters[self.guid] then

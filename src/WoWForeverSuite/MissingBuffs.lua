@@ -13,9 +13,9 @@ local function Call(callback, ...)
 end
 local function Enabled() return Suite.db and Read(Suite.db.missingBuffs, "boolean") and Suite.db.missingBuffs end
 local function Surface(frame)
-    frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+    frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
     frame:SetBackdropColor(0.035, 0.05, 0.065, 0.94)
-    Suite.Theme:Backdrop(frame, 0.65)
+    Suite.Theme:BuffIconBorder(frame, 0.65)
 end
 local function Label(parent, size)
     local label = parent:CreateFontString(nil, "OVERLAY")
@@ -741,8 +741,8 @@ function Buffs:Refresh()
             button:SetAttribute("type1", "macro"); button:SetAttribute("macrotext1", "/use item:" .. entry.item.id .. "\n/use " .. entry.slot)
         end
         button.icon:SetTexture(entry.spell.icon)
-        if entry.kind == "incoming" then Suite.Theme:Backdrop(button, 0.9)
-        else Suite.Theme:Backdrop(button, 0.8) end
+        if entry.kind == "incoming" then Suite.Theme:BuffIconBorder(button, 0.9)
+        else Suite.Theme:BuffIconBorder(button, 0.8) end
         button:Show()
     end
     for index = #entries + 1, #self.buttons do

@@ -15,7 +15,7 @@ Catalog.sections = {
     overview = { [1] = "Maps & Layout", [4] = "Gear Details" },
     minimap = { [1] = "Launcher & Addon Buttons", [3] = "Map Appearance", [4] = "Stats & Information" },
     windows = { [1] = "Window Layout" },
-    bags = { [1] = "Bag Tools", [3] = "Recorded Inventory", [4] = "Bank Snapshots", [7] = "Low Bag Space", [9] = "Container Opening", [10] = "Bag Order" },
+    bags = { [1] = "Bag Tools", [3] = "Recorded Inventory", [4] = "Bank Snapshots", [7] = "Low Bag Space", [9] = "Container Opening", [10] = "Bag Order", [12] = "Bank Deposits" },
     items = { [1] = "Item Levels", [4] = "Upgrade Comparisons", [8] = "Equipment Manager" },
     tooltips = { [1] = "Item Information", [3] = "Player Information", [5] = "Unit Information" },
     camping = { [1] = "Camping Bar", [3] = "Position & Reset" },
@@ -26,7 +26,7 @@ Catalog.sections = {
     unitframes = { [1] = "Health Bars", [2] = "Target Threat" }, mail = { [1] = "Recipients", [4] = "Mail Deadlines" }, meters = { [1] = "Damage Meters" },
     audio = { [1] = "Output Device" },
     leveling = { [1] = "Leveling Tracker", [2] = "Header Controls", [4] = "Session & Position" },
-    professions = { [1] = "Disenchant", [3] = "Enchanting" },
+    professions = { [1] = "Disenchant", [3] = "Enchanting", [4] = "Leveling Guides" },
     training = { [1] = "Training Planner", [3] = "Automatic Opening" },
     talents = { [1] = "Talent Build Planner" },
 }
@@ -79,6 +79,8 @@ for _, item in ipairs({ { "lock", "Lock damage meters" }, { "snap", "Snap damage
     extras[#extras + 1] = { page = "meters", key = "meter_" .. item[1], label = item[2], target = "meterButtons." .. item[1], words = "damage healing dps hps" }
 end
 local synonyms = { characterDashboard = "recorded characters dashboard alts money gold professions levels snapshots dates",
+    professionLeveling = "profession leveling levelling guide flyout wow professions blacksmithing alchemy engineering enchanting tailoring leatherworking herbalism mining skinning cooking fishing first aid camping lockpicking materials trainers hide done stocked shortages enough green check collapse expand automatic steps select recipe click",
+    professionLevelingAutoRecipe = "profession leveling levelling auto automatic select recipe current step skill up manual crafting",
     chatShortcuts = "slash commands hotkeys kb quick keybinding edit mode binds macros cal calendar settings addons rl reload",
     autoReplaceEnchant = "profession enchanting enchanter override overwrite replace existing enchant confirmation yes trade",
     inventorySearch = "search items alts characters owners bags bank", itemInventory = "inventory counts alts characters bags bank",
@@ -126,7 +128,8 @@ function Catalog:Configure(pages)
         { key = "autoOpenContainers", label = "Auto-open bag containers", help = "Open loot containers, including clams, one at a time with a free regular bag slot.\nPauses in combat and at vendors, banks or mail. Uses your normal loot settings." },
         { key = "reverseCombinedBags", label = "Reverse combined bag order", help = "Show equipped bags first and the backpack last in the combined bag.\nKeeps each bag's slot order. Changing this choice waits until combat ends." },
         { key = "reverseBagSlots", label = "Reverse slots within each bag", help = "Display each bag's first slot at its bottom-right end. Items stay in the same bag.\nCombine with reversed bag order to put the backpack's first slot at the bottom right." },
-    }, note = "Log into alts and visit their banks to update records. Saved counts can be stale; bank views cannot move items." }
+        { key = "bankDepositReagents", label = "Deposit Reagents button", help = "Add a button beside Purchase at your personal bank.\nClick to move carried crafting reagents that fit. Stops on combat or closing the bank." },
+    }, note = "Log into alts and visit their banks to update records. Saved counts can be stale; saved views cannot move items." }
     pages.bags.rows[3].label = "Inventory in tooltips"
     pages.bags.rows[3].help = "Show recorded bag and bank counts in item tooltips.\nUnknown locations are omitted."
     old[3].help = "Record bank contents when you visit a bank.\nBrowse the last saved view from anywhere."

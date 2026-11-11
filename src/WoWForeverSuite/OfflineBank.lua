@@ -52,6 +52,45 @@ local function Visible(frame)
     return Suite.IsReadable(shown) and shown == true
 end
 
+local function SearchText(box)
+    if not Suite.IsReadable(box) or not box or type(box.IsForbidden) ~= "function"
+        or type(box.GetText) ~= "function" then return end
+    local permitted, forbidden = pcall(box.IsForbidden, box)
+    if not permitted or not Suite.IsReadable(forbidden) or forbidden ~= false then return end
+    local ok, text = pcall(box.GetText, box)
+    if ok and Suite.IsReadable(text) and type(text) == "string" and #text <= 100
+        and not text:find("[%c|]") then return text end
+end
+
+function Bank:SyncSearch(source)
+    if self.syncingSearch or not Visible(self.frame) then return end
+    if InCombatLockdown() then
+        Suite.AfterCombat("bankSearchSync", function() self:SyncSearch(source) end)
+        return
+    end
+    local text = SearchText(source)
+    if text == nil then return end
+    self.syncingSearch = true
+    if source == self.search then
+        -- Let Blizzard's own edit-box handler synchronize live fields and dim items.
+        -- Do not replace native scripts or write item-button search state.
+        local target = BagItemSearchBox or BankItemSearchBox
+        local current = SearchText(target)
+        if current ~= nil and current ~= text and type(target.SetText) == "function" then
+            pcall(target.SetText, target, text)
+            text = SearchText(target) or text
+        end
+    end
+    if SearchText(self.search) ~= text then self.search:SetText(text) end
+    self.syncingSearch = nil
+end
+
+function Bank:WatchSearch()
+    if self.searchHooked or type(hooksecurefunc) ~= "function" or type(BagSearch_OnTextChanged) ~= "function" then return end
+    hooksecurefunc("BagSearch_OnTextChanged", function(box) self:SyncSearch(box) end)
+    self.searchHooked = true
+end
+
 function Bank:Context()
     local character, region = Suite.Inventory:Character()
     if not character then return end
@@ -340,7 +379,10 @@ function Bank:CreateView()
     frame:SetTitle(BANK or "Bank")
     frame:SetPortraitToAsset("Interface\\Icons\\INV_Misc_Bag_10")
     frame.CloseButton:SetScript("OnClick", function() frame:Hide() end)
-    frame:SetScript("OnHide", function() self:HideTooltip(); self.viewGUID, self.viewBags = nil, nil end)
+    frame:SetScript("OnHide", function()
+        self:HideTooltip(); self.viewGUID, self.viewBags = nil, nil
+        Suite.pending.bankSearchSync = nil
+    end)
     if UISpecialFrames then table.insert(UISpecialFrames, FRAME_NAME) end
     local background = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
     background:SetAtlas("bank-frame-background")
@@ -363,8 +405,14 @@ function Bank:CreateView()
     search:SetMaxLetters(100)
     search:SetScript("OnTextChanged", function(box)
         if SearchBoxTemplate_OnTextChanged then SearchBoxTemplate_OnTextChanged(box) end
+        self:SyncSearch(box)
         self:Refresh()
     end)
+    frame:SetScript("OnShow", function()
+        self:WatchSearch()
+        self:SyncSearch(BagItemSearchBox or BankItemSearchBox)
+    end)
+    self:WatchSearch()
     search:SetScript("OnEscapePressed", function(box) box:ClearFocus(); frame:Hide() end)
     search:SetScript("OnEnterPressed", function(box) box:ClearFocus() end)
     if Suite.InventorySelectors then Suite.InventorySelectors:Attach(frame, "saved") end

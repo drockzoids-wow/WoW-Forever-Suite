@@ -3,7 +3,7 @@
 ## Notes: A personal collection of optional tools for WoW Forever.
 ## Author: Drockzoids
 ## IconTexture: Interface\AddOns\WoWForeverSuite\Media\ForeverSuiteIcon.tga
-## Version: 1.0.12
+## Version: 1.0.13
 ## Bindings: Bindings.xml
 ## SavedVariables: WoWForeverSuiteDB
 ## SavedVariablesPerCharacter: WoWForeverSuiteCharDB
@@ -26,6 +26,7 @@ MapRevealData.lua
 WorldMap.lua
 Windows.lua
 BagSort.lua
+BankDeposit.lua
 CombinedBags.lua
 AutoOpen.lua
 BagSpace.lua
@@ -43,6 +44,8 @@ MerchantKnown.lua
 Quests.lua
 QuestItem.lua
 ProfessionHelper.lua
+ProfessionGuideData.lua
+ProfessionLeveling.lua
 TrainingCatalogData.lua
 TrainingCatalog.lua
 TrainingWeapons.lua

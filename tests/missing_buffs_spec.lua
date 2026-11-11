@@ -595,6 +595,13 @@ do
     equal(extra.combatFrame.parent, UIParent, "passive combat panel has an independent ordinary parent")
     equal(extra.combatFrame.protected, false, "combat panel is explicitly independent of protected buttons")
     equal(#extra.combatButtons, 8, "combat icons are prepared once outside combat")
+    for _, button in ipairs(extra.combatButtons) do
+        equal(button.backdrop.edgeFile, nil, "combat weapon borders do not use sliced corner textures")
+        equal(#button.buffIconEdges, 4, "combat weapon icons have four flat border strips")
+        for _, edge in ipairs(button.buffIconEdges) do
+            equal(Suite.Theme.borders[edge].method, "SetColorTexture", "weapon border colors use solid textures without UV sampling")
+        end
+    end
     equal(extra.combatFrame.backdrop,nil,"combat weapon reminders have no separate background or border")
     equal(extra.combatFrame.mouseEnabled,false,"empty weapon host passes input through")
     equal(extra.combatTitle.text,"Missing Buffs","weapon reminders share the compact floating title")
@@ -914,6 +921,10 @@ do
     equal(buffs.header.mouseEnabled,false,"live header is click-through")
     equal(buffs.header:IsShown(),true,"live title remains visible")
     equal(buffs.bar.backdrop,nil,"live bar has no surrounding panel backdrop")
+    equal(buffs.buttons[1].backdrop.edgeFile, nil, "live buff icons omit sliced corner textures")
+    local firstEdge = buffs.buttons[1].buffIconEdges[1]
+    buffs:Refresh()
+    equal(buffs.buttons[1].buffIconEdges[1], firstEdge, "refresh reuses the existing flat buff border")
     equal(buffs.bar.mouseEnabled,false,"empty live bar remains click-through")
     -- Old saved lock values cannot prevent the settings preview from moving.
     Suite.db.missingBuffLocked=true

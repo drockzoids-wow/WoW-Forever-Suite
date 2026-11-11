@@ -1,6 +1,6 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "1.0.12"
+Suite.version = "1.0.13"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {
@@ -12,7 +12,7 @@ Suite.defaults = {
     minimapButton = true, minimapButtonAngle = 225,
     minimapDrawer = false, minimapDrawerAngle = 225, minimapDrawerMoved = false,
     showFPS = true, showLatency = true, showCoordinates = true, showClock = true,
-    windowTools = false, windowPositions = {}, guiPosition = {}, offlineBank = false,
+    windowTools = false, windowPositions = {}, guiPosition = {}, offlineBank = false, bankDepositReagents = false,
     fullButtonRange = false, actionBarSkin = false, classHealthBars = false, targetThreat = false,
     combatIndicator = false, combatIndicatorPersistent = false, combatIndicatorLocked = false, combatIndicatorPosition = {},
     procAlerts = false, procAlertPosition = {}, procAlertIconSize = 42,
@@ -24,7 +24,10 @@ Suite.defaults = {
     autoRepair = false, repairSource = "personal", autoSellJunk = false, junkMode = "slow", autoVendor = false, vendorKnownItems = false,
     autoQuestPickup = false, autoQuestTurnIn = false, autoGossip = false, questTrackerRemember = false,
     quickLoot = false, sortBagsOnOpen = false, reverseCombinedBags = false, reverseBagSlots = false, autoOpenContainers = false, questTrackerSkin = false, questItemButton = false, questItemPosition = {},
-    modifierDisenchant = false, disenchantModifier = "alt", autoReplaceEnchant = false, castbars = {}, zoneReputation = false,
+    modifierDisenchant = false, disenchantModifier = "alt", autoReplaceEnchant = false, professionLeveling = false, castbars = {}, zoneReputation = false,
+    professionLevelingHideDone = true, professionLevelingAutoSteps = true, professionLevelingViewVersion = 1,
+    professionLevelingAutoRecipe = true, professionLevelingAutoRecipeVersion = 1,
+    professionLevelingHideStocked = true,
     bagSpaceAlert = false, bagSpaceBlacklist = {}, bagSpacePosition = {},
     mailHelper = false, mailRememberRecipient = false, mailExpiry = false, supplyChecklist = false,
     mailContacts = { schema = 2, entries = {}, removed = {} },
@@ -61,6 +64,14 @@ end
 
 function Suite.InitializeDB(saved)
     local db = Suite.IsReadable(saved) and type(saved) == "table" and saved or {}
+    -- Adopt automatic selection once for existing settings; later opt-outs persist.
+    if not Suite.IsReadable(db.professionLevelingAutoRecipeVersion) or db.professionLevelingAutoRecipeVersion ~= 1 then
+        db.professionLevelingAutoRecipe, db.professionLevelingAutoRecipeVersion = true, 1
+    end
+    -- One-time adoption of the user's requested Hide Done default. Later choices persist.
+    if not Suite.IsReadable(db.professionLevelingViewVersion) or db.professionLevelingViewVersion ~= 1 then
+        db.professionLevelingHideDone, db.professionLevelingViewVersion = true, 1
+    end
     if not Suite.IsReadable(db.reverseBagSlots) or type(db.reverseBagSlots) ~= "boolean" then
         -- The user's clarified goal is slot display within each bag, rather than bag cleanup priority.
         db.reverseBagSlots = Suite.IsReadable(db.reverseBagSort) and db.reverseBagSort == true or false

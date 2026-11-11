@@ -65,10 +65,12 @@ local pages = {
         { action = "levelingSession", label = "Start a new session", help = "Save this session in the log and start fresh. Rates appear after one minute.\nReload keeps the session; a fresh login starts a new one. Idle time counts." },
         { action = "levelingPosition", label = "Reset tracker position", help = "Return this character's tracker to the top left.\nCtrl-right-clicking its unlocked header also resets its position." },
     }, note = "Gold/hour includes spending and transfers. Estimates use your session pace; incomplete XP tracking shows no estimate." },
-    professions = { title = "Professions", description = "Choose optional enchanting conveniences.", rows = {
+    professions = { title = "Professions", description = "Leveling guides and optional enchanting conveniences.", rows = {
         { key = "modifierDisenchant", label = "Modifier-click Disenchant", help = "Hold the selected modifier and left-click highlighted bag equipment.\nDisenchant destroys the item; the character must know the spell." },
         { action = "disenchantModifier", label = "Choose modifier key", help = "Cycle Alt, Ctrl and Shift. Hold only that modifier.\nEquipped gear, bank items, locked slots and combat are excluded." },
         { key = "autoReplaceEnchant", label = "Automatically replace existing enchants", help = "Enchanters: skip Yes when replacing an enchant on your gear or through trade.\nThe old enchant is lost. You still choose the enchant and item; unavailable in combat." },
+        { key = "professionLeveling", label = "Profession leveling guides", help = "Add Leveling to the profession window. Starts off. Hide Done clears old materials.\nAuto steps follows your skill range; click headings to expand. Copy full-guide source links." },
+        { key = "professionLevelingAutoRecipe", label = "Select current leveling recipe", help = "With leveling guides enabled, select the current step's learned recipe when the profession opens or the step changes. Starts on.\nCrafting stays manual. Waits for active crafting to finish; reopen the profession after combat." },
     }, note = "Only uncommon, rare or epic weapons and armor are offered.\nThe game makes the final skill and eligibility check. Nothing is disenchanted automatically." },
     training = { title = "Training Planner", description = "Review class skills, future training costs and weapon trainers.", rows = {
         { action = "trainingOpen", label = "Open Training Planner", help = "Browse class skills through level 60; pin ranks to a wishlist with estimated costs.\nWeapon trainers include locations, class eligibility and base costs." },

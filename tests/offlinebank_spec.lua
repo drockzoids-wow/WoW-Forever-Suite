@@ -3,12 +3,15 @@ local bank = Suite.OfflineBank
 local names = { "CreateFrame", "C_Timer", "C_Container", "C_Bank", "C_Item", "Enum", "BankFrame", "UIParent",
     "UnitGUID", "UnitName", "UnitClass", "GetNormalizedRealmName", "GetCurrentRegion", "GetServerTime", "date",
     "SetItemButtonTexture", "SetItemButtonCount", "GameTooltip", "GameTooltip_ShowCompareItem", "IsModifiedClick",
-    "HandleModifiedItemClick", "HideUIPanel", "UISpecialFrames", "WoWForeverSuiteBankView", "WoWForeverSuiteBankToggleButton" }
+    "HandleModifiedItemClick", "HideUIPanel", "UISpecialFrames", "WoWForeverSuiteBankView", "WoWForeverSuiteBankToggleButton",
+    "BagItemSearchBox", "BankItemSearchBox", "BagSearch_OnTextChanged" }
 local old = {}
 for _, name in ipairs(names) do old[name] = _G[name] end
 local oldDB, oldPending, oldPrint = Suite.db, Suite.pending, Suite.Print
 local oldWindows, oldItems = Suite.Windows, Suite.Items
 local oldLayoutFrame = bank.layoutFrame
+local oldSearchHooked = bank.searchHooked
+bank.searchHooked = nil
 local function Near(actual, expected, label) equal(math.abs(actual - expected) < 0.000001, true, label) end
 Suite.db, Suite.pending = Suite.InitializeDB(nil), {}
 bank.frame, bank.events, bank.bindingButton, bank.active, bank.bankOpen = nil, nil, nil, nil, nil
@@ -240,6 +243,53 @@ bank.search:SetText("100%"); bank.search.OnTextChanged(bank.search)
 equal(bank.buttons[2].searchOverlay:IsShown(), true, "search uses literal text without Lua patterns")
 bank.search:SetText(""); bank.search.OnTextChanged(bank.search)
 equal(calls, oldCalls, "offline paging searching and tooltips never query live bank")
+-- The saved view joins Blizzard's shared search, independently of the ownership popup.
+local filter, filterCalls = "", 0
+BagItemSearchBox, BankItemSearchBox = Widget(), Widget()
+BagSearch_OnTextChanged = function(box)
+    for _, other in ipairs({ BagItemSearchBox, BankItemSearchBox }) do
+        if other:GetText() ~= box:GetText() then other:SetText(box:GetText()) end
+    end
+    filter, filterCalls = box:GetText(), filterCalls + 1
+end
+for _, box in ipairs({ BagItemSearchBox, BankItemSearchBox }) do
+    box.SetText = function(self, text)
+        if self.text == text then return end
+        self.text = text; BagSearch_OnTextChanged(self)
+    end
+end
+bank:WatchSearch()
+equal(Suite.db.inventorySearch, false, "linked filtering does not require cross-character popup")
+bank.search:SetText("fang"); bank.search.OnTextChanged(bank.search)
+equal(BagItemSearchBox:GetText(), "fang", "saved bank search also fills live bag search")
+equal(BankItemSearchBox:GetText(), "fang", "native handler still synchronizes live bank")
+equal(filter, "fang", "saved bank query reaches native item dimming")
+BagItemSearchBox:SetText("400")
+equal(bank.search:GetText(), "400", "live bag search also updates saved bank")
+bank.search.OnTextChanged(bank.search)
+equal(bank.buttons[2].searchOverlay:IsShown(), false, "shared query retains matching saved item")
+BagItemSearchBox:SetText("")
+equal(bank.search:GetText(), "", "clearing bags clears saved bank search")
+bank.search:SetText("fang"); bank.search.OnTextChanged(bank.search)
+bank.search:SetText(""); bank.search.OnTextChanged(bank.search)
+equal(filter, "", "clearing saved bank clears live dimming")
+local beforeCombat = filterCalls
+SetCombat(true)
+bank.search:SetText("fang"); bank.search.OnTextChanged(bank.search)
+equal(filterCalls, beforeCombat, "saved search defers native writes during combat")
+equal(type(Suite.pending.bankSearchSync), "function", "combat search queues synchronization")
+SetCombat(false)
+Suite.pending.bankSearchSync(); Suite.pending.bankSearchSync = nil
+equal(filter, "fang", "latest saved query applies after combat")
+local beforeInvalid = filterCalls
+bank:SyncSearch({ IsForbidden = function() return { secret = true } end, GetText = function() error("restricted read") end })
+equal(filterCalls, beforeInvalid, "restricted widgets cannot enter shared search")
+bank.frame:Hide(); BagItemSearchBox:SetText("400")
+equal(bank.search:GetText(), "fang", "hidden saved view leaves its field alone")
+bank.frame:Show(); bank.frame.OnShow(bank.frame)
+equal(bank.search:GetText(), "400", "reopened saved view adopts current bag query")
+bank.search:SetText(""); bank.search.OnTextChanged(bank.search)
+BagItemSearchBox, BankItemSearchBox, BagSearch_OnTextChanged = nil, nil, nil
 equal(bank.frame.OnUpdate, nil, "viewer has no idle updater")
 equal(bank.buttons[2].OnUpdate, nil, "hover comparison is event driven")
 
@@ -664,3 +714,4 @@ for _, name in ipairs(names) do _G[name] = old[name] end
 Suite.db, Suite.pending, Suite.Print, Suite.Windows, Suite.Items = oldDB, oldPending, oldPrint, oldWindows, oldItems
 bank.frame, bank.events, bank.bindingButton, bank.active, bank.bankOpen = nil, nil, nil, nil, nil
 bank.layoutFrame = oldLayoutFrame
+bank.searchHooked = oldSearchHooked

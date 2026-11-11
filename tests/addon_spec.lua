@@ -1695,6 +1695,8 @@ assert(loadfile("tests/gear_model_spec.lua"))(Suite, equal, Frame, function(valu
 assert(loadfile("tests/quests_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/loot_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/bagsort_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/bankdeposit_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/profession_leveling_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/bagsortdirection_spec.lua"))(Suite, equal, function(value) combat = value end)
 assert(loadfile("tests/combinedbags_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/bagspace_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)

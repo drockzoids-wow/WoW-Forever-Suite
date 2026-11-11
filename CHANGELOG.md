@@ -1,5 +1,14 @@
 # Forever Suite
 
+## 1.0.13 — November 11, 2026
+
+- Add optional attached profession leveling guides with original summaries and links to the WoW-Professions Forever guides, faction-specific directions and collapsible skill ranges.
+- Show estimated remaining recipe materials with recorded cross-character Have/Need counts and native item tooltips. Hide completed and sufficiently stocked materials by default; estimates follow primary example routes and retain incomplete-route caveats.
+- Click guide recipe names to select them in the native profession window. Current-step selection starts on and is adopted once for existing settings/profiles; later Off choices persist. Follow recipe boundaries and wait for manually started crafting batches to stop. Crafting stays manual.
+- Synchronize saved-bank search with live bag/bank search while retaining native filtering. Add an independent, default-off Deposit Reagents button at the personal bank; transfers require a click and stop on combat or bank/context changes.
+- Replace sliced buff-icon borders with flat themed edges to address reported corner specks.
+- Offline checks pass. Native recipe selection, crafting-batch behavior, deposit transfers, rendering and taint smoke tests remain pending; this release does not claim to resolve the existing bag-use taint investigation.
+
 ## 1.0.12 — November 11, 2026
 
 - Expand automatic reputation tracking to primary-faction outdoor regions, including Riverglades, Zephras Isle, Mount Hyjal and neutral reputation zones. Local hubs such as Powderfuse Port and Shadowgale Forest take priority.
