@@ -145,14 +145,14 @@ equal(mail.frame, nil, "inbox opening does not construct contacts panel")
 equal(mail.visit, true, "inbox still starts the mailbox visit")
 MailFrameTab_OnClick(nil, 2)
 equal(mail.frame:IsShown(), true, "character helper shows on selecting native Send Mail")
-equal(mail.frame:GetParent(), MailFrame, "helper follows native mailbox hierarchy and scale")
+equal(mail.frame:GetParent(), UIParent, "unified window remains independent of native mailbox hierarchy")
 equal(#mail:List(), 1, "only same-ruleset alts appear while current character is hidden")
 equal(Find("Foreign"), nil, "other-region records stay outside mail list")
-equal(mail.frame.point[1], "TOPLEFT", "helper docks right with available room")
+equal(mail.frame, mail.book.frame, "mailbox opens the same Contacts shell")
 equal(mail.rows[1].name.textColor[2], 0.8, "class color in recorded contact row")
 equal(mail.search.fontFlags, "", "edit-box font supplies required flags")
-equal(mail.search.maxLetters, 77, "search bounded to native recipient length")
-equal(mail.rows[1].remove:GetParent(), mail.rows[1], "remove control distinct from recipient click")
+equal(mail.search.maxLetters, 240, "search includes bounded contact notes")
+equal(mail.book.use:GetParent(), mail.book.content, "recipient action is explicit in the shared details pane")
 equal(mail.frame.OnUpdate, nil, "mail has no idle updater")
 
 local arc = Find("Arcanist")
@@ -228,11 +228,11 @@ SendMailNameEditBox.text = ""
 
 for index = 1, 9 do mail:Store("Alt" .. string.char(64 + index) .. " Letter", "PvE", 110, nil, "MAGE", index) end
 mail:Refresh()
-equal(#mail.rows, 6, "list reuses six rows for long rosters")
+equal(#mail.rows, 8, "unified list reuses eight rows for long rosters")
 equal(mail.next.enabled, true, "long list has accessible next page")
 mail.next.OnClick()
 equal(mail.page, 2, "next-page contact navigation")
-mail.frame.OnMouseWheel(mail.frame, -1)
+mail.book.wheelArea.OnMouseWheel(mail.book.wheelArea, -1)
 equal(mail.page, 2, "wheel clamps to filtered final page")
 mail.next.OnClick()
 equal(mail.page, 2, "last page is clamped")
@@ -245,8 +245,8 @@ equal(mail.sort, "name", "name sorting remains available")
 
 mail:SelectContactTab("alts")
 mail:ConfirmRemove(arc.key)
-equal(mail.confirmation:IsShown(), true, "contact removal requires inline confirmation")
-mail.confirmation.cancel.OnClick()
+equal(mail.confirm, arc.key, "contact removal records confirmation before deletion")
+mail.confirm = nil
 equal(#mail:List(), 12, "cancel preserves contact")
 mail:ConfirmRemove(arc.key); mail:RemoveConfirmed()
 equal(#mail:List(), 11, "confirmed removal affects only chosen contact")
@@ -285,9 +285,9 @@ equal(Find("Zoids").level, 32, "synchronous level payload wins over a stale gett
 player.level = 32
 
 MailFrame.rect = { 780, 100, 338, 424 }; MailFrame:SetPoint("CENTER"); Flush()
-equal(mail.frame.point[1], "TOPRIGHT", "helper flips left near screen edge")
+equal(mail.frame, mail.book.frame, "native reflow retains shared shell")
 MailFrame.rect = { { secret = true }, 100, 338, 424 }; mail:Place()
-equal(mail.frame.point[1], "TOPLEFT", "secret geometry uses safe default without arithmetic")
+equal(mail.frame.point[1], "CENTER", "unreadable geometry falls back to centered placement")
 MailFrame.rect = { 80, 100, 338, 424 }
 for index = 1, 50 do MailFrame:SetPoint("CENTER"); Fire("ADDON_LOADED") end
 equal(TimerCount(), 1, "native reflows and addon bursts coalesce")
@@ -424,7 +424,7 @@ Suite.db.mailHelper, Suite.db.mailRememberRecipient = true, true
 mail:Apply()
 equal(Find("Zoids").name, "Zoids Ward", "Camelot UnitName second return is the surname")
 equal(Find("Zoids").ruleset, "PvE", "logged-in character records current PvE ruleset")
-equal(mail.search.placeholder.text, "Search contacts or categories", "mail search includes contact categories")
+equal(mail.search.placeholder.text, "Search contacts", "mail search uses unified contact wording")
 equal(mail.sortButtons.ruleset, nil, "redundant ruleset sort is removed")
 local sendsBefore = sends
 mail:Choose(retainedKey)
@@ -546,6 +546,7 @@ player.guid, player.name, player.surname, player.class, player.level = "Current-
 player.realm = "ClassicBetaPvE"
 SendMailNameEditBox:SetText("Untouched Letter"); SendMailSubjectEditBox:SetText("Keep subject")
 local repairWrites, repairSends = writes, sends
+mail:SelectContactTab("all")
 Suite.db.mailHelper = true; mail:Apply()
 equal(#queries, 2, "opening mail queries each incomplete same-ruleset alt once")
 equal(Find("Drock").name, "Drock Bracketfix", "old logged-in Drock gains native cached surname automatically")
@@ -703,40 +704,31 @@ equal(mail.book.frame:GetParent(), UIParent, "contact book is independent of mai
 equal(mail.book.frame.OnUpdate, nil, "contact book has no idle updater")
 local book = mail.book
 equal(book.frame.point[1], "CENTER", "standalone contact book opens centrally")
-local helperShown, helperRect = mail.frame:IsShown(), mail.frame.rect
-local screenWidth = UIParent.GetWidth
-UIParent.GetWidth = function() return 2000 end
-mail.frame:Show(); mail.frame.rect = { 400, 100, 288, 512 }
-mail:OpenBook(mail.frame)
-equal(book.frame.point[4], 698, "mailbox book opens on helper's right")
-equal(book.frame.point[2], UIParent, "book placement avoids a permanent helper dependency")
-equal(book.frame.point[5] + book.frame.height, 612, "book and helper top edges align")
-mail.frame.rect = { 1500, 100, 288, 512 }; mail:PlaceBook(mail.frame)
-equal(book.frame.point[4], 820, "right screen edge places book on helper's left")
-UIParent.GetWidth = function() return 800 end
-mail.frame.rect = { 300, 100, 288, 512 }; mail:PlaceBook(mail.frame)
-equal(book.frame.point[4] >= 0 and book.frame.point[4] + book.frame.width <= 800, true, "narrow screen keeps book within horizontal bounds")
-local bookX, bookY = book.frame.point[4], book.frame.point[5]
+local previousPoint = book.frame.point
+mail:OpenBook(book.frame)
+equal(book.frame.point, previousPoint, "reopening visible unified window does not move it")
+mail:PlaceBook(book.frame)
+equal(book.frame.point, previousPoint, "self anchor is rejected to avoid a frame cycle")
 SetCombat(true); mail:PlaceBook(); SetCombat(false)
-equal(book.frame.point[4] == bookX and book.frame.point[5] == bookY, true, "combat preserves book anchors")
-mail.frame:Hide(); mail:OpenBook(mail.frame)
-equal(book.frame.point[1], "CENTER", "hidden helper cannot attract contact book")
-mail.frame.rect, UIParent.GetWidth = helperRect, screenWidth
-mail.frame:SetShown(helperShown)
+equal(book.frame.point, previousPoint, "combat preserves directory placement")
+mail:EditContact()
 book.name:SetText("Parcel Friend")
 equal(book.ruleset, nil, "contact editor has no manual ruleset choice")
-book.category:SetText("Crafters"); book.notes:SetText("Send spare ore")
+local craftersGroup = mail:SaveGroup(nil, "Crafters")
+book.groupChanges[craftersGroup] = true; book.notes:SetText("Send spare ore")
 book.save.OnClick()
 local friendKey = book.key
 equal(type(friendKey), "string", "standalone editor saves a full-name contact")
 equal(mail:Database()[friendKey].notes, "Send spare ore", "editor stores notes")
-equal(mail:Database()[friendKey].category, "Crafters", "editor stores custom category")
-equal(#mail:List(true, "spare ore", "Crafters"), 1, "notes search combines with category filter")
+equal(#mail:ContactList(craftersGroup, "", nil, true), 1, "editor stores named membership")
+equal(#mail:ContactList(craftersGroup, "spare ore", nil, true), 1, "notes search combines with group filter")
 equal(#mail:List(true, "Parcel", "Friends"), 0, "category filter excludes other categories")
 book.search:SetText("spare ore")
 equal(book.rows[1].entry.key, friendKey, "book search is independent of mailbox search")
 book.rows[1].OnClick()
-book.name:SetText("Parcel Courier"); book.category:SetText("Friends")
+book.name:SetText("Parcel Courier")
+local friendsGroup = mail:SaveGroup(nil, "Friends")
+book.groupChanges[craftersGroup], book.groupChanges[friendsGroup] = false, true
 book.save.OnClick()
 local renamedKey = book.key
 equal(mail:Database()[friendKey], nil, "renaming manual contact removes old address key")
@@ -745,7 +737,7 @@ equal(mail.removed[friendKey], true, "rename suppresses stale old address")
 local duplicate, duplicateMessage = mail:SaveContact(nil, "Parcel Courier", "Other", "")
 equal(duplicate, nil, "duplicate name and ruleset rejected")
 equal(type(duplicateMessage), "string", "duplicate provides useful feedback")
-equal(mail:Database()[renamedKey].category, "Friends", "duplicate cannot overwrite metadata")
+equal(#mail:ContactList(friendsGroup, "", nil, true), 1, "duplicate cannot overwrite membership")
 equal(mail:SaveContact(nil, "Incomplete", "", ""), nil, "standalone contact requires surname")
 equal(mail:SaveContact(nil, "Hidden Person", { secret = true }, ""), nil, "restricted category rejected")
 equal(mail:SaveContact(nil, "Hidden Person", "Friends", "|Hbad"), nil, "markup in notes rejected")
@@ -761,49 +753,19 @@ local bookSaved = Suite.Copy(Suite.db)
 Suite.db = Suite.InitializeDB(bookSaved)
 equal(mail:Database()[guided].notes, "Bank alt", "book metadata survives saved-data initialization")
 book.search:SetText("")
+local previousFilterMenu = MenuUtil; MenuUtil = nil
 book.filterButton.OnClick()
-equal(book.filter, "Alts", "category picker starts with first sorted category")
+equal(mail:GroupDefinitions()[book.groupFilter].name, "Alts", "fallback starts with first named group")
 equal(book.rows[1].entry.key, guided, "category picker filters shared contact list")
 book.filterButton.OnClick()
-equal(book.filter, "Friends", "category picker advances to next category")
+equal(mail:GroupDefinitions()[book.groupFilter].name, "Crafters", "fallback includes empty named groups")
 book.filterButton.OnClick()
-equal(book.filter, nil, "category picker returns to all contacts")
-local categoryMenu
-MenuUtil = { CreateContextMenu = function(owner, generate)
-    equal(owner, book.categoryChoose, "category menu belongs to editor chooser")
-    categoryMenu = {}
-    local root = { CreateButton = function(_, label, callback)
-        categoryMenu[#categoryMenu + 1] = { label = label, callback = callback }
-    end }
-    generate(owner, root)
-end }
-book.categoryChoose.OnClick()
-equal(categoryMenu[3].label, "Alts", "existing categories are sorted in chooser")
-equal(categoryMenu[4].label, "Friends", "chooser includes other existing category")
-categoryMenu[3].callback()
-equal(book.category:GetText(), "Alts", "existing category selection fills editor")
-equal(mail:Database()[renamedKey].category, "Friends", "category selection waits for Save")
-categoryMenu[1].callback()
-equal(book.category:GetText(), "", "new category clears field")
-equal(book.category.focused, true, "new category focuses editable field")
-book.category:SetText("New group")
-categoryMenu[2].callback()
-equal(book.category:GetText(), "", "uncategorized clears category")
-SetCombat(true); categoryMenu[3].callback(); SetCombat(false)
-equal(book.category:GetText(), "", "open category menu cannot edit in combat")
-player.realm = "ClassicBetaPvP"
-categoryMenu[3].callback()
-equal(book.category:GetText(), "", "stale menu cannot select another ruleset's category")
-equal(#mail:Categories(), 0, "category choices exclude other rulesets")
-player.realm = "ClassicBetaPvE"
-MenuUtil = nil
-book.categoryChoose.OnClick()
-equal(book.category:GetText(), "Alts", "missing native menu cycles existing categories")
-book.categoryChoose.OnClick()
-equal(book.category:GetText(), "Friends", "fallback reaches next existing category")
-book.categoryChoose.OnClick()
-equal(book.category:GetText(), "", "fallback permits new category entry")
-MenuUtil = old.MenuUtil
+equal(mail:GroupDefinitions()[book.groupFilter].name, "Friends", "fallback reaches next named group")
+book.filterButton.OnClick()
+equal(book.groupFilter, nil, "fallback returns to all contacts")
+MenuUtil = previousFilterMenu
+equal(book.category, nil, "contact editor has no separate category field")
+equal(book.categoryChoose, nil, "contact editor has only the unified groups chooser")
 equal(mail:DeleteContact("110:guid:Old-Drock"), false, "standalone removal protects active character")
 equal(mail:SaveContact({ secret = true }, "Hidden Person", "", ""), nil, "restricted contact key rejected")
 player.realm = "ClassicBetaPvP"
@@ -815,7 +777,7 @@ equal(#mail:List(true, "Parcel"), 1, "PvP shows only its own matching contact")
 equal(mail:SaveContact(guided, "Guided Person", "", ""), nil, "stale PvE editor cannot change contact on PvP")
 player.realm = "ClassicBetaPvE"
 equal(#mail:List(true, "Parcel"), 1, "returning to PvE restores its contact only")
-equal(mail:Database()[renamedKey].category, "Friends", "switching rulesets preserves other contacts and categories")
+equal(mail:GroupDefinitions()[friendsGroup].contacts["110:name:pve:parcel courier"], true, "switching rulesets preserves other contact memberships")
 player.realm = "UnknownVariant"
 equal(mail:SaveContact(nil, "Unknown Person", "", ""), nil, "unknown ruleset blocks new contact")
 player.realm = "ClassicBetaPvE"
@@ -895,20 +857,23 @@ C_Club = {
 }
 C_GuildInfo = { GuildRoster = function() requests = requests + 1 end }
 mail:EndVisit(); MailFrame = NewMailFrame(); mail:Apply(); MailFrame:Show(); MailFrameTab_OnClick(nil, 2); Flush()
-equal(mail.frame:GetWidth(), 336, "mail contacts panel widened for three tabs")
-equal(mail.contactTabs.alts.label.text, "Alts", "first bucket tab label")
-equal(mail.contactTabs.guild.label.text, "Guild", "guild bucket tab label")
-equal(mail.contactTabs.other.label.text, "Other", "manual bucket tab label")
+equal(mail.frame:GetWidth(), 740, "shared Contacts window uses a narrower three-column layout")
 equal(requests, 1, "one roster refresh requested per mailbox visit")
+mail:SelectContactTab("alts")
 equal(#mail:ContactList(), 1, "alts contains account character without active player")
 equal(mail:ContactList()[1].key, altKey, "account identity takes priority over guild membership")
-mail.contactTabs.guild.OnClick()
+mail:SelectContactTab("guild")
 equal(#mail:ContactList(), 2, "guild includes offline members and deduplicates saved members")
 equal(mail.rows[1].name.textColor[1], 0.2, "saved guild recipient uses observed class color in mailbox")
 equal(mail.rows[2].name.textColor[3], 0.9, "unsaved guild member uses native class color in mailbox")
 equal(Stored("Guild Friend").class, "MAGE", "existing saved guild contact learns observed class")
-equal(mail.rows[1].remove:IsShown(), false, "guild rows have no misleading roster removal action")
+equal(mail.rows[1].remove, nil, "directory rows have no destructive roster action")
 equal(#mail:List(), 3, "live guild roster never seeds saved contacts")
+mail:EditContact()
+local guildClickSends = sends
+mail.rows[2].OnClick()
+equal(SendMailNameEditBox:GetText(), "Offline Member", "clicking unsaved guild row fills native To")
+equal(sends, guildClickSends, "guild-row click keeps sending manual")
 local guildRows = mail:ContactList()
 mail:Choose(guildRows[1].key)
 equal(SendMailNameEditBox:GetText(), "Guild Friend", "guild selection fills native full recipient")
@@ -921,7 +886,7 @@ mail:Refresh(); mail:Refresh()
 equal(rosterReads, beforeReads, "rendering never polls guild roster")
 mail.search:SetText("")
 mail.page, mail.confirm = 4, altKey
-mail.contactTabs.other.OnClick()
+mail:SelectContactTab("other")
 equal(mail.page, 1, "switching buckets resets pagination")
 equal(mail.confirm, nil, "switching buckets clears pending removal")
 equal(#mail:ContactList(), 1, "other excludes alts and guild members")
@@ -966,15 +931,13 @@ C_Club.GetClubMembers = function() rosterReads = rosterReads + 1; return { 1, 2,
 Suite.db.mailRememberRecipient = false; mail:Apply()
 book.filter, book.unassigned, book.tab = nil, false, "all"
 mail:OpenBook(); book.search:SetText("")
-equal(book.tabs.alts.label.text, "Alts", "book offers matching Alts tab")
-equal(book.tabs.guild.label.text, "Guild", "book offers matching Guild tab")
-equal(book.tabs.other.label.text, "Other", "book offers matching Other tab")
+equal(book.navigation.rows[1].entry.id, "all", "shared sidebar always offers All contacts")
 equal(mail.active, nil, "standalone groups do not enable mailbox features")
-book.tabs.alts.OnClick()
+mail:SelectContactTab("alts")
 equal(#mail:ContactList("alts", "", nil, true), 2, "book alts retain current identity and guild alt precedence")
 equal(book.rows[1].entry.group, "alts", "book renders selected group")
 book.page, book.confirm = 4, friendKey
-book.tabs.guild.OnClick()
+mail:SelectContactTab("guild")
 equal(book.page, 1, "book group switch resets paging")
 equal(book.confirm, nil, "book group switch clears removal confirmation")
 equal(#mail:ContactList("guild", "", nil, true), 2, "standalone guild includes offline and saved members once")
@@ -984,27 +947,27 @@ equal(book.rows[1].label.textColor[1], 0.2, "book Guild tab uses roster class co
 book.rows[1].OnClick()
 equal(book.key, nil, "guild selection does not use roster GUID as account identity")
 equal(book.remove.enabled, false, "unsaved guild member cannot be removed from roster")
-book.category:SetText("Friends"); book.notes:SetText("Guild note")
+book.groupChanges[mail:SaveGroup(nil, "Friends")] = true; book.notes:SetText("Guild note")
 book.save.OnClick()
 local guildSaved = mail:Database()[book.key]
 equal(guildSaved.guid, nil, "saving guild member does not misclassify it as an account alt")
 equal(guildSaved.notes, "Guild note", "saved guild member retains notes")
 equal(guildSaved.class, "MAGE", "new saved contact retains observed guild class")
-book.tabs.guild.OnClick(); book.search:SetText("Offline")
+mail:SelectContactTab("guild"); book.search:SetText("Offline")
 equal(book.rows[1].entry.roster, nil, "saved guild member is editable without duplicate live row")
 local bookReads = rosterReads
-mail:RefreshBook(); book.search:SetText(""); book.tabs.other.OnClick()
+mail:RefreshBook(); mail:SelectContactTab("all"); book.search:SetText("Friendly")
 equal(rosterReads, bookReads, "book render search and tabs do not poll guild")
-equal(book.rows[1].entry.group, "other", "Other shows saved non-guild contacts")
-book.tabs.guild.OnClick()
+equal(book.rows[1].entry.group, "other", "All includes saved non-guild contacts")
+mail:SelectContactTab("guild")
 SetCombat(true)
 roster[4] = nil
 book.events.OnEvent(book.events, "CLUB_MEMBERS_UPDATED")
 equal(rosterReads, bookReads, "standalone guild event defers in combat")
-book.tabs.other.OnClick()
+mail:SelectContactTab("all")
 equal(book.tab, "guild", "combat blocks book tab changes")
 DrainCombat()
-book.tabs.other.OnClick(); book.search:SetText("Offline")
+mail:SelectContactTab("all"); book.search:SetText("Offline")
 equal(book.rows[1].entry.name, "Offline Member", "saved departed guild member moves to Other")
 equal(book.rows[1].label.textColor[3], 0.9, "Other tab keeps class color after guild departure")
 book.events.OnEvent(book.events, "GUILD_ROSTER_UPDATE")
@@ -1072,7 +1035,7 @@ book.save.OnClick()
 equal(book.unassigned, false, "successful recovery returns to current contacts")
 equal(mail:Database()[recoveredOldKey], nil, "recovery replaces only the old unassigned address")
 equal(mail:Database()[book.key].notes, "Keep this note", "recovery preserves notes")
-equal(mail:Database()[book.key].category, "Friends", "recovery preserves category")
+equal(#mail:ContactList("category:Friends", "", nil, true), 1, "recovery preserves migrated named membership")
 equal(#mail:List(true, ""), 4, "explicit recovery makes one contact available for mail")
 equal(#mail:List(true, "", nil, true), 8, "remaining unassigned contacts remain stored")
 local colored = mail:Store("Colored Person", "PvE", 110, "Colored-Guid", "MAGE")
@@ -1117,6 +1080,534 @@ for cycle = 1, 3 do
     end
 end
 equal(Suite.Profiles.excluded.mailContacts, true, "settings profiles exclude persistent contacts")
+
+-- Custom parents combine categories, automatic groups and explicit contacts.
+Suite.db = Suite.InitializeDB(nil); Suite.db.mailHelper = true
+mail.query, mail.contactTab, mail.guildEntries = "", "alts", nil
+local groupAlt = mail:Store("Group Alt", "PvE", 110, "Group-Alt-GUID")
+local family = mail:SaveContact(nil, "Family Person", "Family", "")
+local friend = mail:SaveContact(nil, "Friend Person", "Friends", "")
+local extra = mail:SaveContact(nil, "Extra Person", "", "")
+local elsewhere = mail:Store("Remote Person", "PvP", 110)
+equal(mail:GroupVisible("alts"), true, "default Alts group remains visible")
+equal(mail:GroupVisible("category:Family"), false, "contact categories are opt-in tabs")
+local inner = mail:SaveGroup(nil, "Family and friends")
+local outer = mail:SaveGroup(nil, "Alts, family & friends")
+equal(mail:ToggleGroupMember(inner, "sources", "category:Family"), true, "parent includes Family category")
+equal(mail:ToggleGroupMember(inner, "sources", "category:Friends"), true, "parent includes Friends category")
+equal(mail:ToggleGroupMember(outer, "sources", inner), true, "parent includes another custom group")
+equal(mail:ToggleGroupMember(outer, "sources", "alts"), true, "parent includes all automatic alts")
+equal(mail:ToggleGroupMember(outer, "contacts", extra), true, "parent includes individual contact")
+equal(mail:ToggleGroupMember(outer, "contacts", family), true, "individual may overlap included category")
+equal(#mail:ContactList(outer, ""), 4, "nested union deduplicates overlapping membership")
+equal(#mail:ContactList(outer, "person"), 3, "custom groups preserve search")
+equal(mail:ToggleGroupMember(inner, "sources", outer), false, "parent loop is rejected")
+equal(mail:ToggleGroupMember(inner, "sources", inner), false, "self inclusion is rejected")
+equal(mail:ToggleGroupMember(outer, "contacts", elsewhere), false, "individuals cannot cross server types")
+equal(#mail:ContactList("category:Friends", ""), 1, "category can be used directly as a tab")
+mail:GroupSettings().custom[inner].sources[outer] = true
+equal(#mail:ContactList(outer, ""), 4, "malformed saved cycle terminates and keeps reachable contacts")
+mail:GroupSettings().custom[inner].sources[outer] = nil
+local newExtra = mail:SaveContact(extra, "Renamed Person", "", "")
+equal(#mail:ContactList(outer, "renamed"), 1, "direct membership survives a contact rename")
+equal(mail:SaveGroup(outer, "My people"), outer, "group rename keeps its identity")
+equal(mail:SaveGroup("alts", "Renamed alts"), nil, "built-in groups cannot be overwritten")
+equal(mail:SaveGroup(nil, "   "), nil, "empty group names are rejected")
+mail:SelectContactTab(outer)
+equal(mail.contactTab, outer, "new custom group is selectable in Send Mail")
+equal(book.filterSummary.text, "My people", "group navigation uses shared filter summary")
+local savedGroup = Suite.Copy(mail:GroupSettings())
+SetCombat(true)
+equal(mail:SaveGroup(nil, "Combat"), nil, "combat prevents group creation")
+equal(mail:ToggleGroupMember(outer, "sources", "guild"), false, "combat prevents group membership changes")
+mail:OpenGroups()
+equal(mail.groupEditor, nil, "combat prevents group editor creation")
+SetCombat(false)
+Suite.db = Suite.InitializeDB(Suite.Copy(Suite.db))
+equal(Suite.db.mailContacts.groups.custom[outer].name, savedGroup.custom[outer].name, "group definition survives saved-data initialization")
+equal(#mail:ContactList(outer, ""), 4, "nested and direct membership survive reload")
+player.realm = "ClassicBetaPvP"
+equal(#mail:ContactList(outer, ""), 0, "parent group preserves ruleset isolation")
+player.realm = "ClassicBetaPvE"
+mail:OpenGroups()
+local editor = mail.groupEditor
+equal(editor.frame:IsShown(), true, "group editor opens without sending mail")
+editor.id = outer; mail:RefreshGroups()
+local function GroupRow(list, key)
+    for page = 1, 20 do
+        list.page = page; list.refresh()
+        for _, row in ipairs(list.rows) do
+            if row.entry and (row.entry.key == key or row.entry.id == key) then return row end
+        end
+        if not list.next:IsEnabled() then break end
+    end
+    error("Missing visible group row: " .. tostring(key))
+end
+equal(GroupRow(editor.sourceList, "alts"):IsEnabled(), true, "custom group permits visible source editing")
+GroupRow(editor.sourceList, "alts").OnClick()
+equal(#mail:ContactList(outer, ""), 3, "source row removes automatic group membership")
+GroupRow(editor.sourceList, "alts").OnClick()
+equal(#mail:ContactList(outer, ""), 4, "source row restores automatic group membership")
+editor.search:SetText("Renamed Person")
+local directRow = GroupRow(editor.memberList, newExtra)
+equal(directRow.label.text, "[x] Renamed Person", "visible contact row identifies direct membership")
+SetCombat(true); directRow.OnClick(); SetCombat(false)
+equal(#mail:ContactList(outer, "renamed"), 1, "contact membership cannot change in combat")
+mail.guildEntries = { native = { name = "Native Person", region = 110, ruleset = "PvE" } }
+editor.search:SetText("Native Person")
+local nativeEntry = mail:ContactList("guild", "native")[1]
+GroupRow(editor.memberList, nativeEntry.key).OnClick()
+equal(#mail:ContactList(outer, "native"), 1, "visible member row can include session guild recipient")
+equal(Find("Native Person"), nil, "group membership does not silently save guild roster contacts")
+local nativeSaved = mail:SaveContact(nil, "Native Person", "", "")
+equal(#mail:ContactList(outer, "native"), 1, "explicit membership survives saving guild recipient to book")
+mail:DeleteContact(nativeSaved); mail.guildEntries = nil
+editor.search:SetText("")
+editor.visible.OnClick()
+equal(mail:GroupVisible(outer), false, "editor hides selected custom tab")
+equal(mail.contactTab, outer, "hiding a sidebar shortcut preserves the active group filter")
+editor.visible.OnClick()
+equal(mail:GroupVisible(outer), true, "editor restores selected custom tab")
+local function EditorClick(label)
+    for _, button in ipairs(editor.frame.children) do
+        if button.label and button.label.text == label then button.OnClick(); return end
+    end
+    error("Missing group editor control: " .. label)
+end
+EditorClick("Move up")
+local _, reordered = mail:GroupDefinitions()
+equal(reordered[#reordered - 1], outer, "group order can move earlier")
+for i = 1, 22 do mail:SaveGroup(nil, "Overflow group " .. i) end
+mail:Refresh()
+equal(#editor.navigation.rows, 10, "group navigation pools a bounded set of rows")
+editor.navigation.next.OnClick()
+equal(editor.navigation.page, 2, "additional groups are reachable by paging")
+local groupPage = editor.navigation.page
+SetCombat(true); editor.navigation.next.OnClick(); SetCombat(false)
+equal(editor.navigation.page, groupPage, "combat cannot change group page")
+mail:DeleteContact(newExtra)
+equal(#mail:ContactList(outer, ""), 3, "deleting direct contact removes it from union")
+editor.id = outer; mail:RefreshGroups(); editor.remove.OnClick()
+equal(mail:GroupDefinitions()[outer] ~= nil, true, "deleting group requires confirmation")
+editor.remove.OnClick()
+equal(mail:GroupDefinitions()[outer], nil, "confirmed deletion removes parent group")
+equal(#mail:ContactList(inner, ""), 2, "deleting parent preserves child group and contacts")
+for id in pairs(mail:GroupDefinitions()) do mail:GroupSettings().hidden[id] = true end
+mail:Refresh()
+equal(book.navigation.rows[1].entry.id, "all", "All remains accessible when every sidebar group is hidden")
+editor.frame:Hide()
+
+-- Contacts and Groups share one shell; switching preserves both drafts and placement.
+mail:OpenBook()
+local shell, shellPoint = book.frame, book.frame.point
+equal(book.content:GetParent(), shell, "contact content belongs to shared window")
+equal(editor.frame:GetParent(), shell, "groups content belongs to shared window")
+equal(book.editorTabs.contacts.label.text, "Contacts", "shared window has Contacts tab")
+equal(book.editorTabs.groups.label.text, "Groups", "shared window has Groups tab")
+book.name:SetText("Unsent Edit"); book.notes:SetText("Unsent notes")
+book.editorTabs.groups.OnClick()
+equal(mail.editorTab, "groups", "Groups tab selects group editor")
+equal(book.content:IsShown(), false, "group tab hides all contact controls together")
+equal(editor.frame:IsShown(), true, "group tab reveals group controls")
+equal(shell.point, shellPoint, "tab change preserves shared window placement")
+editor.name:SetText("Unsent group")
+book.editorTabs.contacts.OnClick()
+equal(book.name:GetText(), "Unsent Edit", "contact name draft survives tab switch")
+equal(book.notes:GetText(), "Unsent notes", "contact notes draft survives tab switch")
+equal(editor.frame:IsShown(), false, "Contacts tab hides group controls together")
+book.editorTabs.groups.OnClick()
+equal(editor.name:GetText(), "Unsent group", "group name draft survives tab switch")
+mail:OpenBook(mail.frame)
+equal(mail.editorTab, "contacts", "mailbox Contact book entry selects Contacts")
+mail:OpenGroups(mail.frame)
+equal(mail.editorTab, "groups", "mailbox Groups entry selects Groups in same window")
+equal(book.frame, shell, "both entry points reuse one window")
+equal(shell.point, shellPoint, "mailbox entry points preserve already-open window placement")
+SetCombat(true)
+book.editorTabs.contacts.OnClick(); mail:OpenBook(); mail:OpenGroups()
+SetCombat(false)
+equal(mail.editorTab, "groups", "combat blocks tab and entry-point changes")
+equal(shell.point, shellPoint, "combat preserves shared placement")
+book.close.OnClick()
+equal(shell:IsShown(), false, "one close button hides shared window")
+equal(editor.frame:IsShown(), false, "shared close hides groups content")
+equal(next(book.events.registered), nil, "shared close releases roster events from Groups tab")
+mail:OpenGroups()
+equal(shell:IsShown(), true, "Groups entry reopens shared window")
+equal(mail.editorTab, "groups", "Groups reopen selects matching tab")
+editor.name.OnEscapePressed()
+equal(shell:IsShown(), false, "Escape in group input closes shared shell")
+mail:OpenBook()
+equal(mail.editorTab, "contacts", "Contact book reopen selects Contacts")
+book.name.OnEscapePressed()
+equal(shell:IsShown(), false, "Escape in contact input closes shared shell")
+
+local existingBook, existingEditor = mail.book, mail.groupEditor
+mail.book, mail.groupEditor = nil, nil
+local beforeGroupFirst = constructed
+SetCombat(true); mail:OpenGroups(); SetCombat(false)
+equal(constructed, beforeGroupFirst, "combat defers shared shell construction from Groups entry")
+Suite.db.mailHelper, Suite.db.mailRememberRecipient = false, false
+mail:OpenGroups()
+equal(mail.editorTab, "groups", "Groups-first opening initializes shared shell and correct tab")
+equal(mail.groupEditor.frame:GetParent(), mail.book.frame, "Groups-first builds a child pane rather than a second window")
+equal(mail.book.content:IsShown(), false, "Groups-first leaves contact pane hidden")
+equal(mail.book.frame:IsShown(), true, "Groups-first shows shared shell with helpers off")
+equal(mail.book.events.registered.GUILD_ROSTER_UPDATE, true, "Groups-first retains visible shared roster listening")
+local groupFirstShell = mail.book.frame
+mail.book.editorTabs.contacts.OnClick()
+equal(mail.book.frame, groupFirstShell, "Groups-first Contacts switch retains original shell")
+equal(mail.book.content:IsShown(), true, "Groups-first Contacts switch reveals contact pane")
+equal(mail.groupEditor.frame:IsShown(), false, "Groups-first Contacts switch hides group pane")
+mail.book.close.OnClick()
+equal(next(mail.book.events.registered), nil, "closing Groups-first shell removes roster listeners")
+mail.book, mail.groupEditor = existingBook, existingEditor
+
+-- Named groups are visible in the contact filter even before first assignment.
+Suite.db = Suite.InitializeDB(nil); player.realm, player.region = "ClassicBetaPvE", 110
+book.filter, book.groupFilter, book.unassigned, book.tab = nil, nil, false, "all"
+mail.query, mail.guildEntries = "", nil
+local assignedGroup = mail:SaveGroup(nil, "My friends")
+local secondGroup = mail:SaveGroup(nil, "Family")
+local parentGroup = mail:SaveGroup(nil, "Everyone close")
+mail:ToggleGroupMember(parentGroup, "sources", assignedGroup)
+mail:OpenBook(); book.search:SetText("")
+local contactMenus = {}
+MenuUtil = { CreateContextMenu = function(owner, generate)
+    contactMenus = {}
+    generate(owner, {
+        CreateButton = function(_, label, callback) contactMenus[label] = { callback = callback } end,
+        CreateCheckbox = function(_, label, checked, callback) contactMenus[label] = { checked = checked, callback = callback } end,
+    })
+end }
+book.filterButton.OnClick()
+equal(contactMenus["My friends"] ~= nil, true, "empty newly created group appears in Custom dropdown")
+contactMenus["My friends"].callback()
+equal(book.groupFilter, assignedGroup, "Custom dropdown selects exact custom group")
+equal(book.filterSummary.text, "My friends", "selected custom name is visible above contact rows")
+equal(book.empty:IsShown(), true, "empty group filter truthfully has no contacts")
+mail:SelectContactTab("all")
+equal(book.groupFilter, nil, "All button clears custom filter")
+mail:EditContact(); book.name:SetText("Named Person")
+book.groupsChoose.OnClick()
+equal(contactMenus["My friends"].checked(), false, "contact chooser offers new group unchecked")
+contactMenus["My friends"].callback(); contactMenus.Family.callback()
+equal(#mail:ContactList(assignedGroup, ""), 0, "contact group choices remain drafts until Save")
+book.editorTabs.groups.OnClick(); book.editorTabs.contacts.OnClick()
+equal(book.groupChoices[assignedGroup], true, "group assignment draft survives editor tab changes")
+equal(book.name:GetText(), "Named Person", "new contact name survives group assignment tab changes")
+book.save.OnClick()
+local namedKey = book.key
+equal(#mail:ContactList(assignedGroup, ""), 1, "Save adds contact to selected custom group")
+equal(#mail:ContactList(secondGroup, ""), 1, "Save supports multiple groups on one contact")
+equal(book.rows[1].detail.text:find("My friends", 1, true) ~= nil, true, "contact row displays its saved custom memberships")
+equal(#mail:ContactList(parentGroup, ""), 1, "direct group assignment also appears in parent filter")
+book.filterButton.OnClick(); contactMenus["Everyone close"].callback()
+equal(book.rows[1].entry.key, namedKey, "parent filter renders newly assigned contact")
+book.search:SetText("absent")
+equal(book.empty:IsShown(), true, "search combines with custom group filter")
+book.search:SetText("")
+mail:SelectContactTab("alts")
+equal(book.groupFilter, nil, "Alts clears custom group selection")
+mail:SelectContactTab("all"); mail:EditContact(Find("Named Person"))
+book.groupsChoose.OnClick()
+equal(contactMenus["My friends"].checked(), true, "saved assignment appears checked on selected contact")
+local staleAssignment = contactMenus["My friends"].callback
+SetCombat(true); staleAssignment(); SetCombat(false)
+equal(book.groupChoices[assignedGroup], true, "combat prevents contact assignment edits")
+book.editorTabs.groups.OnClick(); staleAssignment(); book.editorTabs.contacts.OnClick()
+equal(book.groupChoices[assignedGroup], true, "hidden contact pane rejects stale group chooser")
+book.groupsChoose.OnClick(); contactMenus["My friends"].callback()
+equal(#mail:ContactList(assignedGroup, ""), 1, "unchecking group waits for Save")
+book.save.OnClick()
+equal(#mail:ContactList(assignedGroup, ""), 0, "Save removes unchecked direct membership")
+equal(#mail:ContactList(secondGroup, ""), 1, "saving one changed membership preserves other groups")
+book.groupsChoose.OnClick()
+local staleContactChoice = contactMenus.Family.callback
+mail:EditContact(); staleContactChoice()
+equal(book.groupChoices[secondGroup], false, "menu from prior contact cannot change new contact draft")
+local legacyCategory = mail:SaveContact(nil, "Category Person", "Old category", "")
+book.filterButton.OnClick()
+equal(contactMenus["Old category"] ~= nil, true, "Custom dropdown also lists existing contact categories")
+contactMenus["Old category"].callback()
+equal(mail:GroupDefinitions()[book.groupFilter].name, "Old category", "legacy category is a named group")
+equal(book.filter, nil, "legacy category uses unified group filter")
+equal(book.rows[1].entry.key, legacyCategory, "legacy category dropdown filters correct contact")
+book.filterButton.OnClick()
+local staleFilter = contactMenus["Family"].callback
+player.realm = "ClassicBetaPvP"; staleFilter(); player.realm = "ClassicBetaPvE"
+equal(mail:GroupDefinitions()[book.groupFilter].name, "Old category", "stale filter cannot cross server-type context")
+staleFilter()
+equal(book.groupFilter, secondGroup, "current scoped group filter works")
+mail:SaveGroup(secondGroup, "Relatives"); mail:RefreshBook()
+equal(book.filterSummary.text, "Relatives", "active group filter follows renamed group identity")
+equal(mail:SaveContact(nil, "Bad Choices", "", "", { secret = true }), nil, "unreadable membership changes fail before contact save")
+book.close.OnClick(); MenuUtil = old.MenuUtil
+
+-- Adopt category metadata into the same named groups, across every scope.
+Suite.db = Suite.InitializeDB(nil); player.realm, player.region = "ClassicBetaPvE", 110
+local oldFamily = mail:Store("Old Person", "PvE", 110)
+local caseFamily = mail:Store("Case Person", "PvE", 110)
+local pvpFamily = mail:Store("Pvp Family", "PvP", 110)
+local remoteFamily = mail:Store("Remote Family", "PvE", 1)
+local unknownFamily = mail:Store("Unknown Family", nil, 110)
+local keptFriend = mail:Store("Saved Friend", "PvE", 110)
+local mergedFriend = mail:Store("Second Friend", "PvE", 110)
+for _, key in ipairs({ oldFamily, pvpFamily, remoteFamily, unknownFamily }) do mail:Database()[key].category = "Family" end
+mail:Database()[caseFamily].category = " family "
+Suite.db.mailContacts.groups = {
+    custom = {
+        ["custom:7"] = { name = "Family", contacts = { [keptFriend] = true }, sources = { alts = true } },
+        ["custom:8"] = { name = " family ", contacts = { [mergedFriend] = true }, sources = { ["custom:9"] = true } },
+        ["custom:9"] = { name = "Close", sources = { ["custom:8"] = true, ["category:Family"] = true } },
+    }, order = { "category:Family", "custom:8", "custom:9" }, hidden = { ["category:Family"] = false },
+}
+SetCombat(true); mail:GroupSettings(); SetCombat(false)
+equal(Suite.db.mailContacts.groups.categoryAliases.Family, nil, "combat does not adopt saved category assignments")
+local unified, unifiedOrder = mail:GroupDefinitions()
+local familyID = mail:GroupSettings().categoryAliases.Family
+equal(familyID, "custom:7", "legacy category reuses existing same-name group")
+equal(unified["custom:8"], nil, "pre-existing duplicate group names merge")
+equal(unifiedOrder[1], familyID, "category and duplicate order references resolve to one group")
+equal(unifiedOrder[2], "custom:9", "merged group retains parent ordering")
+equal(mail:GroupVisible(familyID), true, "old visible category remains a visible unified group")
+equal(#mail:ContactList(familyID, "", nil, true), 4, "merged group unions both categories and existing direct members")
+equal(#mail:ContactList("custom:9", "", nil, true), 4, "old category/duplicate parent links retain their union and terminate merged cycles")
+equal(mail:GroupSettings().categoryAliases[" family "], familyID, "category names merge ignoring case and outer whitespace")
+equal(mail:SaveGroup(nil, "FAMILY"), familyID, "creating same name reuses group instead of another list entry")
+equal(mail:SaveGroup("custom:9", "Family"), nil, "rename cannot introduce duplicate group names")
+equal(mail:ToggleGroupMember(familyID, "sources", "category:Family"), false, "legacy category aliases cannot bypass parent self-inclusion guard")
+player.realm = "ClassicBetaPvP"
+equal(#mail:ContactList(familyID, "", nil, true), 1, "category adoption preserves PvP scope")
+player.realm, player.region = "ClassicBetaPvE", 1
+equal(#mail:ContactList(familyID, "", nil, true), 1, "category adoption preserves region scope")
+player.region = 110
+mail:ToggleGroupMember(familyID, "contacts", oldFamily)
+mail:Store("Old Person", "PvE", 110)
+Suite.db = Suite.InitializeDB(Suite.Copy(Suite.db))
+equal(#mail:ContactList(familyID, "Old Person", nil, true), 0, "removed old-category assignment is not reimported by Store or reload")
+equal(#mail:ContactList(familyID, "", nil, true), 3, "other unified memberships survive reload")
+book.filter, book.groupFilter, book.unassigned, book.tab = nil, nil, false, "all"
+mail:OpenBook(); book.search:SetText("")
+local unifiedMenu, menuNameCounts = {}, {}
+MenuUtil = { CreateContextMenu = function(owner, generate)
+    unifiedMenu = {}; menuNameCounts = {}
+    generate(owner, {
+        CreateButton = function(_, label, callback) unifiedMenu[label] = { callback = callback }; menuNameCounts[label] = (menuNameCounts[label] or 0) + 1 end,
+        CreateCheckbox = function(_, label, checked, callback) unifiedMenu[label] = { checked = checked, callback = callback }; menuNameCounts[label] = (menuNameCounts[label] or 0) + 1 end,
+    })
+end }
+book.filterButton.OnClick()
+equal(menuNameCounts.Family, 1, "Custom shows one plain Family name after category/group merge")
+equal(unifiedMenu["Family (group)"], nil, "Custom does not distinguish category and group labels")
+unifiedMenu.Family.callback()
+equal(book.groupFilter, familyID, "plain Custom choice selects canonical unified group")
+mail:EditContact(Find("Case Person")); book.groupsChoose.OnClick()
+equal(menuNameCounts.Family, 1, "contact chooser uses the same single Family entry")
+equal(unifiedMenu.Family.checked(), true, "migrated category membership is checked on contact")
+unifiedMenu.Family.callback(); book.save.OnClick()
+equal(#mail:ContactList(familyID, "Case Person", nil, true), 0, "unchecking migrated category membership uses ordinary group Save")
+book.unassigned, book.groupFilter = true, familyID; mail:RefreshBook()
+equal(book.rows[1].entry.key, unknownFamily, "unassigned recovery can filter adopted group membership without exposing other scope")
+book.unassigned = false
+mail:SelectEditorTab("groups"); mail.groupEditor.id = familyID; mail:RefreshGroups()
+mail.groupEditor.remove.OnClick(); mail.groupEditor.remove.OnClick()
+Suite.db = Suite.InitializeDB(Suite.Copy(Suite.db))
+equal(mail:GroupDefinitions()[familyID], nil, "deleted adopted group does not resurrect from retained legacy metadata")
+local laterGroup = mail:SaveGroup(nil, "Later")
+equal(laterGroup ~= familyID, true, "deleted adopted IDs are not reused by new groups")
+equal(mail:GroupDefinitions()["category:Family"], nil, "old category alias cannot select a newly created unrelated group")
+book.close.OnClick(); MenuUtil = old.MenuUtil
+
+-- Unified directory: a saved contact is immediately addressable with no transfer step.
+Suite.db = Suite.InitializeDB(nil); mail:Apply(); mail:EndVisit()
+MailFrame = NewMailFrame(); SendMailFrame:Hide(); book.frame:Hide()
+mail.guildEntries, mail.dismissed = nil, nil
+mail:OpenBook(); mail:SelectContactTab("all"); book.search:SetText(""); mail:EditContact()
+mail:SaveContact(nil, "Scope Guard", "", "")
+local unifiedShell, unifiedWrites, unifiedSends = book.frame, writes, sends
+for _, pane in ipairs({ book.content, book.preferences, editor.frame }) do
+    for _, child in ipairs(pane.children) do
+        local point = child.point
+        if point and point[1] == "TOPLEFT" and type(point[2]) == "number" and type(point[3]) == "number"
+            and child:GetWidth() > 0 and child:GetHeight() > 0 then
+            equal(point[2] >= 0 and point[2] + child:GetWidth() <= pane:GetWidth(), true, "directory control fits pane width")
+            equal(point[3] <= 0 and -point[3] + child:GetHeight() <= pane:GetHeight(), true, "directory control fits pane height")
+        end
+    end
+end
+equal(book.editorTabs.preferences.label.text, "Preferences", "shared directory includes Preferences tab")
+equal(book.use:IsEnabled(), false, "standalone directory cannot fill a closed mailbox")
+local priorEntry = book.entry
+local staleRow = book.rows[1]
+equal(type(staleRow.entry), "table", "stale-row fixture has a rendered scoped contact")
+player.realm = "ClassicBetaPvP"; staleRow.OnClick(); player.realm = "ClassicBetaPvE"
+equal(book.entry, priorEntry, "stale contact row cannot select a contact under another server type")
+book.name:SetText("Ready Recipient"); book.notes:SetText("Available immediately")
+equal(book.editState.text, "Unsaved changes", "editing clearly marks unsaved changes")
+book.save.OnClick()
+local readyKey = book.key
+equal(type(readyKey), "string", "standalone save creates a persistent contact")
+equal(book.dirty, nil, "successful save clears dirty state")
+equal(book.entry.key, readyKey, "saved contact remains selected")
+equal(#mail:ContactList("all", "Ready Recipient"), 1, "saved contact is immediately in the recipient directory")
+equal(writes, unifiedWrites, "saving never writes native To")
+equal(sends, unifiedSends, "saving never sends mail")
+Suite.db.mailHelper = true; mail:Apply(); MailFrame:Show(); MailFrameTab_OnClick(nil, 2)
+equal(mail.frame, unifiedShell, "opening Send Mail reuses standalone window")
+equal(book.use:IsEnabled(), true, "saved selection becomes usable when Send Mail opens")
+mail:EditContact()
+book.name.OnTextChanged(book.name, false); book.notes.OnTextChanged(book.notes, false)
+equal(book.dirty, nil, "empty editor stays clean after delayed native text notifications")
+book.dirty = true -- Reproduce the screenshot's stale blank-editor dirty flag.
+book.search:SetText("Ready Recipient")
+local rowWrites = writes
+book.rows[1].OnClick()
+equal(SendMailNameEditBox:GetText(), "Ready Recipient", "single contact-row click fills native To")
+equal(writes, rowWrites + 1, "row click writes native To exactly once")
+equal(book.entry.key, readyKey, "clean row click also selects contact details")
+equal(book.dirty, nil, "row click clears a false dirty flag by comparing actual fields")
+equal(sends, unifiedSends, "row click never sends mail")
+book.name.OnTextChanged(book.name, false); book.notes.OnTextChanged(book.notes, false)
+equal(book.dirty, nil, "saved selection stays clean after late programmatic text callbacks")
+book.notes:SetText("Temporary edit"); equal(book.dirty, true, "real text changes are dirty")
+book.notes:SetText("Available immediately"); equal(book.dirty, nil, "restoring original text clears dirty state")
+book.search:SetText("")
+book.use.OnClick()
+equal(SendMailNameEditBox:GetText(), "Ready Recipient", "explicit recipient action fills native To")
+equal(book.frame, unifiedShell, "recipient action retains the same shell")
+equal(sends, unifiedSends, "recipient action never sends")
+local keepPoint = book.frame.point
+book.name:SetText("Unsaved Recipient")
+equal(book.use:IsEnabled(), false, "unsaved address edits disable recipient action")
+local beforeDraftUse = writes; book.use.OnClick()
+equal(writes, beforeDraftUse, "stale enabled recipient click cannot use a dirty draft")
+book.search:SetText("Scope Guard")
+book.rows[1].OnClick()
+equal(book.name:GetText(), "Unsaved Recipient", "selecting a row cannot discard a draft")
+equal(SendMailNameEditBox:GetText(), "Scope Guard", "mailbox row click addresses a different saved row while retaining editor draft")
+equal(book.entry.key, readyKey, "addressing a different row preserves the draft owner")
+book.search:SetText("")
+mail:SelectContactTab("guild"); mail:SelectContactTab("all")
+equal(book.name:GetText(), "Unsaved Recipient", "filter changes retain contact draft")
+book.editorTabs.preferences.OnClick()
+equal(book.content:IsShown(), false, "Preferences hides Contacts pane")
+equal(editor.frame:IsShown(), false, "Preferences hides Groups pane")
+equal(book.preferences:IsShown(), true, "Preferences has its own child pane")
+book.editorTabs.contacts.OnClick()
+equal(book.name:GetText(), "Unsaved Recipient", "Preferences round trip preserves draft")
+equal(book.frame.point, keepPoint, "tab and filter changes preserve placement")
+book.cancel.OnClick()
+equal(book.name:GetText(), "Ready Recipient", "Cancel restores selected saved address")
+equal(book.use:IsEnabled(), true, "Cancel restores recipient availability")
+book.notes:SetText("Invalid scope draft"); player.realm = "ClassicBetaPvP"; book.save.OnClick()
+equal(mail:Database()[readyKey].notes, "Available immediately", "scope changes cannot save a draft under another server type")
+equal(book.dirty, true, "scope rejection retains draft")
+player.realm = "ClassicBetaPvE"; book.cancel.OnClick()
+
+local directGroup = mail:SaveGroup(nil, "Delivery")
+local includedGroup = mail:SaveGroup(nil, "Friends of delivery")
+mail:ToggleGroupMember(directGroup, "contacts", readyKey)
+mail:ToggleGroupMember(includedGroup, "sources", directGroup)
+mail:OpenGroups(); editor.id, editor.loadedID = includedGroup, nil; mail:RefreshGroups()
+editor.search:SetText("Ready Recipient")
+local inheritedRow = GroupRow(editor.memberList, readyKey)
+equal(inheritedRow.label.text, "[via] Ready Recipient", "visible membership distinguishes inherited contacts")
+inheritedRow.OnEnter()
+equal(editor.status.text:find("Delivery", 1, true) ~= nil, true, "inherited membership explains its source")
+inheritedRow.OnClick()
+equal(GroupRow(editor.memberList, readyKey).label.text, "[x] Ready Recipient", "inherited contact can also be a direct member")
+GroupRow(editor.memberList, readyKey).OnClick()
+equal(GroupRow(editor.memberList, readyKey).label.text, "[via] Ready Recipient", "removing direct membership preserves inherited membership")
+equal(mail:Database()[readyKey] ~= nil, true, "removing membership keeps saved contact")
+local staleSource = GroupRow(editor.sourceList, directGroup)
+player.realm = "ClassicBetaPvP"; staleSource.OnClick(); player.realm = "ClassicBetaPvE"
+equal(#mail:ContactList(includedGroup, "Ready Recipient"), 1, "stale membership rows cannot mutate another scope")
+book.editorTabs.contacts.OnClick(); staleSource.OnClick()
+equal(#mail:ContactList(includedGroup, "Ready Recipient"), 1, "hidden Groups pane rejects stale membership clicks")
+mail:SelectContactTab(directGroup); book.search:SetText(""); book.new.OnClick()
+equal(book.groupChoices[directGroup], true, "new contact preselects currently viewed custom group")
+equal(book.dirty, true, "preselected group membership is an unsaved contact draft")
+equal(book.cancel:IsEnabled(), true, "preselected membership can be cancelled before entering a name")
+book.name:SetText("Second Recipient"); book.save.OnClick()
+equal(#mail:ContactList(directGroup, "Second Recipient"), 1, "saving in a group assigns membership in the same operation")
+equal(book.use:IsEnabled(), true, "newly saved grouped contact is immediately usable")
+book.use.OnClick()
+equal(SendMailNameEditBox:GetText(), "Second Recipient", "grouped contact fills To without a separate publishing step")
+book.editorTabs.preferences.OnClick(); book.details.OnClick()
+equal(book.rows[1].detail:IsShown(), false, "row detail preference applies to shared list")
+local preferenceCopy = Suite.Copy(Suite.db)
+Suite.db = Suite.InitializeDB(preferenceCopy)
+equal(mail:GroupSettings().hideDetails, true, "directory preference survives settings reload")
+book.editorTabs.contacts.OnClick(); mail:SelectContactTab("all")
+mail.sortButtons.level.OnClick()
+equal(mail:GroupSettings().sort, "level", "sort choice is saved with contact preferences")
+local savedSort = Suite.Copy(Suite.db); Suite.db = Suite.InitializeDB(savedSort)
+equal(mail:GroupSettings().ascending, false, "sort direction persists")
+MailFrame:Hide(); Fire("MAIL_CLOSED"); Flush()
+equal(book.frame:IsShown(), true, "standalone-opened directory stays available after mailbox closes")
+equal(book.use:IsEnabled(), false, "mailbox close disables recipient action immediately")
+book.close.OnClick(); mail:OpenBook(MailFrame)
+MailFrame:Show(); MailFrameTab_OnClick(nil, 2)
+book.close.OnClick(); mail:Schedule(); Flush()
+equal(book.frame:IsShown(), false, "explicit close is respected by queued mailbox refreshes")
+MailFrame:Hide(); Fire("MAIL_CLOSED"); MailFrame:Show(); MailFrameTab_OnClick(nil, 2)
+equal(book.frame:IsShown(), true, "a fresh mailbox visit restores automatic Contacts opening")
+equal(book.mailbox, true, "automatic opening records mailbox lifecycle ownership")
+MailFrameTab_OnClick(nil, 1)
+equal(book.frame:IsShown(), false, "Inbox hides a mailbox-opened directory")
+MailFrameTab_OnClick(nil, 2)
+equal(book.frame:IsShown(), true, "Send Mail restores a mailbox-opened directory")
+MailFrame:Hide(); Fire("MAIL_CLOSED")
+equal(book.frame:IsShown(), false, "mailbox-opened directory closes with mailbox")
+mail:OpenBook(); mail:EditContact(); book.search:SetText(""); mail:SelectContactTab("all")
+local widthGetter, heightGetter = UIParent.GetWidth, UIParent.GetHeight
+book.frame:Hide(); UIParent.GetWidth = function() return 680 end; UIParent.GetHeight = function() return 600 end
+mail:OpenBook()
+equal(book.frame:GetScale() < 1, true, "small viewports fit the whole directory")
+UIParent.GetWidth, UIParent.GetHeight = widthGetter, heightGetter
+book.close.OnClick()
+equal(book.timer, nil, "closing shared directory leaves no roster timer")
+equal(next(book.events.registered), nil, "closing shared directory releases all visible-only events")
+Suite.db.mailHelper, Suite.db.mailRememberRecipient = false, false; mail:Apply(); Flush()
+
+-- Multiline notes retain a fixed visible editor and survive every storage path.
+mail:OpenBook(); mail:EditContact(); mail:SelectContactTab("all"); book.search:SetText("")
+equal(book.notesPanel:GetHeight(), 100, "notes backdrop has a fixed readable height")
+equal(book.notesScroll:GetParent(), book.notesPanel, "notes viewport stays inside fixed backdrop")
+equal(book.notes:GetParent(), book.notesScroll, "multiline input is a scroll child")
+equal(book.notes.OnEnterPressed, nil, "Enter retains native multiline newline behavior")
+book.notes:SetHeight(12)
+equal(book.notesPanel:GetHeight(), 100, "empty multiline text cannot collapse its backdrop")
+book.notesPanel.OnMouseDown()
+equal(book.notes.focused, true, "clicking blank notes area focuses its input")
+book.notes:SetHeight(240); book.notes.OnCursorChanged(book.notes, 0, -180, 1, 14)
+equal(book.notesScroll.offset, 110, "cursor movement scrolls overflowing notes into view")
+book.notes.OnMouseWheel(book.notes, -1)
+equal(book.notesScroll.offset, 134, "notes wheel scrolls within the viewport")
+book.notes:SetHeight(12); book.notes.OnSizeChanged()
+equal(book.notesScroll.offset, 0, "shrinking notes clamps stale scroll offset")
+equal(book.use:GetFrameLevel() > book.notes:GetFrameLevel(), true, "recipient action stays clickable above overflowing notes")
+book.name:SetText("Multiline Writer"); book.notes:SetText("First line\nSecond line\nThird line")
+book.save.OnClick()
+local notesKey, multiline = book.key, "First line\nSecond line\nThird line"
+equal(type(notesKey), "string", "multiline notes can be saved through contact editor")
+equal(mail:Database()[notesKey].notes, multiline, "Save preserves embedded newlines")
+mail:Store("Multiline Writer", "PvE", 110)
+equal(mail:Database()[notesKey].notes, multiline, "automatic contact updates preserve multiline notes")
+Suite.db = Suite.InitializeDB(Suite.Copy(Suite.db))
+equal(Find("Multiline Writer").notes, multiline, "multiline notes survive reload and list validation")
+equal(#mail:List(true, "Second line"), 1, "search finds text on later note lines")
+local normalized = mail:SaveContact(notesKey, "Multiline Writer", "", "First\r\nSecond\rThird")
+equal(normalized, notesKey, "pasted platform line endings are accepted")
+equal(mail:Database()[notesKey].notes, "First\nSecond\nThird", "pasted line endings normalize to newlines")
+for _, bad in ipairs({ "Bad|markup", "Bad" .. string.char(1), string.rep("x", 241) }) do
+    equal(mail:SaveContact(notesKey, "Multiline Writer", "", bad), nil, "notes still reject markup, unsafe controls and excessive length")
+end
+local bounded = string.rep("a", 119) .. "\n" .. string.rep("b", 120)
+equal(mail:SaveContact(notesKey, "Multiline Writer", "", bounded), notesKey, "240-character multiline notes retain the existing limit")
+book.close.OnClick()
+
 local unknownBook = { schema = 99, entries = { keep = { name = "Permanent Unknown", category = "Friends" } }, removed = {} }
 Suite.db.mailContacts = unknownBook
 mail:Database()

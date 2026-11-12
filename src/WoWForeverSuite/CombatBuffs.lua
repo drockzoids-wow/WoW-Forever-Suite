@@ -447,8 +447,20 @@ end
 function Combat:RefreshVisibility(event)
     if InCombatLockdown() then self:SetPreview(false) end
     if not self.frame then return end
-    if (event == "GROUP_ROSTER_UPDATE" or event == "UNIT_CONNECTION" or event == "PLAYER_ENTERING_WORLD")
-        and InCombatLockdown() then self.suspended = true end
+    if InCombatLockdown() then
+        if event == "PLAYER_ENTERING_WORLD" then
+            self.suspended = true
+        elseif event == "GROUP_ROSTER_UPDATE" or event == "UNIT_CONNECTION" then
+            -- Notifications do not imply that a prepared unit token changed.
+            -- Only public identity is checked here, never aura/display state.
+            for _, key in ipairs(self.order or {}) do
+                for _, member in ipairs(self.records[key].descriptor.members) do
+                    local guid = Call(UnitGUID, member.unit)
+                    if not Read(guid, "string") or guid ~= member.guid then self.suspended = true end
+                end
+            end
+        end
+    end
     local allowed = InCombatLockdown() and Enabled() and not self.suspended and (self.count or 0) > 0
         and Call(UnitIsDeadOrGhost, "player") == false
     -- The host is transparent, contains no protected widgets and has no input.

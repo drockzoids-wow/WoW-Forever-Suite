@@ -41,7 +41,7 @@ local extras = {
     { page = "appearance", key = "customBorderColor", label = "Choose custom border color", target = "borderColorButton", words = "appearance theme wheel swatch picker rgb hex colour" },
     { page = "profiles", key = "settingsProfiles", label = "Settings and layout profiles", target = "profilePanel", words = "default shared personal character overrides copy rename switch setup" },
     { page = "characters", key = "inventoryBrowser", label = "Browse recorded inventory", target = "characterPanel", words = "items owners bags bank shared snapshots dates favorites saved searches" },
-    { page = "castbars", key = "castbarSizes", label = "Castbar sizes and preview", target = "castbarPanel", words = "player target focus casting width height resize preview" },
+    { page = "castbars", key = "castbarSizes", label = "Castbar sizes and preview", target = "castbarPanel", words = "player target focus casting width height resize preview match matching manual" },
     { page = "professions", key = "disenchantModifier", label = "Disenchant modifier key", words = "alt ctrl shift enchanting profession" },
     { page = "actionbars", key = "shortKeybinds", label = "Short keybind labels", target = "keybindControls.shortKeybinds", words = "bindings shortcuts abbreviations" },
     { page = "actionbars", key = "keybindFontStyle", label = "Custom keybind font", target = "keybindControls.keybindFontStyle" },
@@ -135,35 +135,28 @@ function Catalog:Configure(pages)
     old[3].help = "Record bank contents when you visit a bank.\nBrowse the last saved view from anywhere."
     old[4].help = "Open your saved bank. Browsing cannot move items."
     old[5].help = "Assign a shortcut in Blizzard's Keybindings settings."
-    -- Views retain the original setting keys and row identities; no saved choice is migrated.
-    pages.bags.views = { { key = "tools", label = "Bag tools" }, { key = "inventory", label = "Recorded inventory" } }
-    for i, row in ipairs(pages.bags.rows) do row.view = i >= 2 and i <= 6 and "inventory" or "tools" end
-    pages.items.views = { { key = "levels", label = "Item levels" }, { key = "upgrades", label = "Upgrades" }, { key = "equipment", label = "Equipment sets" } }
-    for i, row in ipairs(pages.items.rows) do row.view = i <= 3 and "levels" or i <= 7 and "upgrades" or "equipment" end
-    pages.actionbars.views = { { key = "appearance", label = "Appearance" }, { key = "feedback", label = "Range & procs" }, { key = "keybinds", label = "Keybind text" } }
-    for i, row in ipairs(pages.actionbars.rows) do row.view = i == 2 and "appearance" or "feedback" end
-    pages.buffs.views = { { key = "reminders", label = "Reminders" }, { key = "visibility", label = "Visibility" }, { key = "appearance", label = "Appearance" },
-        { key = "choices", label = "Buff choices", secondary = true }, { key = "spells", label = "Custom spells", secondary = true } }
-    for i, row in ipairs(pages.buffs.rows) do
-        row.view = (i == 9 or i == 10) and "visibility" or (i == 6 or i == 7) and "appearance" or "reminders"
-    end
-    pages.buffs.rows[1].view = nil
-    pages.buffs.rows[6].hidden, pages.buffs.rows[7].hidden = true, true -- Preview and reset are beside the appearance controls.
-    pages.buffs.rows[15].hidden = true -- Legacy action remains available to existing callers.
-    pages.buffs.rows[#pages.buffs.rows + 1] = { key = "missingBuffSmart", view = "reminders", label = "Class-aware buff targets",
+    -- Retain original setting keys and row identities; no saved choice is migrated.
+    -- Feature pages use inline sections rather than another layer of tabs.
+    self.sections.bags = { [1] = "Bag tools", [2] = "Recorded inventory", [4] = "Bank snapshots", [7] = "Bag space & organization", [12] = "Bank deposits" }
+    self.sections.items = { [1] = "Item levels", [4] = "Upgrade comparisons", [8] = "Equipment sets" }
+    self.sections.actionbars = { [1] = "Action buttons", [3] = "Proc popups" }
+    pages.buffs.rows[#pages.buffs.rows + 1] = { key = "missingBuffSmart", label = "Class-aware buff targets",
         help = "Match mana buffs to eligible classes, including Hunters and Druids in any form." }
-    pages.buffs.description = "Missing buffs for you and your group. Normal reminders are clickable; combat reminders are passive."
-    pages.buffs.rows[13].label, pages.buffs.rows[14].label = "Custom learned spells", "Buff choices & hidden reminders"
-    pages.buffs.rows[13].reveal = { view = "spells", owner = "BuffSettings", target = "spells" }
-    pages.buffs.rows[14].reveal = { view = "choices", owner = "BuffSettings", target = "choices" }
-    pages.buffs.rows[13].help = "Choose learned spells to remind you about outside combat."
+    pages.buffs.rows[13].label, pages.buffs.rows[14].label = "Custom learned spells", "Buffs to track"
+    pages.buffs.rows[13].help = "Choose extra buffs from your learned spells."
     pages.buffs.rows[14].help = "Restore hidden families or choose learned alternatives."
     pages.buffs.rows[15].help = "Adjust shared icon size, scale and movement."
-    pages.bars.description = "XP and reputation bars, bag buttons, micro menu and player buff borders."
-    for _, page in ipairs({ "bags", "items", "actionbars", "buffs" }) do
-        self.sections[page] = {}
-        pages[page].singleColumn = true
+    -- One owned form; retain legacy actions and search identities without a second navigation layer.
+    local buffTargets = { buffPreview = "normalPreview", buffReset = "resetPosition", buffChoices = "choices",
+        buffWarning = "warning", buffCustom = "spells", buffManage = "choices", buffAppearance = "display" }
+    for _, row in ipairs(pages.buffs.rows) do
+        row.hidden, row.view = true, nil
+        row.reveal = { owner = "BuffSettings", target = row.key and "settings." .. row.key or buffTargets[row.action] }
     end
+    pages.buffs.description = "Choose when reminders appear and which buffs to track. Changes save automatically."
+    pages.buffs.note = "Normal reminders are clickable. Combat reminders are passive; cast buffs from your action bar."
+    pages.bars.description = "XP and reputation bars, bag buttons, micro menu and player buff borders."
+    self.sections.buffs = {}
     -- Familiar labels are easier to scan than a different slogan on every destination.
     for _, group in ipairs(self.groups) do
         group.directory = group.key == "overview" and "overview" or "browse_" .. group.key
@@ -172,6 +165,7 @@ function Catalog:Configure(pages)
         for _, entry in ipairs(group.pages) do
             self.pageGroup[entry[1]], self.labels[entry[1]] = group, entry[2]
             pages[entry[1]].title = entry[2]
+            pages[entry[1]].singleColumn = true
         end
     end
     pages.overview.description = "Choose a section on the left or search for a setting above.\nYour existing choices are kept; each tool remains optional."
@@ -196,7 +190,7 @@ function Catalog:Configure(pages)
     end
     for _, page in ipairs(order) do
         for index, row in ipairs(pages[page].rows) do
-            if not row.passive and not row.hidden then
+            if not row.passive and (not row.hidden or page == "buffs") then
                 local reveal = row.reveal
                 Add({ page = page, key = row.key or row.action, label = row.label, help = row.help,
                     row = not reveal and index or nil, view = reveal and reveal.view or row.view,
@@ -205,7 +199,8 @@ function Catalog:Configure(pages)
         end
     end
     for _, entry in ipairs(extras) do
-        if entry.page == "actionbars" then entry.view = entry.key == "procAlertIconSize" and "feedback" or "keybinds" end
+        if entry.page == "buffs" then entry.view = nil end
+        if entry.page == "actionbars" then entry.view = nil end
         Add(entry)
     end
 end

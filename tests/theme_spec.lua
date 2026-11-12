@@ -58,6 +58,17 @@ equal(outerCount, 0, "paging does not also scroll outer settings")
 local combatFrame = CreateFrame("Frame")
 SetCombat(true); theme:RouteWheel(combatFrame, nestedWheel); SetCombat(false)
 equal(combatFrame:GetScript("OnMouseWheel"), nil, "routing never installs scripts in combat")
+
+local pageWheelCount=0
+theme:RouteWheel(wheelRoot,function(_,delta) pageWheelCount=pageWheelCount+delta end,true)
+wheelChild:OnMouseWheel(-1)
+equal(pageWheelCount,-1,"settings page routing replaces obsolete nested pagination")
+equal(wheelPage,1,"scrolling settings does not turn a nested list page")
+nestedChild:OnMouseWheel(1)
+equal(nestedOwner,nested,"genuine nested scroll views retain their wheel owner")
+equal(nestedDelta,1,"nested scroll views retain their own scrolling")
+wheelChild:OnClick()
+equal(wheelClicks,2,"page wheel routing preserves ordinary clicks")
 theme.borders, Suite.pending = setmetatable({}, { __mode = "k" }), {}
 local corrupt = { borderColorMode = "bogus", customBorderColor = { r = secret, g = 0.5, b = 0.2 } }
 theme:Initialize(corrupt)

@@ -835,6 +835,38 @@ for token, data in pairs(planner.starters) do
     local safeLevel=planner.starterLevel
     planner:ChooseStarterLevel({secret=true})
     equal(planner.starterLevel,safeLevel,token.." restricted preview level is ignored")
+    Suite.db.talentPlannerFullBuild=true
+    planner:CloseStarterPanel();planner.expanded,planner.preview,planner.guiding=false,false,false
+    planner.panel:Hide();planner:InitializeGuide({fullBuild={class=token,starter=true}})
+    planner:Render()
+    equal(planner.guideMarks[full.sequence[51].node]:IsShown(),true,token.." persistent full plan shows future-rank markers with Builds closed")
+    equal(planner.guideHighlight.label:GetText(),"LEVEL 60",token.." persistent starter always highlights the full plan")
+    equal(planner.panel:IsShown(),false,token.." persistent comparison does not open Builds")
+    equal(planner.overlay:IsShown(),false,token.." persistent comparison leaves native talent input available")
+    equal(planner.footer:IsShown(),false,token.." persistent comparison leaves native Apply controls available")
+    local savedReference=Suite.Copy(planner.guideDB)
+    planner.starter=false;planner.selected=nil;planner:InitializeGuide(savedReference);planner:Render()
+    equal(planner:FullBuild(),planner:StarterBuild(60),token.." full reference survives character-state reload without selecting a build")
+    host:Hide();planner:Render()
+    equal(planner.guideMarks[full.sequence[51].node]:IsShown(),false,token.." native window close cleans up persistent marks")
+    host:Show();planner:Render()
+    equal(planner.guideMarks[full.sequence[51].node]:IsShown(),true,token.." reopening native talents restores marks without opening Builds")
+    local countBeforeCombat=made
+    SetCombat(true);planner:Render();planner:RenderFullBuild(false);SetCombat(false)
+    equal(made,countBeforeCombat,token.." persistent view never creates combat widgets")
+    Suite.db.talentPlannerFullBuild=false;planner:Render()
+    equal(planner.guideMarks[full.sequence[51].node]:IsShown(),false,token.." disabling persistent comparison clears its marks")
+    Suite.db.talentPlannerFullBuild=true
+    planner.expanded,planner.preview,planner.starter=true,false,false
+    planner.selected=#planner:Library();planner:Render()
+    savedReference=Suite.Copy(planner.guideDB)
+    equal(savedReference.fullBuild.buildID,limited.id,token.." choosing a personal build remembers its stable ID")
+    planner.expanded=false;planner.selected=nil;planner:InitializeGuide(savedReference);planner:Render()
+    equal(planner:FullBuild(),limited,token.." personal-build comparison restores independently of library selection")
+    local selectedHash=limited.hash;limited.hash="outdated";planner:Render()
+    equal(planner:FullBuild(),nil,token.." outdated remembered builds do not produce stale comparisons")
+    limited.hash=selectedHash
+    Suite.db.talentPlannerFullBuild=false;planner:InitializeGuide(nil);planner:Render()
 end
 equal(fixtureCount,9,"all nine Forever classes have a starter path")
 local fullLibrary=planner:Library()

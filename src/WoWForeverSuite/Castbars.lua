@@ -15,20 +15,47 @@ function Bars:Options(key)
     local all = Suite.db and Suite.db.castbars
     local value = Suite.IsReadable(all) and type(all) == "table" and all[key]
     value = Suite.IsReadable(value) and type(value) == "table" and value or {}
-    return { enabled = Suite.IsReadable(value.enabled) and value.enabled == true,
+    local match = Suite.IsReadable(value.match) and type(value.match) == "string"
+        and value.match ~= key and ({player=true,target=true,focus=true})[value.match] and value.match or "manual"
+    return { enabled = match ~= "manual" or Suite.IsReadable(value.enabled) and value.enabled == true, match=match,
         width = Number(value.width, 80, 600) and math.floor(value.width) or 195,
         height = Number(value.height, 8, 60) and math.floor(value.height) or 20 }
 end
 function Bars:Set(key, option, value)
     if not Suite.IsReadable(key) or type(key) ~= "string" or not ({ player=true, target=true, focus=true })[key]
         or not Suite.IsReadable(option) or not Suite.IsReadable(value) then return end
-    local settings = self:Options(key)
+    local settings = option == "enabled" and self:Options(key) or self:DisplayOptions(key)
     if option == "enabled" and type(value) == "boolean" then settings.enabled = value
-    elseif option == "width" and Number(value, 80, 600) then settings.width = math.floor(value)
-    elseif option == "height" and Number(value, 8, 60) then settings.height = math.floor(value)
+    elseif option == "width" and Number(value, 80, 600) then settings.width, settings.enabled = math.floor(value), true
+    elseif option == "height" and Number(value, 8, 60) then settings.height, settings.enabled = math.floor(value), true
     else return end
+    settings.match = "manual"
     if not Suite.IsReadable(Suite.db.castbars) or type(Suite.db.castbars) ~= "table" then Suite.db.castbars = {} end
     Suite.db.castbars[key] = settings; self:Apply()
+end
+function Bars:Reset(key)
+    if not Suite.IsReadable(key) or type(key) ~= "string" or not ({player=true,target=true,focus=true})[key] then return end
+    if not Suite.IsReadable(Suite.db.castbars) or type(Suite.db.castbars) ~= "table" then Suite.db.castbars = {} end
+    -- Retain an explicit native choice for settings-profile overrides, without
+    -- leaving obsolete custom dimensions in the controls after a reset.
+    Suite.db.castbars[key] = { enabled=false, match="manual" }
+    self:Apply()
+end
+function Bars:SetMatch(key, source)
+    if InCombatLockdown() or not Suite.IsReadable(key) or type(key) ~= "string"
+        or not ({player=true,target=true,focus=true})[key] or not Suite.IsReadable(source) or type(source) ~= "string"
+        or source ~= "manual" and not ({player=true,target=true,focus=true})[source] then return false end
+    local visited, current = { [key]=true }, source
+    while current ~= "manual" do
+        if visited[current] then return false end
+        visited[current] = true; current = self:Options(current).match
+    end
+    local settings = self:DisplayOptions(key)
+    settings.match = source
+    if source ~= "manual" then settings.enabled = true end
+    if not Suite.IsReadable(Suite.db.castbars) or type(Suite.db.castbars) ~= "table" then Suite.db.castbars = {} end
+    Suite.db.castbars[key] = settings; self:Apply()
+    return true
 end
 function Bars:Frame(key)
     if not Suite.IsReadable(key) or type(key) ~= "string" or not ({player=true,target=true,focus=true})[key] then return end
@@ -38,6 +65,30 @@ function Bars:Frame(key)
 end
 function Bars:Accessible(frame)
     return Suite.IsReadable(frame) and frame and Read(frame.IsForbidden, frame) == false
+end
+function Bars:ResolvedOptions(key, visited)
+    local settings = self:Options(key)
+    visited = visited or {}
+    if visited[key] then return nil, "Choose a match source without a loop." end
+    visited[key] = true
+    if settings.match ~= "manual" then
+        local source, message = self:ResolvedOptions(settings.match, visited)
+        if not source then return nil, message end
+        settings.width, settings.height = source.width, source.height
+        return settings
+    end
+    if settings.enabled or InCombatLockdown() then return settings end
+    local frame = self:Frame(key)
+    if not self:Accessible(frame) then return nil, "The source castbar's native size is unavailable." end
+    local record = self.records[frame]
+    local width = record and record.width or Read(frame.GetWidth, frame, true)
+    local height = record and record.height or Read(frame.GetHeight, frame, true)
+    if not Number(width, 80, 600) or not Number(height, 8, 60) then return nil, "The source castbar's native size is unavailable." end
+    settings.width, settings.height = math.floor(width), math.floor(height)
+    return settings
+end
+function Bars:DisplayOptions(key)
+    return self:ResolvedOptions(key) or self:Options(key)
 end
 function Bars:EditMode()
     if not EditModeManagerFrame then return false end
@@ -151,8 +202,8 @@ function Bars:Refresh()
     self.changing = true
     local used = {}
     for _, key in ipairs(self.order) do
-        local frame, settings = self:Frame(key), self:Options(key)
-        if self:Accessible(frame) then
+        local frame, settings = self:Frame(key), self:ResolvedOptions(key)
+        if settings and self:Accessible(frame) then
             used[frame] = settings.enabled
             local record = self.records[frame]
             if settings.enabled then
@@ -171,18 +222,19 @@ function Bars:Refresh()
                     self:LayoutSpark(frame, record, settings)
                     self:LayoutEffects(frame, record, settings)
                 end
-                if not self.hooked[frame] then
-                    for _, method in ipairs({ "SetSize", "SetWidth", "SetHeight" }) do
+            end
+            -- Native-size sources must also notify their followers.
+            if not self.hooked[frame] then
+                for _, method in ipairs({ "SetSize", "SetWidth", "SetHeight" }) do
+                    hooksecurefunc(frame, method, function() if not self.changing then self:Queue() end end)
+                end
+                frame:HookScript("OnShow", function() self:Queue() end)
+                for _, method in ipairs({ "SetLook", "AdjustPosition" }) do
+                    if type(frame[method]) == "function" then
                         hooksecurefunc(frame, method, function() if not self.changing then self:Queue() end end)
                     end
-                    frame:HookScript("OnShow", function() self:Queue() end)
-                    for _, method in ipairs({ "SetLook", "AdjustPosition" }) do
-                        if type(frame[method]) == "function" then
-                            hooksecurefunc(frame, method, function() if not self.changing then self:Queue() end end)
-                        end
-                    end
-                    self.hooked[frame] = true
                 end
+                self.hooked[frame] = true
             end
         end
     end
@@ -193,6 +245,8 @@ function Bars:SizeStatus(key)
     if not self:Options(key).enabled then return end
     if InCombatLockdown() then return "Size changes will apply after combat." end
     if self:EditMode() then return "Size changes will apply after Edit Mode closes." end
+    local settings, message = self:ResolvedOptions(key)
+    if not settings then return message end
     local frame = self:Frame(key)
     if not self:Accessible(frame) then return "Native castbar is not available yet." end
     if not self.records[frame] then return "Native size is unavailable; custom size has not been applied." end

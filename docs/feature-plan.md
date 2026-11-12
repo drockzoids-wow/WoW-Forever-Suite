@@ -1,5 +1,81 @@
 # Forever Suite feature plan
 
+## Final publication review — November 12, 2026
+
+The user authorizes a final full review and release, superseding the earlier holds. The complete current tree passes 90 Lua 5.1 files, matching Core/TOCs at 1.0.14, 41,967 substitute behavior assertions, all 11 gear-baseline tests and git diff --check. Repeated pinned-70862 AST/API/global-write scans and focused review of all pending runtime changes identify no new concrete release blocker. This includes the optional persistent talent-build comparison and its character-owned reference, linked castbar sizes with immediate Manual state after direct edits, settings simplification, Contacts/groups/multiline notes, profession learning-source hints, combat reminder identity handling and native tooltip difficulty colors. Native permissions, layout, input and combat/taint smoke tests remain pending; the existing bag-use taint investigation is not claimed fixed. No game deployment, junction or real SavedVariables edits.
+
+The source-only 99-file archive is verified by SHA256. Publication receipts are recorded in [release-1.0.14.md](release-1.0.14.md). Earlier held-release entries below describe historical preparation.
+
+## Persistent full talent-build comparison — November 12, 2026
+
+Add Tools → Talent Builds → Always show full build information, default off and requiring the planner. Remember the chosen leveling or personal build per character; show its passive comparison markers whenever native Talents opens, even with Builds/Levels closed. Leveling references use the full level-60 plan. Preserve deliberate level browsing, draft editing and active learning-guide displays. Do not spend points, auto-open Builds or change saved drafts. Reject unavailable/outdated remembered builds. Regression passes; native smoke pending. User holds the prepared release before push for this addition.
+
+## Final review and authorized 1.0.14 release — November 12, 2026
+
+User requests another full review and authorizes publication if checks pass, superseding the earlier release hold. Repeated whole-tree Lua 5.1/TOC/behavior checks, pinned-70862 AST/API/global-write scans, all 11 gear-baseline tests and review of all pending runtime changes identify no new concrete release blocker. The 41,843 substitute assertions pass. Include the linked castbar dropdown and immediate Manual state after slider/typed edits, simplified settings, scoped Contacts/groups/multiline notes, recipe learning-source hints, combat reminder identity handling and native tooltip difficulty colors. Core and identical TOCs advance to 1.0.14. Only addon source ships; package/CI/upload receipts are recorded in release-1.0.14.md. Native permission/layout/input/taint smoke tests and the existing bag-use taint investigation remain pending. No game deployment, junction or real SavedVariables edits.
+
+## Linked castbar sizes — November 12, 2026
+
+Each Player/Target/Focus bar offers Match size to: Manual or either other bar. Matches follow width/height changes and native source resets; cycles are rejected. Direct slider or text edits switch to Manual immediately, retaining the other dimension; Reset restores native size and clears the match. Keep settings/profile persistence, source-unavailable feedback and existing combat/Edit Mode restrictions. Native rendering/input/taint verification pending; release remains held.
+
+## Castbar adjustment and Reset — November 12, 2026
+
+Remove the separate custom-size switch for Player/Target/Focus. Editing a dimension applies sizing automatically; Reset restores native size and displays native dimensions. Preserve independent bars, old saved choices until an explicit edit, profile behavior, native layout and combat/Edit Mode deferral. Browsing or leaving untouched fields must not enable resizing. Regression passes; native verification pending. Release remains held.
+
+## Reviewed unpublished changes — November 12, 2026
+
+Release is held at the user's request after the full offline review. Preserve both corrected UI behaviors: paginated buff lists restore their count after a short filter, and creating a contact in a custom group immediately marks preselected membership as an unsaved draft with Cancel available. Regression and addon-wide checks pass; native validation remains pending. [Review](addon-review-2026-11-12.md). No version or publication change.
+
+## Page wheel and remaining settings cleanup — November 12, 2026
+
+User authorizes the wider pass after adding page wheel scrolling. Buff-list wheel gestures now scroll the whole page, including while hovering Track/search/appearance controls. Genuine nested scrolling views and sliders with explicit adjustment gestures retain their own input. Remove the remaining Bags, Upgrades and Action Bars subpage tabs; use one settings column and labeled sections across leaf pages, retaining search, direct links and saved preferences. Keep proc/keybind controls together. Choose comparison profiles directly, expand advanced weights inline, and replace repeated-click enum choices across professions, vendor, camping, fonts, progress bars, meters and setup with explicit menus. Preserve optional defaults, draft protection and native/manual actions. Native input/layout/taint validation pending; standalone tool editing workflows retain their existing purpose-specific controls.
+
+## Simplified buff settings — November 12, 2026
+
+User confirms Battle Shout works and approves beginning UI simplification with Buff Reminders. Replace Reminders/Visibility/Appearance/Buff choices/Custom spells navigation with one form: main switches, My class buff list with Track checkboxes and inline hidden/combat-off reasons, plus expandable Appearance and Advanced sections. Show explicit alternative spells and warning intervals; keep class/all/hidden filters directly selectable. Advanced contains custom spell add/scope/remove controls in place. Search reveals the specific control. Preserve settings/defaults, per-buff Off choices and combat behavior. Regression passes; native UI smoke pending. Follow with bags/inventory/upgrades, other combat/interface pages and tools in later passes.
+
+## Missing combat Battle Shout follow-up — November 12, 2026
+
+Retain combat reminders across harmless roster/connection notifications when all prepared public unit identities still match. Suspend on changed/unknown identities, world entry or combat option reconfiguration until safe preparation. User's last disk-saved Warrior shout family remains explicitly hidden; restore through Battle Shout → Show reminder without silently overriding Off. Automated regression passes; native omission/root cause and combat visuals remain pending.
+
+## Untrained leveling recipes — November 12, 2026
+
+Live-learning follow-up: learning at a trainer or from a recipe/manual must remove the warning while the guide remains open, without reload or reopening. Listen for native recipe-learned and detail-update events through the existing next-turn coalesced refresh. Preserve browsing/scroll and wait for authoritative metadata if the learning notification arrives first. Native timing verification pending.
+
+Show a subtle red 11px acquisition line immediately beneath each unlearned recipe. Expand the initial two-recipe fallback to all 122 distinct recipes used by the eight crafting guides: Alchemy, Blacksmithing, Cooking, Enchanting, Engineering, First Aid, Leatherworking and Tailoring. Use 75 reviewed faction-specific or neutral learning locations, distinguish Trainer/Vendor/Manual/Quest in the compact label, and place/track a native waypoint on click. Keep longer learning instructions on hover. Recipes with no known fixed source (Major Healing Potion manual) disclose the limitation without a fabricated pin. Gathering and Lockpicking guides have no modeled craft recipe rows; do not invent recipes or untrained states for those routes.
+
+Require readable learned=false for a warning and learned=true for selection; loading/unknown/linked/guild/NPC data must not imply untrained. Preserve manual crafting, combat/stale-row guards and no automatic training/navigation. Native UI, availability, recipe teaching and waypoint verification pending.
+
+## Multiline contact notes — November 12, 2026
+
+User requests a proper readable multiline Notes box instead of a thin line. Add a fixed-height bordered notes panel with padded scrolling input, larger note font, native Enter/newline behavior, blank-area focus and cursor/wheel scrolling. Preserve multiline text during saving, automatic contact updates, reload and search; retain the existing 240-character limit. Keep the narrow shell and existing contact workflow. Native visual/input validation pending.
+
+## Narrower Contacts layout — November 12, 2026
+
+User requests a narrower window after annotating empty space in each column. Set the shared Contacts/Groups/Preferences shell to 740×650 instead of 900×650 (about 18% narrower), reducing column widths/gaps and reflowing controls while retaining fonts, eight contact rows and existing behavior. Native layout/readability retest pending.
+
+## Contact row click-to-fill — November 12, 2026
+
+User expects clicking a displayed contact beside Send Mail to fill To. Restore this behavior for saved and roster-only contacts across the shared directory filters. Keep the explicit recipient button as an alternate action. Preserve genuine editor drafts while addressing saved rows; keep standalone and unassigned recovery clicks edit-only. Compare actual editor values and staged groups to the selection baseline so blank/unchanged programmatic notifications do not block selection with a false unsaved flag. Preserve native send guards and manual sending. Native screenshot establishes the reported problem; build/Interface and fix verification remain pending.
+
+## Unified Contacts workspace — November 12, 2026
+
+User authorizes combining Mail contacts and Contact book into one tabbed window, immediate recipient use after saving, and simpler groups. Implement Contacts/Groups/Preferences, shared by settings, /wfs contacts and Send Mail. Contacts provides group navigation, search/sort, eight readable rows, details, explicit Use as recipient, Save/Cancel and Save current To. Save selects the contact without a transfer step and preserves filters/drafts. New contacts in a custom group preselect membership. Preserve scope isolation, native sending, current-character exclusion beside mail and independent feature switches.
+
+Groups provides visible contact/source lists, direct/inherited markers, source explanations, deduplicated totals, search, create/rename/delete and sidebar visibility/order. Immediate membership changes retain cycle/combat/stale-context guards. Preferences contains row details and unassigned recovery; sorting persists. Fit small viewports. Standalone/mailbox openings reuse one shell with appropriate closing behavior; respect explicit dismissal during queued refreshes. Native rendering/input/taint validation pending; no release/deployment/live-data changes. Supersedes older companion-only sizing and wrapped mailbox tabs.
+
+## Custom mail groups and parents — November 11, 2026
+
+Unified names follow-up: user requests one system instead of separate categories and groups. Call everything Groups, remove the contact category field/chooser, and use the exact same plain group names for contact membership and Custom filtering. Adopt old category assignments into ordinary custom groups across all regions/server types, including unassigned recovery records. Merge matching names ignoring case/outer whitespace, preserving existing members, parent links, order and visibility. Reuse a group when Create receives its existing name; reject rename collisions. Preserve old category metadata/aliases internally for migration/recovery, with per-assignment adoption markers so removed/deleted memberships do not return. Keep parent groups and multi-membership Save behavior. Native migration/menu/layout/taint retest pending; no release or deployment change. Earlier category/group distinctions below are superseded.
+
+Contact assignment/filter follow-up: user finds created groups missing from contact selection/filtering and requests All, Alts, Guild plus a custom-name dropdown. Remove the Contact book's Other tab and replace the old cycling filter with Custom beside those three buttons. List existing categories and all created custom groups, including empty ones; show the selected name above the list. Group filters include nested/inherited members and combine with search. Add a multi-select Groups chooser on each contact; stage direct membership changes until Save, preserving draft choices across editor tabs and unrelated memberships when saving. List direct saved group names in contact row details. Existing category editing remains supported. Combat, hidden-pane, changed-contact and changed-region/server-type menus fail closed. Native rendering/input/taint retest pending.
+
+Shared-window follow-up: user requests Contacts and Groups tabs instead of two windows. Supersede the sibling-placement/stacking approach below with one Contact book shell, one close/Escape action and two mutually exclusive child panes. Both mailbox entry points select the matching tab; switching or reopening an already-visible shell keeps its position and unsaved drafts. Retain eight compact contact rows within the original 670×602 outer dimensions. Groups-first opening also works with mailbox integrations off, using the shared book roster lifecycle. Native visual/input retest pending.
+
+Opening-order correction: screenshots show Groups/Contact book overlapping and drawing controls through one another in either order. Place the second editor beside its visible sibling when possible; when the screen forces overlap, raise its complete backdrop/controls above the other window. Native top-level behavior and background clicks allow foreground switching. Preserve unsaved edits and combat guards. Native retest pending.
+
+User requests Send Mail categories that can replace Alts/Guild/Other, arbitrary visible groups/order, resizing and vertical overflow; confirms parent groups should support both child categories/groups and individual contacts. Add Mail groups from the companion and standalone Contact book. Custom groups union selected automatic groups, existing contact categories, other custom groups and explicit people, deduplicating names. Reject parent cycles; saved malformed cycles terminate. Show/hide and reorder all groups, with an All fallback when every group is hidden. Default visible tabs remain Alts/Guild/Other. Wrap tabs into rows with bounded vertical scrolling; Wider/Narrower and Taller/Shorter controls save companion dimensions. Explicit membership uses scoped addresses, survives book rename and guild-to-saved transitions, and is cleared on contact removal. Deleting a parent retains children/contacts. Store definitions/layout inside the existing profile-excluded contact book; retain server-type/region/current-character filtering and native explicit sending. Native layout/input/persistence/taint checks pending; no release or deployment change.
+
 ## Authorized 1.0.13 release — November 11, 2026
 
 Publication verified: release run 43106059568/job 130809567145 succeeds, including CurseForge project 1749120 upload and GitHub asset verification. [Receipts](release-1.0.13.md#publication-verified). Native verification and public moderation availability remain separate.
@@ -109,6 +185,8 @@ Add Warrior-only Charge / Intercept, Stance interrupt and Overpower recipes usin
 User authorizes a final whole-addon code review and CurseForge publication if no release blocker is found. Reviewed the current 86-file runtime tree with full Lua 5.1/behavior checks, pinned build-70862 API/event/signature/global-write/literal-key scans, lifecycle/action-boundary inspection and release-workflow probes. No new concrete release blocker was established. Two optional guarded legacy pet-journal fallbacks retain their prior qualification. All 34,529 substitute assertions and 11 separate gear research tests pass; 95 addon package inputs and 73 registered Lua specs are accounted for. Core and both TOCs advance to 1.0.10. Include all pending feature/fix work and its research/tests/documentation; cache references never ship. User-confirmed tooltip colors are recorded separately from pending native build/Interface, gear calibration, input/layout/performance and taint results, including the previously deferred map/tracker investigation. Publication does not mark those tests verified. No game deployment, junction or real SavedVariables changes. Final package and remote CI/upload evidence are recorded separately.
 
 ## Tooltip level difficulty colors — November 10, 2026
+
+November 11 palette correction: Burning Exile's level 39 is green in native displays but yellow in the tooltip. Prefer the client's creature-content difficulty and native palette, matching the target-frame source, over generic level-difference thresholds. Keep relative-color fallback only for absent native capabilities; restricted/invalid native results stay untouched. Preserve default-off settings, number-only coloring, red ?? and disable restoration. Native parity retest pending; no version/release/deployment change.
 
 User confirms the fallback fix works in game and tooltip colors now change. This resolves the reported white-level failure. Running build/Interface and separate red ??/persistence/combat checks remain unreported; earlier pending notes below describe the pre-confirmation state.
 

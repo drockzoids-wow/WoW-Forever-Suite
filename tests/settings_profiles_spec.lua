@@ -131,12 +131,14 @@ equal(db.quickLoot,true,"resuming personal scope restores private setting")
 -- Corruption, cycles and restricted values are filtered without serializing them.
 local secret={secret=true}
 local cyclic={};cyclic.loop=cyclic
-db.meterWindows=cyclic;db.castbars={player={width=0/0,height=secret},target={enabled=true}}
+db.meterWindows=cyclic;db.castbars={player={width=0/0,height=secret},target={enabled=true,match="player"},focus={enabled=false,match="manual"}}
 p:SaveActive()
 equal(p.state.overrides[copy].meterWindows.loop,nil,"cycles cannot enter a snapshot")
 equal(p.state.overrides[copy].castbars.player.width,nil,"nonfinite nested numbers are discarded")
 equal(p.state.overrides[copy].castbars.player.height,nil,"restricted nested values are discarded")
 equal(p.state.overrides[copy].castbars.target.enabled,true,"readable nested preferences are retained")
+equal(p.state.overrides[copy].castbars.target.match,"player","matching source survives personal-profile snapshots")
+equal(p.state.overrides[copy].castbars.focus.match,"manual","explicit reset or manual choice survives personal-profile snapshots")
 local corrupt=Suite.InitializeDB(nil)
 corrupt.settingsProfiles={entries={{id="p9",name="Default",values={quickLoot=true}},
     {id="p2",name="Good",values={quickLoot=secret,chatFontSize=secret}},

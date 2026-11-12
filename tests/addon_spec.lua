@@ -50,6 +50,7 @@ local function Frame(name)
         end,
         GetChildren = function(self) return unpack(self.children) end,
         GetHitRectInsets = function(self) return unpack(self.insets or { 0, 0, 0, 0 }) end,
+        SetHitRectInsets = function(self, ...) self.insets = { ... } end,
         IsMouseClickEnabled = function(self) return self.mouseEnabled == true end,
         GetFrameStrata = function() return "MEDIUM" end, GetFrameLevel = function(self) return self.frameLevel or 5 end,
         GetParent = function(self) return self.parent end,
@@ -1200,6 +1201,53 @@ do
         tooltipCallbacks[2](tip, data)
         equal(line.text, "Level |cff" .. case[5] .. case[1] .. "|r Beast", "native difficulty palette passes through for level " .. case[1])
     end
+    local oldPlayerInfo, oldDifficultyColor = C_PlayerInfo, GetDifficultyColor
+    local difficulty, nativeColors = 1, {
+        [0] = { r = 0.5, g = 0.5, b = 0.5 },
+        [1] = { r = 0.25, g = 0.75, b = 0.25 },
+        [2] = { r = 1, g = 1, b = 0 },
+        [3] = { r = 1, g = 0.5, b = 0.25 },
+        [4] = { r = 1, g = 0.1, b = 0.1 },
+    }
+    C_PlayerInfo = { GetContentDifficultyCreatureForPlayer = function(unit)
+        equal(unit, "mouseover", "content difficulty uses the hovered unit")
+        return difficulty
+    end }
+    GetDifficultyColor = function(value) return nativeColors[value] end
+    GetRelativeDifficultyColor = function() error("native content difficulty must take precedence") end
+    level, playerLevel, line.text = 39, 43, "Level 39 Elemental"
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Level |cff40bf4039|r Elemental", "level 39 uses native easy green despite generic minus-four yellow threshold")
+    playerLevel = { secret = true }
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Level |cff40bf4039|r Elemental", "native difficulty does not require reading the player level")
+    for index, hex in ipairs({ "808080", "40bf40", "ffff00", "ff8040", "ff1a1a" }) do
+        difficulty, line.text = index - 1, "Level 39 Elemental"
+        tooltipCallbacks[2](tip, data)
+        equal(line.text, "Level |cff" .. hex .. "39|r Elemental", "native content difficulty palette " .. index)
+    end
+    for _, invalid in ipairs({ { secret = true }, false, -1, 5, 1.5, math.huge, 0/0 }) do
+        difficulty, line.text = invalid, "Level 39 Elemental"
+        tooltipCallbacks[2](tip, data)
+        equal(line.text, "Level 39 Elemental", "restricted or invalid native difficulty stays untouched without fallback")
+    end
+    difficulty, line.text = nil, "Level 39 Elemental"
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Level 39 Elemental", "missing native difficulty stays untouched")
+    C_PlayerInfo.GetContentDifficultyCreatureForPlayer = function() error("unavailable") end
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Level 39 Elemental", "native difficulty failure stays untouched")
+    C_PlayerInfo.GetContentDifficultyCreatureForPlayer = function() return 1 end
+    GetDifficultyColor = function() error("unavailable") end
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Level 39 Elemental", "native palette failure stays untouched")
+    GetDifficultyColor = function() return { r = { secret = true }, g = 1, b = 0 } end
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Level 39 Elemental", "restricted native palette stays untouched")
+    level, line.text = -1, "Level ?? Elemental"
+    tooltipCallbacks[2](tip, data)
+    equal(line.text, "Level |cffff1a1a??|r Elemental", "unknown level retains red with native content API present")
+    C_PlayerInfo, GetDifficultyColor = oldPlayerInfo, oldDifficultyColor
     QuestDifficultyColors = oldPalette
     line.text = { secret = true }
     tooltipCallbacks[2](tip, data)

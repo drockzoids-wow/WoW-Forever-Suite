@@ -1,7 +1,7 @@
 local Suite, equal, Frame, SetCombat = ...
 local combat = Suite.CombatBuffs
 local globals = { "CreateFrame", "C_AddOns", "CustomAuraContainerAuraProcessingPolicy", "AuraContainerSortMethod",
-    "AuraContainerSortDirection", "C_StringUtil", "C_Timer", "C_UnitAuras", "UnitIsDeadOrGhost", "IsResting" }
+    "AuraContainerSortDirection", "C_StringUtil", "C_Timer", "C_UnitAuras", "UnitIsDeadOrGhost", "IsResting", "UnitGUID" }
 local old = {}; for _, name in ipairs(globals) do old[name] = _G[name] end
 local oldDB, oldPending = Suite.db, Suite.pending
 local buffs = Suite.MissingBuffs
@@ -13,6 +13,9 @@ Suite.db, Suite.pending = Suite.InitializeDB(nil), {}
 Suite.db.missingBuffs, Suite.db.missingBuffCombat, Suite.db.missingBuffExpiry = true, true, true
 local roster = { { unit = "player", guid = "one", name = "Caster", class = "MAGE", level = 60, party = true },
     { unit = "party1", guid = "two", name = "Friend", class = "PRIEST", level = 60, party = true } }
+UnitGUID = function(unit)
+    for _, member in ipairs(roster) do if member.unit == unit then return member.guid end end
+end
 local widgets, containers, snapshots, made = {}, {}, {}, 0
 local reject, rejectUnit, dead, resting = false, nil, false, false
 local blockedHandlers = 0
@@ -295,7 +298,16 @@ Aura("player", true, 0, true)
 equal(Icons(), 0, "permanent coverage cannot reuse a stale soon warning")
 equal(made, prepared, "combat display transitions create no widgets")
 combat:RefreshVisibility("GROUP_ROSTER_UPDATE")
+equal(combat.frame:IsShown(), true, "unchanged combat roster notifications retain reminders")
+combat:RefreshVisibility("UNIT_CONNECTION")
+equal(combat.frame:IsShown(), true, "connection notifications retain unchanged unit bindings")
+local unitGUID = UnitGUID
+UnitGUID = function(unit) return unit == "party1" and "replacement" or unitGUID(unit) end
+combat:RefreshVisibility("GROUP_ROSTER_UPDATE")
 equal(combat.frame:IsShown(), false, "combat roster changes suspend stale member bindings")
+UnitGUID = unitGUID
+combat:RefreshVisibility("UNIT_AURA")
+equal(combat.frame:IsShown(), false, "changed bindings remain suspended until out-of-combat preparation")
 combat:Apply()
 equal(type(Suite.pending.combatBuffs), "function", "combat option changes queue native reconfiguration")
 equal(made, prepared, "queued combat reconfiguration creates no widgets")
@@ -342,6 +354,9 @@ do
     local shoutMade = made
     SetCombat(true); combat:RefreshVisibility(); Aura("player", false, 0)
     equal(Icons(), 1, "missing Battle Shout appears on combat entry")
+    combat:RefreshVisibility("GROUP_ROSTER_UPDATE")
+    combat:RefreshVisibility("UNIT_CONNECTION")
+    equal(Icons(), 1, "harmless roster and connection events cannot silence missing Battle Shout")
     Aura("player", true, 120)
     equal(Icons(), 0, "healthy Battle Shout hides its combat reminder")
     Aura("player", true, 15)

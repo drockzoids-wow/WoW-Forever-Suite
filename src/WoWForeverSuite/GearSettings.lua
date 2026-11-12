@@ -63,9 +63,13 @@ function Gear:Open(mode)
 end
 
 function Gear:Choose(id)
-    if self.draft or InCombatLockdown() then return false end
+    if InCombatLockdown() then return false end
+    if self.draft then
+        self.message = "Save or cancel your weight edits before choosing another profile."
+        self:Refresh(); return false
+    end
     if not Scoring:SetProfile(id) then return false end
-    self.mode, self.message, self.removing = "picker", nil, nil
+    self.message, self.removing = nil, nil
     self:Refresh(); GUI:Select("items")
     return true
 end
@@ -242,7 +246,7 @@ function Gear:BuildEditor()
         if state then state.details = not state.details end
         self:Refresh()
     end)
-    Button(self.editor, "Choose another profile", 396, -controlsY, 384, function() self:Open("picker") end)
+    self.chooseProfile = Button(self.editor, "Choose comparison profile", 396, -controlsY, 384, function() GUI:Action("preset",self.chooseProfile) end)
     self.saveButton = Button(self.editor, "Save & use profile", 0, -controlsY - 40, 384, function() self:Save() end)
     self.cancelButton = Button(self.editor, "Cancel edits", 396, -controlsY - 40, 384, function() self:Cancel() end)
     self.status = Label(self.editor, "", 0, -controlsY - 81, 780, 11, colors.muted)

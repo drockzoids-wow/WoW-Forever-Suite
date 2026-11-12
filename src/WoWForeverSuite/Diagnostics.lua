@@ -47,7 +47,7 @@ Add("upgradeHints", "Gear upgrade advice", "Items", { "C_Item.GetItemInfo", "Get
 Add("equipmentSetToggle", "Equipment-set slot controls", "EquipmentSets", {}, "equipmentSetToggle", true)
 Add("playerItemLevel", "Player item-level inspection", "Tooltips", { "NotifyInspect", "C_PaperDollInfo.GetInspectItemLevel" }, "tooltipInitialize", true)
 Add("classNames", "Class-colored tooltip names", "Tooltips", tooltip, "tooltipInitialize")
-Add("unitLevelColors", "Tooltip level difficulty colors", "Tooltips", { "TooltipDataProcessor.AddTooltipPostCall", "UnitLevel", "UnitEffectiveLevel", "GetRelativeDifficultyColor" }, "tooltipInitialize")
+Add("unitLevelColors", "Tooltip level difficulty colors", "Tooltips", { "TooltipDataProcessor.AddTooltipPostCall", "UnitLevel", "C_PlayerInfo.GetContentDifficultyCreatureForPlayer", "GetDifficultyColor" }, "tooltipInitialize")
 Add("fullButtonRange", "Action-button range tint", "ActionBars", {}, "actionBars")
 Add("actionBarSkin", "Action-bar styling", "ActionBarSkin", {}, "actionBarSkin")
 Add("shortKeybinds", "Short keybind labels", "Keybinds", {}, "keybinds")

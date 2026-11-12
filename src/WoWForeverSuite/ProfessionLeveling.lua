@@ -123,6 +123,69 @@ function Leveling:RecipeMessage(message)
     if self.frame and not InCombatLockdown() then self.frame.status:SetText(message) end
     return false
 end
+function Leveling:RecipeTraining(id)
+    if not Number(id) then return end
+    local current = self:Context()
+    if current ~= self.selected then return end
+    local changing = Field(C_TradeSkillUI, "IsDataSourceChanging")
+    if Read(changing, "function") and Call(changing) ~= false then return end
+    for _, name in ipairs({ "IsTradeSkillLinked", "IsTradeSkillGuild", "IsTradeSkillGuildMember", "IsNPCCrafting" }) do
+        local fn = Field(C_TradeSkillUI, name)
+        if Read(fn, "function") and Call(fn) ~= false then return end
+    end
+    local info = Call(Field(C_TradeSkillUI, "GetRecipeInfo"), id)
+    local nativeID = Field(info, "recipeID")
+    local profession = Call(Field(C_TradeSkillUI, "GetBaseProfessionInfo"))
+    local skillLine = Field(profession, "professionID")
+    if not Number(nativeID) or nativeID ~= id or not Number(skillLine)
+        or Call(Field(C_TradeSkillUI, "IsRecipeInSkillLine"), id, skillLine) ~= true then return end
+    return Field(info, "learned")
+end
+function Leveling:RecipeSource(id)
+    -- Native source text includes trainer/vendor names and locations where provided.
+    local source = Call(Field(C_TradeSkillUI, "GetRecipeSourceText"), id)
+    if Read(source, "string") and #source > 0 and #source <= 4096 then return source end
+    local reference = Suite.ProfessionRecipeSources[id]
+    if reference then
+        local faction = self:Faction()
+        local point = reference.neutral or faction and reference[faction]
+        return reference.kind .. ": " .. (point and point.name or "See the guide source for learning details.")
+            .. (reference.note and "\n" .. reference.note or "")
+    end
+    return "Trainer/source details unavailable. Check the guide's source link for how to learn it."
+end
+function Leveling:RecipeLocation(id, source)
+    -- A single valid native location takes precedence over reference coordinates.
+    -- Multiple native links can list factions in any order; use the catalog then.
+    local map, x, y, name = source:match("|Hworldmap:(%d+):([%d%.]+):([%d%.]+)|h%[?(.-)%]?|h")
+    local _, links = source:gsub("|Hworldmap:", "")
+    map, x, y = tonumber(map), tonumber(x), tonumber(y)
+    if links == 1 and Number(map) and map > 0 and map % 1 == 0 and Number(x) and x <= 10000 and Number(y) and y <= 10000 and Text(name) then
+        return { map = map, x = x / 10000, y = y / 10000, name = name }
+    end
+    local reference = Suite.ProfessionRecipeSources[id]
+    if reference then
+        local faction = self:Faction()
+        return reference.neutral or faction and reference[faction] or nil
+    end
+end
+function Leveling:RecipeWaypoint(button)
+    local row = Field(button, "recipeRow")
+    if InCombatLockdown() or not self:Enabled() or not self.open or not Shown(self.owner) or not Shown(self.frame)
+        or not Shown(button) or not Shown(row) or Field(row, "expanded") ~= true
+        or Field(button, "guideIndex") ~= self.selected or self:RecipeTraining(Field(button, "recipeID")) ~= false then return end
+    local location = self:RecipeLocation(button.recipeID, self:RecipeSource(button.recipeID))
+    if not location or Call(Field(C_Map, "CanSetUserWaypointOnMap"), location.map) ~= true then
+        return self:RecipeMessage("Waypoint unavailable for this recipe's source.")
+    end
+    local point = Call(Field(UiMapPoint, "CreateFromCoordinates"), location.map, location.x, location.y)
+    local set = Field(C_Map, "SetUserWaypoint")
+    if not point or not Read(set, "function") then return self:RecipeMessage("Waypoints are unavailable in this client.") end
+    local ok, result = pcall(set, point)
+    if not ok or not Suite.IsReadable(result) or result == false then return self:RecipeMessage("Could not set the recipe waypoint.") end
+    Call(Field(C_SuperTrack, "SetSuperTrackedUserWaypoint"), true)
+    self:RecipeMessage("Waypoint: " .. location.name)
+end
 function Leveling:SelectGuideRecipe(button)
     if InCombatLockdown() or not self:Enabled() or not self.open or not Shown(self.owner)
         or not Shown(self.frame) or not Shown(button) then return false end
@@ -155,7 +218,10 @@ function Leveling:RequestRecipe(id, guideIndex, context, automatic, expectedRank
         or nativeID ~= id or Call(inSkill, id, skillLine) ~= true then
         return self:RecipeMessage("Recipe unavailable in the open profession.")
     end
-    if automatic and (Field(info, "learned") ~= true or Field(info, "canSkillUp") ~= true) then return false end
+    local learned = Field(info, "learned")
+    if learned == false then return self:RecipeMessage("|cffff6666Not trained yet. See the source below the recipe.|r") end
+    if learned ~= true then return self:RecipeMessage("Recipe training data unavailable. Try again shortly.") end
+    if automatic and Field(info, "canSkillUp") ~= true then return false end
     -- Revalidate after native reads; never replay a click after combat/context changes.
     local fresh, freshRank, freshContext = self:Context()
     if InCombatLockdown() or not self:Enabled() or not Shown(self.owner)
@@ -169,7 +235,7 @@ function Leveling:RequestRecipe(id, guideIndex, context, automatic, expectedRank
     if not ok or not Suite.IsReadable(result) or result == false then
         return self:RecipeMessage("Recipe unavailable. Select it in the profession window.")
     end
-    if not InCombatLockdown() and self.open then self.frame.status:SetText("Opening recipe…") end
+    if not InCombatLockdown() and self.open then self.frame.status:SetText("Recipe requested. Crafting stays manual.") end
     return true
 end
 function Leveling:AutoSelectRecipe()
@@ -199,9 +265,11 @@ function Leveling:AutoSelectRecipe()
 end
 function Leveling:StepMaterials(row, estimates, y, expanded)
     row.estimateLabels, row.estimateItems, row.recipeButtons = row.estimateLabels or {}, row.estimateItems or {}, row.recipeButtons or {}
+    row.trainingButtons = row.trainingButtons or {}
     for _, label in ipairs(row.estimateLabels) do label:Hide() end
     for _, item in ipairs(row.estimateItems) do item.materialID = nil; item:Hide() end
     for _, button in ipairs(row.recipeButtons) do button.recipeID, button.guideIndex = nil, nil; button:Hide() end
+    for _, button in ipairs(row.trainingButtons) do button.recipeID, button.guideIndex = nil, nil; button:Hide() end
     if row.estimateColumns then row.estimateColumns:Hide() end
     if not expanded or #estimates == 0 then return y end
     local labelIndex, itemIndex = 0, 0
@@ -243,6 +311,43 @@ function Leveling:StepMaterials(row, estimates, y, expanded)
         local recipeHeight = math.max(24, button.label:GetStringHeight() + 6)
         button:SetSize(CONTENT_WIDTH, recipeHeight); button:ClearAllPoints(); button:SetPoint("TOPLEFT", 0, -y); button:Show()
         y = y + recipeHeight + 8
+        if self:RecipeTraining(estimate.recipeID) == false then
+            local training = row.trainingButtons[recipeIndex]
+            if not training then
+                training = CreateFrame("Button", nil, row); training:EnableMouse(true); training:RegisterForClicks("LeftButtonUp")
+                training.label = Label(training, 11, 0, 0, CONTENT_WIDTH)
+                training.label:SetTextColor(0.9, 0.42, 0.42)
+                training:SetScript("OnClick", function(_, mouseButton)
+                    if mouseButton == nil or mouseButton == "LeftButton" then self:RecipeWaypoint(training) end
+                end)
+                training:SetScript("OnEnter", function()
+                    if InCombatLockdown() or not Shown(training) or not Safe(GameTooltip) then return end
+                    for _, method in ipairs({ "SetOwner", "SetText", "Show", "Hide" }) do
+                        if not Read(Field(GameTooltip, method), "function") then return end
+                    end
+                    self:HideTooltip()
+                    GameTooltip:SetOwner(training, "ANCHOR_RIGHT"); self.hovered, self.tooltip = training, GameTooltip
+                    local detail = training.location and training.location.name .. "\n" .. training.source or training.source
+                    GameTooltip:SetText(detail, 0.88, 0.91, 0.93, 1, true)
+                    if training.location and Read(Field(GameTooltip, "AddLine"), "function") then GameTooltip:AddLine("Click to add a waypoint.", 0.41, 0.84, 0.75) end
+                    GameTooltip:Show()
+                end)
+                local function Leave() if self.hovered == training then self:HideTooltip() end end
+                training:SetScript("OnLeave", Leave); training:SetScript("OnHide", Leave)
+                row.trainingButtons[recipeIndex] = training
+            end
+            training.recipeID, training.guideIndex, training.recipeRow = estimate.recipeID, self.selected, row
+            training.source = self:RecipeSource(estimate.recipeID)
+            training.location = self:RecipeLocation(estimate.recipeID, training.source)
+            local reference = Suite.ProfessionRecipeSources[estimate.recipeID]
+            local kind = reference and reference.kind .. ": " or ""
+            training.label:SetText("Not trained · " .. (training.location and kind .. training.location.name .. " >"
+                or reference and reference.kind == "Manual" and not reference.Alliance and not reference.Horde
+                    and "Manual: drops / Auction House" or "Source details"))
+            local height = math.max(16, training.label:GetStringHeight() + 2)
+            training:SetSize(CONTENT_WIDTH, height); training:ClearAllPoints(); training:SetPoint("TOPLEFT", 0, -y); training:Show()
+            y = y + height + 4
+        end
         for _, material in ipairs(estimate.materials) do
             itemIndex = itemIndex + 1
             local item = row.estimateItems[itemIndex]
@@ -727,6 +832,7 @@ function Leveling:Apply()
         end
         if not self.active then
             for _, event in ipairs({ "ADDON_LOADED", "TRADE_SKILL_SHOW", "TRADE_SKILL_LIST_UPDATE",
+                "NEW_RECIPE_LEARNED", "TRADE_SKILL_DETAILS_UPDATE",
                 "TRADE_SKILL_DATA_SOURCE_CHANGED", "SKILL_LINES_CHANGED", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED",
                 "UPDATE_TRADESKILL_CAST_STOPPED", "UNIT_SPELLCAST_INTERRUPTED", "UNIT_SPELLCAST_FAILED" }) do
                 self.events:RegisterEvent(event)

@@ -265,12 +265,10 @@ function Tips:RequestInspect(tooltip, record, unit, guid)
 end
 
 function Tips:ColorUnitLevel(tooltip, data, unit)
-    if not Suite.db.unitLevelColors or not UnitLevel or not UnitEffectiveLevel
-        or not GetRelativeDifficultyColor or not tooltip.GetName then return end
-    local level, playerLevel = UnitLevel(unit), UnitEffectiveLevel("player")
+    if not Suite.db.unitLevelColors or not UnitLevel or not tooltip.GetName then return end
+    local level = UnitLevel(unit)
     if not Suite.IsReadable(level) or type(level) ~= "number" or (level <= 0 and level ~= -1) or level >= math.huge
-        or level ~= math.floor(level) or not Suite.IsReadable(playerLevel) or type(playerLevel) ~= "number"
-        or playerLevel <= 0 or playerLevel >= math.huge then return end
+        or level ~= math.floor(level) then return end
     if not data and tooltip.GetPrimaryTooltipData then data = tooltip:GetPrimaryTooltipData() end
     if not Suite.IsReadable(data) or type(data) ~= "table" or not Suite.IsReadable(data.lines)
         or type(data.lines) ~= "table" then return end
@@ -281,7 +279,19 @@ function Tips:ColorUnitLevel(tooltip, data, unit)
     if level == -1 then
         -- The native unknown/boss sentinel is public; never infer a hidden numeric level.
         ok, color = true, QuestDifficultyColors and QuestDifficultyColors.impossible
+    elseif C_PlayerInfo and type(C_PlayerInfo.GetContentDifficultyCreatureForPlayer) == "function"
+        and type(GetDifficultyColor) == "function" then
+        -- Match the native target frame: content difficulty can differ from the
+        -- generic level-difference thresholds used by GetRelativeDifficultyColor.
+        local read, difficulty = pcall(C_PlayerInfo.GetContentDifficultyCreatureForPlayer, unit)
+        if not read or not Suite.IsReadable(difficulty) or type(difficulty) ~= "number"
+            or difficulty ~= math.floor(difficulty) or not (difficulty >= 0 and difficulty <= 4) then return end
+        ok, color = pcall(GetDifficultyColor, difficulty)
     else
+        if type(UnitEffectiveLevel) ~= "function" or type(GetRelativeDifficultyColor) ~= "function" then return end
+        local playerLevel = UnitEffectiveLevel("player")
+        if not Suite.IsReadable(playerLevel) or type(playerLevel) ~= "number"
+            or playerLevel <= 0 or playerLevel >= math.huge then return end
         ok, color = pcall(GetRelativeDifficultyColor, playerLevel, level)
     end
     if not ok or not Suite.IsReadable(color) or type(color) ~= "table" then return end

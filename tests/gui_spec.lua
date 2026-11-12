@@ -106,6 +106,7 @@ for index, row in ipairs(catalog.pages.bags.rows) do
     end
 end
 gui:Select("buffs", "reminders")
+Suite.BuffSettings.appearanceOpen=true;Suite.BuffSettings.advancedOpen=true;Suite.BuffSettings:Refresh()
 equal(gui.contentHeight > gui.viewportHeight, true, "long buff pages scroll instead of escaping the panel")
 gui:ScrollTo(100000)
 local maximum = gui.contentHeight - gui.viewportHeight
@@ -134,7 +135,7 @@ equal(ThumbFraction(bar), 1, "the thumb reaches the bottom of the actual new ran
 gui.scrollFrame.OnScrollRangeChanged(gui.scrollFrame, 0, { secret = true })
 equal(gui.scrollOffset, maximum / 2, "unreadable native range changes preserve the known position")
 gui:Select("buffs"); gui:ScrollTo(maximum)
-equal(gui.rowOffsets[16] + gui.rows[16].height - maximum <= gui.viewportHeight, true,
+equal(Suite.BuffSettings.panel:GetHeight() + gui.controlsOffset - maximum <= gui.viewportHeight, true,
     "the last buff control can be brought fully above the fixed footer")
 for _, invalid in ipairs({ { secret = true }, math.huge, 0 / 0 }) do
     gui:ScrollTo(invalid); equal(gui.scrollOffset, maximum, "unreadable scroll inputs leave the layout intact")
@@ -324,6 +325,28 @@ dragBar.thumb.OnMouseDown(dragBar.thumb, "LeftButton")
 gui.frame.OnHide()
 equal(dragBar.OnUpdate, nil, "closing the GUI cancels all scrollbar gestures")
 GetCursorPosition = cursorBefore
+-- Choice menus show every option and reject callbacks from a stale UI context.
+local ChooseMenu=assert(loadfile("tests/menu_helper.lua"))()
+gui:OpenPage("professions")
+local selected,selectedCount=nil,0
+local options={{value="alt",label="Alt"},{value="ctrl",label="Ctrl"},{value="shift",label="Shift"}}
+local callbacks=ChooseMenu(function()
+    gui:Choose(gui.frame,options,"alt",function(value) selected=value;selectedCount=selectedCount+1 end)
+end,"Shift")
+equal(selected,"shift","choice menu can select a nonadjacent option directly")
+equal(callbacks.Alt~=nil and callbacks.Ctrl~=nil,true,"choice menu presents the other allowed values together")
+SetCombat(true);callbacks.Ctrl();SetCombat(false)
+equal(selectedCount,1,"menu callbacks do not apply choices in combat")
+gui:Select("vendor");callbacks.Alt()
+equal(selectedCount,1,"menu callbacks cannot modify another page after navigation")
+gui:Select("professions");callbacks.Alt()
+equal(selectedCount,1,"returning to the original page does not revive stale menu callbacks")
+callbacks=ChooseMenu(function()
+    gui:Choose(gui.frame,options,"shift",function(value) selected=value;selectedCount=selectedCount+1 end)
+end,"Ctrl")
+gui.frame:Hide();callbacks.Shift()
+equal(selected,"ctrl","closing settings retires menu actions")
+gui.frame:Show()
 Suite.db, Suite.Apply, Suite.pending = oldDB, oldApply, oldPending
 gui:Select(oldPage or "overview"); gui.frame:SetShown(oldShown)
 SetCombat(false)

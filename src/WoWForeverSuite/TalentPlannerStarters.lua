@@ -93,6 +93,42 @@ function Planner:StarterHelperActive()
     return self.starter and not self.guiding and self.expanded and self.starterPanel and self.starterPanel:IsShown()
 end
 
+function Planner:FullBuildEnabled()
+    return self:Enabled() and Suite.IsReadable(Suite.db.talentPlannerFullBuild) and Suite.db.talentPlannerFullBuild == true
+end
+
+function Planner:RememberFullBuild()
+    if not self:FullBuildEnabled() or not self:Ready() or not self.expanded then return end
+    local build = self:Current()
+    if not build then return end
+    if not self.guideDB then self:InitializeGuide(nil) end
+    -- Keep the reference character-owned; build records remain in the class library.
+    if self.starter then self.guideDB.fullBuild = {class=self.model.class,starter=true}
+    elseif Int(build.id,1,1000000000) then self.guideDB.fullBuild = {class=self.model.class,buildID=build.id} end
+end
+
+function Planner:FullBuild()
+    if not self:FullBuildEnabled() or not self:Ready() then return end
+    local reference = self.guideDB and self.guideDB.fullBuild
+    if not reference then return self:StarterBuild(60) end
+    if reference.class ~= self.model.class then return end
+    if reference.starter then return self:StarterBuild(60) end
+    for _, build in ipairs(self:Library() or {}) do
+        if build.id == reference.buildID and build.tree == self.model.tree and build.hash == self.model.hash
+            and self:Validate(build.ranks) then return build end
+    end
+end
+
+function Planner:RenderFullBuild(activeDraft)
+    if not self:FullBuildEnabled() or not self:Ready() or activeDraft or self.guiding or self:StarterHelperActive() then return end
+    local build = self:FullBuild()
+    if not build then return end
+    self:RenderGuideMarks(build)
+    if build.starter and build.sequence and build.sequence[#build.sequence] then
+        self:HighlightGuide(build.sequence[#build.sequence], "LEVEL 60")
+    end
+end
+
 function Planner:RenderStarterHelper()
     if not self:Ready() or not self:StarterHelperActive() then return end
     local build = self:Current()

@@ -1,6 +1,6 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "1.0.13"
+Suite.version = "1.0.14"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {
@@ -39,7 +39,7 @@ Suite.defaults = {
     macroUpdates = false, macroOwnership = {},
     campingBar = false, campingPose = "sit", campingPosition = {},
     levelingBar = false, trainingPlanner = false, trainingAuto = true, trainingLevelUp = true, trainingSpellbook = true,
-    talentPlanner = false, talentPlannerRules = false, talentBuilds = { schema = 1, classes = {} },
+    talentPlanner = false, talentPlannerRules = false, talentPlannerFullBuild = false, talentBuilds = { schema = 1, classes = {} },
     missingBuffExpiry = false, missingBuffCombat = false, missingBuffWeapons = false, missingBuffWarning = 60, missingBuffCustom = {},
     missingBuffScale = 1, missingBuffIconSize = 34, missingBuffRested = true, missingBuffSmart = true,
     missingBuffCampfire = false,

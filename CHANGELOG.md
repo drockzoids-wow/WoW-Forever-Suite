@@ -1,5 +1,17 @@
 # Forever Suite
 
+## 1.0.14 — November 12, 2026
+
+- Add an optional persistent full-build talent comparison. Remember the selected leveling or personal build per character and show its markers when native Talents opens, including with Builds closed. Leveling references use the full level-60 plan; native point spending stays manual.
+
+- Simplify settings into scrollable pages with inline sections, direct choice menus and easier buff tracking. Preserve saved preferences, advanced weight drafts and search access.
+- Unify Contacts, Groups and Preferences in one compact workspace. Add shared custom groups and parent unions, staged membership editing, scoped recipient selection and readable multiline notes. Contact clicks fill To when Send Mail is open; sending remains manual.
+- Show learning-source hints for untrained profession-guide recipes, including trainer, vendor, manual and quest sources. Click a supported source to set a waypoint; warnings refresh after learning. Recipe teaching and coordinates remain reference guidance.
+- Apply castbar sizing automatically when adjusting dimensions, with Reset to restore native size. Match Player, Target or Focus sizes through a dropdown; linked bars follow source edits. Moving a slider or typing a dimension switches the edited bar back to Manual immediately.
+- Keep combat buff reminders active through harmless roster/connection notifications while suspending changed or unreadable prepared identities. Use native creature difficulty colors for tooltip levels.
+- Fix buff pagination counts after filter changes and protect preselected new-contact group memberships as unsaved drafts.
+- Offline validation passes; native layout, input, recipe/waypoint permissions and combat/taint smoke tests remain pending. The existing bag-use taint investigation remains open.
+
 ## 1.0.13 — November 11, 2026
 
 - Add optional attached profession leveling guides with original summaries and links to the WoW-Professions Forever guides, faction-specific directions and collapsible skill ranges.

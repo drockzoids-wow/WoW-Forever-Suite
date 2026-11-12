@@ -35,6 +35,8 @@ CreateFrame = function(kind, name, parent, templates)
     assert(not InCombatLockdown(), "buff UI construction waits for combat")
     made = made + 1
     local frame = Frame(name)
+    frame.objectType=kind
+    if parent and parent.children and kind~="Texture" and kind~="FontString" then parent.children[#parent.children+1]=frame end
     frame.parent = parent; frame.protected = parent and parent.protected or templates and templates:find("Secure", 1, true) ~= nil or false
     frame.attributes, frame.refs, frame.registered = {}, {}, {}
     frame.SetTexCoord = function(self, ...) self.texCoords = { ... } end
@@ -469,7 +471,7 @@ do
     manager.saved[1].scope:OnClick()
     equal(Suite.db.missingBuffCustom[1].group, false, "scope control restores self watching")
     manager.search:OnEscapePressed()
-    equal(manager.panel:IsShown(), false, "Escape from the edit field closes the custom editor")
+    equal(manager.panel:IsShown(), true, "Escape leaves the single buff page open")
     buffs:Refresh(); local custom, customButton = Find("self", "CUSTOM:9005")
     equal(custom.spell.id, 9005, "learned custom spell gets its own reminder")
     equal(customButton.attributes.spell1, 9005, "custom click binds the learned spell")
@@ -824,14 +826,91 @@ do
     Suite.db.missingBuffSmart=false;buffs:Refresh()
     equal(#Find("group","intellect").names,4,"class-aware defaults can be disabled deliberately")
     Suite.db.missingBuffSmart=true
+    -- The single page exposes a hidden Warrior shout without any manager navigation.
+    local manager=Suite.BuffSettings
+    Spell(6673,"Battle Shout");units.player.class="WARRIOR";learned={6673};buffs.bookDirty=true
+    Suite.db.missingBuffChoices={["WARRIOR:shout"]=0,["MAGE:intellect"]=0}
+    manager:Dismiss();manager.filter="mine";manager.choiceQuery="";manager.page=1;manager.cachedLearned=nil
+    manager.appearanceOpen=false;manager.advancedOpen=false;manager.spellsOpen=false
+    Suite.GUI:Select("buffs")
+    equal(Suite.SettingsCatalog.pages.buffs.views,nil,"buff reminders have no secondary navigation tabs")
+    equal(manager.choices:IsShown(),true,"tracked buffs are present on the first page")
+    equal(manager.choiceRows[1].record.key,"WARRIOR:shout","default class list exposes Battle Shout immediately")
+    equal(manager.choiceRows[1].visible.checked,false,"saved hidden Battle Shout is visibly unchecked")
+    equal(manager.choiceRows[1].detail.text:find("Hidden",1,true)~=nil,true,"hidden shout has an explicit inline reason")
+    equal(manager.display:IsShown(),false,"appearance starts collapsed")
+    equal(manager.visibility:IsShown(),false,"uncommon options start collapsed")
+    equal(manager.spells:IsShown(),false,"custom editor starts collapsed")
+    equal(Suite.db.missingBuffChoices["WARRIOR:shout"],0,"opening the simplified page preserves Off")
+    equal(Suite.GUI.contentHeight,Suite.GUI.viewportHeight,"basic Warrior controls fit without scrolling")
+    manager.choiceRows[1].visible:OnClick();Flush()
+    equal(Suite.db.missingBuffChoices["WARRIOR:shout"],nil,"one checkbox click restores Battle Shout")
+    equal(Suite.db.missingBuffChoices["MAGE:intellect"],0,"restoring shout preserves unrelated hidden buffs")
+    Suite.db.missingBuffCombat=false;manager:Refresh()
+    equal(manager.choiceRows[1].detail.text:find("Combat reminders off",1,true)~=nil,true,"shout explains a disabled combat switch beside the buff")
+    manager.settings.missingBuffCombat:OnClick();Flush()
+    equal(Suite.db.missingBuffCombat,true,"combat reminders can be enabled directly on the same page")
+    equal(Suite.db.missingBuffChoices["MAGE:intellect"],0,"main switches do not reset family choices")
+    local selfScope,outgoingScope=Suite.db.missingBuffSelf,Suite.db.missingBuffOutgoing
+    Suite.db.missingBuffSelf=false;Suite.db.missingBuffOutgoing=false;manager:Refresh()
+    equal(manager.choiceRows[1].detail.text:find("My buffs and party / raid are off",1,true)~=nil,true,"shout explains when all recipient scopes are off")
+    Suite.db.missingBuffOutgoing=true;manager:Refresh()
+    equal(manager.choiceRows[1].detail.text:find("Party / raid only",1,true)~=nil,true,"shout explains when personal reminders are off")
+    Suite.db.missingBuffSelf,Suite.db.missingBuffOutgoing=selfScope,outgoingScope;manager:Refresh()
+    manager.appearanceToggle:OnClick()
+    equal(manager.display:IsShown(),true,"appearance expands in place")
+    Suite.GUI:ScrollTo(0)
+    local selectedPage=manager.page
+    manager.choiceRows[1].visible:OnMouseWheel(-1)
+    equal(Suite.GUI.scrollOffset,40,"wheel over a buff checkbox scrolls down the full page")
+    equal(manager.page,selectedPage,"wheel over tracked buffs does not turn list pages")
+    manager.choiceSearch:OnMouseWheel(-1)
+    equal(Suite.GUI.scrollOffset,80,"wheel over buff search scrolls the full page")
+    manager.scale:OnMouseWheel(1)
+    equal(Suite.GUI.scrollOffset,40,"wheel over buff appearance scrolls upward")
+    equal(Suite.db.missingBuffScale,1,"buff page scrolling does not alter appearance values")
+    manager.appearanceToggle:OnClick()
+    equal(manager.display:IsShown(),false,"appearance collapses in place")
+    manager.advancedToggle:OnClick();manager.warningChoices[3]:OnClick()
+    equal(Suite.db.missingBuffWarning,120,"warning interval selects an explicit value without cycling")
+    manager.warningChoices[2]:OnClick();manager.advancedToggle:OnClick()
+    local oldMenu,options=MenuUtil,{}
+    Spell(469,"Commanding Shout");learned={6673,469};manager.cachedLearned=nil;manager:Refresh()
+    equal(manager.choiceRows[1].alternative:IsShown(),true,"learned shout alternatives have a direct selector")
+    MenuUtil={CreateContextMenu=function(_,generate)
+        generate(nil,{CreateRadio=function(_,label,selected,callback) options[#options+1]={label=label,selected=selected,callback=callback} end})
+    end}
+    manager.choiceRows[1].alternative:OnClick()
+    equal(#options,3,"selector offers Automatic and both learned shouts together")
+    local commanding
+    for _,option in ipairs(options) do if option.label=="Commanding Shout" then commanding=option end end
+    commanding.callback();Flush()
+    equal(Suite.db.missingBuffChoices["WARRIOR:shout"],469,"explicit alternative selection stores that spell")
+    SetCombat(true);options[1].callback()
+    equal(Suite.db.missingBuffChoices["WARRIOR:shout"],469,"open alternative menu cannot write in combat")
+    SetCombat(false);options[1].callback();Flush()
+    -- A refresh retires this menu's row binding; use a fresh menu to select Automatic.
+    options={};manager.choiceRows[1].alternative:OnClick();options[1].callback();Flush()
+    equal(Suite.db.missingBuffChoices["WARRIOR:shout"],nil,"Automatic can be selected directly")
+    MenuUtil=oldMenu
+    manager.filters.all:OnClick()
+    equal(manager.filter,"all","all-class list has a direct button")
+    equal(manager.choiceCount:IsShown(),true,"switching from a short class list restores the multi-page count")
+    manager.filters.hidden:OnClick()
+    equal(manager.choiceCount:IsShown(),false,"short filtered lists hide pagination counts")
+    equal(manager.choiceRows[1].record.key,"MAGE:intellect","hidden filter directly exposes another class's hidden buff")
+    SetCombat(true);manager.choiceRows[1].visible:OnClick();manager.settings.missingBuffCombat:OnClick()
+    equal(Suite.db.missingBuffChoices["MAGE:intellect"],0,"combat ignores buff checkbox writes")
+    equal(Suite.db.missingBuffCombat,true,"combat ignores main settings writes")
+    SetCombat(false)
     -- A visible hidden-family list restores exactly one family and retains unrelated choices.
     units.player.class="HUNTER";units.party1.class="MAGE";units.party2=nil;units.party3=nil;learned={};buffs.bookDirty=true
     Suite.db.missingBuffChoices={ ["MAGE:intellect"]=0,["PRIEST:shadow"]=0 };buffs:Refresh()
     equal(Find("incoming","intellect"),nil,"a deliberately hidden family stays hidden")
-    local manager=Suite.BuffSettings;manager:Open("choices")
+    manager:Open("choices");manager.filter="all"
     manager.choiceQuery="intellect";manager.page=1;manager:Refresh()
     equal(manager.choiceRows[1].record.key,"MAGE:intellect","English family search finds a localized Intellect spell")
-    equal(manager.choiceRows[1].visible.label.text,"Show reminder","hidden state has a clear restore action")
+    equal(manager.choiceRows[1].visible.checked,false,"hidden state has an unchecked tracking box")
     manager.choiceRows[1].visible:OnClick();Flush()
     equal(Suite.db.missingBuffChoices["MAGE:intellect"],nil,"individual restore removes the hidden flag")
     equal(Suite.db.missingBuffChoices["PRIEST:shadow"],0,"individual restore preserves unrelated hidden choices")
@@ -867,11 +946,11 @@ do
     units.player.class="HUNTER";learned={};manager:Open("display");buffs.bookDirty=true;buffs:Refresh()
     manager.rested:OnClick();Flush()
     equal(Suite.db.missingBuffRested,false,"rested hiding control saves the inverted existing preference")
-    equal(manager.rested.label.text,"Hide in rested areas: on","rested control clearly labels hiding")
+    equal(manager.rested.checked,true,"rested checkbox clearly reflects inverted hiding preference")
     manager.rested:OnClick();manager.campfire:OnClick();Flush()
     equal(Suite.db.missingBuffCampfire,true,"campfire control saves its independent preference")
     equal(Suite.InitializeDB({missingBuffCampfire=true}).missingBuffCampfire,true,"campfire preference survives settings normalization")
-    equal(manager.campfire.label.text,"Hide near a campfire: on","campfire control reflects its state")
+    equal(manager.campfire.checked,true,"campfire checkbox reflects its state")
     manager.campfire:OnClick();Flush()
     equal(Suite.db.missingBuffScale,1,"bar starts at normal scale")
     equal(Suite.db.missingBuffIconSize,34,"bar preserves readable original icon size")
@@ -970,10 +1049,10 @@ do
     manager:Open("spells");manager.query="not an available spell";manager:Refresh()
     equal(manager.spellEmpty:IsShown(),true,"empty learned search gives a visible explanation")
     equal(manager.savedEmpty:IsShown(),true,"empty custom list explains that built-ins need no configuration")
-    equal(manager.panel:GetHeight()<500,true,"empty custom search compacts into one viewport")
+    equal(manager.spells:GetHeight()<500,true,"empty custom search compacts its inline section")
     manager:Open("choices");manager.choiceQuery="no matching family";manager:Refresh()
     equal(manager.choiceEmpty:IsShown(),true,"empty family search has explicit feedback")
-    equal(manager.panel:GetHeight()<500,true,"short family view avoids unnecessary empty scrolling")
+    equal(manager.choices:GetHeight()<200,true,"short family view avoids unnecessary empty scrolling")
     manager.panel:OnEvent("SPELLS_CHANGED")
     local queued=manager.timer
     manager.panel:OnEvent("SPELL_DATA_LOAD_RESULT")

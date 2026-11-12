@@ -7,16 +7,23 @@ local teal = { r = 0.41, g = 0.84, b = 0.75 }
 
 -- Route wheel input on Suite-owned frames, retaining nested controls' own
 -- scrolling/resizing behavior. Leave click and keyboard input unchanged.
-function Theme:RouteWheel(frame, inherited)
+function Theme:RouteWheel(frame, inherited, pageScroll)
     if InCombatLockdown() or not frame or not frame.GetScript then return end
-    local handler = frame:GetScript("OnMouseWheel") or inherited
+    -- A settings page owns wheel gestures over its controls. Genuine nested
+    -- scroll views retain their own wheel route and remain independent.
+    local kind = frame.GetObjectType and frame:GetObjectType()
+    if pageScroll and (kind == "ScrollFrame" or kind == "Slider" and frame:GetScript("OnMouseWheel")) then
+        self:RouteWheel(frame)
+        return
+    end
+    local handler = pageScroll and inherited or frame:GetScript("OnMouseWheel") or inherited
     if handler and frame.EnableMouseWheel then
         frame:EnableMouseWheel(true)
-        if not frame:GetScript("OnMouseWheel") then frame:SetScript("OnMouseWheel", handler) end
+        if pageScroll or not frame:GetScript("OnMouseWheel") then frame:SetScript("OnMouseWheel", handler) end
     end
     if frame.GetChildren then
         local forward = handler and function(_, ...) handler(frame, ...) end or nil
-        for _, child in ipairs({ frame:GetChildren() }) do self:RouteWheel(child, forward) end
+        for _, child in ipairs({ frame:GetChildren() }) do self:RouteWheel(child, forward, pageScroll) end
     end
 end
 

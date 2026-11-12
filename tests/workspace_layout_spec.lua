@@ -125,45 +125,28 @@ for _, group in ipairs(catalog.groups) do
 end
 local reached = 0; for _ in pairs(reachable) do reached = reached + 1 end
 equal(reached, 33, "all destinations including Support can be browsed without search")
-for _, route in ipairs({ "bags", "items", "actionbars", "buffs" }) do
-    local ever = {}
-    for _, view in ipairs(catalog.pages[route].views) do
-        gui:Select(route, view.key)
-        equal(gui.pageViews[route], view.key, "view selection opens the named subset")
-        for _, group in ipairs(catalog.groups) do
-            equal(gui.groupTabs[group.key].point[3], positions[group.key][3], "sidebar destinations never move as pages and views change")
-        end
-        for index, data in ipairs(catalog.pages[route].rows) do
-            local visible = not data.hidden and (not data.view or data.view == view.key)
-            equal(gui.rows[index]:IsShown(), visible, "each view displays exactly its own setting rows")
-            if visible then
-                ever[index] = true
-                equal(gui.rows[index]:GetWidth(), gui.contentWidth, "related settings use a single scan column")
-                equal(gui.rowOffsets[index] + gui.rows[index]:GetHeight() <= gui.contentHeight - 36, true, "every view row is reachable above the footer")
-            end
-        end
-        for _, button in ipairs(gui.viewButtons) do if button:IsShown() then
-            equal(button.point[2] + button:GetWidth() <= gui.contentWidth, true, "view navigation stays within content bounds")
-        end end
-        if WFS_WORKSPACE_PREVIEW then
-            local model = { page = route .. view.key, heading = gui.heading.text, view = view.label, width = 1120, height = 760,
-                contentWidth = gui.contentWidth, viewport = gui.viewportHeight, contentHeight = gui.contentHeight, sidebar = {}, rows = {}, views = {}, details = {} }
-            for _, group in ipairs(catalog.groups) do model.sidebar[#model.sidebar + 1] = { label = group.label, y = group.utility and 601 or -gui.groupTabs[group.key].point[3], active = gui.group == group.key } end
-            for _, button in ipairs(gui.viewButtons) do if button:IsShown() then model.views[#model.views + 1] = { x = button.point[2], label = button.label.text, active = button.view == view.key } end end
-            for index, data in ipairs(catalog.pages[route].rows) do if gui.rows[index]:IsShown() then
-                local row = gui.rows[index]
-                model.rows[#model.rows + 1] = { x = row.point[2], y = -row.point[3], width = row:GetWidth(), height = row:GetHeight(), label = data.label, help = data.help }
-            end end
-            if route == "buffs" and view.key == "visibility" then
-                for _, button in ipairs({ Suite.BuffSettings.rested, Suite.BuffSettings.campfire }) do
-                    model.details[#model.details + 1] = { x = 18, y = gui.controlsOffset + 40 - button.point[3], width = button:GetWidth(), height = button:GetHeight(), label = button.label.text }
-                end
-            end
-            WFS_WORKSPACE_PREVIEW(model)
+for _, route in ipairs({ "bags", "items", "actionbars" }) do
+    gui:Select(route)
+    equal(catalog.pages[route].views, nil, "feature options share one page without subview tabs")
+    for _, group in ipairs(catalog.groups) do
+        equal(gui.groupTabs[group.key].point[3], positions[group.key][3], "sidebar destinations remain fixed")
+    end
+    for index, data in ipairs(catalog.pages[route].rows) do
+        equal(gui.rows[index]:IsShown(), not data.hidden, "all ordinary feature settings are present together")
+        if not data.hidden then
+            equal(gui.rows[index]:GetWidth(), gui.contentWidth, "settings use a single scan column")
+            equal(gui.rowOffsets[index] + gui.rows[index]:GetHeight() <= gui.contentHeight - 36, true, "every setting can scroll above the footer")
         end
     end
-    for index, data in ipairs(catalog.pages[route].rows) do if not data.hidden then equal(ever[index], true, "every nonlegacy setting appears in a browsable view") end end
+    for _, button in ipairs(gui.viewButtons or {}) do equal(button:IsShown(), false, "no extra feature navigation is shown") end
+    gui:ScrollTo(0);gui.rows[1]:OnMouseWheel(-1)
+    equal(gui.scrollOffset,40,"wheel over settings scrolls the unified page")
 end
+gui:Select("actionbars")
+equal(gui.procPanel:IsShown(),true,"proc sizing stays on the action bar page")
+equal(gui.keybindPanel:IsShown(),true,"keybind appearance stays on the same action bar page")
+equal(-gui.keybindPanel.point[3]>=-gui.procPanel.point[3]+gui.procPanel:GetHeight(),true,"action bar detail sections do not overlap")
+equal(-gui.keybindPanel.point[3]+gui.keybindPanel:GetHeight()<=gui.contentHeight-36,true,"last action bar controls remain reachable")
 local function Entry(key)
     for _, entry in ipairs(catalog.entries) do if entry.key == key then return entry end end
 end
@@ -187,32 +170,33 @@ end
 gui:Select("buffs", "appearance")
 Suite.BuffSettings.normalPreview:OnClick()
 equal(Suite.MissingBuffs.preview:IsShown(), true, "appearance controls can preview the bar without enabling it")
-gui:Select("buffs", "visibility")
-equal(Suite.MissingBuffs.preview:IsShown(), false, "changing buff tabs stops the owned preview")
+Suite.BuffSettings.appearanceToggle:OnClick()
+equal(Suite.MissingBuffs.preview:IsShown(), false, "collapsing appearance stops the owned preview")
 local oldProcPreview = Suite.ProcAlerts.SetPreview
 Suite.ProcAlerts.SetPreview = function(self, value) self.preview = value and true or nil end
 gui:Select("actionbars", "feedback"); Suite.ProcAlerts:SetPreview(true)
-gui:Select("actionbars", "keybinds")
-equal(Suite.ProcAlerts.preview, nil, "leaving the proc tab stops its preview")
+gui:Select("bags")
+equal(Suite.ProcAlerts.preview, nil, "leaving the action bar page stops its preview")
 Suite.ProcAlerts.SetPreview = oldProcPreview
 gui:Select("buffs", "reminders");gui:ScrollTo(100000)
 local remembered = gui.scrollOffset
 gui:Select("buffs", "visibility");gui:Select("buffs", "reminders")
-equal(gui.scrollOffset, remembered, "each view restores its own scrolling position")
+equal(gui.scrollOffset, remembered, "the unified buff page retains its scrolling position")
+Suite.BuffSettings.advancedOpen=false;Suite.BuffSettings:Refresh()
 SetCombat(true)
-gui.viewButtons[2].OnClick()
-equal(gui.pageViews.buffs, "reminders", "view clicks defer layout changes during combat")
+Suite.BuffSettings.advancedToggle:OnClick()
+equal(Suite.BuffSettings.advancedOpen, false, "buff layout controls ignore combat clicks")
 gui:RevealSetting(Entry("missingBuffCampfire"))
-equal(gui.pageViews.buffs, "reminders", "combat search does not create or lay out a hidden detail editor")
+equal(Suite.BuffSettings.advancedOpen, false, "combat search does not expand hidden details")
 local reveal = Suite.pending.settingsReveal
 equal(type(reveal), "function", "nested search queues its complete reveal until combat ends")
 SetCombat(false);reveal()
-equal(gui.pageViews.buffs, "visibility", "deferred search opens the correct view after combat")
+equal(Suite.BuffSettings.advancedOpen, true, "deferred search expands the matching inline section after combat")
 equal(gui.settingHighlight:GetParent(), Suite.BuffSettings.campfire, "deferred search highlights the specific hiding rule")
 equal(applied, 0, "directory browsing, view changes and search never apply optional features")
-for _, destination in ipairs({ { "bags", "inventory" }, { "items", "levels" }, { "actionbars", "feedback" }, { "actionbars", "keybinds" }, { "buffs", "visibility" }, { "buffs", "appearance" } }) do
+for _, destination in ipairs({ { "bags", "inventory" }, { "items", "levels" }, { "actionbars", "feedback" }, { "actionbars", "keybinds" } }) do
     gui:Select(destination[1], destination[2])
-    equal(gui.contentHeight, gui.viewportHeight, "common pilot views fit within the modeled viewport")
+    equal(gui.contentHeight >= gui.viewportHeight, true, "unified feature pages have a valid scroll range")
 end
 local originalScale = gui.frame:GetScale()
 for _, size in ipairs({ { 1920, 1080 }, { 1366, 768 }, { 1024, 768 }, { 800, 600 } }) do

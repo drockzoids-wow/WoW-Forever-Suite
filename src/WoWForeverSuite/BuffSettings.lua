@@ -1,5 +1,5 @@
 local _,Suite=...
-local View={page=1,spellPage=1,filter="all",controls={}}
+local View={page=1,spellPage=1,filter="mine",controls={}}
 Suite.BuffSettings=View
 local GUI,Buffs=Suite.GUI,Suite.MissingBuffs
 local classLabels={MAGE="Mage",PRIEST="Priest",WARLOCK="Warlock",DRUID="Druid",HUNTER="Hunter",
@@ -36,8 +36,17 @@ local function Input(parent,x,y,width,callback)
         if not InCombatLockdown() then callback(f:GetText()) end
     end)
     f:SetScript("OnEnterPressed",function() f:ClearFocus() end)
-    f:SetScript("OnEscapePressed",function() View:Dismiss();GUI:Select("buffs","reminders") end)
+    f:SetScript("OnEscapePressed",function() f:ClearFocus() end)
+    View.controls[#View.controls+1]=f
     return f
+end
+local function Check(parent,text,x,y,width,callback)
+    local b=CreateFrame("CheckButton",nil,parent,"UICheckButtonTemplate")
+    b:SetPoint("TOPLEFT",x,y);b:SetSize(24,24)
+    b.label=Label(b,text,28,-6,width-28,11);b.label:SetWordWrap(false)
+    b:SetHitRectInsets(0,-(width-24),0,0)
+    b:SetScript("OnClick",function() if not InCombatLockdown() then callback() end end)
+    View.controls[#View.controls+1]=b;return b
 end
 local function Icon(parent,x,y)
     local icon=parent:CreateTexture(nil,"ARTWORK");icon:SetSize(26,26);icon:SetPoint("TOPLEFT",x,y);return icon
@@ -96,12 +105,24 @@ function View:Open(mode)
         return
     end
     self.cachedLearned=nil
-    self.mode,self.message=mode or "display",nil
-    local view=({display="appearance",visibility="visibility",choices="choices",spells="spells"})[self.mode] or "appearance"
-    GUI:OpenPage("buffs",view);self:Build();self:Refresh();GUI:Select("buffs");GUI:ScrollTo(GUI.controlsOffset)
+    self.mode,self.message=mode or "choices",nil
+    if mode=="display" then self.appearanceOpen=true end
+    if mode=="visibility" or mode=="spells" then self.advancedOpen=true end
+    GUI:OpenPage("buffs");self:Build();self:Refresh();GUI:Select("buffs")
+    local target=mode=="display" and self.display or mode=="visibility" and self.visibility or mode=="spells" and self.spells or self.choices
+    local _,offset=Suite.SettingsCatalog:Target(GUI,{owner="BuffSettings",target=mode=="display" and "display" or mode=="visibility" and "visibility" or mode=="spells" and "spells" or "choices"})
+    if target then GUI:ScrollTo(offset or 0) end
 end
 function View:Changed()
     Buffs.bookDirty=true;Buffs:Queue();self:Refresh()
+end
+function View:Reveal(target)
+    if InCombatLockdown() then return end
+    local advanced={rested=true,campfire=true,warning=true,spells=true,
+        ["settings.missingBuffIncoming"]=true,["settings.missingBuffSmart"]=true,["settings.missingBuffWeapons"]=true}
+    if advanced[target] then self.advancedOpen=true end
+    if target=="display" or target=="scale" or target=="size" or target=="normalPreview" or target=="resetPosition" then self.appearanceOpen=true end
+    self:Refresh()
 end
 function View:Display(key,value)
     if InCombatLockdown() then return end
@@ -115,8 +136,32 @@ end
 function View:Build()
     if self.panel or InCombatLockdown() then return end
     local panel=CreateFrame("Frame",nil,GUI.content);panel:SetSize(780,340);self.panel,GUI.buffPanel=panel,panel
-    self.tabs={}
     self.status=Label(panel,"",0,0,780,11,colors.gold);self.status:SetHeight(30)
+    self.settings={}
+    local general=CreateFrame("Frame",nil,panel);self.general=general
+    general:SetPoint("TOPLEFT",0,-32);general:SetSize(780,168)
+    local function Setting(parent,key,label,x,y,inverted)
+        local control=Check(parent,label,x,y,380,function()
+            Suite.Set(key,not Suite.db[key]);self:Refresh()
+        end)
+        control.settingKey,control.inverted=key,inverted;self.settings[key]=control
+        return control
+    end
+    Setting(general,"missingBuffs","Enable buff reminders",0,0)
+    Label(general,"When to show reminders",0,-38,780,13,colors.teal)
+    Setting(general,"missingBuffCombat","Also show during combat",0,-64)
+    Setting(general,"missingBuffExpiry","Warn before buffs expire",396,-64)
+    Setting(general,"missingBuffSelf","My buffs",0,-100)
+    Setting(general,"missingBuffOutgoing","Party / raid buffs I can cast",396,-100)
+    Setting(general,"missingBuffClass","Class upkeep (armor, shields, poisons)",0,-136)
+    self.appearanceToggle=Button(panel,"Appearance",0,0,780,function()
+        self.appearanceOpen=not self.appearanceOpen
+        if not self.appearanceOpen then Buffs:SetPreview(false);if Suite.CombatBuffs then Suite.CombatBuffs:SetPreview(false) end end
+        self:Refresh()
+    end)
+    self.advancedToggle=Button(panel,"Advanced",0,0,780,function()
+        self.advancedOpen=not self.advancedOpen;if not self.advancedOpen then self.search:ClearFocus() end;self:Refresh()
+    end)
     local display=CreateFrame("Frame",nil,panel);self.display=display
     display:SetPoint("TOPLEFT",0,-40);display:SetSize(780,264)
     Label(display,"Make the reminders comfortable to read.",0,0,780,14,colors.teal)
@@ -124,10 +169,20 @@ function View:Build()
     self.scale=Slider(display,0,-108,252,70,150,function(value) self:Display("missingBuffScale",value/100) end)
     self.size=Slider(display,264,-108,252,24,64,function(value) self:Display("missingBuffIconSize",value) end)
     local visibility=CreateFrame("Frame",nil,panel);self.visibility=visibility
-    visibility:SetPoint("TOPLEFT",0,-40);visibility:SetSize(780,144)
-    self.rested=Button(visibility,"",0,0,780,function() self:Display("missingBuffRested",not Suite.db.missingBuffRested) end)
-    self.campfire=Button(visibility,"",0,-46,780,function() self:Display("missingBuffCampfire",not Suite.db.missingBuffCampfire) end)
-    Label(visibility,"These hiding options affect only the out-of-combat bar. Combat reminders still appear wherever you fight.",0,-90,780,11,colors.muted)
+    visibility:SetPoint("TOPLEFT",0,-40);visibility:SetSize(780,214)
+    Setting(visibility,"missingBuffIncoming","Buffs my group can give me",0,0)
+    Setting(visibility,"missingBuffSmart","Match buffs to recipient classes",396,0)
+    Setting(visibility,"missingBuffWeapons","Weapon coating reminders",0,-36)
+    self.rested=Setting(visibility,"missingBuffRested","Hide normal reminders in rested areas",0,-72,true)
+    self.campfire=Setting(visibility,"missingBuffCampfire","Hide normal reminders near a campfire",396,-72)
+    self.warning=CreateFrame("Frame",nil,visibility);self.warning:SetPoint("TOPLEFT",0,-114);self.warning:SetSize(780,68)
+    Label(self.warning,"Long-buff and coating warning",0,0,780,11,colors.muted)
+    self.warningChoices={}
+    for i,seconds in ipairs({30,60,120}) do
+        self.warningChoices[i]=Check(self.warning,seconds.." seconds",(i-1)*180,-26,170,function() self:Display("missingBuffWarning",seconds) end)
+        self.warningChoices[i].seconds=seconds
+    end
+    Label(visibility,"Short buffs warn at 15 seconds. Battle Shout and Commanding Shout appear only in combat.",0,-190,780,11,colors.muted)
     self.normalPreview=Button(display,"Preview normal bar",0,-176,252,function()
         Buffs:SetPreview(not (Buffs.preview and Buffs.preview:IsShown()));self:Refresh()
     end)
@@ -141,35 +196,44 @@ function View:Build()
     self.resetPosition=Button(display,"Reset position",528,-220,252,function() Buffs:ResetPosition() end)
     local choices=CreateFrame("Frame",nil,panel);self.choices=choices
     choices:SetPoint("TOPLEFT",0,-40);choices:SetSize(780,490)
-    Label(choices,"Find a hidden reminder or choose a learned alternative.",0,0,780,14,colors.teal)
+    Label(choices,"Buffs to track",0,0,780,14,colors.teal)
     self.choiceSearch=Input(choices,0,-34,384,function(value) self.choiceQuery=value;self.page=1;self:Refresh() end)
     self.choiceSearch.hint=Label(self.choiceSearch,"Search by spell or class",8,-7,368,11,colors.muted)
-    self.choiceFilter=Button(choices,"All families",396,-34,384,function()
-        self.filter=({all="hidden",hidden="mine",mine="all"})[self.filter];self.page=1;self:Refresh()
-    end)
+    self.filters={}
+    for i,option in ipairs({{"mine","My class"},{"all","All classes"},{"hidden","Hidden"}}) do
+        self.filters[option[1]]=Button(choices,option[2],396+(i-1)*130,-34,124,function() self.filter=option[1];self.page=1;self:Refresh() end)
+    end
+    self.choiceFilter=self.filters.all
     self.choiceEmpty=Label(choices,"",0,-82,780,11,colors.muted)
     self.choiceRows={}
     for i=1,8 do
         local row=CreateFrame("Frame",nil,choices);row:SetPoint("TOPLEFT",0,-80-(i-1)*44);row:SetSize(780,40)
         row.icon=Icon(row,0,-2);row.label=Label(row,"",36,-2,360,11);row.detail=Label(row,"",36,-20,360,10,colors.muted)
         row.label:SetWordWrap(false);row.detail:SetWordWrap(false)
-        row.visible=Button(row,"",410,0,170,function()
+        row.visible=Check(row,"Track",410,0,170,function()
             local record=row.record;if not record then return end
             if Suite.db.missingBuffChoices[record.key]==0 then Suite.db.missingBuffChoices[record.key]=nil
             else Suite.db.missingBuffChoices[record.key]=0 end
             self:Changed()
         end)
-        row.alternative=Button(row,"Change alternative",592,0,188,function()
+        row.alternative=Button(row,"Choose buff",592,0,188,function()
             local record=row.record;if not record then return end
-            local current=Suite.db.missingBuffChoices[record.key];local nextValue=record.family.choices[1] and record.family.choices[1].id
-            for index,spell in ipairs(record.family.choices) do if current==spell.id or current==spell.root then nextValue=record.family.choices[index+1] and record.family.choices[index+1].id;break end end
-            Suite.db.missingBuffChoices[record.key]=nextValue;self:Changed()
+            if not MenuUtil or type(MenuUtil.CreateContextMenu)~="function" then self.message="Buff selection is unavailable on this client.";self:Refresh();return end
+            MenuUtil.CreateContextMenu(row.alternative,function(_,root)
+                local function Option(name,id)
+                    root:CreateRadio(name,function() return Suite.db.missingBuffChoices[record.key]==id end,function()
+                        if InCombatLockdown() or not self.mode or GUI.page~="buffs" or not GUI.frame:IsShown() or row.record~=record then return end
+                        Suite.db.missingBuffChoices[record.key]=id;self:Changed()
+                    end)
+                end
+                Option("Automatic",nil)
+                for _,spell in ipairs(record.family.choices) do Option(spell.name,spell.id) end
+            end)
         end)
         self.choiceRows[i]=row
     end
     self.choicePrev=Button(choices,"Previous",0,-442,160,function() self.page=math.max(1,self.page-1);self:Refresh() end)
     self.choiceNext=Button(choices,"Next",172,-442,160,function() self.page=self.page+1;self:Refresh() end)
-    self.choiceWheelArea=Suite.Theme:PageWheel(choices,self.choiceRows,self.choicePrev,self.choiceNext,self.choiceRows[#self.choiceRows])
     self.choiceCount=Label(choices,"",356,-450,424,11,colors.muted)
     local spells=CreateFrame("Frame",nil,panel);self.spells=spells
     spells:SetPoint("TOPLEFT",0,-80);spells:SetSize(780,650)
@@ -187,7 +251,8 @@ function View:Build()
             if not row.spell then return end
             if row.builtIn then
                 self.mode="choices";self.filter="all";self.choiceQuery=row.spell.name;self.page=1
-                self.choiceSearch:SetText(row.spell.name);GUI:Select("buffs","choices");self:Refresh();return
+                self.choiceSearch:SetText(row.spell.name);GUI:Select("buffs");self:Refresh()
+                local _,offset=Suite.SettingsCatalog:Target(GUI,{owner="BuffSettings",target="choices"});GUI:ScrollTo(offset or 0);return
             end
             local ok=Suite.BuffReminders:AddCustom(tostring(row.spell.id),false)
             self.message=ok and "Reminder added. Choose Self or Party / raid below." or "Already saved, or all eight custom slots are in use."
@@ -197,7 +262,6 @@ function View:Build()
     end
     self.spellPrev=Button(spells,"Previous",0,-300,160,function() self.spellPage=math.max(1,self.spellPage-1);self:Refresh() end)
     self.spellNext=Button(spells,"Next",172,-300,160,function() self.spellPage=self.spellPage+1;self:Refresh() end)
-    self.spellWheelArea=Suite.Theme:PageWheel(spells,self.results,self.spellPrev,self.spellNext,self.results[#self.results])
     self.spellCount=Label(spells,"",356,-308,424,11,colors.muted)
     self.savedTitle=Label(spells,"",0,-352,780,12,colors.teal);self.saved={}
     self.savedEmpty=Label(spells,"No custom reminders yet. Built-in class reminders work without adding anything here.",0,-384,780,11,colors.muted)
@@ -246,7 +310,7 @@ function View:FamilyRows(book)
         local query=Text(self.choiceQuery) and self.choiceQuery:lower() or ""
         if family and (self.filter~="hidden" or hidden) and (self.filter~="mine" or catalog.class==class)
             and haystack:lower():find(query,1,true) then
-            rows[#rows+1]={key=key,name=name,icon=spell and spell.icon or 134400,hidden=hidden,family=family,class=catalog.class}
+            rows[#rows+1]={key=key,name=name,icon=spell and spell.icon or 134400,hidden=hidden,family=family,class=catalog.class,mine=catalog.class==class}
         end
     end
     for _,record in ipairs(Suite.db.missingBuffCustom) do
@@ -257,21 +321,26 @@ function View:FamilyRows(book)
                 family={choices={}},class="Custom"}
         end
     end
+    table.sort(rows,function(a,b)
+        if (a.mine==true)~=(b.mine==true) then return a.mine==true end
+        if a.name~=b.name then return a.name<b.name end
+        return a.key<b.key
+    end)
     return rows
 end
 function View:Refresh()
     if not self.panel or not self.mode then return end
     local ready=not InCombatLockdown()
     for _,control in ipairs(self.controls) do control:SetEnabled(ready) end
-    self.status:SetText(not ready and "Controls are available after combat." or self.message or "")
+    self.status:SetText(not ready and "Controls are available after combat." or self.message
+        or not Suite.db.missingBuffs and "Reminders are off. Your buff selections are kept."
+        or not Suite.db.missingBuffCombat and "Combat reminders are off. Only normal reminders will appear."
+        or "Checked buffs are tracked. Uncheck a buff to hide its reminder.")
     if not ready then
         self.sliding=nil;Buffs:SetPreview(false)
         return
     end
-    if self.mode~="display" then Buffs:SetPreview(false) end
-    for mode,tab in pairs(self.tabs) do
-        Suite.Theme:Backdrop(tab, mode == self.mode and 1 or 0.35)
-    end
+    if not self.appearanceOpen then Buffs:SetPreview(false) end
     self.search.hint:SetShown(not self.query or self.query=="")
     self.choiceSearch.hint:SetShown(not self.choiceQuery or self.choiceQuery=="")
     local scale,size=Buffs:DisplayOptions()
@@ -280,27 +349,44 @@ function View:Refresh()
     self.syncing=true;self.scale:SetValue(math.floor(scale*100+0.5));self.size:SetValue(size);self.syncing=nil
     self.normalPreview.label:SetText(Buffs.preview and Buffs.preview:IsShown() and "Stop normal preview" or "Preview normal bar")
     self.combatPreview.label:SetText(Suite.CombatBuffs and Suite.CombatBuffs.previewActive and "Stop combat preview" or "Preview combat icons")
-    self.rested.label:SetText(Suite.db.missingBuffRested and "Hide in rested areas: off" or "Hide in rested areas: on")
-    self.campfire.label:SetText(Suite.db.missingBuffCampfire and "Hide near a campfire: on" or "Hide near a campfire: off")
-    self.display:SetShown(self.mode=="display");self.choices:SetShown(self.mode=="choices");self.spells:SetShown(self.mode=="spells")
-    self.visibility:SetShown(self.mode=="visibility")
-    if self.mode=="choices" or self.mode=="spells" then
+    for key,control in pairs(self.settings) do
+        control:SetChecked(control.inverted and not Suite.db[key] or not control.inverted and Suite.db[key]==true)
+    end
+    for _,control in ipairs(self.warningChoices) do control:SetChecked(Suite.db.missingBuffWarning==control.seconds) end
+    self.display:SetShown(self.appearanceOpen==true);self.choices:Show()
+    self.spells:SetShown(self.advancedOpen==true)
+    self.visibility:SetShown(self.advancedOpen==true)
+    do
         local learned,book,complete=self:Learned()
         if not complete then self.status:SetText("Some learned spell information is unavailable. The list will update when it arrives.") end
-        if self.mode=="choices" then
+        do
             local records=self:FamilyRows(book);self.page=math.max(1,math.min(self.page,math.max(1,math.ceil(#records/8))))
-            self.choiceFilter.label:SetText(({all="All families",hidden="Hidden families",mine="My class"})[self.filter])
+            for key,button in pairs(self.filters) do Suite.Theme:Backdrop(button,key==self.filter and 1 or 0.35) end
             for i,row in ipairs(self.choiceRows) do
                 local record=records[(self.page-1)*8+i];row.record=record;row:SetShown(record~=nil)
                 if record then
                     row.icon:SetTexture(record.icon);row.label:SetText(record.name)
-                    row.detail:SetText((classLabels[record.class] or record.class).." / "..(record.hidden and "Hidden" or record.family.spell and record.family.spell.name or "Automatic"))
-                    row.visible.label:SetText(record.hidden and "Show reminder" or "Hide reminder")
-                    row.alternative:SetEnabled(not record.hidden and #record.family.choices>1)
+                    local catalog=record.family.catalog
+                    local reason="Tracked"
+                    if record.mine and catalog then
+                        if not record.family.spell then reason="Not learned"
+                        elseif (not catalog.group or catalog.upkeep) and not Suite.db.missingBuffClass then reason="Class upkeep is off"
+                        elseif catalog.group and not catalog.upkeep and not Suite.db.missingBuffSelf then
+                            reason=Suite.db.missingBuffOutgoing and "Party / raid only" or "My buffs and party / raid are off"
+                        elseif catalog.combatOnly then reason="Combat only" end
+                    end
+                    if catalog and catalog.combatOnly and not Suite.db.missingBuffCombat then reason="Combat reminders off" end
+                    if not Suite.db.missingBuffs then reason="Reminders off" end
+                    if record.hidden then reason="Hidden" end
+                    row.detail:SetText(reason.." / "..(classLabels[record.class] or record.class))
+                    row.visible:SetChecked(not record.hidden);row.visible.label:SetText("Track")
+                    row.alternative.label:SetText(record.family.spell and record.family.spell.name or "Automatic")
+                    row.alternative:SetShown(#record.family.choices>1)
+                    row.alternative:SetEnabled(not record.hidden)
                 end
             end
             self.choiceEmpty:SetShown(#records==0)
-            self.choiceEmpty:SetText(self.filter=="hidden" and "No hidden families match this view." or "No buff families match. Try another spell or class name.")
+            self.choiceEmpty:SetText(self.filter=="hidden" and "No hidden buffs match." or "No buffs match. Try another name or select All classes.")
             local visible=math.min(8,math.max(1,#records-(self.page-1)*8))
             local nav=80+visible*44+10
             self.choicePrev:ClearAllPoints();self.choicePrev:SetPoint("TOPLEFT",0,-nav)
@@ -308,8 +394,13 @@ function View:Refresh()
             self.choiceCount:ClearAllPoints();self.choiceCount:SetPoint("TOPLEFT",356,-nav-8)
             self.choiceHeight=nav+48;self.choices:SetHeight(self.choiceHeight)
             self.choicePrev:SetEnabled(self.page>1);self.choiceNext:SetEnabled(self.page*8<#records)
-            self.choiceCount:SetText(#records.." families / Page "..self.page.." · Search by spell or class")
-        else
+            local paged=#records>8
+            self.choicePrev:SetShown(paged);self.choiceNext:SetShown(paged)
+            self.choiceCount:SetShown(paged)
+            self.choiceCount:SetText(paged and #records.." buffs / Page "..self.page or #records.." buffs")
+            if not paged then self.choiceHeight=nav;self.choices:SetHeight(self.choiceHeight);self.choiceCount:Hide() end
+        end
+        if self.advancedOpen then
             local list,existing,builtIn,existingNames={},{},{},{}
             for _,catalog in ipairs(Suite.BuffCatalog) do for _,id in ipairs(catalog.roots) do
                 local spell=Buffs:Spell(id);if spell then builtIn[spell.name]=true end
@@ -357,6 +448,18 @@ function View:Refresh()
             end
         end
     end
-    self.panel:SetHeight(self.mode=="display" and 304 or self.mode=="visibility" and 184 or self.mode=="choices" and 40+(self.choiceHeight or 490) or 80+(self.spellsHeight or 650))
+    local function Place(frame,y) frame:ClearAllPoints();frame:SetPoint("TOPLEFT",0,-y) end
+    Place(self.choices,208)
+    local y=208+(self.choiceHeight or 490)+12
+    Place(self.appearanceToggle,y);self.appearanceToggle.label:SetText((self.appearanceOpen and "- " or "+ ").."Appearance")
+    y=y+38
+    if self.appearanceOpen then Place(self.display,y);y=y+276 end
+    Place(self.advancedToggle,y);self.advancedToggle.label:SetText((self.advancedOpen and "- " or "+ ").."Advanced")
+    y=y+38
+    if self.advancedOpen then
+        Place(self.visibility,y);y=y+224
+        Place(self.spells,y);y=y+(self.spellsHeight or 650)
+    end
+    self.panel:SetHeight(y+12)
     if GUI.page=="buffs" then GUI:LayoutPage("buffs") end
 end

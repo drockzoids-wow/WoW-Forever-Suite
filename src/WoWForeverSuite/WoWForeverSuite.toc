@@ -3,7 +3,7 @@
 ## Notes: A personal collection of optional tools for WoW Forever.
 ## Author: Drockzoids
 ## IconTexture: Interface\AddOns\WoWForeverSuite\Media\ForeverSuiteIcon.tga
-## Version: 1.0.13
+## Version: 1.0.14
 ## Bindings: Bindings.xml
 ## SavedVariables: WoWForeverSuiteDB
 ## SavedVariablesPerCharacter: WoWForeverSuiteCharDB
@@ -45,6 +45,7 @@ Quests.lua
 QuestItem.lua
 ProfessionHelper.lua
 ProfessionGuideData.lua
+ProfessionRecipeSources.lua
 ProfessionLeveling.lua
 TrainingCatalogData.lua
 TrainingCatalog.lua

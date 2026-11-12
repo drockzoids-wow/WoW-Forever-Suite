@@ -119,6 +119,14 @@ function Planner:InitializeGuide(saved)
         result.starter = Suite.IsReadable(saved.starter) and saved.starter == true or nil
         if result.starter then result.buildID = nil end
     end
+    local reference = Table(saved) and saved.fullBuild
+    if Table(reference) and Suite.IsReadable(reference.class) and type(reference.class) == "string"
+        and #reference.class <= 24 and reference.class:match("^[A-Z]+$")
+        and (Int(reference.buildID, 1, 1000000000) or Suite.IsReadable(reference.starter) and reference.starter == true) then
+        result.fullBuild = { class=reference.class }
+        if Suite.IsReadable(reference.starter) and reference.starter == true then result.fullBuild.starter = true
+        else result.fullBuild.buildID = reference.buildID end
+    end
     self.guideDB = result
     return result
 end
@@ -132,9 +140,9 @@ end
 
 -- Compare the whole plan even when the next-step guide must pause. These are
 -- informational deltas, never buttons or permission to purchase a native rank.
-function Planner:GuideComparison()
-    if not self:Ready() or not (self.guiding or self:StarterHelperActive()) then return end
-    local build = self:Current()
+function Planner:GuideComparison(reference)
+    if not self:Ready() or not (self.guiding or self:StarterHelperActive() or self:FullBuildEnabled()) then return end
+    local build = reference or self:Current()
     if not build then return end
     local result = {}
     for _, id in ipairs(self.model.order) do

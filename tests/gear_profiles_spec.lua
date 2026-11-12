@@ -258,6 +258,27 @@ for _, field in ipairs(gear.fields) do
 end
 gear:Dismiss()
 
+-- Main-page menus retain draft protection and inline editor ownership.
+local ChooseMenu=assert(loadfile("tests/menu_helper.lua"))()
+gui:OpenPage("items")
+ChooseMenu(function() gui:Action("preset",gui.rows[6]) end,"Healer")
+equal(scoring:ActiveID(),"healer","comparison profile can be selected from the main page menu")
+equal(gear.mode,nil,"choosing a profile does not open another settings manager")
+gui:Action("weights")
+equal(gear.mode,"editor","advanced weights expand on the same page")
+gui:SetSectionCollapsed("items",8,true);gui:Select("items")
+equal(gear.panel:IsShown(),true,"collapsing equipment settings does not hide upgrade weights")
+gui:SetSectionCollapsed("items",8,false)
+gear:Copy()
+local draft=gear.draft
+ChooseMenu(function() gui:Action("preset",gui.rows[6]) end,"Physical")
+equal(gear.draft,draft,"profile menu cannot discard unsaved custom weights")
+equal(scoring:ActiveID(),"healer","blocked profile selection retains the active comparison")
+equal(gear.message:find("Save or cancel",1,true)~=nil,true,"blocked profile selection explains the unfinished edit")
+gear:Cancel();gui:Action("weights")
+equal(gear.mode,nil,"advanced weights collapse after edits are resolved")
+scoring:SetProfile("automatic")
+
 -- Exercise the actual SavedVariables startup integration, including the macro-owned root replacement.
 local globals = { account = WoWForeverSuiteDB, character = WoWForeverSuiteCharDB,
     leveling = Suite.Leveling.db, training = Suite.Training.db, macros = Suite.macroDB,

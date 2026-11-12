@@ -469,7 +469,7 @@ function Extra:AddCustom(text, group)
     Suite.MissingBuffs.bookDirty = true; Suite.MissingBuffs:Queue(); self:RefreshOptions(); return true
 end
 function Extra:RefreshOptions()
-    if Suite.BuffSettings.mode=="spells" then Suite.BuffSettings:Refresh() end
+    if Suite.BuffSettings.mode then Suite.BuffSettings:Queue() end
 end
 function Extra:OpenOptions()
     Suite.BuffSettings:Open("spells")

@@ -664,7 +664,7 @@ equal(first.width, 312, "combat disable defers native size restoration")
 LeaveCombat()
 equal(first.width, 903, "combat exit restores latest native width")
 equal(skin.panels[xp.StatusBar].segments[1].shown, false, "disable hides owned sections")
-Suite.GUI:Select("bars")
+Suite.GUI:OpenPage("bars")
 equal(-Suite.GUI.progressPanel.point[3] + Suite.GUI.progressPanel.height <= Suite.GUI.content.height - 36, true, "progress options fit above footer")
 for key, field in pairs(Suite.GUI.progressFields) do
     equal(field.slider.step, 1, "progress slider changes by one unit: " .. key)
@@ -697,20 +697,23 @@ equal(Suite.db.progressBarCustomSize, true, "custom size toggle enables its own 
 Suite.GUI.progressControls.reset.button:OnClick()
 equal(Suite.db.progressBarCustomSize, false, "native size button disables only the size override")
 equal(Suite.db.progressBarWidth, 120, "native size button retains chosen custom width")
+local ChooseMenu=assert(loadfile("tests/menu_helper.lua"))()
 for _, key in ipairs({ "progressBarValues", "progressBarSegments" }) do
-    Suite.db[key] = false; Suite.GUI.progressControls[key].button:OnClick()
+    Suite.db[key] = false
+    if key=="progressBarSegments" then ChooseMenu(function() Suite.GUI.progressControls[key].button:OnClick() end,"10% (10 bubbles)")
+    else Suite.GUI.progressControls[key].button:OnClick() end
     equal(Suite.db[key], true, "progress toggle enables its own preference: " .. key)
     equal(Suite.db.statusBarSkin, false, "progress toggle does not enable its skin: " .. key)
 end
 local linesButton=Suite.GUI.progressControls.progressBarSegments.button
 equal(linesButton.label.text,"Lines: 10%","legacy line setting displays ten-percent selection")
-linesButton:OnClick()
-equal(Suite.db.progressBarSegmentPercent,5,"line selector advances from ten to five percent")
+ChooseMenu(function() linesButton:OnClick() end,"5% (20 bubbles)")
+equal(Suite.db.progressBarSegmentPercent,5,"line menu selects five percent directly")
 equal(linesButton.label.text,"Lines: 5%","line selector displays five-percent selection")
-linesButton:OnClick()
-equal(Suite.db.progressBarSegments,false,"line selector advances from five percent to None")
+ChooseMenu(function() linesButton:OnClick() end,"None")
+equal(Suite.db.progressBarSegments,false,"line menu selects None directly")
 equal(linesButton.label.text,"Lines: None","line selector displays None")
-linesButton:OnClick()
+ChooseMenu(function() linesButton:OnClick() end,"10% (10 bubbles)")
 equal(Suite.db.progressBarSegmentPercent,10,"line selector starts ten-percent spacing after None")
 equal(Suite.db.progressBarSegments,true,"line selector reenables lines after None")
 equal(Suite.db.statusBarSkin,false,"cycling line modes never enables the progress skin")

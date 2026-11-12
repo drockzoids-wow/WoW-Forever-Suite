@@ -253,14 +253,15 @@ equal(gloveRecord.arrow.text,"","player-ineligible armor clears the real bag mar
 C_PlayerInfo,C_Item.GetItemInfoInstant,C_Item.IsUsableItem=oldPlayerInfo,oldInstant,oldUsable
 
 Suite.Apply = function() end
-Suite.GUI:Select("items", "upgrades")
+Suite.GUI:OpenPage("items")
 equal(Suite.GUI.rows[5].value.text, "Stats", "comparison control displays current preference")
-Suite.GUI.rows[5].OnClick()
+local ChooseMenu=assert(loadfile("tests/menu_helper.lua"))()
+ChooseMenu(function() Suite.GUI.rows[5].OnClick() end,"Item level")
 equal(Suite.db.upgradePreference, "ilevel", "comparison control changes saved preference")
 equal(Suite.GUI.rows[5].value.text, "Item level", "comparison control refreshes its label")
 local search = Suite.SettingsCatalog:Search("prefer higher ilevel")
 equal(search[1].key, "upgradePreference", "new comparison option is searchable")
-Suite.GUI.rows[5].OnClick()
+ChooseMenu(function() Suite.GUI.rows[5].OnClick() end,"Stats")
 equal(Suite.db.upgradePreference, "stats", "comparison control returns to stats")
 UnitClass = saved.class
 C_Item, GetInventoryItemLink, CanDualWield, UnitLevel = saved.api, saved.link, saved.dual, saved.level

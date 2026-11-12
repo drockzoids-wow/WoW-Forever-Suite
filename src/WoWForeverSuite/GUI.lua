@@ -54,6 +54,7 @@ local pages = {
     talents = { title = "Talent Builds", description = "Explore builds on your talent tree without spending points.", rows = {
         { key = "talentPlanner", label = "Talent build planner", help = "Add a build library beside the native talent window.\nStarts off. Drafts are shared across your characters of the same class." },
         { key = "talentPlannerRules", label = "Limit to current level", help = "On: also enforce your current level and earned point budget.\nOff: plan ahead. Tree tiers and prerequisites always apply." },
+        { key = "talentPlannerFullBuild", label = "Always show full build information", help = "With the planner enabled, show the last selected build's comparison markers whenever your talent window opens.\nWorks with Builds closed. Leveling builds show the full level-60 plan. Starts off; never spends points." },
         { action = "talentsOpen", label = "Open Talent Builds", help = "Create an empty draft or copy the native tree, then edit its overlay.\nLeft-click adds ranks; right-click removes. Drafts save automatically." },
     }, note = "Tree tiers and prerequisites always apply. Turn Limit to current level off to plan ahead.\nSuite build codes work with this planner. Selecting a draft never applies talents." },
     appearance = { title = "Appearance", description = "One border color across Forever Suite.", rows = {},
@@ -67,7 +68,7 @@ local pages = {
     }, note = "Gold/hour includes spending and transfers. Estimates use your session pace; incomplete XP tracking shows no estimate." },
     professions = { title = "Professions", description = "Leveling guides and optional enchanting conveniences.", rows = {
         { key = "modifierDisenchant", label = "Modifier-click Disenchant", help = "Hold the selected modifier and left-click highlighted bag equipment.\nDisenchant destroys the item; the character must know the spell." },
-        { action = "disenchantModifier", label = "Choose modifier key", help = "Cycle Alt, Ctrl and Shift. Hold only that modifier.\nEquipped gear, bank items, locked slots and combat are excluded." },
+        { action = "disenchantModifier", label = "Modifier key", help = "Choose Alt, Ctrl or Shift. Hold only that modifier.\nEquipped gear, bank items, locked slots and combat are excluded." },
         { key = "autoReplaceEnchant", label = "Automatically replace existing enchants", help = "Enchanters: skip Yes when replacing an enchant on your gear or through trade.\nThe old enchant is lost. You still choose the enchant and item; unavailable in combat." },
         { key = "professionLeveling", label = "Profession leveling guides", help = "Add Leveling to the profession window. Starts off. Hide Done clears old materials.\nAuto steps follows your skill range; click headings to expand. Copy full-guide source links." },
         { key = "professionLevelingAutoRecipe", label = "Select current leveling recipe", help = "With leveling guides enabled, select the current step's learned recipe when the profession opens or the step changes. Starts on.\nCrafting stays manual. Waits for active crafting to finish; reopen the profession after combat." },
@@ -123,9 +124,9 @@ local pages = {
         { key = "itemTooltipLevels", label = "Item levels in tooltips", help = "Show item levels for equipment and weapons only." },
         { key = "characterItemLevel", label = "Character frame item level", help = "Show your equipped average above the character model.\nThe level and class line keeps its full space." },
         { key = "upgradeHints", label = "Possible upgrades", help = "Green +: preferred armor; yellow +: another usable armor type.\nMarks possible upgrades or empty slots under your chosen comparison." },
-        { action = "upgradePreference", label = "Prefer", help = "Click to prefer Stats or Item level. Stats includes role weights and DPS.\nWeapon comparisons include the hands being replaced." },
+        { action = "upgradePreference", label = "Compare upgrades by", help = "Choose Stats or Item level. Stats includes role weights and DPS.\nWeapon comparisons include the hands being replaced." },
         { action = "preset", label = "Comparison profile", help = "Choose your intended spec, a broad role or saved custom weights.\nManual and character-only; Automatic keeps the class-aware starter." },
-        { action = "weights", label = "Details & custom weights", help = "See how scores are calculated and choose tooltip detail.\nOptionally create or edit your own weights; built-in presets stay intact." },
+        { action = "weights", label = "Advanced: comparison weights", help = "Expand scoring details and custom weights on this page.\nCreate or edit your own weights; built-in presets stay intact." },
         { key = "equipmentSetToggle", label = "Equipment set slot toggle", help = "Show a small button when an existing equipment set is selected.\nIgnore or include non-weapon slots; weapons and ammo stay unchanged. Use Save to keep changes." },
     }, note = "Special effects, set bonuses and weapon abilities need your judgment.\nHigher item level can still be worse for your build." },
     tooltips = { title = "Useful details, right on hover.", description = "A few additions to the tooltips you already use.", rows = {
@@ -187,13 +188,13 @@ local pages = {
         { key = "classHealthBars", label = "Class colored health bars", help = "Softer class colors for player, target, target of target and focus.\nReplace the original fill so its color stays clear." },
         { key = "targetThreat", label = "Target threat indicator", help = "Your threat against the target: grey at 0%, red at 100%.\nA translucent Blizzard-style rectangle moves below the frame when buffs are on top." },
     }, note = "NPCs and vehicles keep their normal health bars. Party and raid use Blizzard's class color setting.\nThreat appears for enemy NPCs; -- means no percentage is available." },
-    mail = { title = "A familiar name, a quicker letter.", description = "Keep contacts anywhere, then find them beside Send Mail.", rows = {
-        { action = "mailBook", label = "Contact book", help = "Add and edit contacts anywhere, with your own categories and notes.\nOnly contacts on your current server type are shown." },
-        { key = "mailHelper", label = "Mail contacts", help = "Browse Alts, Guild and Other beside Send Mail.\nClick a name to fill To; Blizzard handles delivery rules." },
+    mail = { title = "A familiar name, a quicker letter.", description = "One place for contacts, groups and mail recipients.", rows = {
+        { action = "mailBook", label = "Open Contacts", help = "Browse contacts, edit notes and organize groups in one window.\nThe same window is used beside Send Mail." },
+        { key = "mailHelper", label = "Show Contacts with Send Mail", help = "Open the shared Contacts window beside Send Mail.\nSelect a contact, then Use as recipient to fill To." },
         { key = "mailRememberRecipient", label = "Remember recipient", help = "Keep the recipient in the To field after a successful send.\nClosing the mailbox clears it for the next visit." },
         { action = "mailDeadlines", label = "Review mail deadlines", help = "Review recorded mailbox deadlines for characters in this region.\nVisit each mailbox to refresh; saved mail may have changed." },
         { key = "mailExpiry", label = "Record mail deadlines and remind at login", help = "Starts off. Record the earliest deadline when visiting a mailbox.\nAt login, flag deadlines within three days or already passed; partial inboxes are labelled." },
-    }, note = "Manage full names, categories and notes in Contact book, or type /wfs contacts anywhere outside combat.\nYour active character stays hidden from Send Mail; known alts fill missing last names when available." },
+    }, note = "Open Contacts here or type /wfs contacts anywhere outside combat. Saved contacts are immediately available for mailing.\nYour active character stays hidden from Send Mail; known alts fill missing last names when available." },
     chat = { title = "A quieter place for conversation.", description = "A clean chat panel using your active settings profile.", rows = {},
         note = "Click the small copy icon on chat, then drag across text and release to copy. A chat message reports the result. Click the icon again for normal chat." },
     vendor = { title = "Ready for the next trip.", description = "Open shops, repair your gear and choose how to clear gray-quality junk.", rows = {
@@ -219,7 +220,24 @@ local pages = {
 
 Catalog:Configure(pages)
 
-function GUI:Action(action)
+function GUI:Choose(anchor, options, current, apply)
+    if InCombatLockdown() then return end
+    if not MenuUtil or type(MenuUtil.CreateContextMenu) ~= "function" then
+        Suite.Print("Selection menus are unavailable on this client."); return
+    end
+    local page, serial = self.page, self.selectionSerial
+    MenuUtil.CreateContextMenu(anchor or self.frame, function(_, root)
+        for _, option in ipairs(options) do
+            local value, label = option.value, option.label
+            root:CreateRadio(label, function() return current == value end, function()
+                if InCombatLockdown() or self.page ~= page or self.selectionSerial ~= serial or not self.frame:IsShown() then return end
+                apply(value)
+            end)
+        end
+    end)
+end
+
+function GUI:Action(action, anchor)
     local news = { newsTraining = "training", newsSupplies = "supplies", newsMail = "mail", newsTalents = "talents", newsContacts = "mail", newsMacros = "macros", newsShortcuts = "shortcuts" }
     if news[action] then self:OpenPage(news[action])
     elseif action == "suppliesOpen" then Suite.SupplyChecklist:Open(self.frame)
@@ -231,7 +249,8 @@ function GUI:Action(action)
     elseif action == "levelingLock" then Suite.Leveling:SetLocked(not Suite.Leveling.db.locked); self:Select("leveling")
     elseif action == "levelingMinimize" then Suite.Leveling:SetMinimized(not Suite.Leveling.db.minimized); self:Select("leveling")
     elseif action == "disenchantModifier" then
-        Suite.Set("disenchantModifier", ({ alt="ctrl", ctrl="shift", shift="alt" })[Suite.ProfessionHelper:Modifier()]); self:Select("professions")
+        self:Choose(anchor, {{value="alt",label="Alt"},{value="ctrl",label="Ctrl"},{value="shift",label="Shift"}},
+            Suite.ProfessionHelper:Modifier(), function(value) Suite.Set("disenchantModifier",value);self:Select("professions") end)
     elseif action == "trainingOpen" then Suite.Training:Open(nil, nil, self.frame)
     elseif action == "mailBook" then Suite.Mail:OpenBook(self.frame)
     elseif action == "talentsOpen" then Suite.TalentPlanner:Open()
@@ -252,16 +271,20 @@ function GUI:Action(action)
             Settings.OpenToCategory(Settings.KEYBINDINGS_CATEGORY_ID, BINDING_HEADER_WOWFOREVERSUITE)
         else Suite.Print("Open Options → Keybindings → Forever Suite to assign Open bank view.") end
     elseif action == "upgradePreference" then
-        Suite.Scoring:SetPreference(Suite.Scoring.Preference(Suite.db) == "stats" and "ilevel" or "stats")
-        self:Select(self.page)
+        self:Choose(anchor, {{value="stats",label="Stats"},{value="ilevel",label="Item level"}},Suite.Scoring.Preference(Suite.db),
+            function(value) Suite.Scoring:SetPreference(value);self:Select(self.page) end)
     elseif action == "supportOpen" then Suite.Diagnostics:Open(self.frame)
-    elseif action == "preset" then Suite.GearSettings:Open("picker")
-    elseif action == "weights" then Suite.GearSettings:Open("editor")
+    elseif action == "preset" then
+        local options={}
+        for _,profile in ipairs(Suite.Scoring:List()) do options[#options+1]={value=profile.id,label=profile.label} end
+        self:Choose(anchor,options,Suite.Scoring:ActiveID(),function(value) Suite.GearSettings:Choose(value) end)
+    elseif action == "weights" then
+        if Suite.GearSettings.mode == "editor" and not Suite.GearSettings.draft then Suite.GearSettings:Dismiss();self:Select("items")
+        else Suite.GearSettings:Open("editor") end
     elseif action == "campingPose" then
         local poses, current = Suite.Camping.poses, Suite.Camping:GetPose()
-        for index, pose in ipairs(poses) do
-            if pose == current then Suite.Camping:SelectPose(poses[index % #poses + 1].key); break end
-        end
+        local options={};for _,pose in ipairs(poses) do options[#options+1]={value=pose.key,label=pose.label} end
+        self:Choose(anchor,options,current.key,function(value) Suite.Camping:SelectPose(value);self:Select("camping") end)
     elseif action == "campingPreview" then
         Suite.Camping:SetPreview(not (Suite.Camping.preview and Suite.Camping.preview:IsShown()))
     elseif action == "campingReset" then Suite.Camping:ResetPosition()
@@ -271,9 +294,11 @@ function GUI:Action(action)
     elseif action == "procPreview" then Suite.ProcAlerts:SetPreview(not Suite.ProcAlerts.preview)
     elseif action == "procReset" then Suite.ProcAlerts:ResetPosition()
     elseif action == "repairSource" then
-        Suite.Set("repairSource", Suite.db.repairSource == "personal" and "guild" or "personal"); self:Select("vendor")
+        self:Choose(anchor,{{value="personal",label="Personal gold"},{value="guild",label="Guild gold"}},Suite.db.repairSource,
+            function(value) Suite.Set("repairSource",value);self:Select("vendor") end)
     elseif action == "junkMode" then
-        Suite.Set("junkMode", Suite.db.junkMode == "slow" and "instant" or "slow"); self:Select("vendor")
+        self:Choose(anchor,{{value="slow",label="Slow (Buyback available)"},{value="instant",label="Instant (permanent sales)"}},Suite.db.junkMode,
+            function(value) Suite.Set("junkMode",value);self:Select("vendor") end)
     end
 end
 
@@ -312,21 +337,14 @@ function GUI:GetRow(index)
     return row
 end
 
-function GUI:Select(key, requestedView)
+function GUI:Select(key)
     self:StopScrollDrags()
     if not Suite.IsReadable(key) or type(key) ~= "string" or not pages[key] then return end
     if key ~= "leveling" then Suite.pending.levelingJournalLayout = nil end
     local previousPage, previousScroll = self.page, self.scrollOffset or 0
-    self.pageViews, self.pageScroll = self.pageViews or {}, self.pageScroll or {}
-    local previousView = self.pageViews[previousPage] or ""
-    if previousPage then self.pageScroll[previousPage .. ":" .. previousView] = previousScroll end
+    self.pageScroll = self.pageScroll or {}
+    if previousPage then self.pageScroll[previousPage] = previousScroll end
     local page = pages[key]
-    if page.views then
-        if Suite.IsReadable(requestedView) and type(requestedView) == "string" then
-            for _, view in ipairs(page.views) do if view.key == requestedView then self.pageViews[key] = requestedView end end
-        end
-        self.pageViews[key] = self.pageViews[key] or page.views[1].key
-    end
     Suite.pending.settingsReveal = nil
     self.selectionSerial = (self.selectionSerial or 0) + 1
     if key == "setup" and not self.setupPanel and InCombatLockdown() then Suite.Setup:Open(); return end
@@ -359,19 +377,14 @@ function GUI:Select(key, requestedView)
     if self.gearPanel then self.gearPanel:SetShown(key == "items" and Suite.GearSettings.mode ~= nil) end
     if key == "items" then Suite.GearSettings:Refresh() end
     if key == "buffs" then
-        local view = self.pageViews.buffs
-        local mode = ({ appearance = "display", visibility = "visibility", choices = "choices", spells = "spells" })[view]
-        if mode then
-            if Suite.BuffSettings.mode ~= mode then Suite.BuffSettings:Dismiss() end
-            Suite.BuffSettings.mode = mode
-            Suite.BuffSettings:Build(); Suite.BuffSettings:Refresh()
-        else Suite.BuffSettings:Dismiss() end
+        Suite.BuffSettings.mode = Suite.BuffSettings.mode or "choices"
+        Suite.BuffSettings:Build(); Suite.BuffSettings:Refresh()
     elseif self.buffPanel then self.buffPanel:Hide() end
     if self.meterPanel then self.meterPanel:SetShown(key == "meters") end
     if self.chatPanel then self.chatPanel:SetShown(key == "chat") end
     if self.characterPanel then self.characterPanel:SetShown(key == "characters") end
     if self.keybindPanel then self.keybindPanel:SetShown(key == "actionbars") end
-    if self.procPanel then self.procPanel:SetShown(key == "actionbars" and self.pageViews.actionbars == "feedback") end
+    if self.procPanel then self.procPanel:SetShown(key == "actionbars") end
     if self.progressPanel then self.progressPanel:SetShown(key == "bars") end
     if self.mapPanel then self.mapPanel:SetShown(key == "worldmap") end
     if self.castbarPanel then self.castbarPanel:SetShown(key == "castbars") end
@@ -392,16 +405,16 @@ function GUI:Select(key, requestedView)
     Suite.Macros:SetVisible(key == "macros" and self.frame:IsShown())
     Suite.Camping:SetSettingsVisible(key == "camping" and self.frame:IsShown())
     Suite.MissingBuffs:SetSettingsVisible(key == "buffs" and self.frame:IsShown())
-    if key ~= "actionbars" or self.pageViews.actionbars ~= "feedback" then Suite.ProcAlerts:SetPreview(false) end
+    if key ~= "actionbars" then Suite.ProcAlerts:SetPreview(false) end
     if key ~= "combat" then Suite.CombatIndicator:StopPreview() end
-    local offset, sectionIndex, sectionStart, collapsed = self:LayoutViews(key), 0, nil, false
+    local offset, sectionIndex, sectionStart, collapsed = 0, 0, nil, false
     local column, lineHeight, pairedRow = 0, 0, nil
     local function FlushRows()
         if column > 0 then offset = offset + lineHeight + 12; column, lineHeight = 0, 0 end
     end
     self.rowOffsets = {}
     for i, data in ipairs(page.rows) do
-        if not data.hidden and (not data.view or data.view == self.pageViews[key]) then
+        if not data.hidden then
         local section = Catalog.sections[key] and Catalog.sections[key][i]
         if section then
             FlushRows()
@@ -478,6 +491,7 @@ function GUI:Select(key, requestedView)
                 row:SetScript("OnClick", function() Suite.Set(data.key, not Suite.db[data.key]); self:Select(key) end)
             else
                 row.value:SetText(data.action == "preset" and (Suite.Scoring:ActiveID() == "automatic" and "Automatic" or Suite.Scoring:Profile().label)
+                    or data.action == "weights" and (Suite.GearSettings.mode == "editor" and "Hide" or "Show")
                     or data.action == "buffWarning" and (Suite.db.missingBuffWarning .. "s")
                     or data.action == "disenchantModifier" and Suite.ProfessionHelper:Modifier():upper()
                     or data.action == "upgradePreference" and (Suite.Scoring.Preference(Suite.db) == "ilevel" and "Item level" or "Stats")
@@ -487,7 +501,7 @@ function GUI:Select(key, requestedView)
                     or data.action == "levelingLock" and (Suite.Leveling.db and Suite.Leveling.db.locked and "Locked" or "Unlocked")
                     or data.action == "levelingMinimize" and (Suite.Leveling.db and Suite.Leveling.db.minimized and "Minimized" or "Expanded") or ">")
                 if data.passive then row.value:Hide(); row:SetScript("OnClick", nil)
-                else row:SetScript("OnClick", function() self:Action(data.action) end) end
+                else row:SetScript("OnClick", function() self:Action(data.action, row) end) end
             end
             row:Show()
         end
@@ -497,7 +511,7 @@ function GUI:Select(key, requestedView)
     self.detailSection = sectionStart
     self.controlsOffset = offset + (#page.rows > 0 and not collapsed and 12 or 0)
     self:LayoutPage(key)
-    self:ScrollTo(self.pageScroll[key .. ":" .. (self.pageViews[key] or "")] or 0)
+    self:ScrollTo(self.pageScroll[key] or 0)
     for tabKey, tab in pairs(self.tabs) do
         if self.groupTabs[Suite.SettingsCatalog.pageGroup[tabKey].key] ~= tab then
         Fill(tab, tabKey == key and { 0.1, 0.2, 0.21 } or (tab:GetParent() == self.body and palette.row or palette.sidebar))
@@ -617,44 +631,6 @@ function GUI:BuildHome(key)
         card:SetPoint("TOPLEFT", ((index - 1) % 2) * 398, -math.floor((index - 1) / 2) * 112)
         card.page = entry[1]; card.label:SetText(entry[2]); card.help:SetText(entry[3]); card:Show()
     end
-end
-
-function GUI:LayoutViews(key)
-    self.viewButtons = self.viewButtons or {}
-    for _, button in ipairs(self.viewButtons) do button:Hide() end
-    if self.viewBack then self.viewBack:Hide() end
-    local definitions = pages[key].views
-    if not definitions then return 0 end
-    local active, index, secondary = self.pageViews[key], 0, false
-    for _, view in ipairs(definitions) do
-        if view.key == active then secondary = view.secondary == true end
-        if not view.secondary then
-            index = index + 1
-            local button = self.viewButtons[index]
-            if not button then
-                button = CreateFrame("Button", nil, self.content, "BackdropTemplate")
-                Suite.Theme:ButtonFeedback(button)
-                button.label = Text(button, 12, palette.text); button.label:SetPoint("CENTER")
-                button:SetScript("OnClick", function() if not InCombatLockdown() then self:Select(button.page, button.view) end end)
-                self.viewButtons[index] = button
-            end
-            button.page, button.view = key, view.key
-            button:SetSize(180, 32); button:ClearAllPoints(); button:SetPoint("TOPLEFT", (index - 1) * 192, 0)
-            button.label:SetText(view.label)
-            Fill(button, active == view.key and { 0.1, 0.2, 0.21 } or palette.row)
-            button.label:SetTextColor(unpack(active == view.key and palette.accent or palette.text))
-            button:Show()
-        end
-    end
-    if not self.viewBack then
-        self.viewBack = CreateFrame("Button", nil, self.content, "BackdropTemplate")
-        Suite.Theme:ButtonFeedback(self.viewBack)
-        self.viewBack:SetSize(220, 32); self.viewBack:SetPoint("TOPLEFT", 576, 0)
-        local text = Text(self.viewBack, 12, palette.accent); text:SetPoint("CENTER"); text:SetText("< Back to reminders")
-        self.viewBack:SetScript("OnClick", function() if not InCombatLockdown() then self:Select("buffs", "reminders") end end)
-    end
-    self.viewBack:SetShown(secondary)
-    return 48
 end
 
 function GUI:BuildLevelingLog()
@@ -1062,9 +1038,12 @@ function GUI:BuildSetup()
             if not option or not Suite.Setup.draft then return end
             local value = Suite.Setup.draft[option.key]
             if option.choices then
-                for index, choice in ipairs(option.choices) do
-                    if choice == value then Suite.Setup:Stage(option.key, option.choices[index % #option.choices + 1]); break end
-                end
+                local options, draft = {}, Suite.Setup.draft
+                for _, choice in ipairs(option.choices) do options[#options+1]={value=choice,label=option.labels[choice]} end
+                self:Choose(card,options,value,function(selected)
+                    if Suite.Setup.draft~=draft or card.option~=option then return end
+                    Suite.Setup:Stage(option.key,selected);self:RefreshSetup()
+                end)
             else Suite.Setup:Stage(option.key, not value) end
             self:RefreshSetup()
         end)
@@ -1177,7 +1156,7 @@ function GUI:BuildCastbars()
     end
     local panel = CreateFrame("Frame", nil, self.content)
     self.castbarPanel, self.castbarKey, self.castbarFields, self.castbarTabs = panel, "player", {}, {}
-    panel:SetSize(514, 254)
+    panel:SetSize(514, 302)
     local function Button(x, y, width, label, callback)
         local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
         Suite.Theme:ButtonFeedback(button)
@@ -1190,8 +1169,9 @@ function GUI:BuildCastbars()
             Suite.Castbars:StopPreview(); self.castbarKey = key; self.castbarMessage = nil; self:RefreshCastbars()
         end)
     end
-    self.castbarEnable = Button(0, 46, 244, "", function()
-        Suite.Castbars:Set(self.castbarKey, "enabled", not Suite.Castbars:Options(self.castbarKey).enabled); self:RefreshCastbars()
+    self.castbarReset = Button(0, 46, 244, "Reset to native size", function()
+        if InCombatLockdown() then return end
+        Suite.Castbars:Reset(self.castbarKey); self.castbarMessage = nil; self:RefreshCastbars()
     end)
     self.castbarPreviewButton = Button(264, 46, 244, "Preview native castbar", function()
         if Suite.Castbars.preview then Suite.Castbars:StopPreview(); self.castbarMessage = "Preview stopped."
@@ -1213,13 +1193,19 @@ function GUI:BuildCastbars()
         local track = slider:CreateTexture(nil, "BACKGROUND"); track:SetHeight(3)
         track:SetPoint("LEFT", 5, 0); track:SetPoint("RIGHT", -5, 0); track:SetColorTexture(0.17, 0.25, 0.29)
         local function Commit(value)
-            if self.castbarSyncing or not Suite.IsReadable(value) or type(value) ~= "number" or value ~= value or math.abs(value) == math.huge then return end
-            Suite.Castbars:Set(self.castbarKey, key, math.max(low, math.min(high, math.floor(value+0.5)))); self:RefreshCastbars()
+            if InCombatLockdown() or self.castbarSyncing or not Suite.IsReadable(value) or type(value) ~= "number" or value ~= value or math.abs(value) == math.huge then return end
+            Suite.Castbars:Set(self.castbarKey, key, math.max(low, math.min(high, math.floor(value+0.5))))
+            self.castbarMessage = nil; self:RefreshCastbars()
         end
         input:SetScript("OnEnterPressed", function() local value = input:GetText(); Commit(Suite.IsReadable(value) and tonumber(value)); input:ClearFocus() end)
-        input:SetScript("OnEditFocusLost", function() local value = input:GetText(); Commit(Suite.IsReadable(value) and tonumber(value)) end)
+        input:SetScript("OnEditFocusLost", function()
+            if not input.suiteEdited then return end
+            input.suiteEdited = nil
+            local value = input:GetText(); Commit(Suite.IsReadable(value) and tonumber(value))
+        end)
         input:SetScript("OnTextChanged", function(_, userInput)
-            if self.castbarSyncing or not Suite.IsReadable(userInput) or userInput ~= true then return end
+            if InCombatLockdown() or self.castbarSyncing or not Suite.IsReadable(userInput) or userInput ~= true then return end
+            input.suiteEdited = true
             local text = input:GetText()
             local value = Suite.IsReadable(text) and tonumber(text)
             -- Leave partial input alone; valid typed dimensions take effect live,
@@ -1227,29 +1213,44 @@ function GUI:BuildCastbars()
             if not Suite.IsReadable(value) or type(value) ~= "number" or value < low or value > high or value ~= math.floor(value) then return end
             Suite.Castbars:Set(self.castbarKey, key, value)
             self.castbarSyncing = true; slider:SetValue(value); self.castbarSyncing = nil
+            self.castbarMessage = nil; self.castbarMatch.label:SetText("Match size to: Manual")
             self.castbarStatus:SetText(Suite.Castbars:SizeStatus(self.castbarKey) or "Size updated.")
         end)
         input:SetScript("OnEscapePressed", function() self:RefreshCastbars(); input:ClearFocus() end)
         slider:SetScript("OnValueChanged", function(_, value) Commit(value) end)
         slider:SetScript("OnMouseWheel", function(_, direction)
-            if Suite.IsReadable(direction) and type(direction) == "number" and math.abs(direction) == 1 then Commit(Suite.Castbars:Options(self.castbarKey)[key] + direction) end
+            if Suite.IsReadable(direction) and type(direction) == "number" and math.abs(direction) == 1 then Commit(Suite.Castbars:DisplayOptions(self.castbarKey)[key] + direction) end
         end)
         self.castbarFields[key] = { input=input, slider=slider }
     end
-    Button(0, 177, 244, "Restore native size", function() Suite.Castbars:Set(self.castbarKey, "enabled", false); self:RefreshCastbars() end)
-    self.castbarStatus = Text(panel, 11, palette.muted); self.castbarStatus:SetPoint("TOPLEFT", 0, -225); self.castbarStatus:SetWidth(514)
+    self.castbarMatch = Button(0, 177, 508, "", function()
+        local selected = self.castbarKey
+        local options = {{value="manual",label="Manual"}}
+        for _, key in ipairs(Suite.Castbars.order) do
+            if key ~= selected then options[#options+1] = {value=key,label=key:sub(1,1):upper() .. key:sub(2)} end
+        end
+        self:Choose(self.castbarMatch, options, Suite.Castbars:Options(selected).match, function(source)
+            if self.castbarKey ~= selected then return end
+            local ok = Suite.Castbars:SetMatch(selected, source)
+            self.castbarMessage = not ok and "Choose a match source without a loop." or nil
+            self:RefreshCastbars()
+        end)
+    end)
+    local help = Text(panel, 11, palette.muted); help:SetPoint("TOPLEFT", 0, -225); help:SetWidth(514)
+    help:SetText("Matched sizes follow the selected bar. Editing a dimension switches to Manual. Reset restores native size.")
+    self.castbarStatus = Text(panel, 11, palette.muted); self.castbarStatus:SetPoint("TOPLEFT", 0, -273); self.castbarStatus:SetWidth(514)
     panel:SetScript("OnHide", function() Suite.Castbars:StopPreview(); for _, field in pairs(self.castbarFields) do field.input:ClearFocus() end end)
 end
 function GUI:RefreshCastbars()
     if not self.castbarPanel then return end
-    local settings = Suite.Castbars:Options(self.castbarKey)
+    local settings = Suite.Castbars:DisplayOptions(self.castbarKey)
     self.castbarSyncing = true
-    for key, field in pairs(self.castbarFields) do field.input:SetText(tostring(settings[key])); field.slider:SetValue(settings[key]) end
+    for key, field in pairs(self.castbarFields) do field.input.suiteEdited = nil; field.input:SetText(tostring(settings[key])); field.slider:SetValue(settings[key]) end
     self.castbarSyncing = nil
     for key, tab in pairs(self.castbarTabs) do Fill(tab, key == self.castbarKey and {0.1,0.2,0.21} or palette.row) end
-    self.castbarEnable.label:SetText("Custom size: " .. (settings.enabled and "On" or "Off"))
+    self.castbarMatch.label:SetText("Match size to: " .. (settings.match == "manual" and "Manual" or settings.match:sub(1,1):upper() .. settings.match:sub(2)))
     self.castbarPreviewButton.label:SetText(Suite.Castbars.preview and "Stop preview" or "Preview native castbar")
-    self.castbarStatus:SetText(Suite.Castbars:SizeStatus(self.castbarKey) or self.castbarMessage or "Choose a bar, enable custom size, then adjust its width and height.")
+    self.castbarStatus:SetText(Suite.Castbars:SizeStatus(self.castbarKey) or self.castbarMessage or (settings.enabled and "Custom size applied." or "Using native size."))
 end
 
 function GUI:BuildProgress()
@@ -1273,10 +1274,11 @@ function GUI:BuildProgress()
     end
     Button("progressBarValues", "Always show values", 0, 24, Toggle("progressBarValues"))
     Button("progressBarSegments", "Lines", 264, 24, function()
-        if not (Suite.IsReadable(Suite.db.progressBarSegments) and Suite.db.progressBarSegments == true) then
-            Suite.Set("progressBarSegmentPercent", 10); Suite.Set("progressBarSegments", true)
-        elseif Suite.HUDSkin:SegmentPercent() == 10 then Suite.Set("progressBarSegmentPercent", 5)
-        else Suite.Set("progressBarSegments", false) end
+        local current=Suite.db.progressBarSegments and Suite.HUDSkin:SegmentPercent() or 0
+        self:Choose(self.progressControls.progressBarSegments.button,{{value=0,label="None"},{value=10,label="10% (10 bubbles)"},{value=5,label="5% (20 bubbles)"}},current,function(value)
+            if value>0 then Suite.db.progressBarSegmentPercent=value end
+            Suite.Set("progressBarSegments",value>0);self:RefreshProgress()
+        end)
     end)
     Button("progressBarCustomSize", "Custom size", 0, 64, Toggle("progressBarCustomSize"))
     Button("reset", "Use Edit Mode size", 264, 64, function() Suite.Set("progressBarCustomSize", false) end)
@@ -1327,7 +1329,7 @@ function GUI:BuildProgress()
     Field("progressBarHeight", "Thickness (6–40)", 264, 6, 40)
     local help = Text(panel, 10, palette.muted)
     help:SetPoint("TOPLEFT", 0, -168); help:SetWidth(508)
-    help:SetText("Click Lines to cycle None, 10% (10 bubbles), or 5% (20 bubbles).\nType a size and press Enter, or use sliders. Your Edit Mode position is kept.")
+    help:SetText("Choose None, 10% or 5% lines from the menu.\nType a size and press Enter, or use sliders. Your Edit Mode position is kept.")
 end
 function GUI:RefreshProgress()
     if not self.progressPanel then return end
@@ -1414,18 +1416,17 @@ function GUI:BuildKeybinds()
     end
     Button("shortKeybinds", 0, 28, Toggle("shortKeybinds"))
     Button("keybindFontStyle", 264, 28, Toggle("keybindFontStyle"))
-    local function Cycle(key, order, selected)
-        for index, value in ipairs(order) do
-            if value == selected then Suite.Set(key, order[index % #order + 1]); return end
-        end
+    local function Choose(key, order, definitions, selected, anchor)
+        local options={};for _,value in ipairs(order) do options[#options+1]={value=value,label=definitions[value].label} end
+        self:Choose(anchor,options,selected,function(value) Suite.Set(key,value);self:RefreshKeybinds() end)
     end
     Button("font", 0, 76, function()
         local font = Suite.Keybinds:Options()
-        Cycle("keybindFont", Suite.Keybinds.fontOrder, font)
+        Choose("keybindFont", Suite.Keybinds.fontOrder, Suite.Keybinds.fonts, font, self.keybindControls.font)
     end)
     Button("outline", 264, 76, function()
         local _, _, outline = Suite.Keybinds:Options()
-        Cycle("keybindOutline", Suite.Keybinds.outlineOrder, outline)
+        Choose("keybindOutline", Suite.Keybinds.outlineOrder, Suite.Keybinds.outlines, outline, self.keybindControls.outline)
     end)
     Button("keybindBold", 264, 132, Toggle("keybindBold"))
     self.keybindSizeLabel = Text(panel, 12, palette.text)
@@ -1460,7 +1461,7 @@ function GUI:BuildKeybinds()
     self.keybindPreview:SetPoint("LEFT", 12, 0); self.keybindPreview:SetWidth(484)
     local help = Text(panel, 10, palette.muted)
     help:SetPoint("TOPLEFT", 0, -248); help:SetWidth(508)
-    help:SetText("Click a font or outline to cycle. Font controls use Custom font.\nBold adds a little size and a stronger shadow; preview your choices above.")
+    help:SetText("Choose a font or outline from its menu. Font controls use Custom font.\nBold adds a little size and a stronger shadow; preview your choices above.")
 end
 function GUI:RefreshKeybinds()
     self:RefreshProcSize()
@@ -1848,17 +1849,15 @@ end
 
 function GUI:LayoutPage(key)
     local panels = { leveling = self.levelingLogPanel, appearance = self.appearancePanel, buffs = Suite.BuffSettings.mode and self.buffPanel or nil, profiles = self.profilePanel, overview = self.homePanel, items = Suite.GearSettings.mode and self.gearPanel or nil, macros = self.macroPanel, meters = self.meterPanel, chat = self.chatPanel,
-        actionbars = self.pageViews.actionbars == "keybinds" and self.keybindPanel or self.pageViews.actionbars == "feedback" and self.procPanel or nil,
+        actionbars = self.procPanel,
         bars = self.progressPanel, worldmap = self.mapPanel, characters = self.characterPanel, castbars = self.castbarPanel }
     if pages[key].directory then panels[key] = self.homePanel end
-    if key == "items" and self.pageViews.items ~= "upgrades" then panels.items = nil; if self.gearPanel then self.gearPanel:Hide() end end
     if key == "actionbars" then
-        self.keybindPanel:SetShown(self.pageViews.actionbars == "keybinds")
-        self.procPanel:SetShown(self.pageViews.actionbars == "feedback")
+        self.keybindPanel:Show(); self.procPanel:Show()
     end
     local panel, bottom = panels[key], self.controlsOffset or 0
     if panel then
-        local collapsed = self:IsSectionCollapsed(key, self.detailSection)
+        local collapsed = self:IsSectionCollapsed(key, key == "items" and 4 or self.detailSection)
         panel:SetShown(not collapsed)
         if not collapsed then
             panel:ClearAllPoints(); panel:SetPoint("TOPLEFT", math.max(18, (CONTENT_WIDTH - panel:GetWidth()) / 2), -bottom)
@@ -1866,12 +1865,18 @@ function GUI:LayoutPage(key)
             if Suite.IsReadable(height) and type(height) == "number" and height >= 0 and height < 10000 then bottom = bottom + height end
         end
     end
+    if key == "actionbars" then
+        -- Font controls stay beside the other action-button options on this page.
+        self.keybindPanel:ClearAllPoints()
+        self.keybindPanel:SetPoint("TOPLEFT", math.max(18, (CONTENT_WIDTH - self.keybindPanel:GetWidth()) / 2), -bottom - 20)
+        bottom = bottom + 20 + self.keybindPanel:GetHeight()
+    end
     self.contentHeight = math.max(self.viewportHeight, bottom + 36)
     self.scrollFrame.suiteMaximum = math.max(0, self.contentHeight - self.viewportHeight)
     self.content:SetHeight(self.contentHeight)
     self.scrollFrame:SetShown(key ~= "setup")
     self:SyncScrollBar(self.scrollFrame)
-    Suite.Theme:RouteWheel(self.content, self.scrollFrame:GetScript("OnMouseWheel"))
+    Suite.Theme:RouteWheel(self.content, self.scrollFrame:GetScript("OnMouseWheel"), true)
 end
 
 function GUI:ClearSettingHighlight()
@@ -1889,6 +1894,7 @@ function GUI:RevealSetting(entry)
     end
     self:SetSectionCollapsed(entry.page, Catalog:SectionFor(entry.page, entry.row), false)
     self:Select(entry.page, entry.view)
+    if entry.page == "buffs" then Suite.BuffSettings:Reveal(entry.target) end
     local target, offset = Catalog:Target(self, entry)
     if not target then return end
     self:ScrollTo(offset or 0)
@@ -2432,9 +2438,11 @@ function GUI:BuildMeters()
     Button("reset", 172, 318, 168, function() Suite.DamageMeters:Reset(self.meterIndex) end).label:SetText("Reset window layout")
     Button("detach", 352, 318, 160, function() Suite.DamageMeters:Detach() end).label:SetText("Detach windows")
     Button("content", 0, 356, 248, function()
-        local settings = Suite.db.meterWindows[self.meterIndex]
-        local nextMode = { standard = "paired", paired = "complete", complete = "minimal", minimal = "standard" }
-        Suite.DamageMeters:SetOption(self.meterIndex, "content", nextMode[settings.content])
+        local index=self.meterIndex
+        self:Choose(self.meterButtons.content,{{value="minimal",label="Primary value"},{value="standard",label="Standard"},
+            {value="paired",label="Total + rate"},{value="complete",label="Total, rate, share"}},Suite.db.meterWindows[index].content,function(value)
+            if self.meterIndex==index then Suite.DamageMeters:SetOption(index,"content",value);self:RefreshMeters() end
+        end)
     end)
     Button("icons", 264, 356, 248, function()
         local settings = Suite.db.meterWindows[self.meterIndex]
@@ -2449,9 +2457,11 @@ function GUI:BuildMeters()
         Suite.DamageMeters:SetOption(self.meterIndex, "minimized", not settings.minimized)
     end)
     Button("visibility", 0, 432, 248, function()
-        local settings = Suite.db.meterWindows[self.meterIndex]
-        local nextMode = { always = "combat", combat = "group", group = "always" }
-        Suite.DamageMeters:SetOption(self.meterIndex, "visibility", nextMode[settings.visibility])
+        local index=self.meterIndex
+        self:Choose(self.meterButtons.visibility,{{value="always",label="Always"},{value="combat",label="In combat"},{value="group",label="In a group"}},
+            Suite.db.meterWindows[index].visibility,function(value)
+                if self.meterIndex==index then Suite.DamageMeters:SetOption(index,"visibility",value);self:RefreshMeters() end
+            end)
     end)
     Button("clickThrough", 264, 432, 248, function()
         local settings = Suite.db.meterWindows[self.meterIndex]

@@ -1,7 +1,7 @@
 local Suite, equal, Frame, SetCombat = ...
 local leveling, guides = Suite.ProfessionLeveling, Suite.ProfessionGuides
 local saved, state = {}, {}
-local globals = { "CreateFrame", "ProfessionsFrame", "C_TradeSkillUI", "Enum", "C_Timer", "UIParent", "GameTooltip", "GetCurrentRegion", "UnitFactionGroup", "UnitCastingInfo", "UnitChannelInfo" }
+local globals = { "CreateFrame", "ProfessionsFrame", "C_TradeSkillUI", "Enum", "C_Timer", "UIParent", "GameTooltip", "GetCurrentRegion", "UnitFactionGroup", "UnitCastingInfo", "UnitChannelInfo", "C_Map", "UiMapPoint", "C_SuperTrack" }
 for _, name in ipairs(globals) do saved[name] = _G[name] end
 for key, value in pairs(leveling) do state[key] = value end
 local db, pending = Suite.db, Suite.pending
@@ -43,6 +43,8 @@ UnitFactionGroup = function() return "Alliance" end
 local timers, made, info = {}, 0
 local function Widget(parent)
     local frame = Frame(); frame.parent = parent
+    frame.RegisterEvent = function(self, event) self.registered = self.registered or {}; self.registered[event] = true end
+    frame.UnregisterAllEvents = function(self) self.registered = {} end
     frame.IsForbidden = function(self) return self.forbidden or false end
     frame.SetSpacing = function(self, value) self.spacing = value end
     frame.SetFocus = function(self) self.focused = true; if self.OnEditFocusGained then self:OnEditFocusGained() end end
@@ -314,6 +316,7 @@ local recipeRequests = {}
 local nativeRecipe = { recipeID = 3501, name = "Localized Green Iron Bracers", learned = true }
 local recipeBelongs, recipeLoading, recipeRejected, shiftOnRead = true, false, false, false
 C_TradeSkillUI.GetRecipeInfo = function(id)
+    if id ~= 3501 then return end
     equal(id, 3501, "click looks up exact sourced bracer recipe ID")
     if shiftOnRead then info = { profession = 3, professionID = 171, professionName = "Alchemy", skillLevel = 50, maxSkillLevel = 75 } end
     return nativeRecipe
@@ -338,43 +341,90 @@ recipeButton:OnClick("LeftButton")
 equal(recipeRequests[1], 3501, "click requests native recipe opening")
 nativeRecipe.learned = false
 recipeButton:OnClick("LeftButton")
-equal(#recipeRequests, 2, "unlearned recipe preview is left to native opening rules")
+equal(#recipeRequests, 1, "unlearned recipe is never sent to native opener")
+equal(leveling.frame.status.text:find("Not trained", 1, true) ~= nil, true, "unlearned click replaces opening status")
+local recipeSource = "Trainer: |Hworldmap:1455:5250:4150|h[Bengus Deepforge, Ironforge]|h"
+C_TradeSkillUI.GetRecipeSourceText = function() return recipeSource end
+local waypoints, tracked, allowWaypoint = {}, false, true
+C_Map = {
+    CanSetUserWaypointOnMap = function(map) return allowWaypoint and map == 1455 end,
+    SetUserWaypoint = function(point) waypoints[#waypoints + 1] = point end,
+}
+UiMapPoint = { CreateFromCoordinates = function(map, x, y) return { map = map, x = x, y = y } end }
+C_SuperTrack = { SetSuperTrackedUserWaypoint = function(value) tracked = value end }
+leveling:Refresh()
+local trainingButton = leveling.frame.stepRows[4].trainingButtons[1]
+equal(trainingButton:IsShown(), true, "unlearned warning appears beneath recipe")
+equal(trainingButton.label.text:find("Not trained", 1, true) ~= nil, true, "compact warning includes training state")
+equal(trainingButton.label.text:find("Bengus", 1, true) ~= nil, true, "compact warning includes trainer location")
+trainingButton:OnClick("LeftButton")
+equal(#waypoints, 1, "trainer click places a waypoint")
+equal(waypoints[1].map, 1455, "trainer waypoint uses source map")
+equal(waypoints[1].x, 0.525, "trainer waypoint prefers native source X")
+equal(waypoints[1].y, 0.415, "trainer waypoint prefers native source Y")
+equal(tracked, true, "trainer waypoint is super tracked")
+allowWaypoint = false; trainingButton:OnClick("LeftButton"); allowWaypoint = true
+equal(#waypoints, 1, "unsupported map leaves waypoint unchanged")
+SetCombat(true); trainingButton:OnClick("LeftButton"); SetCombat(false)
+equal(#waypoints, 1, "combat blocks trainer waypoint")
+recipeSource = nil; leveling:Refresh()
+equal(trainingButton.location.name, "Bengus Deepforge, Ironforge", "missing native source uses reviewed recipe acquisition")
+trainingButton:OnClick("LeftButton")
+equal(#waypoints, 2, "reviewed source still places a waypoint without native source text")
+equal(leveling:RecipeLocation(9920, "").name, "Bengus Deepforge, Ironforge", "solid grinding stone has reviewed Alliance fallback")
+UnitFactionGroup = function() return "Horde" end
+equal(leveling:RecipeLocation(7223, "").map, 1454, "golden scale bracers have reviewed Horde fallback")
+UnitFactionGroup = function() return nil end
+equal(leveling:RecipeLocation(9920, ""), nil, "unknown faction does not guess a trainer")
+UnitFactionGroup = function() return "Alliance" end
+nativeRecipe.learned = nil; leveling:Refresh()
+equal(trainingButton:IsShown(), false, "unknown training state hides warning")
+recipeButton:OnClick("LeftButton")
+equal(#recipeRequests, 1, "unknown training state never opens recipe")
+nativeRecipe.learned = false; leveling:Refresh()
+leveling.events:OnEvent("NEW_RECIPE_LEARNED", 3501); Flush()
+equal(trainingButton:IsShown(), true, "early learning notification waits for authoritative metadata")
 nativeRecipe.learned = true
+leveling.events:OnEvent("TRADE_SKILL_DETAILS_UPDATE"); Flush()
+equal(trainingButton:IsShown(), false, "learning recipe removes compact warning")
+trainingButton:OnClick("LeftButton")
+equal(#waypoints, 2, "stale warning callback cannot place waypoint")
+C_TradeSkillUI.GetRecipeSourceText = nil
 recipeButton:OnClick("RightButton")
-equal(#recipeRequests, 2, "right-click does not select a recipe")
+equal(#recipeRequests, 1, "right-click does not select a recipe")
 recipeLoading = true; recipeButton:OnClick("LeftButton"); recipeLoading = false
-equal(#recipeRequests, 2, "loading profession cannot receive selection request")
+equal(#recipeRequests, 1, "loading profession cannot receive selection request")
 recipeBelongs = false; recipeButton:OnClick("LeftButton"); recipeBelongs = true
-equal(#recipeRequests, 2, "wrong profession membership cannot select")
+equal(#recipeRequests, 1, "wrong profession membership cannot select")
 nativeRecipe.recipeID = {}; recipeButton:OnClick("LeftButton"); nativeRecipe.recipeID = 3501
-equal(#recipeRequests, 2, "restricted native recipe ID cannot select")
+equal(#recipeRequests, 1, "restricted native recipe ID cannot select")
 local savedNativeRecipe = nativeRecipe
 nativeRecipe = nil; recipeButton:OnClick("LeftButton"); nativeRecipe = savedNativeRecipe
-equal(#recipeRequests, 2, "unavailable metadata never replays a click")
+equal(#recipeRequests, 1, "unavailable metadata never replays a click")
 shiftOnRead = true; recipeButton:OnClick("LeftButton"); shiftOnRead = false
-equal(#recipeRequests, 2, "profession change during metadata lookup cancels the click")
+equal(#recipeRequests, 1, "profession change during metadata lookup cancels the click")
 Blacksmith(173); leveling:Refresh(true)
 recipeRejected = true; recipeButton:OnClick("LeftButton"); recipeRejected = false
-equal(#recipeRequests, 2, "native selection error is contained without retries")
+equal(#recipeRequests, 1, "native selection error is contained without retries")
 local openRecipe = C_TradeSkillUI.OpenRecipe
 C_TradeSkillUI.OpenRecipe = nil; leveling:Refresh()
 equal(recipeButton.enabled, false, "missing selection capability disables recipe button")
 recipeButton:OnClick("LeftButton")
-equal(#recipeRequests, 2, "missing native opening API cannot select")
+equal(#recipeRequests, 1, "missing native opening API cannot select")
 C_TradeSkillUI.OpenRecipe = openRecipe
 leveling:Refresh()
 ProfessionsFrame.forbidden = true; recipeButton:OnClick("LeftButton"); ProfessionsFrame.forbidden = false
-equal(#recipeRequests, 2, "forbidden profession frame cannot receive selection")
+equal(#recipeRequests, 1, "forbidden profession frame cannot receive selection")
 SetCombat(true); recipeButton:OnClick("LeftButton"); SetCombat(false); Flush()
-equal(#recipeRequests, 2, "combat click is not queued for later")
+equal(#recipeRequests, 1, "combat click is not queued for later")
 leveling:ToggleStep(4)
 equal(recipeButton.recipeID, nil, "collapsed step clears stale recipe binding")
 recipeButton:OnClick("LeftButton")
-equal(#recipeRequests, 2, "collapsed recipe callback is inert")
+equal(#recipeRequests, 1, "collapsed recipe callback is inert")
 leveling:ToggleStep(4)
 local boundGuide = recipeButton.guideIndex
 recipeButton.guideIndex = 1; recipeButton:OnClick("LeftButton"); recipeButton.guideIndex = boundGuide
-equal(#recipeRequests, 2, "unrelated browsed guide cannot switch professions")
+equal(#recipeRequests, 1, "unrelated browsed guide cannot switch professions")
 C_TradeSkillUI.GetRecipeInfo, C_TradeSkillUI.IsRecipeInSkillLine, C_TradeSkillUI.OpenRecipe = nil, nil, nil
 C_TradeSkillUI.IsDataSourceChanging, C_TradeSkillUI.CraftRecipe = nil, nil
 leveling:Refresh(true)
@@ -658,10 +708,114 @@ Suite.db.professionLevelingAutoRecipe = false; leveling:Refresh(); Blacksmith(17
 equal(#autoRequests, 6, "disabling optional selection stops following skill")
 equal(Suite.Profiles:Settings({ professionLevelingAutoRecipe = true }).professionLevelingAutoRecipe, true, "auto-selection participates in settings profiles")
 C_TradeSkillUI.OpenRecipe, C_TradeSkillUI.GetRecipeInfo, C_TradeSkillUI.IsRecipeInSkillLine = nil, nil, nil
+-- Every modeled profession/recipe must retain training and acquisition behavior
+-- even on clients without native source strings or embedded map links.
+local allLearned, professionRequests, professionPins, faction = false, 0, {}, "Alliance"
+UnitFactionGroup = function() return faction end
+C_TradeSkillUI.GetRecipeInfo = function(id) return { recipeID = id, learned = allLearned, canSkillUp = true } end
+C_TradeSkillUI.IsRecipeInSkillLine = function(_, skill) return skill == info.professionID end
+C_TradeSkillUI.IsDataSourceChanging = function() return false end
+C_TradeSkillUI.GetRecipeSourceText = nil
+C_TradeSkillUI.OpenRecipe = function() professionRequests = professionRequests + 1 end
+C_Map.CanSetUserWaypointOnMap = function() return true end
+C_Map.SetUserWaypoint = function(point) professionPins[#professionPins + 1] = point; return true end
+Suite.db.professionLevelingHideDone, Suite.db.professionLevelingAutoSteps = false, false
+ProfessionsFrame:Show(); ProfessionsFrame.CraftingPage:Show()
+leveling.open = true; leveling.frame:Show()
+local seenRecipes, professionCount = {}, 0
+for guideIndex, guide in ipairs(guides) do
+    if guide.estimates then
+        professionCount = professionCount + 1
+        info = { professionName = guide.name, professionID = 100 + guideIndex, skillLevel = 1, maxSkillLevel = 300 }
+        for _, side in ipairs({ "Alliance", "Horde" }) do
+            faction = side
+            leveling:Refresh(true)
+            equal(leveling.selected, guideIndex, "recipe warnings follow actual profession " .. guide.name)
+            for _, row in ipairs(leveling.frame.stepRows) do
+                if row:IsShown() and row.expanded then
+                    for recipeIndex, button in ipairs(row.recipeButtons or {}) do
+                        if button:IsShown() then
+                            local id = button.recipeID
+                            local reference = Suite.ProfessionRecipeSources[id]
+                            equal(type(reference), "table", "every route recipe has acquisition data: " .. tostring(id))
+                            equal(reference.profession, guide.name, "recipe source belongs to its profession")
+                            seenRecipes[id] = true
+                            local warning = row.trainingButtons[recipeIndex]
+                            equal(warning:IsShown(), true, "every unlearned recipe displays a warning")
+                            equal(warning.label.text:find("Not trained", 1, true) ~= nil, true, "every warning remains compact and explicit")
+                            equal(type(warning.source), "string", "every warning has acquisition hover text without native API")
+                            local before = #professionPins
+                            local point = reference.neutral or reference[side]
+                            warning:OnClick("LeftButton")
+                            if point then
+                                equal(#professionPins, before + 1, "each fixed learning location places a waypoint")
+                                equal(professionPins[#professionPins].map, point.map, "each recipe uses its own source map")
+                                equal(professionPins[#professionPins].x, point.x, "each recipe uses its own source X")
+                                equal(professionPins[#professionPins].y, point.y, "each recipe uses its own source Y")
+                                equal(warning.label.text:find(reference.kind .. ":", 1, true) ~= nil, true, "compact label distinguishes acquisition type")
+                            else
+                                equal(id, 1244436, "only unresolved drop manual lacks a fixed source")
+                                equal(#professionPins, before, "drop-only recipe never invents a trainer waypoint")
+                            end
+                            button:OnClick("LeftButton")
+                            equal(professionRequests, 0, "unlearned selection is blocked across all professions")
+                        end
+                    end
+                end
+            end
+        end
+        equal(leveling.events.registered.NEW_RECIPE_LEARNED, true, "recipe-learning event is registered")
+        equal(leveling.events.registered.TRADE_SKILL_DETAILS_UPDATE, true, "late recipe metadata updates are registered")
+        allLearned = true
+        leveling.frame.scroll.suiteOffset = 24
+        leveling.events:OnEvent("NEW_RECIPE_LEARNED", guide.estimates[1].recipeID)
+        local learningTimer = leveling.timer
+        equal(type(learningTimer), "table", "learning schedules an immediate next-turn refresh")
+        leveling.events:OnEvent("TRADE_SKILL_DETAILS_UPDATE")
+        equal(leveling.timer, learningTimer, "learning and detail events share one refresh")
+        Flush()
+        equal(leveling.selected, guideIndex, "learning preserves the browsed profession")
+        equal(leveling.frame.scroll.suiteOffset, 24, "learning preserves scroll while reflowing warning rows")
+        for _, row in ipairs(leveling.frame.stepRows) do
+            for _, warning in ipairs(row.trainingButtons or {}) do
+                equal(warning:IsShown(), false, "learning recipes clears warnings across all professions")
+            end
+        end
+        allLearned = false
+    end
+end
+equal(professionCount, 8, "all eight crafting recipe guides exercised for both factions")
+for id in pairs(Suite.ProfessionRecipeSources) do equal(seenRecipes[id], true, "acquisition catalog has no orphan recipe IDs") end
+-- Acquisition fixtures check meaningful source choices, not only table shape.
+faction = "Alliance"
+equal(leveling:RecipeLocation(3171, "").name, "Lilyssia Nightbreeze, Stormwind City", "Alchemy uses its own journeyman trainer")
+equal(leveling:RecipeLocation(25125, "").name, "Tilli Thistlefuzz, Ironforge", "Enchanting oil directs to a formula vendor")
+equal(leveling:RecipeLocation(19795, "").name, "Xizzer Fizzbolt, Winterspring", "Engineering tube directs to schematic vendor")
+equal(leveling:RecipeLocation(19049, "").name, "Leonard Porter, Western Plaguelands", "Leatherworking pattern uses Alliance vendor")
+equal(leveling:RecipeLocation(18417, "").name, "Qia, Winterspring", "Tailoring gloves direct to pattern vendor")
+equal(leveling:RecipeLocation(7929, "").name, "Deneb Walker, Arathi Highlands", "First Aid manual uses book vendor")
+equal(leveling:RecipeLocation(7751, "").name, "Catherine Leland, Stormwind City", "Cooking fish directs to recipe vendor")
+equal(leveling:RecipeLocation(16647, "").name, "Derotain Mudsipper, Tanaris", "Imperial Plate directs to plan quests")
+faction = "Horde"
+equal(leveling:RecipeLocation(19049, "").name, "Werg Thickblade, Tirisfal Glades", "Horde uses its own pattern vendor")
+equal(leveling:RecipeLocation(7929, "").name, "Balai Lok'Wein, Dustwallow Marsh", "Horde uses its own manual vendor")
+faction = nil
+equal(leveling:RecipeLocation(7751, ""), nil, "unknown faction cannot choose a faction vendor")
+equal(leveling:RecipeLocation(19795, "").map, 1452, "neutral vendors work without faction data")
+equal(leveling:RecipeLocation(9000000, "|Hworldmap:1455:5250:4150|h[New recipe source]|h").x, 0.525, "uncataloged native recipe can supply its own map link")
+equal(leveling:RecipeLocation(9000000, "|Hworldmap:1455:5250:4150|h[A]|h |Hworldmap:1454:8200:2300|h[H]|h"), nil, "multiple native sources never choose an arbitrary first faction")
+equal(leveling:RecipeLocation(9000000, "|Hworldmap:1455:99999:4150|h[Invalid]|h"), nil, "malformed source coordinates are rejected")
+faction = "Horde"
+equal(leveling:RecipeLocation(9920, "|Hworldmap:1455:5250:4150|h[A]|h |Hworldmap:1454:8200:2300|h[H]|h").map, 1454, "catalog picks current faction when native source lists multiple factions")
+C_TradeSkillUI.OpenRecipe, C_TradeSkillUI.GetRecipeInfo, C_TradeSkillUI.IsRecipeInSkillLine = nil, nil, nil
+C_TradeSkillUI.GetRecipeSourceText, C_TradeSkillUI.IsDataSourceChanging = nil, nil
+Suite.db.professionLevelingAutoSteps = true
 Suite.db.professionLeveling = false
 leveling:Apply()
 equal(leveling.button:IsShown(), false, "disable removes launcher")
 equal(leveling.frame:IsShown(), false, "disable closes companion")
+equal(leveling.events.registered.NEW_RECIPE_LEARNED, nil, "disable removes recipe-learning listener")
+equal(leveling.events.registered.TRADE_SKILL_DETAILS_UPDATE, nil, "disable removes recipe-detail listener")
 local disabled = made
 ProfessionsFrame:OnShow(); Flush()
 equal(made, disabled, "retained native hooks inert when off")

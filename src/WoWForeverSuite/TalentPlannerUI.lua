@@ -256,6 +256,7 @@ end
 
 function Planner:Render()
     if InCombatLockdown() or not self.root then return end
+    self:RememberFullBuild()
     local build = self.model and self:Current()
     local active = self.expanded == true and self.preview == true and not self.starter and build ~= nil and self:Ready()
     self.overlay:SetShown(active); self.footer:SetShown(active)
@@ -385,6 +386,7 @@ function Planner:Render()
     end
     if self.starter and self.starterPanel and self.starterPanel:IsShown() then self:RenderStarterPanel() end
     self:RenderStarterHelper()
+    self:RenderFullBuild(active)
 end
 
 function Planner:HideGuideMarks()
@@ -490,9 +492,9 @@ function Planner:ShowGuideInstruction(step, message, reference)
     self.guideInstruction:SetHeight(38); self.guideInstruction.caption:SetHeight(30)
     self.guideInstruction.caption:SetText(instruction); self.guideInstruction:Show()
 end
-function Planner:RenderGuideMarks()
+function Planner:RenderGuideMarks(reference)
     if InCombatLockdown() or not self:Ready() then return end
-    local comparison = self:GuideComparison()
+    local comparison = self:GuideComparison(reference)
     local host = self.model.host
     if not comparison or type(host.GetTalentButtonByNodeID) ~= "function" then return end
     self.guideMarks = self.guideMarks or {}
