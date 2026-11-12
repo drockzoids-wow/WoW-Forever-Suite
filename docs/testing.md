@@ -2,6 +2,8 @@
 
 ## Final publication review — November 12, 2026
 
+Remote validation also passes: main run 43275230333 and release run 43275543425 for 718884ee166208d1c76c69b24c9332a68e681e95/v1.0.14. Release CI repeats all 41,967 assertions and verifies addon-only packaging, CurseForge upload acceptance and GitHub assets. [Receipts](release-1.0.14.md#publication-verified). Publication does not verify native permissions, appearance, input or taint.
+
 The user authorizes a final full review and release, superseding the earlier holds. The complete current tree passes 90 Lua 5.1 files, matching Core/TOCs at 1.0.14, 41,967 substitute behavior assertions, all 11 gear-baseline tests and git diff --check. Repeated pinned-70862 AST/API/global-write scans and focused review of all pending runtime changes identify no new concrete release blocker. This includes the optional persistent talent-build comparison and its character-owned reference, linked castbar sizes with immediate Manual state after direct edits, settings simplification, Contacts/groups/multiline notes, profession learning-source hints, combat reminder identity handling and native tooltip difficulty colors. Native permissions, layout, input and combat/taint smoke tests remain pending; the existing bag-use taint investigation is not claimed fixed. No game deployment, junction or real SavedVariables edits.
 
 The source-only 99-file archive is verified by SHA256. Publication receipts are recorded in [release-1.0.14.md](release-1.0.14.md). Earlier held-release entries below describe historical preparation.
