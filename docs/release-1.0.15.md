@@ -14,4 +14,10 @@ Remote main matches ce9e9b28d17771003fef7c4450b60694a6c0db98 and v1.0.15 is abse
 
 scripts/Package.ps1 produced dist/WoWForeverSuite-1.0.15.zip. All 101 non-directory entries match src/WoWForeverSuite by SHA256, with no extra, duplicate, missing or mismatched files. Development caches, tests, documentation and SavedVariables are excluded. ZIP SHA256: 667353AB608F6F8A61E8E4263C1717D42D701ADB1752B5D068E146388F0D9E83.
 
-Publication receipts will be appended after execution.
+## Publication verified
+
+Release commit 83e929a8f1735573eb25bb51a4e1658a8cf114e5 passes [Addon checks 43450369528](https://github.com/drockzoids-wow/WoW-Forever-Suite/actions/runs/43450369528). The annotated v1.0.15 tag triggers [Package and Release 43450592022](https://github.com/drockzoids-wow/WoW-Forever-Suite/actions/runs/43450592022); job 131971397944 completes every step successfully, including repeated addon checks, tag/version matching, CurseForge authentication, addon-only archive comparison, upload and GitHub asset verification.
+
+Job logs record uploading WoWForeverSuite-v1.0.15-forever.zip as a 1.60.1 release to CurseForge project 1749120 at 2026-11-13T15:15:19Z, followed by Success in the same second (November 13, 2026, 9:15 a.m. America/Chicago). Upload acceptance is verified; CurseForge moderation/public availability was not independently checked.
+
+[GitHub release v1.0.15](https://github.com/drockzoids-wow/WoW-Forever-Suite/releases/tag/v1.0.15) is published with release.json and WoWForeverSuite-v1.0.15-forever.zip in uploaded state. GitHub reports published ZIP SHA256 5d4e035074062752680dfa1d604b1c299656b25732ce49008498bf03bb050bd4. Local and packager archive hashes can differ because of line endings and archive metadata. Native test limitations remain as recorded above.

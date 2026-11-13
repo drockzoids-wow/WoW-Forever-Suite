@@ -2,6 +2,8 @@
 
 ## Authorized 1.0.15 release — November 13, 2026
 
+Published v1.0.15 from 83e929a8f1735573eb25bb51a4e1658a8cf114e5: main and release CI pass, CurseForge accepts the upload, and GitHub assets are verified. [Publication receipts](release-1.0.15.md#publication-verified). Native smoke tests and CurseForge public moderation availability remain unverified.
+
 User authorizes preparing and publishing 1.0.15. Include expanded food/drink macro detection, bounded delayed-bank recovery and diagnostics, independent profession-guide sections and character skill snapshots, default-off account-money bag tooltips, and the Disenchant hover glow. Core and both matching TOCs advance to 1.0.15. Offline checks pass 92 Lua 5.1 files, 46,294 substitute assertions, all 11 separate gear-baseline tests and git diff --check. Native behavior remains limited to the recorded user confirmations; subsequent automatic food refresh, new UI/input and combat/taint smoke tests remain pending. The existing UseContainerItem taint investigation remains unresolved. Package verification and publication receipts are recorded in [release-1.0.15.md](release-1.0.15.md). No game deployment, junction or real SavedVariables edits.
 
 ## Food refresh ownership pause identified — November 13, 2026
