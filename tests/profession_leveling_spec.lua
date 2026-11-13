@@ -1,12 +1,14 @@
 local Suite, equal, Frame, SetCombat = ...
 local leveling, guides = Suite.ProfessionLeveling, Suite.ProfessionGuides
 local saved, state = {}, {}
-local globals = { "CreateFrame", "ProfessionsFrame", "C_TradeSkillUI", "Enum", "C_Timer", "UIParent", "GameTooltip", "GetCurrentRegion", "UnitFactionGroup", "UnitCastingInfo", "UnitChannelInfo", "C_Map", "UiMapPoint", "C_SuperTrack" }
+local globals = { "CreateFrame", "ProfessionsFrame", "C_TradeSkillUI", "Enum", "C_Timer", "UIParent", "GameTooltip", "GetCurrentRegion", "UnitFactionGroup", "UnitCastingInfo", "UnitChannelInfo", "C_Map", "UiMapPoint", "C_SuperTrack", "GetProfessions", "GetProfessionInfo" }
 for _, name in ipairs(globals) do saved[name] = _G[name] end
 for key, value in pairs(leveling) do state[key] = value end
 local db, pending = Suite.db, Suite.pending
 local scrollCount = #(Suite.GUI.scrollWidgets or {})
 Suite.db, Suite.pending = Suite.InitializeDB(nil), {}
+leveling:InitializeCharacter(nil)
+GetProfessions, GetProfessionInfo = nil, nil
 equal(Suite.db.professionLevelingAutoRecipe, true, "automatic recipe selection defaults on")
 equal(Suite.InitializeDB({ professionLevelingAutoRecipe = false }).professionLevelingAutoRecipe, true, "legacy disabled recipe selection adopts on once")
 equal(Suite.Profiles:Settings({ professionLevelingAutoRecipe = false }).professionLevelingAutoRecipe, true, "legacy profiles adopt recipe selection once")
@@ -103,7 +105,7 @@ equal(leveling.frame.parent, ProfessionsFrame, "companion inherits native moveme
 equal(leveling.frame:GetWidth(), 460, "flyout widened for shopping lists")
 equal(leveling.frame.scroll:GetWidth(), 410, "readable content uses wider panel")
 equal(leveling.frame.text.point[3] < -500, true, "full shopping list precedes leveling prose")
-equal(leveling.frame.materialLabels[1].text, "Required materials", "materials heading appears first")
+equal(leveling.frame.materialsHeader.label.text, "−  Required materials", "distinct materials heading appears first")
 equal(leveling.frame.materialRows[1].materialID, 2835, "first shopping item uses Rough Stone item ID")
 equal(leveling.frame.materialRows[1].quantity.text, "90 x", "first quantity matches published list")
 equal(leveling.frame.scroll.suiteMaximum > 500, true, "long materials list remains scrollable")
@@ -614,6 +616,7 @@ equal(Guide("Tailoring").shopping[3].title, "225-265", "unpublished tailoring ma
 equal(Guide("Alchemy").shopping[2].title, "225-290", "alchemy shopping list discloses true published coverage")
 equal(Guide("First Aid").shopping[2].rows[3][1][2], 13464, "first aid includes late healing-potion herb")
 -- Browsing another profession cannot apply the active blacksmith's skill.
+leveling.skills.Alchemy = nil -- This case exercises an unrecorded guide.
 leveling:Select(1)
 for _, row in ipairs(leveling.frame.materialRows) do
     if row.materialID then equal(row.done, false, "manual other-profession guide has no assumed rank") end
@@ -809,6 +812,61 @@ faction = "Horde"
 equal(leveling:RecipeLocation(9920, "|Hworldmap:1455:5250:4150|h[A]|h |Hworldmap:1454:8200:2300|h[H]|h").map, 1454, "catalog picks current faction when native source lists multiple factions")
 C_TradeSkillUI.OpenRecipe, C_TradeSkillUI.GetRecipeInfo, C_TradeSkillUI.IsRecipeInSkillLine = nil, nil, nil
 C_TradeSkillUI.GetRecipeSourceText, C_TradeSkillUI.IsDataSourceChanging = nil, nil
+-- Independent section minimization and character-owned profession snapshots.
+Suite.db.professionLevelingAutoRecipe = false
+Suite.db.professionLevelingAutoSteps = true
+Blacksmith(173); leveling.open = true; leveling:Refresh(true)
+local characterSkills = leveling:InitializeCharacter({ Blacksmithing = { rank = 173, maximum = 225 },
+    Alchemy = { rank = {}, maximum = 75 }, Fishing = { rank = 80, maximum = 75 } })
+equal(characterSkills.Alchemy, nil, "restricted saved skills are discarded")
+equal(characterSkills.Fishing, nil, "invalid saved skills are discarded")
+leveling:Refresh(true)
+leveling.frame.materialsHeader:OnClick()
+equal(Suite.db.professionLevelingMaterialsCollapsed, true, "materials minimize preference saved")
+for _, row in ipairs(leveling.frame.materialRows) do equal(row:IsShown(), false, "minimized materials hide rows") end
+equal(leveling.frame.text:IsShown(), true, "materials collapse keeps leveling visible")
+leveling.frame.stepsHeader:OnClick()
+equal(Suite.db.professionLevelingStepsCollapsed, true, "steps independently minimize")
+equal(leveling.frame.text:IsShown(), false, "steps collapse hides summary")
+for _, row in ipairs(leveling.frame.stepRows) do
+    equal(row:IsShown(), false, "minimized steps hide rows")
+    for _, button in ipairs(row.recipeButtons or {}) do equal(button.recipeID, nil, "minimized recipes clear click bindings") end
+end
+leveling.frame.materialsHeader:OnClick()
+equal(leveling.frame.text:IsShown(), false, "restoring materials leaves steps minimized")
+equal(Material(3575) ~= nil, true, "restoring materials restores current inputs")
+leveling.frame.stepsHeader:OnClick()
+equal(leveling.frame.text:IsShown(), true, "steps independently restore")
+GetProfessions = function() return 1, nil, 3 end
+GetProfessionInfo = function(id)
+    if id == 1 then return "Blacksmithing", nil, 174, 225, 1, 0, 164 end
+    return "Alchemy", nil, 50, 75, 1, 0, 171
+end
+C_TradeSkillUI.GetProfessionInfoBySkillLineID = function(id)
+    return { profession = id == 164 and 1 or 3 }
+end
+leveling:CaptureSkills()
+equal(characterSkills.Blacksmithing.rank, 174, "roster captures other known skills without opening books")
+equal(characterSkills.Alchemy.rank, 50, "roster preserves entries after nil slots")
+GetProfessions, GetProfessionInfo = nil, nil
+info = { profession = 3, professionID = 171, professionName = "Alchemy", skillLevel = 50, maxSkillLevel = 75 }
+leveling:Refresh(true)
+leveling:Select(2) -- Blacksmithing while Alchemy remains open.
+equal(leveling.frame.status.text, "Saved skill: 174 / 225 · last recorded", "browsed guide discloses its own saved rank")
+equal(Material(3575).quantity.text, "12 x", "browsed materials use saved blacksmith rank")
+equal(leveling.frame.stepRows[4].heading.text:find("Current range", 1, true) ~= nil, true, "browsed step follows saved skill")
+equal(leveling.current, 1, "browsing snapshot never changes the native profession")
+local reloaded = leveling:InitializeCharacter(characterSkills)
+equal(reloaded.Blacksmithing.rank, 174, "snapshot survives character normalization on reload")
+leveling:RememberSkill(2, {}, 225)
+equal(reloaded.Blacksmithing.rank, 174, "unreadable refresh preserves last readable snapshot")
+C_TradeSkillUI.IsTradeSkillLinked = function() return true end
+Blacksmith(200); leveling:Refresh(true)
+equal(reloaded.Blacksmithing.rank, 174, "linked book cannot overwrite personal snapshot")
+C_TradeSkillUI.IsTradeSkillLinked = nil
+Blacksmith(175); leveling:Refresh()
+equal(reloaded.Blacksmithing.rank, 175, "own live book refreshes snapshot after skill gains")
+equal(Suite.Profiles:Settings(Suite.db).professionSkills, nil, "profession snapshots stay outside account settings profiles")
 Suite.db.professionLevelingAutoSteps = true
 Suite.db.professionLeveling = false
 leveling:Apply()

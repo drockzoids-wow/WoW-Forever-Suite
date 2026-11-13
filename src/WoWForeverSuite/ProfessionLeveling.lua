@@ -53,6 +53,49 @@ function Leveling:Resolve(info)
     -- English fallback for clients lacking the enum, including the Lockpicking entry.
     if Text(name) then for index, guide in ipairs(guides) do if name == guide.name then return index end end end
 end
+local function ValidSkill(rank, maximum)
+    return Number(rank) and Number(maximum) and rank % 1 == 0 and maximum % 1 == 0
+        and rank <= maximum and maximum > 0 and maximum <= 10000
+end
+function Leveling:InitializeCharacter(saved)
+    local result = {}
+    for _, guide in ipairs(guides) do
+        local record = Field(saved, guide.name)
+        local rank, maximum = Field(record, "rank"), Field(record, "maximum")
+        if ValidSkill(rank, maximum) then result[guide.name] = { rank = rank, maximum = maximum } end
+    end
+    self.skills = result
+    return result
+end
+function Leveling:RememberSkill(index, rank, maximum)
+    if self.skills and guides[index] and ValidSkill(rank, maximum) then
+        self.skills[guides[index].name] = { rank = rank, maximum = maximum }
+    end
+end
+function Leveling:CaptureSkills()
+    if not self.skills or not Read(GetProfessions, "function") or not Read(GetProfessionInfo, "function") then return end
+    -- Same roster and return positions as the native Camelot profession book.
+    local roster = { pcall(GetProfessions) }
+    if roster[1] ~= true then return end
+    for slot = 2, 9 do
+        local id = roster[slot]
+        if Number(id) and id > 0 and id <= 2147483647 and id % 1 == 0 then
+            local ok, name, _, rank, maximum, _, _, skillLine = pcall(GetProfessionInfo, id)
+            if ok and Number(skillLine) and skillLine > 0 and skillLine <= 2147483647 and skillLine % 1 == 0 then
+                local info = Call(Field(C_TradeSkillUI, "GetProfessionInfoBySkillLineID"), skillLine)
+                local index = self:Resolve(info) or self:Resolve({ professionName = name })
+                self:RememberSkill(index, rank, maximum)
+            end
+        end
+    end
+end
+function Leveling:GuideSkill()
+    -- Do not mask unreadable live data with an older snapshot of the same book.
+    if self.selected == self.current then return self.rank, self.maximum, false end
+    local guide = guides[self.selected]
+    local record = guide and self.skills and self.skills[guide.name]
+    if record and ValidSkill(record.rank, record.maximum) then return record.rank, record.maximum, true end
+end
 function Leveling:Context()
     if not Safe(self.owner) or not Shown(Field(self.owner, "CraftingPage")) then return end
     local info = Call(Field(C_TradeSkillUI, "GetBaseProfessionInfo"))
@@ -72,7 +115,8 @@ function Leveling:ViewOption(key)
 end
 function Leveling:ToggleView(key)
     if not self:Enabled() or InCombatLockdown() or not self.open then return end
-    if key ~= "professionLevelingHideDone" and key ~= "professionLevelingAutoSteps" and key ~= "professionLevelingHideStocked" then return end
+    if key ~= "professionLevelingHideDone" and key ~= "professionLevelingAutoSteps" and key ~= "professionLevelingHideStocked"
+        and key ~= "professionLevelingMaterialsCollapsed" and key ~= "professionLevelingStepsCollapsed" then return end
     Suite.db[key] = not self:ViewOption(key)
     if key == "professionLevelingAutoSteps" then self.stepOverrides = {} end
     self:Render(true)
@@ -389,7 +433,13 @@ end
 function Leveling:Steps(guide, rank, offset)
     local frame = self.frame
     frame.stepRows = frame.stepRows or {}
-    for _, row in ipairs(frame.stepRows) do row.sectionIndex = nil; row:Hide() end
+    for _, row in ipairs(frame.stepRows) do
+        row.sectionIndex, row.expanded = nil, false; row:Hide()
+        self:StepMaterials(row, {}, 0, false)
+    end
+    frame.text:Hide()
+    if self:ViewOption("professionLevelingStepsCollapsed") then return offset end
+    frame.text:Show()
     local active = 0
     if guide then
         for index, section in ipairs(guide.sections) do if CurrentSection(section, rank) then active = index; break end end
@@ -531,9 +581,9 @@ function Leveling:MaterialPlan(guide, rank)
     end
     return plan, totals, shopping
 end
-function Leveling:Materials(guide)
-    local frame, y, rowIndex, labelIndex = self.frame, 0, 0, 0
-    local rank = guide and guide == guides[self.current] and self.rank or nil
+function Leveling:Materials(guide, offset)
+    local frame, y, rowIndex, labelIndex = self.frame, offset or 0, 0, 0
+    local rank = self:GuideSkill()
     local doneRows, totals, shopping = self:MaterialPlan(guide, rank)
     local stock = {}
     local function Counts(item, total)
@@ -551,6 +601,7 @@ function Leveling:Materials(guide)
     frame.materialRows, frame.materialLabels = frame.materialRows or {}, frame.materialLabels or {}
     for _, row in ipairs(frame.materialRows) do row.materialID = nil; row:Hide() end
     for _, label in ipairs(frame.materialLabels) do label:Hide() end
+    if self:ViewOption("professionLevelingMaterialsCollapsed") then return y end
     local function Paragraph(text, color, x, width)
         labelIndex = labelIndex + 1
         local label = frame.materialLabels[labelIndex]
@@ -598,8 +649,7 @@ function Leveling:Materials(guide)
         row:SetSize(CONTENT_WIDTH, height); row:ClearAllPoints(); row:SetPoint("TOPLEFT", 0, -y); row:Show()
         y = y + height
     end
-    if not shopping then return 0 end
-    Paragraph("Required materials", {0.41, 0.84, 0.75})
+    if not shopping then Paragraph("No materials list for this guide."); return y end
     Paragraph("Saved character bags/banks + shared bank. + = incomplete; ≤ = upper estimate; ? = unknown.")
     Paragraph(shopping.projected and "Required follows the remaining-step estimates below. Need combines all unfinished uses before subtracting stock. Actual crafts may vary."
         or "Done = completed range. Active quantities are full-band estimates. Need combines unfinished main-route rows; alternatives replace one row.")
@@ -642,8 +692,23 @@ function Leveling:Materials(guide)
         end
     end
     if #shopping > 0 and not anyGroup then Paragraph("No materials to get in the current view.", {0.41,0.84,0.75}) end
-    Paragraph("Leveling steps", {0.41, 0.84, 0.75})
     return y
+end
+function Leveling:SectionHeader(field, title, key, offset)
+    local frame = self.frame
+    local header = frame[field]
+    if not header then
+        header = CreateFrame("Button", nil, frame.body, "BackdropTemplate")
+        header:SetSize(CONTENT_WIDTH, 32); header:EnableMouse(true)
+        Surface(header); header:SetBackdropColor(0.06, 0.15, 0.17, 1)
+        header.label = Label(header, 14, 10, -8, CONTENT_WIDTH - 20)
+        header.label:SetTextColor(0.41, 0.84, 0.75)
+        header:SetScript("OnClick", function() self:ToggleView(key) end)
+        frame[field] = header
+    end
+    header:ClearAllPoints(); header:SetPoint("TOPLEFT", 0, -offset)
+    header.label:SetText((self:ViewOption(key) and "+  " or "−  ") .. title)
+    return offset + 42
 end
 function Leveling:Cancel()
     if self.timer then self.timer:Cancel(); self.timer = nil end
@@ -728,12 +793,14 @@ function Leveling:Render(reset)
     local frame = self.frame
     if not frame or InCombatLockdown() then return end
     local guide = guides[self.selected]
-    local rank = self.selected == self.current and self.rank or nil
+    local rank, maximum, snapshot = self:GuideSkill()
     frame.title:SetText(guide and guide.name .. " · Leveling" or "Profession Leveling")
-    frame.status:SetText(rank and string.format("Your skill: %d / %d", rank, self.maximum)
+    frame.status:SetText(rank and string.format(snapshot and "Saved skill: %d / %d · last recorded" or "Your skill: %d / %d", rank, maximum)
         or self.context == "unavailable" and "Profession data unavailable · browse a guide"
         or "Browse guides · choose Current to follow your profession")
-    local offset = self:Materials(guide)
+    local offset = self:SectionHeader("materialsHeader", "Required materials", "professionLevelingMaterialsCollapsed", 0)
+    offset = self:Materials(guide, offset)
+    offset = self:SectionHeader("stepsHeader", "Leveling steps", "professionLevelingStepsCollapsed", offset + 12)
     local height = math.max(350, self:Steps(guide, rank, offset) + 12)
     frame.body:SetHeight(height)
     if reset then frame.scroll.suiteOffset = 0; frame.scroll:SetVerticalScroll(0) end
@@ -756,6 +823,13 @@ end
 function Leveling:Refresh(follow)
     if not self:Enabled() or InCombatLockdown() or not Safe(self.owner) then return end
     local current, rank, context, maximum = self:Context()
+    self:CaptureSkills()
+    local own = true
+    for _, name in ipairs({ "IsDataSourceChanging", "IsTradeSkillLinked", "IsTradeSkillGuild", "IsTradeSkillGuildMember", "IsNPCCrafting" }) do
+        local fn = Field(C_TradeSkillUI, name)
+        if Read(fn, "function") and Call(fn) ~= false then own = false end
+    end
+    if own then self:RememberSkill(current, rank, maximum) end
     local changed = context ~= self.context
     self.current, self.rank, self.maximum, self.context = current, rank, maximum, context
     if changed or follow then
@@ -781,7 +855,8 @@ function Leveling:Toggle()
     self:CreatePanel(); self.open = true; self:Refresh(true); self.frame:Show()
 end
 function Leveling:Discover()
-    if not self:Enabled() or InCombatLockdown() or not Safe(ProfessionsFrame) then return end
+    if not self:Enabled() or InCombatLockdown() then return end
+    if not Safe(ProfessionsFrame) then self:CaptureSkills(); return end
     if self.owner ~= ProfessionsFrame then
         -- The native frame is a singleton. Never replace its scripts or stored profession data.
         self.owner = ProfessionsFrame
@@ -805,7 +880,7 @@ function Leveling:Discover()
         end
     end
     if not self.open and self.frame then self:Close() end
-    if Shown(self.owner) then self:Refresh() end
+    if Shown(self.owner) then self:Refresh() else self:CaptureSkills() end
 end
 function Leveling:Apply()
     if not self:Enabled() then

@@ -111,25 +111,27 @@ function Bank:Scan(bankType)
         or not C_Bank.CanViewBank or not C_Bank.FetchPurchasedBankTabIDs
         or not C_Bank.FetchNumPurchasedBankTabs or not C_Bank.FetchPurchasedBankTabData
         or not C_Bank.ShouldUsePlayerBagsInBank or not C_Container.GetContainerNumSlots
-        or not C_Container.GetContainerItemInfo or not C_Container.GetContainerItemID then return end
+        or not C_Container.GetContainerItemInfo or not C_Container.GetContainerItemID then return nil, "Bank closed or required API missing" end
     local allowed, bagMode = C_Bank.CanViewBank(bankType), C_Bank.ShouldUsePlayerBagsInBank()
-    if not Suite.IsReadable(allowed) or allowed ~= true or not Suite.IsReadable(bagMode) or bagMode ~= true then return end
+    if not Suite.IsReadable(allowed) or allowed ~= true or not Suite.IsReadable(bagMode) or bagMode ~= true then return nil, "Bank access or bag mode unavailable" end
     local ids, purchased = C_Bank.FetchPurchasedBankTabIDs(bankType), C_Bank.FetchNumPurchasedBankTabs(bankType)
     local metadata = C_Bank.FetchPurchasedBankTabData(bankType)
     if not Suite.IsReadable(ids) or type(ids) ~= "table" or not Integer(purchased, 0, 32)
         or #ids ~= purchased or not Suite.IsReadable(metadata) or type(metadata) ~= "table"
-        or #metadata ~= purchased then return end
+        or #metadata ~= purchased then return nil, "Purchased bank lists incomplete" end
     local seen, details, snapshot = {}, {}, { schema = 1, tabs = {}, totalSlots = 0 }
+    local incomplete
     for _, tab in ipairs(metadata) do
         if not Suite.IsReadable(tab) or type(tab) ~= "table" or not Integer(tab.ID, 6, 1000)
-            or details[tab.ID] then return end
+            or details[tab.ID] then return nil, "Invalid bank metadata" end
         details[tab.ID] = tab
     end
     for index, bag in ipairs(ids) do
-        if not Integer(bag, 6, 1000) or seen[bag] or not details[bag] then return end
+        if not Integer(bag, 6, 1000) or seen[bag] or not details[bag] then return nil, "Invalid bank container list" end
         seen[bag] = true
         local size, metadataTab = C_Container.GetContainerNumSlots(bag), details[bag]
-        if not Integer(size, 1, 1000) or snapshot.totalSlots + size > 2816 then return end
+        if not Integer(size, 0, 1000) or snapshot.totalSlots + size > 2816 then return nil, "Invalid bank capacity" end
+        if size == 0 and not Suite.Inventory:IsEmptyBankBag(bankType, index) then return nil, "Bank bag capacity still loading" end
         local tab = { bag = bag, size = size, slots = {} }
         tab.name = Text(metadataTab.name) and metadataTab.name or (BANK_BAG or "Bank bag")
         tab.icon = Integer(metadataTab.icon, 1, 2147483647) and metadataTab.icon or nil
@@ -142,36 +144,49 @@ function Bank:Scan(bankType)
         end
         for slot = 1, size do
             local info = C_Container.GetContainerItemInfo(bag, slot)
-            if not Suite.IsReadable(info) then return end
+            if not Suite.IsReadable(info) then return nil, "Restricted bank slot" end
             if info == nil then
                 local id = C_Container.GetContainerItemID(bag, slot)
-                if not Suite.IsReadable(id) or id ~= nil then
+                if not Suite.IsReadable(id) then return nil, "Restricted bank slot" end
+                if id ~= nil then
                     if Integer(id, 1, 2147483647) then self:RequestItem(id) end
-                    return
+                    incomplete = "Occupied bank slot still loading"
                 end
             else
                 if type(info) ~= "table" or not Integer(info.itemID, 1, 2147483647)
-                    or not Integer(info.stackCount, 1, 1000000000) then return end
-                if not Suite.IsReadable(info.hyperlink) or not Suite.IsReadable(info.iconFileID) then return end
+                    or not Integer(info.stackCount, 1, 1000000000) then return nil, "Invalid bank item ID or count" end
+                if not Suite.IsReadable(info.hyperlink) or not Suite.IsReadable(info.iconFileID) then return nil, "Restricted bank item link or icon" end
                 if not Text(info.hyperlink) or not Integer(info.iconFileID, 1, 2147483647) then
-                    self:RequestItem(info.itemID); return
-                end
-                -- Keep the full instance link: enchants, gems and random properties matter to tooltips.
-                if tonumber(info.hyperlink:match("item:(%d+)")) ~= info.itemID then return end
-                tab.slots[slot] = { id = info.itemID, count = info.stackCount, link = info.hyperlink,
-                    icon = info.iconFileID, quality = Integer(info.quality, 0, 8) and info.quality or nil,
-                    name = Text(info.itemName) and info.itemName or info.hyperlink:match("%[(.-)%]") }
-                if Suite.IsReadable(info.isBound) and type(info.isBound) == "boolean" then
-                    tab.slots[slot].isBound = info.isBound
+                    self:RequestItem(info.itemID); incomplete = "Bank item link or icon still loading"
+                else
+                    -- Keep the full instance link: enchants, gems and random properties matter to tooltips.
+                    if tonumber(info.hyperlink:match("item:(%d+)")) ~= info.itemID then return nil, "Bank link does not match item ID" end
+                    tab.slots[slot] = { id = info.itemID, count = info.stackCount, link = info.hyperlink,
+                        icon = info.iconFileID, quality = Integer(info.quality, 0, 8) and info.quality or nil,
+                        name = Text(info.itemName) and info.itemName or info.hyperlink:match("%[(.-)%]") }
+                    if Suite.IsReadable(info.isBound) and type(info.isBound) == "boolean" then
+                        tab.slots[slot].isBound = info.isBound
+                    end
                 end
             end
         end
         snapshot.tabs[#snapshot.tabs + 1] = tab
         snapshot.totalSlots = snapshot.totalSlots + size
     end
+    if incomplete then return nil, incomplete end
     local now = GetServerTime and GetServerTime()
     snapshot.at = Integer(now, 1, 10000000000) and now or nil
     return snapshot
+end
+
+function Bank:Status()
+    Suite.Print("Bank snapshots: enabled=" .. tostring(Suite.db.offlineBank == true)
+        .. ", active=" .. tostring(self.active == true) .. ", open=" .. tostring(self.bankOpen == true)
+        .. ", shown=" .. tostring(Visible(BankFrame)))
+    local character = self:Context()
+    Suite.Print("Bank character record: " .. (character and "available" or "unavailable"))
+    local snapshot, reason = self:Scan(0)
+    Suite.Print(snapshot and ("Bank scan complete: " .. snapshot.totalSlots .. " slots") or ("Bank scan stopped: " .. (reason or "unknown")))
 end
 
 local function Aggregate(snapshot)
@@ -193,7 +208,8 @@ function Bank:Capture()
     self:CaptureLayout(character)
     local types = Enum and Enum.BankType
     if not types or not Integer(types.Character, 0, 2) or not Integer(types.Account, 0, 2) then return end
-    local personal, account = self:Scan(types.Character), self:Scan(types.Account)
+    local personal, personalReason = self:Scan(types.Character)
+    local account, accountReason = self:Scan(types.Account)
     if personal then
         character.bankView = personal
         character.bank = Aggregate(personal) or character.bank
@@ -205,6 +221,11 @@ function Bank:Capture()
     end
     if Suite.InventorySearch then Suite.InventorySearch:InventoryChanged() end
     if Suite.CharacterDashboard then Suite.CharacterDashboard:RefreshView() end
+    local function Loading(reason)
+        return reason == "Purchased bank lists incomplete" or reason == "Bank bag capacity still loading"
+            or reason == "Occupied bank slot still loading" or reason == "Bank item link or icon still loading"
+    end
+    return Loading(personalReason) or Loading(accountReason)
 end
 
 function Bank:CaptureLayout(character)
@@ -314,7 +335,7 @@ function Bank:GetSnapshot(bankType, guid, bags)
     local total, seen = 0, {}
     for _, tab in ipairs(snapshot.tabs) do
         if not Suite.IsReadable(tab) or type(tab) ~= "table" or not Integer(tab.bag, bags and 0 or 6, bags and 5 or 1000)
-            or seen[tab.bag] or not Integer(tab.size, 1, 1000) or not Suite.IsReadable(tab.slots) or type(tab.slots) ~= "table" then return end
+            or seen[tab.bag] or not Integer(tab.size, bags and 1 or 0, 1000) or not Suite.IsReadable(tab.slots) or type(tab.slots) ~= "table" then return end
         seen[tab.bag] = true; total = total + tab.size
         for slot, item in pairs(tab.slots) do
             if not Integer(slot, 1, tab.size) or not Suite.IsReadable(item) or type(item) ~= "table"
@@ -629,12 +650,18 @@ function Bank:Cancel()
     if self.timer then self.timer:Cancel(); self.timer = nil end
 end
 
-function Bank:Schedule()
+function Bank:RetryCapture()
+    if not self.bankOpen or (self.captureRetries or 0) >= 4 then return end
+    self.captureRetries = (self.captureRetries or 0) + 1
+    self:Schedule(0.5)
+end
+
+function Bank:Schedule(delay)
     if self.timer or not Suite.db.offlineBank or not C_Timer or not C_Timer.NewTimer then return end
-    self.timer = C_Timer.NewTimer(0.15, function()
+    self.timer = C_Timer.NewTimer(delay or 0.15, function()
         self.timer = nil
         if not Suite.db.offlineBank then return end
-        self:Capture()
+        if self:Capture() then self:RetryCapture() end
         if Visible(self.frame) then self:Refresh() end
     end)
 end
@@ -659,6 +686,7 @@ function Bank:OnEvent(event)
         self.bankOpen = Visible(BankFrame)
         if self.frame then self.frame:Hide() end
     end
+    self.captureRetries = 0
     if self.bankOpen or Visible(self.frame) then self:Schedule() end
 end
 
@@ -699,6 +727,7 @@ function Bank:Apply()
             "MODIFIER_STATE_CHANGED" }) do self.events:RegisterEvent(event) end
         self.active, self.bankOpen = true, Visible(BankFrame)
         self:WatchLayout()
-        self:Capture()
+        self.captureRetries = 0
+        if self:Capture() then self:RetryCapture() end
     end)
 end

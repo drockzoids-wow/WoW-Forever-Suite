@@ -124,6 +124,11 @@ equal(snapshot.best.food.health, 600, "restoration is read from item text")
 equal(snapshot.best.healing.health, 80, "range restoration uses its midpoint")
 local body = macros:Generate(food, snapshot)
 equal(body, "#showtooltip [nocombat] item:101\n/use [nocombat] item:101", "food stays outside combat by default")
+assert(loadfile("tests/food_audit_spec.lua"))(Suite, equal, data, food, water, function(items, playerLevel)
+    local oldBags, oldLevel = bags, level
+    bags, level = items, playerLevel
+    return oldBags, oldLevel
+end)
 do
     local savedBags, savedLevel = bags, level
     local fish = data[4603]
@@ -148,7 +153,7 @@ do
     equal(supplies:Scan().pending.food, true, "uncached cooking food metadata pauses food decisions")
     unavailable = nil
     fish.class, fish.sub = 7, 0
-    equal(supplies:Scan().best.food, nil, "unrelated trade-goods subclasses remain excluded")
+    equal(supplies:Scan().best.food.id, 4603, "reviewed edible fish remains eligible if the client changes its trade-goods subclass")
     fish.class, fish.sub = 7, 8
     bags, level = savedBags, savedLevel
 end
@@ -271,7 +276,7 @@ do
     data[20390].description = candyDescription .. " You become well fed."
     bags = { 100, 104, 20390 }; seasonal = supplies:Scan()
     equal(seasonal.best.food.id, 20390, "seasonal health-restoring buff food retains event priority")
-    equal(seasonal.best.water.id, 104, "a cataloged event ID never bypasses the buff-drink exclusion")
+    equal(seasonal.best.water.id, 20390, "a restorative event drink remains eligible with a Well Fed buff")
     data[20390].description = candyDescription
     bags, unavailable = { 100, 104, 20390 }, 20390
     seasonal = supplies:Scan()

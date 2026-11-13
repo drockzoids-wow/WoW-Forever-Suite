@@ -76,17 +76,32 @@ function Inventory:Enabled()
     return Suite.db and (Suite.db.itemInventory or Suite.db.inventorySearch or Suite.db.characterDashboard)
 end
 
-function Inventory:ScanContainers(ids, bank)
+-- Purchased bank bag positions can be unequipped. A zero-slot container alone
+-- cannot distinguish that from an equipped bag whose contents are still loading.
+function Inventory:IsEmptyBankBag(bankType, index)
+    if not Integer(bankType, 0, 2) or index <= 1 or not C_Bank or not C_Bank.ShouldUsePlayerBagsInBank
+        or not C_Bank.BankBagTypeAndIDToInvSlot or not GetInventoryItemID then return false end
+    local mode = C_Bank.ShouldUsePlayerBagsInBank()
+    if not Suite.IsReadable(mode) or mode ~= true then return false end
+    local slot = C_Bank.BankBagTypeAndIDToInvSlot(bankType, index)
+    if not Integer(slot, 0, 999) then return false end
+    local id = GetInventoryItemID("player", slot + 1)
+    return Suite.IsReadable(id) and id == nil
+end
+
+function Inventory:ScanContainers(ids, bank, bankType)
     if not C_Container or not C_Container.GetContainerNumSlots or not C_Container.GetContainerItemInfo
         or not C_Container.GetContainerItemID then return end
     local counts, seen = {}, {}
-    for _, bag in ipairs(ids) do
+    for index, bag in ipairs(ids) do
         if not Integer(bag, 0, 1000) or seen[bag] then return end
         seen[bag] = true
         local slots = C_Container.GetContainerNumSlots(bag)
         -- The backpack always has capacity; zero means its data is not ready.
-        -- Optional unequipped bags may be empty, but purchased bank tabs may not.
-        if not Integer(slots, (bank or bag == 0) and 1 or 0, 1000) then return end
+        -- Zero bank capacity requires proof that a purchased bag is unequipped.
+        if not Integer(slots, 0, 1000) then return end
+        if slots == 0 and (bank or bag == 0)
+            and not (bank and self:IsEmptyBankBag(bankType, index)) then return end
         for slot = 1, slots do
             local info = C_Container.GetContainerItemInfo(bag, slot)
             if not Suite.IsReadable(info) then return end
@@ -118,7 +133,7 @@ function Inventory:ScanBank(bankType)
     local limit = BagLimit()
     if not limit then return end
     for _, id in ipairs(ids) do if not Integer(id, limit + 1, 1000) then return end end
-    return self:ScanContainers(ids, true)
+    return self:ScanContainers(ids, true, bankType)
 end
 
 -- Slot records are separate from aggregate counts: incomplete item artwork/link data

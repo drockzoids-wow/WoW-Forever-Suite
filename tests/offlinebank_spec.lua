@@ -4,7 +4,7 @@ local names = { "CreateFrame", "C_Timer", "C_Container", "C_Bank", "C_Item", "En
     "UnitGUID", "UnitName", "UnitClass", "GetNormalizedRealmName", "GetCurrentRegion", "GetServerTime", "date",
     "SetItemButtonTexture", "SetItemButtonCount", "GameTooltip", "GameTooltip_ShowCompareItem", "IsModifiedClick",
     "HandleModifiedItemClick", "HideUIPanel", "UISpecialFrames", "WoWForeverSuiteBankView", "WoWForeverSuiteBankToggleButton",
-    "BagItemSearchBox", "BankItemSearchBox", "BagSearch_OnTextChanged" }
+    "BagItemSearchBox", "BankItemSearchBox", "BagSearch_OnTextChanged", "GetInventoryItemID" }
 local old = {}
 for _, name in ipairs(names) do old[name] = _G[name] end
 local oldDB, oldPending, oldPrint = Suite.db, Suite.pending, Suite.Print
@@ -374,14 +374,28 @@ accessible[0], accessible[2] = true, true
 BankFrame:Show(); Fire("BANKFRAME_OPENED"); Flush()
 personal = bank:GetSnapshot(0)
 equal(bank.frame:IsShown(), false, "real banker automatically dismisses cached view")
-bags[6].pending = { [2] = 999 }
+bags[6].pending = { [2] = 999, [3] = 998 }
 Fire("PLAYERBANKSLOTS_CHANGED"); Flush()
 equal(bank:GetSnapshot(0), personal, "loading occupied slot retains prior complete snapshot")
 equal(requests[999], 1, "missing item data requested once")
+equal(requests[998], 1, "same pass requests later missing items rather than stopping at the first")
+equal(TimerCount(), 1, "incomplete bank capture schedules a bounded data retry")
+bags[6].pending = nil; bags[6][2] = Item(999, 1)
+Flush()
+equal(bank:GetSnapshot(0).tabs[1].slots[2].id, 999, "bounded retry captures newly available data without another native event")
+personal = bank:GetSnapshot(0); bags[6][2] = nil; bags[6].pending = { [2] = 999 }
 Fire("PLAYERBANKSLOTS_CHANGED"); Flush(); equal(requests[999], 1, "event retries cannot duplicate pending request")
 Fire("ITEM_DATA_LOAD_RESULT", 999, false); Flush()
 equal(requests[999], 1, "failed data loads do not create a recurring request loop")
+for _ = 1, 5 do Flush() end
 equal(TimerCount(), 0, "failed item data has no idle retry timer")
+Fire("BANK_TABS_CHANGED"); Flush()
+equal(TimerCount(), 1, "a fresh bank event permits another bounded recovery window")
+BankFrame:Hide(); Fire("BANKFRAME_CLOSED")
+equal(TimerCount(), 0, "closing bank cancels its loading retry")
+local beforeClosedRetry = calls; Flush()
+equal(calls, beforeClosedRetry, "cancelled bank retry never reads inaccessible containers")
+BankFrame:Show(); Fire("BANKFRAME_OPENED")
 bags[6].pending = nil; bags[6][2] = Item(999, 1); time = 200
 Fire("ITEM_DATA_LOAD_RESULT", 999, true); Flush()
 personal = bank:GetSnapshot(0)
@@ -401,6 +415,33 @@ bags[6][1] = original
 sizes[7] = 0; Fire("BANK_TABS_CHANGED"); Flush()
 equal(bank:GetSnapshot(0), personal, "unloaded purchased bank cannot erase snapshot")
 sizes[7] = 70
+-- Purchased but unequipped bank bags must not freeze the entire saved view.
+local savedBagSlot = C_Bank.BankBagTypeAndIDToInvSlot
+local equippedBag, mappedSlot = nil, nil
+C_Bank.BankBagTypeAndIDToInvSlot = function(kind, index)
+    equal(kind, 0, "empty bag lookup uses the personal bank type")
+    equal(index, 2, "empty bag lookup uses the purchased bag index")
+    return 67
+end
+GetInventoryItemID = function(unit, slot)
+    equal(unit, "player", "bank bag equipment belongs to player")
+    mappedSlot = slot; return equippedBag
+end
+sizes[7] = 0; time = 201; Fire("BANK_TABS_CHANGED"); Flush()
+local emptyBagView = bank:GetSnapshot(0)
+equal(emptyBagView.at, 201, "confirmed unequipped purchased bag allows a fresh capture")
+equal(emptyBagView.totalSlots, 28, "empty bank bag contributes no item slots")
+equal(emptyBagView.tabs[2].size, 0, "purchased empty bag position is retained")
+equal(mappedSlot, 68, "native bank bag mapping uses one-based inventory slot")
+equal(Suite.db.inventory.characters[identity].bank.items[100], 3, "empty bag capture clears obsolete aggregate holdings")
+equippedBag = 123; Fire("BANK_TABS_CHANGED"); Flush()
+equal(bank:GetSnapshot(0), emptyBagView, "equipped zero-slot bag is still loading and preserves the snapshot")
+equippedBag = { secret = true }; Fire("BANK_TABS_CHANGED"); Flush()
+equal(bank:GetSnapshot(0), emptyBagView, "restricted bag equipment cannot prove an empty bank bag")
+GetInventoryItemID = nil; Fire("BANK_TABS_CHANGED"); Flush()
+equal(bank:GetSnapshot(0), emptyBagView, "missing equipment API cannot prove an empty bank bag")
+C_Bank.BankBagTypeAndIDToInvSlot = savedBagSlot; GetInventoryItemID = old.GetInventoryItemID
+sizes[7] = 70; Fire("BANK_TABS_CHANGED"); Flush(); personal = bank:GetSnapshot(0)
 ids[0] = { 6, 6 }; Fire("BANK_TABS_CHANGED"); Flush()
 equal(bank:GetSnapshot(0), personal, "duplicate purchased bag IDs reject capture")
 ids[0] = { 6, 7 }; purchased[0] = 3; Fire("BANK_TABS_CHANGED"); Flush()

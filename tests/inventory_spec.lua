@@ -4,7 +4,8 @@ local old = { CreateFrame = CreateFrame, C_Timer = C_Timer, C_Container = C_Cont
     UnitGUID = UnitGUID, UnitName = UnitName, UnitClass = UnitClass, GetNormalizedRealmName = GetNormalizedRealmName,
     GetRealmName = GetRealmName, GetCurrentRegion = GetCurrentRegion, GetServerTime = GetServerTime,
     NUM_TOTAL_EQUIPPED_BAG_SLOTS = NUM_TOTAL_EQUIPPED_BAG_SLOTS, NUM_BAG_SLOTS = NUM_BAG_SLOTS,
-    BankFrame = BankFrame, Enum = Enum, RAID_CLASS_COLORS = RAID_CLASS_COLORS, CLASS_ICON_TCOORDS = CLASS_ICON_TCOORDS }
+    BankFrame = BankFrame, Enum = Enum, RAID_CLASS_COLORS = RAID_CLASS_COLORS, CLASS_ICON_TCOORDS = CLASS_ICON_TCOORDS,
+    GetInventoryItemID = GetInventoryItemID }
 local oldDB, oldPending = Suite.db, Suite.pending
 local bags, timers, calls, frames = {}, {}, 0, 0
 local identity = { guid = "Player-1-1", name = "First", realm = "RealmA", class = "MAGE", region = 110 }
@@ -185,6 +186,26 @@ equal(HasLine(Hover({ id = 100 }), "First")[2], "|cff80bfffBags:|r 15, |cff80bff
 equal(HasLine(Hover({ id = 100 }), "Warband")[2], "|cff80bfffBank:|r 50", "shared bank has a separate ZoidsTools-style row")
 equal(HasLine(Hover({ id = 100 }), "Inventory")[2], "|cff80bfffTotal:|r 95", "complete sampled character data gets a total")
 local recordedAccount = Suite.db.inventory.accountBanks[110]
+local equippedBankBag = nil
+C_Bank.ShouldUsePlayerBagsInBank = function() return true end
+C_Bank.BankBagTypeAndIDToInvSlot = function(kind, index)
+    equal(kind, 0, "aggregate empty bank bag uses personal type")
+    equal(index, 2, "aggregate empty bank bag uses purchased index")
+    return 67
+end
+GetInventoryItemID = function(_, slot)
+    equal(slot, 68, "aggregate empty bank bag uses native inventory mapping")
+    return equippedBankBag
+end
+bags[7].slots = 0
+equal(inventory:ScanBank(0).items[100], 10, "aggregate captures bank with purchased unequipped bag")
+equippedBankBag = 123
+equal(inventory:ScanBank(0), nil, "aggregate preserves old counts while equipped bag loads")
+equippedBankBag = { secret = true }
+equal(inventory:ScanBank(0), nil, "aggregate rejects restricted bank bag equipment")
+bags[7].slots = 1
+C_Bank.ShouldUsePlayerBagsInBank, C_Bank.BankBagTypeAndIDToInvSlot = nil, nil
+GetInventoryItemID = old.GetInventoryItemID
 Suite.db.inventory.accountBanks[110] = nil
 equal(inventory:Summary(100).incomplete, true, "unrecorded shared bank keeps the inventory total incomplete")
 equal(HasLine(Hover({ id = 100 }), "Inventory")[2], "|cff80bfffKnown total:|r 45", "unknown shared bank is disclosed beside the known inventory count")

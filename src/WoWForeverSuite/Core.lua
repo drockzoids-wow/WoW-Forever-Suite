@@ -1,6 +1,6 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "1.0.14"
+Suite.version = "1.0.15"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {
@@ -28,12 +28,13 @@ Suite.defaults = {
     professionLevelingHideDone = true, professionLevelingAutoSteps = true, professionLevelingViewVersion = 1,
     professionLevelingAutoRecipe = true, professionLevelingAutoRecipeVersion = 1,
     professionLevelingHideStocked = true,
+    professionLevelingMaterialsCollapsed = false, professionLevelingStepsCollapsed = false,
     bagSpaceAlert = false, bagSpaceBlacklist = {}, bagSpacePosition = {},
     mailHelper = false, mailRememberRecipient = false, mailExpiry = false, supplyChecklist = false,
     mailContacts = { schema = 2, entries = {}, removed = {} },
     chatHistory = false, chatStyle = false, chatFontSize = 14, chatOpacity = 0.5, audioSync = false, chatShortcuts = false,
     itemLevels = false, itemTooltipLevels = false, characterItemLevel = false, upgradeHints = false, equipmentSetToggle = false,
-    itemInventory = false, inventorySearch = false, characterDashboard = false, inventory = { schema = 1, characters = {}, accountBanks = {} },
+    itemInventory = false, inventorySearch = false, characterDashboard = false, bagMoney = false, inventory = { schema = 1, characters = {}, accountBanks = {} },
     inventoryBrowser = { schema = 1, favorites = {} },
     scorePreset = "balanced", upgradePreference = "stats", playerItemLevel = false, classNames = false, unitLevelColors = false,
     macroUpdates = false, macroOwnership = {},
@@ -174,6 +175,7 @@ events:SetScript("OnEvent", function(_, event, name, second)
         WoWForeverSuiteCharDB.chatHistory = chatHistory
         WoWForeverSuiteCharDB.talentGuide = talentGuide
         WoWForeverSuiteCharDB.scoring = scoring
+        WoWForeverSuiteCharDB.professionSkills = Suite.ProfessionLeveling:InitializeCharacter(character.professionSkills)
         local trackerCollapsed = character.questTrackerCollapsed
         if Suite.IsReadable(trackerCollapsed) and type(trackerCollapsed) == "boolean" then
             WoWForeverSuiteCharDB.questTrackerCollapsed = trackerCollapsed
@@ -241,6 +243,7 @@ SlashCmdList.WOWFOREVERSUITE = function(message)
     elseif command == "talents" or command == "builds" then Suite.TalentPlanner:Open()
     elseif command == "inventory" then Suite.CharacterBrowser:Open()
     elseif command == "bank" then Suite.OfflineBank:Toggle()
+    elseif command == "bankstatus" then Suite.OfflineBank:Status()
     elseif command == "contacts" or command == "addressbook" then Suite.Mail:OpenBook()
     elseif command == "checklist" then Suite.SupplyChecklist:Open()
     elseif command == "maildeadlines" then Suite.MailExpiry:Open()

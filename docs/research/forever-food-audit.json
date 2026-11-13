@@ -1,0 +1,3495 @@
+{
+  "reviewed": "2026-11-13",
+  "source": "https://www.wowhead.com/forever/items/consumables/food-and-drinks",
+  "listingCount": 317,
+  "supplementalSource": "https://www.wowhead.com/forever/item=260624/pristine-peach#shared-cooldown",
+  "supplementalCount": 31,
+  "notes": [
+    "All 317 listing detail tooltips and 31 additional shared-cooldown item tooltips reviewed in browser.",
+    "Facts are Wowhead observations, not native API/class/subclass verification. Numbers are disclosed totals or percentages; range amounts are midpoints.",
+    "Deployable feasts 238641/238642 and off-hand equipment 273137 are excluded from direct recovery candidate coverage.",
+    "Special/novelty/alcohol/no-use entries do not become recovery supplies from their IDs. No live item data is replaced."
+  ],
+  "items": [
+    {
+      "id": 8932,
+      "url": "https://www.wowhead.com/forever/item=8932",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 250081,
+      "url": "https://www.wowhead.com/forever/item=250081",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 8952,
+      "url": "https://www.wowhead.com/forever/item=8952",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 8948,
+      "url": "https://www.wowhead.com/forever/item=8948",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 8950,
+      "url": "https://www.wowhead.com/forever/item=8950",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 8076,
+      "url": "https://www.wowhead.com/forever/item=8076",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 8953,
+      "url": "https://www.wowhead.com/forever/item=8953",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 21031,
+      "url": "https://www.wowhead.com/forever/item=21031",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 278122,
+      "url": "https://www.wowhead.com/forever/item=278122",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 260628,
+      "url": "https://www.wowhead.com/forever/item=260628",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 12763,
+      "url": "https://www.wowhead.com/forever/item=12763",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 23160,
+      "url": "https://www.wowhead.com/forever/item=23160",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 19225,
+      "url": "https://www.wowhead.com/forever/item=19225",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 260627,
+      "url": "https://www.wowhead.com/forever/item=260627",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 16171,
+      "url": "https://www.wowhead.com/forever/item=16171",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 21033,
+      "url": "https://www.wowhead.com/forever/item=21033",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 11415,
+      "url": "https://www.wowhead.com/forever/item=11415",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 11444,
+      "url": "https://www.wowhead.com/forever/item=11444",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 22324,
+      "url": "https://www.wowhead.com/forever/item=22324",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 2723,
+      "url": "https://www.wowhead.com/forever/item=2723",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 6522,
+      "url": "https://www.wowhead.com/forever/item=6522",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 2894,
+      "url": "https://www.wowhead.com/forever/item=2894",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 3703,
+      "url": "https://www.wowhead.com/forever/item=3703",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 6657,
+      "url": "https://www.wowhead.com/forever/item=6657",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 247824,
+      "url": "https://www.wowhead.com/forever/item=247824",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 281282,
+      "url": "https://www.wowhead.com/forever/item=281282",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 2596,
+      "url": "https://www.wowhead.com/forever/item=2596",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 2686,
+      "url": "https://www.wowhead.com/forever/item=2686",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 4595,
+      "url": "https://www.wowhead.com/forever/item=4595",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 2594,
+      "url": "https://www.wowhead.com/forever/item=2594",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 9260,
+      "url": "https://www.wowhead.com/forever/item=9260",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 20709,
+      "url": "https://www.wowhead.com/forever/item=20709",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 2595,
+      "url": "https://www.wowhead.com/forever/item=2595",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 21151,
+      "url": "https://www.wowhead.com/forever/item=21151",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 9360,
+      "url": "https://www.wowhead.com/forever/item=9360",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 21114,
+      "url": "https://www.wowhead.com/forever/item=21114",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 11846,
+      "url": "https://www.wowhead.com/forever/item=11846",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 5342,
+      "url": "https://www.wowhead.com/forever/item=5342",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 17196,
+      "url": "https://www.wowhead.com/forever/item=17196",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 9361,
+      "url": "https://www.wowhead.com/forever/item=9361",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 12003,
+      "url": "https://www.wowhead.com/forever/item=12003",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 19221,
+      "url": "https://www.wowhead.com/forever/item=19221",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 21721,
+      "url": "https://www.wowhead.com/forever/item=21721",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 260629,
+      "url": "https://www.wowhead.com/forever/item=260629",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 287972,
+      "url": "https://www.wowhead.com/forever/item=287972",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 19222,
+      "url": "https://www.wowhead.com/forever/item=19222",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 260631,
+      "url": "https://www.wowhead.com/forever/item=260631",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 260632,
+      "url": "https://www.wowhead.com/forever/item=260632",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 260633,
+      "url": "https://www.wowhead.com/forever/item=260633",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 287416,
+      "url": "https://www.wowhead.com/forever/item=287416",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 5265,
+      "url": "https://www.wowhead.com/forever/item=5265",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 17403,
+      "url": "https://www.wowhead.com/forever/item=17403",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 18288,
+      "url": "https://www.wowhead.com/forever/item=18288",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 18287,
+      "url": "https://www.wowhead.com/forever/item=18287",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 17402,
+      "url": "https://www.wowhead.com/forever/item=17402",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 251525,
+      "url": "https://www.wowhead.com/forever/item=251525",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 23175,
+      "url": "https://www.wowhead.com/forever/item=23175",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 251524,
+      "url": "https://www.wowhead.com/forever/item=251524",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 274971,
+      "url": "https://www.wowhead.com/forever/item=274971",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 8364,
+      "url": "https://www.wowhead.com/forever/item=8364",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4594,
+      "url": "https://www.wowhead.com/forever/item=4594",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13851,
+      "url": "https://www.wowhead.com/forever/item=13851",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4457,
+      "url": "https://www.wowhead.com/forever/item=4457",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 20074,
+      "url": "https://www.wowhead.com/forever/item=20074",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 250074,
+      "url": "https://www.wowhead.com/forever/item=250074",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 274976,
+      "url": "https://www.wowhead.com/forever/item=274976",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 12216,
+      "url": "https://www.wowhead.com/forever/item=12216",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 3728,
+      "url": "https://www.wowhead.com/forever/item=3728",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 6038,
+      "url": "https://www.wowhead.com/forever/item=6038",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 250073,
+      "url": "https://www.wowhead.com/forever/item=250073",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 250078,
+      "url": "https://www.wowhead.com/forever/item=250078",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 12215,
+      "url": "https://www.wowhead.com/forever/item=12215",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 12238,
+      "url": "https://www.wowhead.com/forever/item=12238",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4537,
+      "url": "https://www.wowhead.com/forever/item=4537",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4605,
+      "url": "https://www.wowhead.com/forever/item=4605",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 2287,
+      "url": "https://www.wowhead.com/forever/item=2287",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 252032,
+      "url": "https://www.wowhead.com/forever/item=252032",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 5526,
+      "url": "https://www.wowhead.com/forever/item=5526",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 414,
+      "url": "https://www.wowhead.com/forever/item=414",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 5066,
+      "url": "https://www.wowhead.com/forever/item=5066",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4541,
+      "url": "https://www.wowhead.com/forever/item=4541",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 17119,
+      "url": "https://www.wowhead.com/forever/item=17119",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 252030,
+      "url": "https://www.wowhead.com/forever/item=252030",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 16167,
+      "url": "https://www.wowhead.com/forever/item=16167",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 1113,
+      "url": "https://www.wowhead.com/forever/item=1113",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 278117,
+      "url": "https://www.wowhead.com/forever/item=278117",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 18633,
+      "url": "https://www.wowhead.com/forever/item=18633",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 252029,
+      "url": "https://www.wowhead.com/forever/item=252029",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 17406,
+      "url": "https://www.wowhead.com/forever/item=17406",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 252026,
+      "url": "https://www.wowhead.com/forever/item=252026",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 19304,
+      "url": "https://www.wowhead.com/forever/item=19304",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4536,
+      "url": "https://www.wowhead.com/forever/item=4536",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 5525,
+      "url": "https://www.wowhead.com/forever/item=5525",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 117,
+      "url": "https://www.wowhead.com/forever/item=117",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 2679,
+      "url": "https://www.wowhead.com/forever/item=2679",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4604,
+      "url": "https://www.wowhead.com/forever/item=4604",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 252022,
+      "url": "https://www.wowhead.com/forever/item=252022",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 17197,
+      "url": "https://www.wowhead.com/forever/item=17197",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 2070,
+      "url": "https://www.wowhead.com/forever/item=2070",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 7097,
+      "url": "https://www.wowhead.com/forever/item=7097",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4540,
+      "url": "https://www.wowhead.com/forever/item=4540",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4656,
+      "url": "https://www.wowhead.com/forever/item=4656",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 252028,
+      "url": "https://www.wowhead.com/forever/item=252028",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 267474,
+      "url": "https://www.wowhead.com/forever/item=267474",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 11584,
+      "url": "https://www.wowhead.com/forever/item=11584",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 17198,
+      "url": "https://www.wowhead.com/forever/item=17198",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 5057,
+      "url": "https://www.wowhead.com/forever/item=5057",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 961,
+      "url": "https://www.wowhead.com/forever/item=961",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 5349,
+      "url": "https://www.wowhead.com/forever/item=5349",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 7807,
+      "url": "https://www.wowhead.com/forever/item=7807",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 7808,
+      "url": "https://www.wowhead.com/forever/item=7808",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 19223,
+      "url": "https://www.wowhead.com/forever/item=19223",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 7806,
+      "url": "https://www.wowhead.com/forever/item=7806",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 252023,
+      "url": "https://www.wowhead.com/forever/item=252023",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 16166,
+      "url": "https://www.wowhead.com/forever/item=16166",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 17344,
+      "url": "https://www.wowhead.com/forever/item=17344",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 278119,
+      "url": "https://www.wowhead.com/forever/item=278119",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 278569,
+      "url": "https://www.wowhead.com/forever/item=278569",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 251917,
+      "url": "https://www.wowhead.com/forever/item=251917",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 206177,
+      "url": "https://www.wowhead.com/forever/item=206177",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4593,
+      "url": "https://www.wowhead.com/forever/item=4593",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 3727,
+      "url": "https://www.wowhead.com/forever/item=3727",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 1017,
+      "url": "https://www.wowhead.com/forever/item=1017",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 12210,
+      "url": "https://www.wowhead.com/forever/item=12210",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 12209,
+      "url": "https://www.wowhead.com/forever/item=12209",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 3665,
+      "url": "https://www.wowhead.com/forever/item=3665",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 3729,
+      "url": "https://www.wowhead.com/forever/item=3729",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 5480,
+      "url": "https://www.wowhead.com/forever/item=5480",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 2685,
+      "url": "https://www.wowhead.com/forever/item=2685",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 3664,
+      "url": "https://www.wowhead.com/forever/item=3664",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 3666,
+      "url": "https://www.wowhead.com/forever/item=3666",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 12214,
+      "url": "https://www.wowhead.com/forever/item=12214",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 7676,
+      "url": "https://www.wowhead.com/forever/item=7676",
+      "required": 5,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 13546,
+      "url": "https://www.wowhead.com/forever/item=13546",
+      "required": 25,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4592,
+      "url": "https://www.wowhead.com/forever/item=4592",
+      "required": 5,
+      "health": 531,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4600,
+      "url": "https://www.wowhead.com/forever/item=4600",
+      "required": 25,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 12217,
+      "url": "https://www.wowhead.com/forever/item=12217",
+      "required": 25,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "special",
+      "seated": false
+    },
+    {
+      "id": 5095,
+      "url": "https://www.wowhead.com/forever/item=5095",
+      "required": 5,
+      "health": 59,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 6316,
+      "url": "https://www.wowhead.com/forever/item=6316",
+      "required": 5,
+      "health": 59,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 263509,
+      "url": "https://www.wowhead.com/forever/item=263509",
+      "required": 5,
+      "health": 59,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 263512,
+      "url": "https://www.wowhead.com/forever/item=263512",
+      "required": 5,
+      "health": 59,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 159,
+      "url": "https://www.wowhead.com/forever/item=159",
+      "required": 0,
+      "health": 0,
+      "mana": 151,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 252031,
+      "url": "https://www.wowhead.com/forever/item=252031",
+      "required": 0,
+      "health": 0,
+      "mana": 151,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 5350,
+      "url": "https://www.wowhead.com/forever/item=5350",
+      "required": 0,
+      "health": 0,
+      "mana": 151,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 6290,
+      "url": "https://www.wowhead.com/forever/item=6290",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 5472,
+      "url": "https://www.wowhead.com/forever/item=5472",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 6890,
+      "url": "https://www.wowhead.com/forever/item=6890",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 2681,
+      "url": "https://www.wowhead.com/forever/item=2681",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 6888,
+      "url": "https://www.wowhead.com/forever/item=6888",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 2680,
+      "url": "https://www.wowhead.com/forever/item=2680",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 5477,
+      "url": "https://www.wowhead.com/forever/item=5477",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 12224,
+      "url": "https://www.wowhead.com/forever/item=12224",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 2888,
+      "url": "https://www.wowhead.com/forever/item=2888",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 2682,
+      "url": "https://www.wowhead.com/forever/item=2682",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 250079,
+      "url": "https://www.wowhead.com/forever/item=250079",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 3663,
+      "url": "https://www.wowhead.com/forever/item=3663",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 5474,
+      "url": "https://www.wowhead.com/forever/item=5474",
+      "required": 0,
+      "health": 59,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13755,
+      "url": "https://www.wowhead.com/forever/item=13755",
+      "required": 35,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13754,
+      "url": "https://www.wowhead.com/forever/item=13754",
+      "required": 35,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13759,
+      "url": "https://www.wowhead.com/forever/item=13759",
+      "required": 35,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13758,
+      "url": "https://www.wowhead.com/forever/item=13758",
+      "required": 35,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4603,
+      "url": "https://www.wowhead.com/forever/item=4603",
+      "required": 35,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13756,
+      "url": "https://www.wowhead.com/forever/item=13756",
+      "required": 35,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13760,
+      "url": "https://www.wowhead.com/forever/item=13760",
+      "required": 35,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 21072,
+      "url": "https://www.wowhead.com/forever/item=21072",
+      "required": 10,
+      "health": 234,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 6299,
+      "url": "https://www.wowhead.com/forever/item=6299",
+      "required": 0,
+      "health": 29,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 278265,
+      "url": "https://www.wowhead.com/forever/item=278265",
+      "required": 0,
+      "health": 29,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 11109,
+      "url": "https://www.wowhead.com/forever/item=11109",
+      "required": 0,
+      "health": 29,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 8683,
+      "url": "https://www.wowhead.com/forever/item=8683",
+      "required": 0,
+      "health": 29,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 6291,
+      "url": "https://www.wowhead.com/forever/item=6291",
+      "required": 0,
+      "health": 29,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 6303,
+      "url": "https://www.wowhead.com/forever/item=6303",
+      "required": 0,
+      "health": 29,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 249865,
+      "url": "https://www.wowhead.com/forever/item=249865",
+      "required": 0,
+      "health": 0,
+      "mana": 151.2,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 249871,
+      "url": "https://www.wowhead.com/forever/item=249871",
+      "required": 0,
+      "health": 0,
+      "mana": 151.2,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 21217,
+      "url": "https://www.wowhead.com/forever/item=21217",
+      "required": 30,
+      "health": 531,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 1179,
+      "url": "https://www.wowhead.com/forever/item=1179",
+      "required": 5,
+      "health": 0,
+      "mana": 437,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 2288,
+      "url": "https://www.wowhead.com/forever/item=2288",
+      "required": 5,
+      "health": 0,
+      "mana": 437,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 252027,
+      "url": "https://www.wowhead.com/forever/item=252027",
+      "required": 5,
+      "health": 0,
+      "mana": 437,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 17404,
+      "url": "https://www.wowhead.com/forever/item=17404",
+      "required": 5,
+      "health": 0,
+      "mana": 437,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 10841,
+      "url": "https://www.wowhead.com/forever/item=10841",
+      "required": 25,
+      "health": 0,
+      "mana": 1344.6,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 249868,
+      "url": "https://www.wowhead.com/forever/item=249868",
+      "required": 25,
+      "health": 0,
+      "mana": 1344.6,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 249874,
+      "url": "https://www.wowhead.com/forever/item=249874",
+      "required": 25,
+      "health": 0,
+      "mana": 1344.6,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 787,
+      "url": "https://www.wowhead.com/forever/item=787",
+      "required": 0,
+      "health": 234,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 6887,
+      "url": "https://www.wowhead.com/forever/item=6887",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 12212,
+      "url": "https://www.wowhead.com/forever/item=12212",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13931,
+      "url": "https://www.wowhead.com/forever/item=13931",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 250065,
+      "url": "https://www.wowhead.com/forever/item=250065",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 18045,
+      "url": "https://www.wowhead.com/forever/item=18045",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13927,
+      "url": "https://www.wowhead.com/forever/item=13927",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13930,
+      "url": "https://www.wowhead.com/forever/item=13930",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 17222,
+      "url": "https://www.wowhead.com/forever/item=17222",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 250076,
+      "url": "https://www.wowhead.com/forever/item=250076",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 286152,
+      "url": "https://www.wowhead.com/forever/item=286152",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 12218,
+      "url": "https://www.wowhead.com/forever/item=12218",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 18254,
+      "url": "https://www.wowhead.com/forever/item=18254",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13935,
+      "url": "https://www.wowhead.com/forever/item=13935",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 250072,
+      "url": "https://www.wowhead.com/forever/item=250072",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13934,
+      "url": "https://www.wowhead.com/forever/item=13934",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13933,
+      "url": "https://www.wowhead.com/forever/item=13933",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 250069,
+      "url": "https://www.wowhead.com/forever/item=250069",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 20452,
+      "url": "https://www.wowhead.com/forever/item=20452",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 250070,
+      "url": "https://www.wowhead.com/forever/item=250070",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 250068,
+      "url": "https://www.wowhead.com/forever/item=250068",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 250071,
+      "url": "https://www.wowhead.com/forever/item=250071",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 250067,
+      "url": "https://www.wowhead.com/forever/item=250067",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 250066,
+      "url": "https://www.wowhead.com/forever/item=250066",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 250075,
+      "url": "https://www.wowhead.com/forever/item=250075",
+      "required": 45,
+      "health": 2065,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 1205,
+      "url": "https://www.wowhead.com/forever/item=1205",
+      "required": 15,
+      "health": 0,
+      "mana": 835,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 9451,
+      "url": "https://www.wowhead.com/forever/item=9451",
+      "required": 15,
+      "health": 0,
+      "mana": 835,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 2136,
+      "url": "https://www.wowhead.com/forever/item=2136",
+      "required": 15,
+      "health": 0,
+      "mana": 835,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 19299,
+      "url": "https://www.wowhead.com/forever/item=19299",
+      "required": 15,
+      "health": 0,
+      "mana": 835,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 1708,
+      "url": "https://www.wowhead.com/forever/item=1708",
+      "required": 25,
+      "health": 0,
+      "mana": 1345,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4791,
+      "url": "https://www.wowhead.com/forever/item=4791",
+      "required": 25,
+      "health": 0,
+      "mana": 1345,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 3772,
+      "url": "https://www.wowhead.com/forever/item=3772",
+      "required": 25,
+      "health": 0,
+      "mana": 1345,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 5527,
+      "url": "https://www.wowhead.com/forever/item=5527",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 3770,
+      "url": "https://www.wowhead.com/forever/item=3770",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 5478,
+      "url": "https://www.wowhead.com/forever/item=5478",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4606,
+      "url": "https://www.wowhead.com/forever/item=4606",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 248613,
+      "url": "https://www.wowhead.com/forever/item=248613",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4538,
+      "url": "https://www.wowhead.com/forever/item=4538",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4542,
+      "url": "https://www.wowhead.com/forever/item=4542",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 422,
+      "url": "https://www.wowhead.com/forever/item=422",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 7228,
+      "url": "https://www.wowhead.com/forever/item=7228",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 16170,
+      "url": "https://www.wowhead.com/forever/item=16170",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 1114,
+      "url": "https://www.wowhead.com/forever/item=1114",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 19305,
+      "url": "https://www.wowhead.com/forever/item=19305",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 278121,
+      "url": "https://www.wowhead.com/forever/item=278121",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 5845,
+      "url": "https://www.wowhead.com/forever/item=5845",
+      "required": 15,
+      "health": 531,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 249867,
+      "url": "https://www.wowhead.com/forever/item=249867",
+      "required": 15,
+      "health": 0,
+      "mana": 835.2,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 249873,
+      "url": "https://www.wowhead.com/forever/item=249873",
+      "required": 15,
+      "health": 0,
+      "mana": 835.2,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 2684,
+      "url": "https://www.wowhead.com/forever/item=2684",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 733,
+      "url": "https://www.wowhead.com/forever/item=733",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 2683,
+      "url": "https://www.wowhead.com/forever/item=2683",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 2687,
+      "url": "https://www.wowhead.com/forever/item=2687",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 724,
+      "url": "https://www.wowhead.com/forever/item=724",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 3726,
+      "url": "https://www.wowhead.com/forever/item=3726",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 3220,
+      "url": "https://www.wowhead.com/forever/item=3220",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 12213,
+      "url": "https://www.wowhead.com/forever/item=12213",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 1082,
+      "url": "https://www.wowhead.com/forever/item=1082",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 250077,
+      "url": "https://www.wowhead.com/forever/item=250077",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 5479,
+      "url": "https://www.wowhead.com/forever/item=5479",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 3662,
+      "url": "https://www.wowhead.com/forever/item=3662",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 5476,
+      "url": "https://www.wowhead.com/forever/item=5476",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 250080,
+      "url": "https://www.wowhead.com/forever/item=250080",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 268912,
+      "url": "https://www.wowhead.com/forever/item=268912",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 268913,
+      "url": "https://www.wowhead.com/forever/item=268913",
+      "required": 5,
+      "health": 234,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13893,
+      "url": "https://www.wowhead.com/forever/item=13893",
+      "required": 45,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 249796,
+      "url": "https://www.wowhead.com/forever/item=249796",
+      "required": 45,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 18255,
+      "url": "https://www.wowhead.com/forever/item=18255",
+      "required": 45,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13888,
+      "url": "https://www.wowhead.com/forever/item=13888",
+      "required": 45,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 8959,
+      "url": "https://www.wowhead.com/forever/item=8959",
+      "required": 45,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13889,
+      "url": "https://www.wowhead.com/forever/item=13889",
+      "required": 45,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 249866,
+      "url": "https://www.wowhead.com/forever/item=249866",
+      "required": 5,
+      "health": 0,
+      "mana": 436.8,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 249872,
+      "url": "https://www.wowhead.com/forever/item=249872",
+      "required": 5,
+      "health": 0,
+      "mana": 436.8,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 249870,
+      "url": "https://www.wowhead.com/forever/item=249870",
+      "required": 45,
+      "health": 0,
+      "mana": 2821,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 249876,
+      "url": "https://www.wowhead.com/forever/item=249876",
+      "required": 45,
+      "health": 0,
+      "mana": 2821,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13932,
+      "url": "https://www.wowhead.com/forever/item=13932",
+      "required": 35,
+      "health": 2065,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13928,
+      "url": "https://www.wowhead.com/forever/item=13928",
+      "required": 35,
+      "health": 2065,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13929,
+      "url": "https://www.wowhead.com/forever/item=13929",
+      "required": 35,
+      "health": 2065,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 249869,
+      "url": "https://www.wowhead.com/forever/item=249869",
+      "required": 35,
+      "health": 0,
+      "mana": 1915,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 249875,
+      "url": "https://www.wowhead.com/forever/item=249875",
+      "required": 35,
+      "health": 0,
+      "mana": 1915,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 1645,
+      "url": "https://www.wowhead.com/forever/item=1645",
+      "required": 35,
+      "health": 0,
+      "mana": 1915,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 8077,
+      "url": "https://www.wowhead.com/forever/item=8077",
+      "required": 35,
+      "health": 0,
+      "mana": 1915,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 19300,
+      "url": "https://www.wowhead.com/forever/item=19300",
+      "required": 35,
+      "health": 0,
+      "mana": 1915,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 1326,
+      "url": "https://www.wowhead.com/forever/item=1326",
+      "required": 0,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 267341,
+      "url": "https://www.wowhead.com/forever/item=267341",
+      "required": 55,
+      "health": 2065,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 8957,
+      "url": "https://www.wowhead.com/forever/item=8957",
+      "required": 45,
+      "health": 1338,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 238638,
+      "url": "https://www.wowhead.com/forever/item=238638",
+      "required": 55,
+      "health": 2452,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 238642,
+      "url": "https://www.wowhead.com/forever/item=238642",
+      "required": 55,
+      "health": 2452,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 238641,
+      "url": "https://www.wowhead.com/forever/item=238641",
+      "required": 55,
+      "health": 2452,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 238637,
+      "url": "https://www.wowhead.com/forever/item=238637",
+      "required": 55,
+      "health": 2452,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 238639,
+      "url": "https://www.wowhead.com/forever/item=238639",
+      "required": 55,
+      "health": 2452,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 16971,
+      "url": "https://www.wowhead.com/forever/item=16971",
+      "required": 40,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 8766,
+      "url": "https://www.wowhead.com/forever/item=8766",
+      "required": 45,
+      "health": 0,
+      "mana": 2821,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 8078,
+      "url": "https://www.wowhead.com/forever/item=8078",
+      "required": 45,
+      "health": 0,
+      "mana": 2821,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 285359,
+      "url": "https://www.wowhead.com/forever/item=285359",
+      "required": 45,
+      "health": 0,
+      "mana": 2821,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 5473,
+      "url": "https://www.wowhead.com/forever/item=5473",
+      "required": 0,
+      "health": 283,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "heal",
+      "seated": false
+    },
+    {
+      "id": 3448,
+      "url": "https://www.wowhead.com/forever/item=3448",
+      "required": 0,
+      "health": 283,
+      "mana": 283,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 3771,
+      "url": "https://www.wowhead.com/forever/item=3771",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4539,
+      "url": "https://www.wowhead.com/forever/item=4539",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4544,
+      "url": "https://www.wowhead.com/forever/item=4544",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 1707,
+      "url": "https://www.wowhead.com/forever/item=1707",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4607,
+      "url": "https://www.wowhead.com/forever/item=4607",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 1487,
+      "url": "https://www.wowhead.com/forever/item=1487",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 8543,
+      "url": "https://www.wowhead.com/forever/item=8543",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 16169,
+      "url": "https://www.wowhead.com/forever/item=16169",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 18632,
+      "url": "https://www.wowhead.com/forever/item=18632",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 19224,
+      "url": "https://www.wowhead.com/forever/item=19224",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 278120,
+      "url": "https://www.wowhead.com/forever/item=278120",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 260623,
+      "url": "https://www.wowhead.com/forever/item=260623",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 278118,
+      "url": "https://www.wowhead.com/forever/item=278118",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 17407,
+      "url": "https://www.wowhead.com/forever/item=17407",
+      "required": 25,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 16766,
+      "url": "https://www.wowhead.com/forever/item=16766",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4599,
+      "url": "https://www.wowhead.com/forever/item=4599",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 3927,
+      "url": "https://www.wowhead.com/forever/item=3927",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4602,
+      "url": "https://www.wowhead.com/forever/item=4602",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4601,
+      "url": "https://www.wowhead.com/forever/item=4601",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 21552,
+      "url": "https://www.wowhead.com/forever/item=21552",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 8075,
+      "url": "https://www.wowhead.com/forever/item=8075",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 21030,
+      "url": "https://www.wowhead.com/forever/item=21030",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 4608,
+      "url": "https://www.wowhead.com/forever/item=4608",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 17408,
+      "url": "https://www.wowhead.com/forever/item=17408",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 260624,
+      "url": "https://www.wowhead.com/forever/item=260624",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 18635,
+      "url": "https://www.wowhead.com/forever/item=18635",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 260625,
+      "url": "https://www.wowhead.com/forever/item=260625",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 9681,
+      "url": "https://www.wowhead.com/forever/item=9681",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 16168,
+      "url": "https://www.wowhead.com/forever/item=16168",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 19306,
+      "url": "https://www.wowhead.com/forever/item=19306",
+      "required": 35,
+      "health": 1338,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 21023,
+      "url": "https://www.wowhead.com/forever/item=21023",
+      "required": 45,
+      "health": 2452,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 8079,
+      "url": "https://www.wowhead.com/forever/item=8079",
+      "required": 55,
+      "health": 0,
+      "mana": 4038,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 18300,
+      "url": "https://www.wowhead.com/forever/item=18300",
+      "required": 55,
+      "health": 0,
+      "mana": 4038,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 1401,
+      "url": "https://www.wowhead.com/forever/item=1401",
+      "required": 4,
+      "health": 30,
+      "mana": 58,
+      "xp": 0,
+      "syntax": "heal",
+      "seated": true
+    },
+    {
+      "id": 13724,
+      "url": "https://www.wowhead.com/forever/item=13724",
+      "required": 45,
+      "health": 2065,
+      "mana": 4240,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 1072,
+      "url": "https://www.wowhead.com/forever/item=1072",
+      "required": 0,
+      "health": 0,
+      "mana": 320,
+      "xp": 0,
+      "syntax": "range",
+      "seated": false
+    },
+    {
+      "id": 262433,
+      "url": "https://www.wowhead.com/forever/item=262433",
+      "required": 0,
+      "health": 4240,
+      "mana": 4240,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 287974,
+      "url": "https://www.wowhead.com/forever/item=287974",
+      "required": 0,
+      "health": 2065,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 6807,
+      "url": "https://www.wowhead.com/forever/item=6807",
+      "required": 0,
+      "health": 841,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 287973,
+      "url": "https://www.wowhead.com/forever/item=287973",
+      "required": 0,
+      "health": 1338,
+      "mana": 0,
+      "xp": 5,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 231778,
+      "url": "https://www.wowhead.com/forever/item=231778",
+      "required": 55,
+      "health": 0,
+      "mana": 4904,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 11951,
+      "url": "https://www.wowhead.com/forever/item=11951",
+      "required": 45,
+      "health": 800,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "range",
+      "seated": false
+    },
+    {
+      "id": 19301,
+      "url": "https://www.wowhead.com/forever/item=19301",
+      "required": 51,
+      "health": 4240,
+      "mana": 4240,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 287964,
+      "url": "https://www.wowhead.com/forever/item=287964",
+      "required": 0,
+      "health": 0,
+      "mana": 2821,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 13810,
+      "url": "https://www.wowhead.com/forever/item=13810",
+      "required": 45,
+      "health": 1859,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 11950,
+      "url": "https://www.wowhead.com/forever/item=11950",
+      "required": 45,
+      "health": 1859,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 21236,
+      "url": "https://www.wowhead.com/forever/item=21236",
+      "required": 0,
+      "health": 2,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "percent",
+      "seated": true
+    },
+    {
+      "id": 20516,
+      "url": "https://www.wowhead.com/forever/item=20516",
+      "required": 0,
+      "health": 2,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "percent",
+      "seated": true
+    },
+    {
+      "id": 21254,
+      "url": "https://www.wowhead.com/forever/item=21254",
+      "required": 0,
+      "health": 2,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "percent",
+      "seated": true
+    },
+    {
+      "id": 19996,
+      "url": "https://www.wowhead.com/forever/item=19996",
+      "required": 0,
+      "health": 2,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "percent",
+      "seated": true
+    },
+    {
+      "id": 19696,
+      "url": "https://www.wowhead.com/forever/item=19696",
+      "required": 0,
+      "health": 2,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "percent",
+      "seated": true
+    },
+    {
+      "id": 19995,
+      "url": "https://www.wowhead.com/forever/item=19995",
+      "required": 0,
+      "health": 2,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "percent",
+      "seated": true
+    },
+    {
+      "id": 19994,
+      "url": "https://www.wowhead.com/forever/item=19994",
+      "required": 0,
+      "health": 2,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "percent",
+      "seated": true
+    },
+    {
+      "id": 21235,
+      "url": "https://www.wowhead.com/forever/item=21235",
+      "required": 0,
+      "health": 2,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "percent",
+      "seated": true
+    },
+    {
+      "id": 21240,
+      "url": "https://www.wowhead.com/forever/item=21240",
+      "required": 0,
+      "health": 2,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "percent",
+      "seated": true
+    },
+    {
+      "id": 22895,
+      "url": "https://www.wowhead.com/forever/item=22895",
+      "required": 55,
+      "health": 3058,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 23172,
+      "url": "https://www.wowhead.com/forever/item=23172",
+      "required": 0,
+      "health": 4,
+      "mana": 4,
+      "xp": 0,
+      "syntax": "percent",
+      "seated": true
+    },
+    {
+      "id": 21215,
+      "url": "https://www.wowhead.com/forever/item=21215",
+      "required": 40,
+      "health": 5,
+      "mana": 5,
+      "xp": 0,
+      "syntax": "percent",
+      "seated": true
+    },
+    {
+      "id": 287963,
+      "url": "https://www.wowhead.com/forever/item=287963",
+      "required": 0,
+      "health": 2065,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 8243,
+      "url": "https://www.wowhead.com/forever/item=8243",
+      "required": 0,
+      "health": 0,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "noUse",
+      "seated": false
+    },
+    {
+      "id": 1119,
+      "url": "https://www.wowhead.com/forever/item=1119",
+      "required": 0,
+      "health": 531,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 20031,
+      "url": "https://www.wowhead.com/forever/item=20031",
+      "required": 55,
+      "health": 2452,
+      "mana": 4240,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 282018,
+      "url": "https://www.wowhead.com/forever/item=282018",
+      "required": 0,
+      "health": 100,
+      "mana": 100,
+      "xp": 0,
+      "syntax": "directPercent",
+      "seated": true
+    },
+    {
+      "id": 273137,
+      "url": "https://www.wowhead.com/forever/item=273137",
+      "required": 17,
+      "health": 0,
+      "mana": 835,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 6458,
+      "url": "https://www.wowhead.com/forever/item=6458",
+      "required": 5,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 6317,
+      "url": "https://www.wowhead.com/forever/item=6317",
+      "required": 5,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 6289,
+      "url": "https://www.wowhead.com/forever/item=6289",
+      "required": 5,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 6361,
+      "url": "https://www.wowhead.com/forever/item=6361",
+      "required": 5,
+      "health": 59,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 6308,
+      "url": "https://www.wowhead.com/forever/item=6308",
+      "required": 15,
+      "health": 234,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 8365,
+      "url": "https://www.wowhead.com/forever/item=8365",
+      "required": 25,
+      "health": 531,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    },
+    {
+      "id": 6362,
+      "url": "https://www.wowhead.com/forever/item=6362",
+      "required": 25,
+      "health": 531,
+      "mana": 0,
+      "xp": 0,
+      "syntax": "restore",
+      "seated": true
+    }
+  ]
+}

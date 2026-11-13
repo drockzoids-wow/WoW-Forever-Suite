@@ -2,6 +2,12 @@ local _, Suite = ...
 local Items = { requested = {} }
 Suite.MacroItems = Items
 
+local foodCandidates = {}
+for _, id in ipairs(Suite.MacroFoodCandidates) do foodCandidates[id] = true end
+-- These tooltips describe recovery, but their use action deploys a feast or
+-- activates equipped gear instead of directly consuming carried food/drink.
+local recoveryExclusions = { [238641] = true, [238642] = true, [273137] = true }
+
 local function Number(value)
     return Suite.IsReadable(value) and type(value) == "number" and value == value and value >= 0 and value < math.huge
 end
@@ -69,23 +75,42 @@ end
 local function Restoration(description, resource)
     local result = 0
     local function Value(value) return tonumber((value:gsub(",", ""))) or 0 end
-    for low, high in description:gmatch("restores?%s+([%d,]+)%s+to%s+([%d,]+)%s+" .. resource) do
+    for low, high in description:gmatch("restores?%s+([%d,%.]+)%s+to%s+([%d,%.]+)%s+" .. resource) do
         result = math.max(result, (Value(low) + Value(high)) / 2)
     end
-    for amount in description:gmatch("restores?%s+([%d,]+)%s+" .. resource) do result = math.max(result, Value(amount)) end
-    for amount in description:gmatch("and%s+([%d,]+)%s+" .. resource) do result = math.max(result, Value(amount)) end
+    for amount in description:gmatch("restores?%s+([%d,%.]+)%s+" .. resource) do result = math.max(result, Value(amount)) end
+    for amount in description:gmatch("and%s+([%d,%.]+)%s+" .. resource) do result = math.max(result, Value(amount)) end
     -- A shared amount can name this resource second (for example Tessa's
     -- "720 to 880 mana and health"). Do not borrow separately stated amounts.
     local other = resource == "health" and "mana" or "health"
     local shared = other .. "%s+and%s+" .. resource .. "%f[%A]"
-    for low, high in description:gmatch("restores?%s+([%d,]+)%s+to%s+([%d,]+)%s+" .. shared) do
+    for low, high in description:gmatch("restores?%s+([%d,%.]+)%s+to%s+([%d,%.]+)%s+" .. shared) do
         result = math.max(result, (Value(low) + Value(high)) / 2)
     end
-    for amount in description:gmatch("restores?%s+([%d,]+)%s+" .. shared) do
+    for amount in description:gmatch("restores?%s+([%d,%.]+)%s+" .. shared) do
         result = math.max(result, Value(amount))
+    end
+    -- Scorpid Surprise uses "Heals ... damage" rather than "Restores ... health".
+    if resource == "health" then
+        for amount in description:gmatch("heals?%s+([%d,%.]+)%s+damage") do
+            result = math.max(result, Value(amount))
+        end
     end
     -- Percentage items are classified, but never converted using restricted player health/power.
     return result
+end
+
+local function PercentRestoration(description, resource)
+    -- Normalize only public tooltip wording; never read maximum player resources.
+    local text = description:gsub("maximum ", ""):gsub("max ", ""):gsub("total ", ""):gsub("of your ", "")
+    local other = resource == "health" and "mana" or "health"
+    for _, prefix in ipairs({ "restores?%s+", "and%s+" }) do
+        for amount, resources in text:gmatch(prefix .. "([%d%.]+)%%%s+([%a%s]+)") do
+            if (tonumber(amount) or 0) > 0 and (resources:match("^" .. resource .. "%f[%A]")
+                or resources:match("^" .. other .. "%s+and%s+" .. resource .. "%f[%A]")) then return true end
+        end
+    end
+    return false
 end
 
 local function CookingReagent(class, subclass)
@@ -121,16 +146,16 @@ function Items:Read(id, bag, slot, level, english)
         local lower = name:lower()
         item.conjured = lower:find("conjured", 1, true) ~= nil
         item.health, item.mana = Restoration(description, "health"), Restoration(description, "mana")
-        local restoresHealth = item.health > 0 or description:find("%% of your health") ~= nil
-        local restoresMana = item.mana > 0 or description:find("%% of your mana") ~= nil
-            or description:find("%% of your health and mana") ~= nil
+        local restoresHealth = item.health > 0 or PercentRestoration(description, "health")
+        local restoresMana = item.mana > 0 or PercentRestoration(description, "mana")
         -- Forever's edible raw fish can be Trade Goods / Cooking, rather than
         -- Consumable / Food & Drink. Require the native eating instruction too.
         local edibleReagent = CookingReagent(class, subclass)
             and description:find("must remain seated while eating", 1, true) ~= nil
-        if class == 0 and (subclass == 5 or item.eventFood) or edibleReagent then
-            local buff = description:find("well fed", 1, true) or description:find("increases", 1, true)
-                or description:find("gain .- for ")
+        local listedRecovery = foodCandidates[id] and (class == 0 or class == 7 or class == 12)
+            and (description:find("must remain seated while eating", 1, true)
+            or description:find("must remain seated while drinking", 1, true))
+        if not recoveryExclusions[id] and (class == 0 and (subclass == 5 or item.eventFood) or edibleReagent or listedRecovery) then
             item.flags.food = restoresHealth
             -- Read the actual Forever bonus, not the food's name, source, or
             -- generic Well Fed text. This covers newly discovered foods too.
@@ -138,14 +163,16 @@ function Items:Read(id, bag, slot, level, english)
                 or description:match("experience gained from kills increased by ([%d%.]+)%%")
             item.experienceBonus = restoresHealth and tonumber(bonus) or 0
             if not Number(item.experienceBonus) then item.experienceBonus = 0 end
-            if not buff and not edibleReagent then item.flags.water = restoresMana end
+            -- Forever teas/smoothies restore mana and grant Well Fed/XP buffs.
+            -- Buff wording must not exclude an otherwise valid drink.
+            if not edibleReagent or listedRecovery then item.flags.water = restoresMana end
         elseif class == 0 and subclass == 1 then
             local special = lower:find("sleep", 1, true) or lower:find("wildvine", 1, true)
                 or description:find("asleep", 1, true)
             if not special then item.flags.healing, item.flags.mana = restoresHealth, restoresMana end
         end
     elseif english and (class == 0 and (subclass == 5 or subclass == 1 or item.eventFood)
-        or CookingReagent(class, subclass)) then
+        or CookingReagent(class, subclass) or foodCandidates[id]) then
         return item, true, class, subclass -- Keep actions that depend on this incomplete tooltip.
     end
     return item
@@ -170,6 +197,7 @@ end
 
 local function Pending(snapshot, id, class, subclass)
     snapshot.pendingByID[id] = true
+    if foodCandidates[id] then snapshot.pending.food, snapshot.pending.water = true, true end
     -- A readable ID identifies ordinary stones/Healthstones without guessing from names.
     if stones[id] then snapshot.pending[stones[id][1]] = true end
     if healthstones[id] then snapshot.pending.healthstone = true end
@@ -336,7 +364,8 @@ function Items:Choices(snapshot, recipe)
     for _, item in ipairs(snapshot.list) do
         local recovery = recipe == "food" or recipe == "water"
         local weapon = recipe == "mainhand" or recipe == "offhand"
-        if recipe == "item" or recovery and (item.class == 0 and (item.subclass == 5 or item.eventFood)
+        if recipe == "item" or recovery and not recoveryExclusions[item.id] and (item.class == 0 and (item.subclass == 5 or item.eventFood)
+                or foodCandidates[item.id] and item.flags[recipe]
                 or recipe == "food" and CookingReagent(item.class, item.subclass) and item.flags.food)
             or recipe == "bandage" and item.flags.bandage
             or weapon and self:IsWeaponCoating(item) then

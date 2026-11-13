@@ -1,5 +1,39 @@
 # Forever Suite feature plan
 
+## Authorized 1.0.15 release — November 13, 2026
+
+User authorizes preparing and publishing 1.0.15. Include expanded food/drink macro detection, bounded delayed-bank recovery and diagnostics, independent profession-guide sections and character skill snapshots, default-off account-money bag tooltips, and the Disenchant hover glow. Core and both matching TOCs advance to 1.0.15. Offline checks pass 92 Lua 5.1 files, 46,294 substitute assertions, all 11 separate gear-baseline tests and git diff --check. Native behavior remains limited to the recorded user confirmations; subsequent automatic food refresh, new UI/input and combat/taint smoke tests remain pending. The existing UseContainerItem taint investigation remains unresolved. Package verification and publication receipts are recorded in [release-1.0.15.md](release-1.0.15.md). No game deployment, junction or real SavedVariables edits.
+
+## Stale food macro ownership diagnosis — November 13, 2026
+
+User confirms the one-time explicit Update restored selection of carried food. Mark this ownership-pause recovery passed; later automatic restocking/depletion, consumption and recurrence remain unverified.
+
+User's native status confirms food checks run but FS Food writes are paused by a text/ownership mismatch. Recover through the existing explicit Update macro action for FS Food only; preserve other paused/custom macros and the external-edit safeguard. Last disk copies disagree on food 4457 versus 4599. The cause of that mismatch and native resumption after Update remain unverified; expanding food detection does not resolve this ownership pause.
+
+## Complete food macro coverage review — November 13, 2026
+
+Review all 317 current Wowhead Forever Food & Drinks entries plus 31 related items. Register 345 direct-use food/drink candidates, including new Forever IDs, edible raw fish and quest food; retain runtime discovery for unlisted ordinary foods. Require actual native usability and tooltip-confirmed restoration, with seated-use proof for category exceptions. Exclude deploying feasts and equipped gear from automatic eating. Fix decimal restoration, restorative Well Fed drinks, heals-damage food and direct percentages. Preserve explicit preferences, XP-food priority, current-choice retention, data waits and macro ownership/combat protections. [Full audit](research/forever-food-audit.json); native retest pending, including the screenshot's suspected pumpkin/truffle/cheese. Those three already had supported restoration wording, so their live omission is not diagnosed by this review.
+
+## Account money in bags — November 12, 2026
+
+Add default-off Bags & bank → Account money on bag hover. Hovering native bag gold/silver/copper shows character balances and a recorded total with native coin icons. Reuse Mail's server-type resolver and require the current region and a known matching type; PvE/PvP and unknown types never combine. Record the current character on enable/login/money changes/logout independently of the dashboard and inventory options, using existing character profile snapshots. Other characters remain last observations and need a login with recording enabled. Preserve native coin clicks and bag layout. Native smoke pending.
+
+## Separate profession guide sections and saved skills — November 12, 2026
+
+Give Required materials and Leveling steps distinct filled headers with independent, saved collapse controls. Each remains accessible when the other is minimized; step accordions retain their existing behavior. Store validated profession ranks/maxima per character outside settings profiles. Read known professions from the native book roster and update the character's own open profession through existing coalesced events. Browsing another guide uses its last recorded rank for materials, completion and current-step expansion, labeled Saved skill; missing snapshots keep the full reference. Native profession selection and crafting remain unchanged. In-game rendering/persistence/taint verification pending.
+
+## Delayed bank snapshot recovery — November 12, 2026
+
+Keep complete saved-bank data while transient lists, capacity or item records load. Request all missing readable item metadata in the same scan and allow four bounded half-second retries after a bank event; stop on success, close or disable. No permanent polling. Add `/wfs bankstatus` for explicit support diagnostics. Permit purchased zero-slot bags only when native equipment lookup proves they are unequipped, for both saved views and aggregate counts. The user's spontaneous refresh is observed; its initiating failure remains unconfirmed. Live dumps rule out an unequipped bag and malformed first-item link for this report. Defaults and saved choices stay unchanged; native retest pending.
+
+## Disenchant hover glow — November 12, 2026
+
+Modifier Disenchant now adds a soft glow around the hovered eligible bag item while only the selected modifier is held. The glow follows the existing shortcut's eligibility, theme and secure visibility rules. Preserve deliberate modifier-left-click and native spell checks. Native visual/input/taint smoke remains pending.
+
+## Bag-use taint follow-up — November 12, 2026
+
+Still unresolved: saved BugGrabber confirms a new native UseContainerItem block at 14:03:48 America/Chicago, with five cumulative occurrences across sessions. The newer local taint.log covers only November 11 09:55–10:10 and contains no bag-use block. Current in-memory logging state requires an in-game CVar query or a fresh flushed capture. No speculative runtime change; see forever-development.md and testing.md.
+
 ## Final publication review — November 12, 2026
 
 Published v1.0.14 from 718884ee166208d1c76c69b24c9332a68e681e95: main and release CI pass, CurseForge accepts the upload, and GitHub assets are verified. [Receipts](release-1.0.14.md#publication-verified). Native smoke tests remain pending.

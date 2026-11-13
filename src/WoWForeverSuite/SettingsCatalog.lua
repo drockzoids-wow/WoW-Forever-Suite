@@ -129,6 +129,7 @@ function Catalog:Configure(pages)
         { key = "reverseCombinedBags", label = "Reverse combined bag order", help = "Show equipped bags first and the backpack last in the combined bag.\nKeeps each bag's slot order. Changing this choice waits until combat ends." },
         { key = "reverseBagSlots", label = "Reverse slots within each bag", help = "Display each bag's first slot at its bottom-right end. Items stay in the same bag.\nCombine with reversed bag order to put the backpack's first slot at the bottom right." },
         { key = "bankDepositReagents", label = "Deposit Reagents button", help = "Add a button beside Purchase at your personal bank.\nClick to move carried crafting reagents that fit. Stops on combat or closing the bank." },
+        { key = "bagMoney", label = "Account money on bag hover", help = "Hover over bag gold, silver or copper for character balances and a total.\nOnly your current server type and region are included. Log into each alt with this enabled to record its balance." },
     }, note = "Log into alts and visit their banks to update records. Saved counts can be stale; saved views cannot move items." }
     pages.bags.rows[3].label = "Inventory in tooltips"
     pages.bags.rows[3].help = "Show recorded bag and bank counts in item tooltips.\nUnknown locations are omitted."
@@ -137,7 +138,7 @@ function Catalog:Configure(pages)
     old[5].help = "Assign a shortcut in Blizzard's Keybindings settings."
     -- Retain original setting keys and row identities; no saved choice is migrated.
     -- Feature pages use inline sections rather than another layer of tabs.
-    self.sections.bags = { [1] = "Bag tools", [2] = "Recorded inventory", [4] = "Bank snapshots", [7] = "Bag space & organization", [12] = "Bank deposits" }
+    self.sections.bags = { [1] = "Bag tools", [2] = "Recorded inventory", [4] = "Bank snapshots", [7] = "Bag space & organization", [12] = "Bank deposits", [13] = "Account money" }
     self.sections.items = { [1] = "Item levels", [4] = "Upgrade comparisons", [8] = "Equipment sets" }
     self.sections.actionbars = { [1] = "Action buttons", [3] = "Proc popups" }
     pages.buffs.rows[#pages.buffs.rows + 1] = { key = "missingBuffSmart", label = "Class-aware buff targets",

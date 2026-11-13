@@ -133,6 +133,14 @@ function Helper:Build()
     if type(button.SetPassThroughButtons) == "function" then button:SetPassThroughButtons("RightButton", "MiddleButton", "Button4", "Button5") end
     button:SetFrameStrata("TOOLTIP"); button:SetFrameLevel(600)
     button:SetBackdrop({ edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 2 }); Suite.Theme:Backdrop(button, 1)
+    -- A passive texture shares the validated action's visibility, including the
+    -- secure modifier/combat driver. It adds no input area or update loop.
+    local glow = button:CreateTexture(nil, "OVERLAY")
+    glow:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+    glow:SetBlendMode("ADD")
+    glow:SetPoint("TOPLEFT", button, "TOPLEFT", -14, 14)
+    glow:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 14, -14)
+    Suite.Theme:Vertex(glow, 1)
     self.controller:SetFrameRef("button", button)
     self.controller:SetAttribute("_onstate-activation", [[
         if newstate == "blocked" then

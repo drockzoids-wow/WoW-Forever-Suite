@@ -95,6 +95,8 @@ local function Frame(name)
         SetBackdropColor = function(self, r, g, b, a) self.backdropAlpha = a end,
         SetBackdropBorderColor = function(self, ...) self.borderColor = { ... } end, SetColorTexture = function() end,
         SetTexture = function(self, texture) self.texture = texture end,
+        SetBlendMode = function(self, mode) self.blendMode = mode end,
+        SetVertexColor = function(self, ...) self.vertexColor = { ... } end,
         SetHighlightTexture = function(self, texture) self.highlightTexture = texture end,
         SetPushedTexture = function(self, texture) self.pushedTexture = texture end,
         SetThickness = function(self, thickness) self.thickness = thickness end,
@@ -1756,6 +1758,7 @@ assert(loadfile("tests/missing_buffs_spec.lua"))(Suite, equal, Frame, function(v
 assert(loadfile("tests/combat_buffs_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/inventorysearch_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/dashboard_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/bag_money_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/inventory_browser_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/scrollbars_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/gui_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)

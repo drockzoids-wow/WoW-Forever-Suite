@@ -1,5 +1,14 @@
 # Forever Suite
 
+## 1.0.15 — November 13, 2026
+
+- Expand food and drink macro detection with 345 reviewed direct-use candidates, including Forever consumables, edible raw fish and quest food. Recognize decimal restoration, restorative Well Fed drinks, heals-damage wording and direct health/mana percentages. Preserve native usability checks, explicit choices, XP-food priority and macro ownership safeguards; exclude deployable feasts and equipped gear from recovery macros.
+- Improve bank snapshot recovery when container or item data loads late. Request missing item records together, retry briefly without permanent polling, and keep the last complete snapshot until new data is ready. Recognize unequipped purchased bank bags and add /wfs bankstatus diagnostics.
+- Give profession guides separate, independently collapsible Required materials and Leveling steps sections. Save observed profession skill levels per character and use each guide's own last recorded skill when browsing other professions.
+- Add optional Account money on bag hover under Bags & bank. Show character balances and a recorded total over native bag coins, separated by region and server type. Other characters' balances require a login with recording enabled; this feature starts off.
+- Add a soft hover glow to the existing modifier-click Disenchant shortcut while preserving its eligibility and secure visibility rules.
+- Offline checks pass. The user confirmed recovery from an FS Food ownership pause through one explicit Update; subsequent automatic refresh, native appearance/input and combat/taint checks remain pending. The existing bag-use taint investigation remains open.
+
 ## 1.0.14 — November 12, 2026
 
 - Add an optional persistent full-build talent comparison. Remember the selected leveling or personal build per character and show its markers when native Talents opens, including with Builds closed. Leveling references use the full level-60 plan; native point spending stays manual.
