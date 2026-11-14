@@ -1,5 +1,43 @@
 # WoW Forever addon development reference
 
+## Full review and authorized 1.0.17 release — November 14, 2026
+
+The user requests an addon-wide review and authorizes CurseForge publication, superseding the earlier no-release notes for the included changes. Review covers all 92 runtime Lua files through Lua 5.1 parsing, pinned build-70862 API/event/signature/global-write/duplicate-key scans, package/media/load-order inventory and the complete behavior suite, with focused manual inspection of every pending runtime diff and action/lifecycle boundaries. The 78 Lua test files are reachable from the entry point; 101 addon package inputs are accounted for. No detected duplicate literal keys, unknown directly registered literal events, too-short documented calls, unused local/function candidates or unreachable statements remain. Two existing capability-guarded MerchantKnown pet-journal fallbacks remain undocumented in the pinned source.
+
+Fix two review findings: SetUserWaypoint returns a success boolean, so a non-throwing false or unreadable result must not attach the previous native pin link; retained legacy mount execution must reuse one status key rather than accumulating an entry per press. Regression covers both. Include clickable coordinates and recent Tell recipients, the independent native mount keybinding and retired builder recipe, profession-only tracking discovery and compact silver talent badges. Core and both identical TOCs advance to 1.0.17.
+
+Offline validation passes 92 Lua 5.1 files, matching Core/TOCs, 46,489 substitute behavior assertions, all 11 separate gear-baseline tests and git diff --check. These checks do not establish native compatibility, chat delivery, mount permission, rendering or taint safety. Actual running build/Interface and native smoke results remain pending; the existing UseContainerItem taint investigation remains unresolved. No game deployment, junction or real SavedVariables changes.
+
+Release evidence is recorded in [release-1.0.17.md](release-1.0.17.md).
+
+## Find Minerals profession discovery — November 14, 2026
+
+User reports Find Minerals missing from Missing Buffs discovery and supplies a frame stack over its active buff. The screenshot identifies Blizzard_BuffFrame's ordinary aura container, not the spell ID or tracking metadata. Code review finds that Learned scanned only general spellbook skill-line ranges. Add the five GetProfessions roster positions (including holes) and GetProfessionInfo numSpells/spellOffset ranges, matching the pinned build-70862 Blizzard_ProfessionsBook/Camelot source. Reuse the same bounded slot scan and non-passive, active-spec, known-spell guards; deduplicate overlapping ranges. SKILL_LINES_CHANGED invalidates discovery through the existing queue. Tracking still requires matching native tracking metadata and remains self-only/out of combat. Regression covers profession-only Find Minerals and rejected passive/unreadable/invalid/unavailable data. Native cause and corrected behavior still require confirmation; no version/release/deployment/junction or real SavedVariables changes.
+
+## Recent coordinate Tell recipients — November 14, 2026
+
+Add a Recent context dropdown beside the coordinate Tell input, disabled when empty. Every open still clears the input; selecting a saved full name only fills/focuses it. Record at most five account-wide recipients in coordinateTellHistory after a successful native send attempt, move reused names to the front and deduplicate case-insensitively. Native chat cannot confirm server delivery. Reuse one bounded full-name validator for typed input and stored history; initialize/normalize through Core and exclude this personal history from settings profiles. No automatic sends on menu open/selection, timers, release, deployment or real SavedVariables edits. Offline and native validation are recorded in testing.md.
+
+## Retire Random Mount from Macro Builder — November 14, 2026
+
+Remove the randomMount recipe now that the addon has its own native keybinding. Initialization drops old saved recipe records; collection sync cannot reimport them. Existing native macros and ownership records remain untouched. The legacy /wfs randommount path recognizes retained FS Random Mount ownership directly and preserves its editor/icon safeguards without recreating a builder entry. The independent keybind remains unchanged. Diagnostics describe the keybinding and no longer require EditMacro or a closed macro editor for it. Update macro count/layout regressions for five shared recipes and cover migration with a retained native macro. No version, release, deployment, junction or real SavedVariables edits. Native smoke remains pending.
+
+## Clickable minimap coordinates — November 14, 2026
+
+The user identifies native coordinates directly above FPS/Home/World and requests a matching clickable bar with chat destinations and a shareable pin. Reuse one info-bar constructor for identical width, height, font, backdrop and accent. Keep the existing one-second cancellable ticker; no additional polling. Suppress native PlayerCoords through remembered/restored opacity without changing parent, anchors, scripts or minimapShowPlayerCoords. Suite showCoordinates now controls the replacement while minimapStats is enabled; disabling either restores native rendering. This supersedes the older fallback-only coordinate presentation.
+
+Read-only references: pinned build-70862 Blizzard_Minimap/Mainline/Minimap.lua/xml, ChatConfigFrame.lua (GetChannelList triples), ChatFrameEditBox.lua and C_ChatInfo.SendChatMessage/InChatMessagingLockdown, WaypointLocationDataProvider.lua and MapDocumentation.lua. Original Suite menu/recipient implementation uses current channel membership, skips disabled/unavailable regional channels and guards unreadable map values before serialization. Capture location on menu open; choosing a destination deliberately places a native waypoint and appends GetUserWaypointHyperlink where supported. The follow-up request replaces the draft flow with immediate C_ChatInfo.SendChatMessage calls from destination clicks. Numbered channels use CHANNEL plus the actual channel ID; whispers pass the full Forever first-and-last name as the target argument, with no slash parsing or realm requirement. Normalize ordinary spaces, reject controls and markup, and keep the Tell form open on restriction/native-call errors. Check readable false InChatMessagingLockdown before placing a pin or sending. Native chat returns no delivery confirmation. Unsupported/rejected pin placement falls back to text without reusing an old pin link. Sharing and recipient creation are out of combat only; stale callbacks check settings. No version, release, deployment, junction or real SavedVariables changes. Native appearance, delivery, pin behavior and taint remain pending.
+
+## Addon mount keybinding — November 14, 2026
+
+Add Options → Keybindings → Forever Suite → Random mount / dismount, unassigned by default. A hidden named CLICK target invokes existing collected/usable/location-filtered selection or mounted dismount without General macros, ownership checks, editor state or EditMacro. Initialize through AfterCombat; no binding writes, polling or automatic mount actions. Existing optional FS Random Mount retains its ownership/editor/icon safeguards; recipe help explains the keybinding.
+
+Read-only references: installed Retail ZoidsTools Bindings.lua/Bindings.xml for native CLICK registration, Suite's bank binding and pinned build-70862 MountJournalDocumentation.lua for SummonByID. Original Suite implementation; no reference source/assets copied. Checks pass 92 Lua 5.1 files, identical TOCs and 46,393 substitute assertions. Native key dispatch, summon permission, persistence and taint remain pending. No version, release, deployment, junction or real SavedVariables changes.
+
+## Compact silver talent badges — November 14, 2026
+
+Reduce comparison badges from 32 × 21 to 26 × 17 UI units and center their labels. OK, +N and X share a one-unit silver border, retained across theme refreshes; existing green/red text still communicates status and reference order. Native talent icon and LEVEL/NEXT outlines retain their existing meanings. Native appearance at the user's UI scale remains pending. No version, release or deployment change.
+
 ## Full review and authorized 1.0.16 release — November 14, 2026
 
 Published v1.0.16 from eff38dd510295c185ceb39add7ecca86a40fcc1c: main and release CI pass, CurseForge accepts the upload, and GitHub assets are verified. [Publication receipts](release-1.0.16.md#publication-verified). Native smoke tests and CurseForge public moderation availability remain unverified.

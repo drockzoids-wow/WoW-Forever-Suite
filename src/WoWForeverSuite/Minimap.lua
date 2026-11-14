@@ -358,13 +358,235 @@ function Map:LayoutStats()
     local container = MinimapCluster and MinimapCluster.MinimapContainer
     local coords = container and container.PlayerCoords
     self.panel:ClearAllPoints()
-    if Available(coords) then
+    self.coordinates:ClearAllPoints()
+    self.coordinates:SetPoint("TOP", Minimap, "BOTTOM", 0, -6)
+    self.coordinates:SetWidth(Minimap:GetWidth())
+    if Suite.db.minimapStats and Suite.db.showCoordinates then
+        self.panel:SetPoint("TOP", self.coordinates, "BOTTOM", 0, -4)
+    elseif Available(coords) then
         -- Blizzard owns this coordinate band even while its text is empty.
         self.panel:SetPoint("TOP", coords, "BOTTOM", 0, -6)
     else
         self.panel:SetPoint("TOP", Minimap, "BOTTOM", 0, -6)
     end
     self.panel:SetWidth(Minimap:GetWidth())
+end
+
+function Map:ReadCoordinates()
+    if not C_Map or type(C_Map.GetBestMapForUnit) ~= "function" or type(C_Map.GetPlayerMapPosition) ~= "function" then return end
+    local mapID = C_Map.GetBestMapForUnit("player")
+    if not Number(mapID) or mapID <= 0 or mapID ~= math.floor(mapID) then return end
+    local position = C_Map.GetPlayerMapPosition(mapID, "player")
+    if not Suite.IsReadable(position) or not position or type(position.GetXY) ~= "function" then return end
+    local x, y = position:GetXY()
+    if not Number(x) or not Number(y) or x < 0 or x > 1 or y < 0 or y > 1 or (x == 0 and y == 0) then return end
+    return { mapID = mapID, x = x, y = y }
+end
+
+function Map:ApplyCoordinates()
+    local container = MinimapCluster and MinimapCluster.MinimapContainer
+    local native = container and container.PlayerCoords
+    local enabled = Suite.db.minimapStats and Suite.db.showCoordinates
+    -- Preserve native scripts, layout and CVar; restore its original opacity on opt-out.
+    if self.nativeCoordinates and (not enabled or self.nativeCoordinates.frame ~= native) then
+        self.nativeCoordinates.frame:SetAlpha(self.nativeCoordinates.alpha)
+        self.nativeCoordinates = nil
+    end
+    if enabled and Available(native) and native.GetAlpha and native.SetAlpha then
+        local alpha = native:GetAlpha()
+        if not self.nativeCoordinates and Number(alpha) then self.nativeCoordinates = { frame = native, alpha = alpha } end
+        if self.nativeCoordinates then native:SetAlpha(0) end
+    end
+    self.coordinates:SetShown(enabled)
+    if not enabled and self.tell then self.tell:Hide() end
+end
+
+function Map:CoordinateMessage(location)
+    local text = string.format("%.1f, %.1f", location.x * 100, location.y * 100)
+    if C_Map.GetMapInfo then
+        local info = C_Map.GetMapInfo(location.mapID)
+        if Suite.IsReadable(info) and info and Suite.IsReadable(info.name) and type(info.name) == "string" then
+            text = info.name .. " " .. text
+        end
+    end
+    -- Native map pins use the same public link as the world map's Share action.
+    -- Only place a pin after an explicit destination click, never while opening the menu.
+    if C_Map.CanSetUserWaypointOnMap and C_Map.SetUserWaypoint and C_Map.GetUserWaypointHyperlink
+        and UiMapPoint and UiMapPoint.CreateFromCoordinates then
+        local allowed = C_Map.CanSetUserWaypointOnMap(location.mapID)
+        if Suite.IsReadable(allowed) and allowed == true then
+            local ok, wasSet = pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(location.mapID, location.x, location.y))
+            if ok and Suite.IsReadable(wasSet) and wasSet == true then
+                local link = C_Map.GetUserWaypointHyperlink()
+                if Suite.IsReadable(link) and type(link) == "string" and link ~= "" then text = text .. " " .. link end
+            end
+        end
+    end
+    return text
+end
+
+function Map:SendCoordinates(location, channel, target)
+    if InCombatLockdown() or not Suite.db.minimapStats or not Suite.db.showCoordinates or not location then return false end
+    local chat = C_ChatInfo
+    local locked
+    if chat and type(chat.InChatMessagingLockdown) == "function" then locked = chat.InChatMessagingLockdown() end
+    if not chat or type(chat.SendChatMessage) ~= "function" or not Suite.IsReadable(locked) or locked ~= false then
+        Suite.Print("Coordinate sharing is restricted or unavailable right now.")
+        return false
+    end
+    local ok = pcall(chat.SendChatMessage, self:CoordinateMessage(location), channel, nil, target)
+    if not ok then Suite.Print("The game could not send your coordinates. Please try again.") end
+    -- Native chat has no delivery result; this reports an attempted send only.
+    return ok
+end
+
+local function CoordinateRecipient(name)
+    if not Suite.IsReadable(name) or type(name) ~= "string" or #name > 100 or name:find("[%z\1-\31\127/|]") then return end
+    name = name:match("^%s*(.-)%s*$"):gsub(" +", " ")
+    if name:match("^%S+ %S+$") then return name end
+end
+
+function Map:CoordinateRecipients(saved)
+    local names, seen = {}, {}
+    if not Suite.IsReadable(saved) or type(saved) ~= "table" then return names end
+    for i = 1, 5 do
+        local name = CoordinateRecipient(saved[i])
+        if name and not seen[name:lower()] then
+            names[#names + 1], seen[name:lower()] = name, true
+        end
+    end
+    return names
+end
+
+function Map:RememberCoordinateRecipient(name)
+    local names = { name }
+    for _, previous in ipairs(self:CoordinateRecipients(Suite.db.coordinateTellHistory)) do
+        if previous:lower() ~= name:lower() and #names < 5 then names[#names + 1] = previous end
+    end
+    Suite.db.coordinateTellHistory = names
+end
+
+function Map:OpenCoordinateRecipients()
+    if InCombatLockdown() or not self.tell or not self.tell:IsShown() or not Suite.db.minimapStats
+        or not Suite.db.showCoordinates or not MenuUtil or type(MenuUtil.CreateContextMenu) ~= "function" then return end
+    MenuUtil.CreateContextMenu(self.tell.recent, function(_, root)
+        root:CreateTitle("Recent recipients")
+        for _, name in ipairs(self:CoordinateRecipients(Suite.db.coordinateTellHistory)) do
+            root:CreateButton(name, function()
+                if InCombatLockdown() or not self.tell:IsShown() or not Suite.db.minimapStats or not Suite.db.showCoordinates then return end
+                self.tell.input:SetText(name)
+                self.tell.input:SetFocus()
+            end)
+        end
+    end)
+end
+
+function Map:AskCoordinateRecipient(location)
+    if InCombatLockdown() or not Suite.db.minimapStats or not Suite.db.showCoordinates then return end
+    if not self.tell then
+        local frame = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+        self.tell = frame
+        frame:SetSize(290, 100)
+        frame:SetPoint("CENTER")
+        frame:SetFrameStrata("DIALOG")
+        frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+        frame:SetBackdropColor(0.055, 0.075, 0.085, 1)
+        Suite.Theme:Backdrop(frame, 1)
+        local title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        title:SetPoint("TOP", 0, -10)
+        title:SetText("Tell: first and last name")
+        frame.input = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
+        frame.input:SetSize(166, 22)
+        frame.input:SetPoint("TOPLEFT", 20, -30)
+        frame.input:SetAutoFocus(false)
+        frame.input:SetMaxLetters(100)
+        local function Send()
+            local name = CoordinateRecipient(frame.input:GetText())
+            if not name then
+                Suite.Print("Enter the player's first and last name, for example Jawn Online.")
+                return
+            end
+            -- Pass the complete Forever name as the native whisper target, not slash text.
+            if self:SendCoordinates(frame.location, "WHISPER", name) then
+                self:RememberCoordinateRecipient(name)
+                frame:Hide()
+            end
+        end
+        frame.input:SetScript("OnEnterPressed", Send)
+        frame.input:SetScript("OnEscapePressed", function() frame:Hide() end)
+        frame:SetScript("OnHide", function() frame.input:ClearFocus(); frame.location = nil end)
+        frame.recent = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+        frame.recent:SetSize(80, 22)
+        frame.recent:SetPoint("TOPRIGHT", -12, -30)
+        frame.recent:SetText("Recent")
+        frame.recent:SetScript("OnClick", function() self:OpenCoordinateRecipients() end)
+        local ready = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+        ready:SetSize(130, 22); ready:SetPoint("BOTTOMLEFT", 12, 10); ready:SetText("Send coordinates")
+        ready:SetScript("OnClick", Send)
+        local cancel = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+        cancel:SetSize(110, 22); cancel:SetPoint("BOTTOMRIGHT", -12, 10); cancel:SetText("Cancel")
+        cancel:SetScript("OnClick", function() frame:Hide() end)
+    end
+    self.tell.location = location
+    self.tell.input:SetText("")
+    self.tell.recent:SetEnabled(#self:CoordinateRecipients(Suite.db.coordinateTellHistory) > 0)
+    self.tell:Show()
+    self.tell.input:SetFocus()
+end
+
+function Map:OpenCoordinateMenu()
+    if InCombatLockdown() or not Suite.db.minimapStats or not Suite.db.showCoordinates
+        or not MenuUtil or type(MenuUtil.CreateContextMenu) ~= "function" then return end
+    local location = self:ReadCoordinates()
+    MenuUtil.CreateContextMenu(self.coordinates, function(_, root)
+        root:CreateTitle(location and string.format("Share %.1f, %.1f", location.x * 100, location.y * 100) or "Coordinates unavailable")
+        if not location then return end
+        local function Add(label, channel, target)
+            root:CreateButton(label, function() self:SendCoordinates(location, channel, target) end)
+        end
+        Add("Say", "SAY")
+        Add("Yell", "YELL")
+        root:CreateButton("Tell...", function() self:AskCoordinateRecipient(location) end)
+        local function Active(callback, ...)
+            if type(callback) ~= "function" then return false end
+            local value = callback(...)
+            return Suite.IsReadable(value) and value == true
+        end
+        if Active(IsInGuild) then Add("Guild", "GUILD") end
+        if Active(IsInGroup) then Add("Party", "PARTY") end
+        if Active(IsInRaid) then Add("Raid", "RAID") end
+        if LE_PARTY_CATEGORY_INSTANCE and Active(IsInGroup, LE_PARTY_CATEGORY_INSTANCE) then Add("Instance", "INSTANCE_CHAT") end
+        if type(GetChannelList) == "function" then
+            local channels = { GetChannelList() }
+            for i = 1, #channels, 3 do
+                local id, name, disabled = channels[i], channels[i + 1], channels[i + 2]
+                if Number(id) and id > 0 and id == math.floor(id) and Suite.IsReadable(name) and type(name) == "string"
+                    and Suite.IsReadable(disabled) and (disabled == false or disabled == nil) then
+                    local regional = C_ChatInfo and Active(C_ChatInfo.IsChannelRegional, id)
+                    if not regional or Active(C_ChatInfo.IsRegionalServiceAvailable) then
+                        Add(string.format("%d. %s", id, name), "CHANNEL", tostring(id))
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function CreateInfoBar()
+    local bar = CreateFrame("Button", nil, Minimap, "BackdropTemplate")
+    bar:SetHeight(20)
+    bar.ignoreInLayout = true
+    bar:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+    bar:SetBackdropColor(0.055, 0.075, 0.085, 0.65)
+    Suite.Theme:Backdrop(bar, 1)
+    bar.text = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    bar.text:SetPoint("CENTER")
+    bar.text:SetPoint("LEFT", 8, 0)
+    bar.text:SetPoint("RIGHT", -8, 0)
+    bar.text:SetTextColor(0.8, 0.88, 0.9)
+    bar.text:SetWordWrap(false)
+    bar:Hide()
+    return bar
 end
 
 function Map:Initialize()
@@ -378,18 +600,17 @@ function Map:Initialize()
     self.border:SetBackdrop({ edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
     Suite.Theme:Backdrop(self.border, 1)
     self.border:Hide()
-    self.panel = CreateFrame("Button", nil, Minimap, "BackdropTemplate")
-    self.panel:SetHeight(20)
-    self.panel.ignoreInLayout = true
-    self.panel:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-    self.panel:SetBackdropColor(0.055, 0.075, 0.085, 0.65)
-    Suite.Theme:Backdrop(self.panel, 1)
-    self.panel.text = self.panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    self.panel.text:SetPoint("CENTER")
-    self.panel.text:SetPoint("LEFT", 8, 0)
-    self.panel.text:SetPoint("RIGHT", -8, 0)
-    self.panel.text:SetTextColor(0.8, 0.88, 0.9)
-    self.panel.text:SetWordWrap(false)
+    self.coordinates = CreateInfoBar()
+    self.coordinates:SetScript("OnClick", function() self:OpenCoordinateMenu() end)
+    self.coordinates:SetScript("OnEnter", function(button)
+        if not GameTooltip or not GameTooltip.SetOwner then return end
+        GameTooltip:SetOwner(button, "ANCHOR_LEFT")
+        GameTooltip:AddLine("Share coordinates")
+        GameTooltip:AddLine("Choose a channel to send immediately. Includes a map pin where available.", 0.8, 0.88, 0.9, true)
+        GameTooltip:Show()
+    end)
+    self.coordinates:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    self.panel = CreateInfoBar()
     self.panel:SetScript("OnClick", function() Suite.GUI:Toggle() end)
     self.panel:Hide()
     self.header = CreateFrame("Frame", nil, Minimap, "BackdropTemplate")
@@ -423,6 +644,7 @@ function Map:Initialize()
     self.events = CreateFrame("Frame")
     self.events:SetScript("OnEvent", function(_, event)
         if event == "PLAYER_REGEN_DISABLED" then
+            if self.tell then self.tell:Hide() end
             self:CancelTimer()
             Suite.AfterCombat("minimap", function() self:Apply() end)
         elseif event == "ZONE_CHANGED" or event == "ZONE_CHANGED_INDOORS" or event == "ZONE_CHANGED_NEW_AREA" then
@@ -457,9 +679,8 @@ end
 function Map:UpdateStats()
     if not self.panel or not Suite.db.minimapStats then return end
     local db, values = Suite.db, {}
-    local container = MinimapCluster and MinimapCluster.MinimapContainer
-    local coords = container and container.PlayerCoords
-    local nativeCoords = Available(coords) and Suite.IsReadable(coords.showPlayerCoords) and coords.showPlayerCoords
+    local location = db.showCoordinates and self:ReadCoordinates()
+    self.coordinates.text:SetText(location and string.format("%.1f, %.1f", location.x * 100, location.y * 100) or "--, --")
     if db.showFPS then
         local fps = GetFramerate()
         if Number(fps) then values[#values + 1] = string.format("%d |cff8ca6b3FPS|r", math.floor(fps)) end
@@ -473,18 +694,6 @@ function Map:UpdateStats()
     end
     if db.showClock and not (Available(TimeManagerClockButton) and TimeManagerClockButton:IsVisible()) then
         values[#values + 1] = date("%H:%M")
-    end
-    if db.showCoordinates and not nativeCoords and C_Map then
-        local mapID = C_Map.GetBestMapForUnit("player")
-        if Suite.IsReadable(mapID) and mapID then
-            local position = C_Map.GetPlayerMapPosition(mapID, "player")
-            if Suite.IsReadable(position) and position then
-                local x, y = position:GetXY()
-                if Number(x) and Number(y) then
-                    values[#values + 1] = string.format("%.1f, %.1f", x * 100, y * 100)
-                end
-            end
-        end
     end
     self.panel.text:SetText(table.concat(values, " |cff42605f/|r "))
     self.panel:SetShown(#values > 0)
@@ -500,6 +709,7 @@ function Map:Apply()
         self:ApplySize(Suite.db.squareMinimap)
         self:ApplyClamping(Suite.db.squareMinimap)
         self:ApplyQuestRing(Suite.db.squareMinimap)
+        self:ApplyCoordinates()
         self.events:UnregisterAllEvents()
         if Suite.db.squareMinimap or Suite.db.minimapStats then
             self.events:RegisterEvent("ADDON_LOADED")

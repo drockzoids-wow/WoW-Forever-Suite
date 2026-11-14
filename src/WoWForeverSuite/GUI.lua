@@ -97,14 +97,14 @@ local pages = {
         { key = "upgradeHints", label = "Possible upgrades", help = "Green +: preferred armor; yellow +: another usable armor type.\nBoth follow your comparison; weapons and accessories stay green." },
         { key = "playerItemLevel", label = "Player item levels", help = "Hover yourself or a nearby player to see equipment level.\nOther players need an available inspect; requests pause in combat." },
     } },
-    minimap = { title = "Minimap", description = "A compact header, a clear map, and room for Blizzard's coordinates.", rows = {
+    minimap = { title = "Minimap", description = "A compact header, a clear map, and coordinates you can share.", rows = {
         { key = "minimapButton", label = "Minimap button", help = "Show the Suite settings button. /wfs works when hidden." },
         { key = "minimapDrawer", label = "Addon button drawer", help = "Click the grid button to open addons; drag it around the map." },
         { key = "squareMinimap", label = "Square map and header", help = "Expand the shorter side for a square map. Size and move it in Edit Mode.\nKeeps the header and clock; turning this off restores the native shape." },
         { key = "minimapStats", label = "Stats row", help = "A slim row below the coordinates. Click to open Forever Suite." },
         { key = "showFPS", label = "Frame rate", help = "Show frames per second in the enabled stats row." },
         { key = "showLatency", label = "Home and world latency", help = "Show H: home and W: world response times in milliseconds." },
-        { key = "showCoordinates", label = "Fallback coordinates", help = "Show coordinates here when Blizzard's display is disabled." },
+        { key = "showCoordinates", label = "Clickable coordinates", help = "Match the stats row and replace Blizzard's coordinate text while Stats row is enabled.\nChoose a channel to send coordinates and an available map pin immediately." },
         { key = "showClock", label = "Fallback local clock", help = "Show local time here when the native clock is hidden." },
     }, note = "The drawer includes Suite settings. Turn it off to return addon buttons to the map." },
     worldmap = { title = "See the road ahead.", description = "Reveal unexplored terrain on the world map.", rows = {

@@ -1279,6 +1279,8 @@ local coords = CreateFrame("Frame", nil, MinimapCluster)
 coords:SetSize(90, 10)
 coords:SetPoint("BOTTOM", Minimap, "BOTTOM", 0, -18)
 coords.showPlayerCoords = true
+coords.GetAlpha = function(self) return self.alpha or 0.8 end
+coords.SetAlpha = function(self, alpha) self.alpha = alpha end
 coords:Show()
 MinimapCluster.MinimapContainer.PlayerCoords = coords
 local originalCoordsPoint = coords.point
@@ -1368,8 +1370,12 @@ equal(map.header.subzone.text, "Thelsamar", "restricted subzone text uses a read
 equal(map.header.point[2], map.border, "header follows the map's outer border width")
 equal(map.header.point[5], 2, "header has a two-pixel gap")
 equal(map.panel.height, 20, "stats use one compact row")
-equal(map.panel.point[2], coords, "stats anchor below the native coordinate band")
-equal(map.panel.point[5], -6, "stats leave six pixels below native coordinates")
+equal(map.panel.point[2], map.coordinates, "stats anchor below the matching coordinate band")
+equal(map.panel.point[5], -4, "stats leave four pixels below coordinates")
+equal(coords:GetAlpha(), 0, "native coordinate text is suppressed without changing its CVar")
+equal(map.coordinates.text.text, "35.5, 48.6", "coordinates have their own matching row")
+equal(map.coordinates.width, map.panel.width, "coordinate and stats rows share width")
+equal(map.coordinates.backdropAlpha, map.panel.backdropAlpha, "coordinate and stats rows share opacity")
 equal(coords.point, originalCoordsPoint, "Blizzard coordinate anchors remain unchanged")
 equal(map.panel.text.text:find("35.5", 1, true), nil, "native coordinates are not duplicated")
 equal(map.panel.text.text:find("17:39", 1, true), nil, "native clock is not duplicated")
@@ -1387,7 +1393,7 @@ equal(tickerStarts, 1, "reapplying does not duplicate tickers")
 coords.showPlayerCoords = false
 TimeManagerClockButton:Hide()
 map:UpdateStats()
-equal(map.panel.text.text:find("35.5, 48.6", 1, true) ~= nil, true, "fallback coordinates display when native coordinates are off")
+equal(map.coordinates.text.text, "35.5, 48.6", "Suite coordinates remain available with the native CVar off")
 equal(map.panel.text.text:find("17:39", 1, true) ~= nil, true, "fallback clock displays when native clock is hidden")
 coords.showPlayerCoords = true
 TimeManagerClockButton:Show()
@@ -1421,7 +1427,10 @@ Suite.db.minimapStats = false
 map:Apply()
 equal(tickerCancels, 1, "disabled stats cancel the ticker")
 equal(map.panel:IsShown(), false, "disabled stats hide the row")
+equal(map.coordinates:IsShown(), false, "disabled stats hide the coordinate row")
+equal(coords:GetAlpha(), 0.8, "native coordinate opacity restores on opt-out")
 assert(loadfile("tests/minimap_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/minimap_coordinates_spec.lua"))(Suite, equal, function(value) combat = value end)
 combat = true
 Suite.db.squareMinimap = true
 map:Apply()

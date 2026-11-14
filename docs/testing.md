@@ -1,5 +1,58 @@
 # Forever Suite in game testing
 
+## Full review and authorized 1.0.17 release — November 14, 2026
+
+The user requests an addon-wide review and authorizes CurseForge publication, superseding the earlier no-release notes for the included changes. Review covers all 92 runtime Lua files through Lua 5.1 parsing, pinned build-70862 API/event/signature/global-write/duplicate-key scans, package/media/load-order inventory and the complete behavior suite, with focused manual inspection of every pending runtime diff and action/lifecycle boundaries. The 78 Lua test files are reachable from the entry point; 101 addon package inputs are accounted for. No detected duplicate literal keys, unknown directly registered literal events, too-short documented calls, unused local/function candidates or unreachable statements remain. Two existing capability-guarded MerchantKnown pet-journal fallbacks remain undocumented in the pinned source.
+
+Fix two review findings: SetUserWaypoint returns a success boolean, so a non-throwing false or unreadable result must not attach the previous native pin link; retained legacy mount execution must reuse one status key rather than accumulating an entry per press. Regression covers both. Include clickable coordinates and recent Tell recipients, the independent native mount keybinding and retired builder recipe, profession-only tracking discovery and compact silver talent badges. Core and both identical TOCs advance to 1.0.17.
+
+Offline validation passes 92 Lua 5.1 files, matching Core/TOCs, 46,489 substitute behavior assertions, all 11 separate gear-baseline tests and git diff --check. These checks do not establish native compatibility, chat delivery, mount permission, rendering or taint safety. Actual running build/Interface and native smoke results remain pending; the existing UseContainerItem taint investigation remains unresolved. No game deployment, junction or real SavedVariables changes.
+
+Release evidence is recorded in [release-1.0.17.md](release-1.0.17.md).
+
+## Find Minerals profession discovery — November 14, 2026
+
+Offline validation: `node scripts/check-addon.cjs` passes 92 Lua 5.1 files, matching TOCs and 46,466 substitute behavior assertions. These checks do not establish native compatibility or taint safety.
+
+User reports no Find Minerals missing-buff entry; the supplied active-buff frame stack resolves to Blizzard_BuffFrame/BuffFrame.lua:196 and an anonymous AuraContainer child. It exposes no spell ID or native tracking record, so the exact live cause is unconfirmed. Offline regression now places Find Minerals in a profession-only spellbook range, with a hole in the profession roster, and verifies discovery after SKILL_LINES_CHANGED. Passive abilities, unreadable/invalid ranges and failed profession queries cannot authorize reminders. Existing tracking activation, opt-out, death/revival and combat cases remain covered.
+
+Native pending: record actual running build/Interface. With Missing buff bar and Self upkeep enabled, reload and find Find Minerals in My class choices with Track enabled. Outside combat, turn Find Minerals off: its reminder should appear. Click it manually: the native buff should return and reminder disappear. Repeat after death/revival and reload; confirm combat hides the tracking reminder even with combat reminders enabled. If still absent, capture the native C_Minimap.GetTrackingInfo record and profession spell slot data; the screenshot alone cannot establish those values. Record Lua/blocked-action results before calling the fix verified.
+
+## Recent coordinate Tell recipients — November 14, 2026
+
+Offline: `node scripts/check-addon.cjs` passes 92 Lua 5.1 files, identical TOCs and 46,449 substitute assertions; `git diff --check` passes. Regression covers blank initial/reopened fields, disabled empty Recent, saved-name selection without sending, five-entry limit and oldest eviction, recency promotion, case-insensitive duplicates, invalid/restricted saved names, failed/restricted sends and settings-profile exclusion.
+
+Native smoke pending: reload and open coordinate Tell; the input must be blank and Recent disabled until a recipient is used. Send to a full Forever name, reopen and select it through Recent: only the field should fill; Send coordinates remains deliberate. Send to six different people and verify only the newest five appear, newest first. Reuse an older name and confirm it moves to the top without duplication. Cancel or trigger a restricted/failed send and verify history is unchanged. Reload/relog and switch settings profiles: history should remain available while the input always opens blank. Check field/button layout at normal UI scale, Escape, combat entry, and stale menu selection after hiding/disabling. Record actual build/Interface and results before marking appearance or persistence verified.
+
+## Retire Random Mount from Macro Builder — November 14, 2026
+
+Offline: `node scripts/check-addon.cjs` passes 92 Lua 5.1 files, identical TOCs and 46,430 substitute assertions; `git diff --check` passes. These checks do not establish native input, visual correctness or taint safety.
+
+Regression checks cover initialization with a saved randomMount recipe: it is absent from the recipe registry and visible entries while the existing native macro body remains intact. Retained owned macro execution and the independent keybinding retain their selection/dismount/combat/API guards. Adjust shared-recipe counts and list/collapse layout expectations for five General recipes.
+
+Native pending: reload and confirm Macro Builder → General contains Food, Drink, Bandage and the two weapon coatings, with no Random Mount row. Check a character with the old recipe saved. Confirm keybound mount/dismount still works and existing Blizzard macros remain untouched; test the retained FS Random Mount if desired. Check other macro selection, scrolling, category collapse, Lua errors and taint. Record actual running build/Interface. No version/release/deployment or real SavedVariables edits.
+
+## Clickable minimap coordinates — November 14, 2026
+
+Offline: `node scripts/check-addon.cjs` passes 92 Lua 5.1 files, identical TOCs and 46,443 substitute assertions; `git diff --check` passes. Focused cases cover matching row styling/placement, native opacity restoration with unchanged geometry/CVar, captured location after movement, immediate Say/custom-channel/Tell sends, recipient validation, no send/pin on menu open, unsupported/rejected pins, unreadable/invalid positions, dynamic channel membership, disabled channels and stale combat/opt-out callbacks, first-and-last whisper targets, normalized spaces, chat lockdown/unreadable permission, and native send errors. Substitutes do not establish native permission, appearance or taint safety.
+
+Native smoke pending: record actual running build/Interface and `/wfs status`. Reload with Stats row and Clickable coordinates enabled. Coordinates should match FPS/Home/World directly above it with no duplicate native text. Test round/square maps, Edit Mode position/size/scale and the native coordinate CVar. Check Say/Yell/Tell, available guild/group destinations and joined numbered channels; join/leave a channel and reopen. Choose a destination and confirm exactly one message sends immediately, with zone/coordinates and a pin link that opens the captured location. Walk after opening the menu and verify text/pin still agree. Test Tell with Jawn Online (no realm), extra ordinary spaces, Cancel/Escape and invalid input. Send coordinates or recipient-field Enter should send immediately; failed/restricted calls should retain the field for retry. Unsupported/no-position maps must use plain text or unavailable feedback. Sharing can replace an existing native user pin; opening/canceling alone places none. Enter combat with menu/recipient open and try stale actions: no pin, send, protected creation or error should result. Disable Clickable coordinates and Stats row separately, including during combat with deferred restoration; original native rendering must return without a CVar change. FPS-row click still opens settings. Record layout, delivery and errors before marking verified.
+
+
+User follow-up: the supplied screenshot confirms the original Tell dialog renders and reports that a first-and-last name was rejected. The space-rejecting draft path is replaced as requested. Native immediate delivery and full-name whisper behavior still require a retest; running build/Interface remain unreported.
+
+## Addon mount keybinding — November 14, 2026
+
+Offline: `node scripts/check-addon.cjs` passes 92 Lua 5.1 files, identical TOCs and 46,393 substitute assertions. Binding-handler cases use no macro database, a failing GetMacroInfo, no EditMacro and an open native macro editor. Eligible selection still summons without macro writes; mounted use dismounts without enumeration; combat does nothing. Existing macro ownership/icon/editor regressions pass. Substitutes do not prove native key dispatch or summon permission.
+
+Native pending: restart the client to load the new Bindings.xml entry; record actual build/Interface. Assign Random mount / dismount under Options → Keybindings → Forever Suite to an unused key. Remove the old macro from the action bar and test mounting/dismounting without creating a macro, repeated choices, newly collected mounts, riding/location restrictions, combat and the native macro editor open. Check for double activation, macro changes, binding persistence after restart, Lua errors, blocked actions and taint. Retained FS Random Mount should still work. No deployment, junction or real SavedVariables edits performed.
+
+## Compact silver talent badges — November 14, 2026
+
+Offline: `node scripts/check-addon.cjs` passes 92 Lua 5.1 files, matching TOCs and 46,381 substitute behavior assertions; `git diff --check` passes. These checks do not establish native appearance.
+
+Native smoke pending: reload and open Talents with comparison enabled. Check OK, +N and X have compact silver borders and centered, unclipped red/green text at normal and alternate UI scales. Change the Suite border theme and confirm these borders stay silver. Confirm native tooltips/clicks and LEVEL/NEXT outlines still work. Record actual build/Interface and a screenshot before marking appearance verified.
+
 ## Full review and authorized 1.0.16 release — November 14, 2026
 
 Published v1.0.16 from eff38dd510295c185ceb39add7ecca86a40fcc1c: main and release CI pass, CurseForge accepts the upload, and GitHub assets are verified. [Publication receipts](release-1.0.16.md#publication-verified). Native smoke tests and CurseForge public moderation availability remain unverified.

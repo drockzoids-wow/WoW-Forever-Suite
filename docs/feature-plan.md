@@ -1,5 +1,39 @@
 # Forever Suite feature plan
 
+## Full review and authorized 1.0.17 release — November 14, 2026
+
+The user requests an addon-wide review and authorizes CurseForge publication, superseding the earlier no-release notes for the included changes. Review covers all 92 runtime Lua files through Lua 5.1 parsing, pinned build-70862 API/event/signature/global-write/duplicate-key scans, package/media/load-order inventory and the complete behavior suite, with focused manual inspection of every pending runtime diff and action/lifecycle boundaries. The 78 Lua test files are reachable from the entry point; 101 addon package inputs are accounted for. No detected duplicate literal keys, unknown directly registered literal events, too-short documented calls, unused local/function candidates or unreachable statements remain. Two existing capability-guarded MerchantKnown pet-journal fallbacks remain undocumented in the pinned source.
+
+Fix two review findings: SetUserWaypoint returns a success boolean, so a non-throwing false or unreadable result must not attach the previous native pin link; retained legacy mount execution must reuse one status key rather than accumulating an entry per press. Regression covers both. Include clickable coordinates and recent Tell recipients, the independent native mount keybinding and retired builder recipe, profession-only tracking discovery and compact silver talent badges. Core and both identical TOCs advance to 1.0.17.
+
+Offline validation passes 92 Lua 5.1 files, matching Core/TOCs, 46,489 substitute behavior assertions, all 11 separate gear-baseline tests and git diff --check. These checks do not establish native compatibility, chat delivery, mount permission, rendering or taint safety. Actual running build/Interface and native smoke results remain pending; the existing UseContainerItem taint investigation remains unresolved. No game deployment, junction or real SavedVariables changes.
+
+Release evidence is recorded in [release-1.0.17.md](release-1.0.17.md).
+
+## Find Minerals profession discovery — November 14, 2026
+
+Discover learned spells from native profession slot ranges as well as general spellbook tabs so profession-only Find Minerals can enter the existing tracking reminders. Keep tracking state, individual opt-outs, Self upkeep and out-of-combat restrictions. Refresh discovery on skill-line changes. The supplied active-buff frame stack does not establish the underlying spell/tracking IDs; native confirmation remains pending. No release or deployment requested.
+
+## Recent coordinate Tell recipients — November 14, 2026
+
+Keep the coordinate Tell field blank on every open. Add a Recent dropdown with the last five distinct full-name recipients, newest first; choosing one fills the field without sending. A successful native send attempt records or promotes the name, with case-insensitive deduplication and oldest-entry eviction. Persist account-wide across reloads independently of settings profiles. Cancel, invalid input and rejected/restricted sends do not update history. Native appearance and persistence smoke pending; no release requested.
+
+## Retire Random Mount from Macro Builder — November 14, 2026
+
+Remove Random Mount from the builder's General category, including existing saved recipe records on initialization. Continue using Keybindings → Forever Suite → Random mount / dismount. Preserve any existing native macro and its legacy command support; never automatically delete or recreate it. This supersedes the earlier optional builder recipe. No release or deployment requested; native verification pending.
+
+## Clickable minimap coordinates — November 14, 2026
+
+Replace native coordinate text below the minimap with a separate bar matching FPS/Home/World when Stats row and Clickable coordinates are enabled. Click to choose Say, Yell, Tell, available guild/group destinations or a currently joined enabled numbered channel. Tell accepts a Forever first and last name without a realm. Per the follow-up request, choosing a channel sends the captured zone/coordinates immediately; Tell sends when its Send coordinates button or recipient-field Enter is pressed. Place and include a native map pin where supported, otherwise use plain coordinates. Opening the menu sends nothing and places no pin. Preserve native coordinate scripts, geometry and CVar; restore opacity on opt-out. This supersedes the fallback-only/native-coordinate presentation. Offline checks pass; native smoke pending. No release or deployment requested.
+
+## Addon mount keybinding — November 14, 2026
+
+Bind Random mount / dismount under Options → Keybindings → Forever Suite without creating a macro or using an action-bar slot. The key starts unassigned. Preserve collected/usable/location-filtered random choices, riding requirements, possible repeats, mounted dismount and out-of-combat-only use. Existing optional mount macros remain compatible; recipe help points to keybindings. Offline checks pass; native input, summon permissions, persistence and taint remain pending. No release or deployment requested.
+
+## Compact silver talent badges — November 14, 2026
+
+Tighten OK/+N/X comparison boxes to 26 × 17 with centered text and consistent thin silver borders, following the native tree-header rank boxes as a visual reference. Preserve green/red status text and native talent outlines. Native visual check pending; no release requested.
+
 ## Full review and authorized 1.0.16 release — November 14, 2026
 
 Published v1.0.16 from eff38dd510295c185ceb39add7ecca86a40fcc1c: main and release CI pass, CurseForge accepts the upload, and GitHub assets are verified. [Publication receipts](release-1.0.16.md#publication-verified). Native smoke tests and CurseForge public moderation availability remain unverified.

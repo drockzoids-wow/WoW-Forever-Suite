@@ -522,8 +522,11 @@ function Planner:RenderGuideMarks(reference, nextStep)
                     mark = CreateFrame("Frame", nil, self.root, "BackdropTemplate")
                     self.guideMarks[id] = mark
                     mark:SetFrameLevel(3002); mark:EnableMouse(false); mark:EnableMouseWheel(false)
-                    mark:SetSize(32, 21); Surface(mark)
-                    mark.caption = Label(mark, 12, 1, -3, "", 30)
+                    mark:SetSize(26, 17); Surface(mark)
+                    Suite.Theme:Backdrop(mark, 1, {r=0.7,g=0.72,b=0.75})
+                    mark.caption = Label(mark, 12, 0, 0, "", 24)
+                    mark.caption:ClearAllPoints(); mark.caption:SetPoint("CENTER", mark, "CENTER", 0, 0)
+                    mark.caption:SetWordWrap(false)
                     mark.caption:SetJustifyH("CENTER"); mark.caption:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
                 end
                 local r, g, b = 1, 0.3, 0.25
@@ -531,7 +534,6 @@ function Planner:RenderGuideMarks(reference, nextStep)
                     r, g, b = 0.4, 0.9, 0.55
                 end
                 mark.caption:SetText(value.text); mark.caption:SetTextColor(r, g, b)
-                mark:SetBackdropBorderColor(r, g, b, 1)
                 mark:ClearAllPoints(); mark:SetPoint("TOPLEFT", native, "TOPRIGHT", 5, 0)
                 mark:Show()
             end

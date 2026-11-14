@@ -80,7 +80,7 @@ for _, word in ipairs({ "leveling", "pvp", "hibernate", "repentance", "spell loc
     end
     equal(found, true, "leveling and PvP utilities are discoverable: " .. word)
 end
-equal(macros:VisibleCapacity(), 26, "visible row capacity includes ten Warrior recipes and ten item choices")
+equal(macros:VisibleCapacity(), 25, "visible row capacity includes ten Warrior recipes and ten item choices")
 local classes, names = {}, {}
 for _, case in ipairs(cases) do
     SetClass(case[1])
@@ -88,10 +88,10 @@ for _, case in ipairs(cases) do
         SetClass(case[1]);Suite.db.macroOwnership = {}
         for index in pairs(native) do native[index] = nil end
         macros:Initialize(nil)
-        equal(#macros:Entries(), case[1] == "WARRIOR" and 16 or (case[1] == "DRUID" and 14 or 13), "each supported class receives its recipes plus six shared recipes")
+        equal(#macros:Entries(), case[1] == "WARRIOR" and 15 or (case[1] == "DRUID" and 13 or 12), "each supported class receives its recipes plus five shared recipes")
         equal(next(native), nil, "listing class recipes never creates a game macro")
         macros:EnsureClassRecipes();macros:EnsureClassRecipes()
-        equal(#Suite.macroDB.entries, case[1] == "WARRIOR" and 16 or (case[1] == "DRUID" and 14 or 13), "repeated discovery never duplicates class recipes")
+        equal(#Suite.macroDB.entries, case[1] == "WARRIOR" and 15 or (case[1] == "DRUID" and 13 or 12), "repeated discovery never duplicates class recipes")
         for _, entry in ipairs(macros:Entries()) do
             local recipe = macros.byRecipe[entry.recipe]
             equal(not recipe.class or recipe.class == case[1], true, "class list excludes foreign recipes")
@@ -129,7 +129,7 @@ for _, case in ipairs(cases) do
     equal(native[index].body, body, "client substitute confirms the exact written body")
     equal(Suite.db.macroOwnership[entry.name], body, "only confirmed text establishes macro ownership")
     local retained = macros:Initialize(Suite.macroDB)
-    equal(#macros:Entries(), case[1] == "WARRIOR" and 16 or (case[1] == "DRUID" and 14 or 13), "reload exposes current-class recipes while retaining inactive records")
+    equal(#macros:Entries(), case[1] == "WARRIOR" and 15 or (case[1] == "DRUID" and 13 or 12), "reload exposes current-class recipes while retaining inactive records")
     for _, candidate in ipairs(retained.entries) do if candidate.recipe == case[2] then entry = candidate end end
     gui:Select("macros");gui.macroSelected = entry;gui:RefreshMacros()
     equal(gui.macroChoose:IsShown(), false, "spell/static class recipes hide unrelated item picker")
@@ -175,21 +175,21 @@ C_Spell.GetSpellInfo = function() error("unavailable") end
 equal(macros:Generate({ recipe = "mageCounterspell" }, {}), nil, "failed spell API cannot produce partial macro text")
 C_Spell.GetSpellInfo = getter
 SetClass("HUNTER");macros:Initialize(nil)
-equal(#macros:Entries(), 13, "Hunter retains seven class recipes")
+equal(#macros:Entries(), 12, "Hunter retains seven class recipes")
 SetClass({ secret = true })
-equal(#macros:Entries(), 6, "restricted class exposes only shared recipes")
+equal(#macros:Entries(), 5, "restricted class exposes only shared recipes")
 SetClass("UNKNOWN")
-equal(#macros:Entries(), 6, "unsupported classes receive no invented recipes")
+equal(#macros:Entries(), 5, "unsupported classes receive no invented recipes")
 SetClass("WARRIOR");macros:Initialize(nil)
 local lastItem
 for index = 1, 10 do
     lastItem = macros:AddItem()
     equal(lastItem ~= nil, true, "largest class retains every custom-item slot")
 end
-equal(#macros:Entries(), 26, "largest class plus ten custom items fills the bounded row pool")
+equal(#macros:Entries(), 25, "largest class plus ten custom items fills the bounded row pool")
 gui.macroCollapsed = {};gui:Select("macros");gui.macroSelected = lastItem;gui:RefreshMacros()
-equal(gui.macroRows[26].entry, lastItem, "last custom item has a real row in the largest class list")
-equal(gui.macroRows[26]:IsShown(), true, "last row remains available in the expanded list")
+equal(gui.macroRows[25].entry, lastItem, "last custom item has a real row in the largest class list")
+equal(gui.macroRows[25]:IsShown(), true, "last row remains available in the expanded list")
 equal(macros:AddItem(), nil, "larger class library retains the ten-item limit")
 for id in pairs(spells) do spells[id] = nil end
 for id, value in pairs(originalSpells) do spells[id] = value end

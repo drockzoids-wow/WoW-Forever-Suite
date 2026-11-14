@@ -5,4 +5,7 @@
     <Binding name="CLICK WoWForeverSuiteBankToggleButton:LeftButton" category="Forever Suite">
         WoWForeverSuiteBankToggleButton:Click("LeftButton")
     </Binding>
+    <Binding name="CLICK WoWForeverSuiteMountButton:LeftButton" category="Forever Suite">
+        if WoWForeverSuiteMountButton then WoWForeverSuiteMountButton:Click("LeftButton") end
+    </Binding>
 </Bindings>

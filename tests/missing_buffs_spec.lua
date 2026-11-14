@@ -3,7 +3,7 @@ local buffs, oldDB, oldPending = Suite.MissingBuffs, Suite.db, Suite.pending
 local names = { "CreateFrame", "RegisterStateDriver", "C_Timer", "C_Spell", "C_SpellBook", "C_UnitAuras", "C_Secrets", "C_Item", "C_EventUtils", "C_ChatInfo", "C_Minimap", "Enum",
     "UnitExists", "UnitIsConnected", "UnitIsVisible", "UnitIsDeadOrGhost", "UnitCanAssist", "UnitGUID", "UnitName", "UnitClass", "UnitLevel",
     "UnitInParty", "IsInRaid", "IsInGroup", "LE_PARTY_CATEGORY_HOME", "LE_PARTY_CATEGORY_INSTANCE", "GetTime",
-    "GetNumGroupMembers", "GetNumSubgroupMembers", "IsResting", "GetInventoryItemID", "C_PaperDollInfo", "UnitIsUnit" }
+    "GetNumGroupMembers", "GetNumSubgroupMembers", "IsResting", "GetInventoryItemID", "C_PaperDollInfo", "UnitIsUnit", "GetProfessions", "GetProfessionInfo" }
 local previous = {}; for _, name in ipairs(names) do previous[name] = _G[name] end
 local oldScan = Suite.MacroItems.Scan
 local oldPrint, feedback = Suite.Print, {}
@@ -1248,6 +1248,37 @@ do
     equal(Find("self","TRACKING:2383"),nil,"active tracking needs no aura to suppress its reminder")
     equal(Find("self","TRACKING:2481")~=nil,true,"racial tracking works on any class")
     equal(#buffs:TrackingFamilies(buffs.learned),3,"service filters and unlearned tracking are excluded")
+    local oldProfessions, oldProfessionInfo = GetProfessions, GetProfessionInfo
+    local oldBookInfo, oldBookLevel, oldKnown = C_SpellBook.GetSpellBookItemInfo, C_SpellBook.GetSpellBookItemLevelLearned, C_SpellBook.IsSpellKnown
+    learned = {2383,2481}
+    local professionOffset, professionPassive = 20, false
+    GetProfessions = function() return nil, 9, nil, nil, nil end
+    GetProfessionInfo = function(id)
+        equal(id,9,"profession discovery preserves roster holes")
+        return "Mining", 136248, 100, 150, 1, professionOffset
+    end
+    C_SpellBook.GetSpellBookItemInfo = function(slot, bank)
+        if slot == 21 then return {itemType=1,isPassive=professionPassive,isOffSpec=false,spellID=2580} end
+        return oldBookInfo(slot, bank)
+    end
+    C_SpellBook.GetSpellBookItemLevelLearned = function(slot, bank) if slot == 21 then return 1 end; return oldBookLevel(slot, bank) end
+    C_SpellBook.IsSpellKnown = function(id, bank) if id == 2580 then return true end; return oldKnown(id, bank) end
+    buffs.events:OnEvent("SKILL_LINES_CHANGED");Flush()
+    equal(buffs.events.registered.SKILL_LINES_CHANGED,true,"profession learning invalidates the learned-spell cache")
+    equal(Find("self","TRACKING:2580")~=nil,true,"Find Minerals outside general tabs produces a reminder")
+    professionPassive=true;buffs.bookDirty=true;buffs:Refresh()
+    equal(Find("self","TRACKING:2580"),nil,"passive profession abilities cannot produce cast reminders")
+    professionPassive=false;professionOffset=secret;buffs.bookDirty=true;buffs:Refresh()
+    equal(Find("self","TRACKING:2580"),nil,"unreadable profession ranges authorize no reminder")
+    equal(buffs.learnedComplete,false,"unreadable profession ranges disclose incomplete discovery")
+    professionOffset=-1;buffs.bookDirty=true;buffs:Refresh()
+    equal(Find("self","TRACKING:2580"),nil,"invalid profession ranges authorize no reminder")
+    GetProfessions=function() error("profession data unavailable") end
+    buffs.bookDirty=true;buffs:Refresh()
+    equal(Find("self","TRACKING:2580"),nil,"failed profession discovery authorizes no reminder")
+    GetProfessions,GetProfessionInfo=oldProfessions,oldProfessionInfo
+    C_SpellBook.GetSpellBookItemInfo,C_SpellBook.GetSpellBookItemLevelLearned,C_SpellBook.IsSpellKnown=oldBookInfo,oldBookLevel,oldKnown
+    learned={2580,2383,2481};buffs.bookDirty=true;buffs:Refresh()
     local priorFilter,priorQuery=Suite.BuffSettings.filter,Suite.BuffSettings.choiceQuery
     Suite.BuffSettings.filter,Suite.BuffSettings.choiceQuery="mine",""
     local rows=Suite.BuffSettings:FamilyRows(buffs.learned)

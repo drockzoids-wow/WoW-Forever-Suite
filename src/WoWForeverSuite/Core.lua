@@ -1,6 +1,6 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "1.0.16"
+Suite.version = "1.0.17"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {
@@ -31,7 +31,7 @@ Suite.defaults = {
     professionLevelingMaterialsCollapsed = false, professionLevelingStepsCollapsed = false,
     bagSpaceAlert = false, bagSpaceBlacklist = {}, bagSpacePosition = {},
     mailHelper = false, mailRememberRecipient = false, mailExpiry = false, supplyChecklist = false,
-    mailContacts = { schema = 2, entries = {}, removed = {} },
+    mailContacts = { schema = 2, entries = {}, removed = {} }, coordinateTellHistory = {},
     chatHistory = false, chatStyle = false, chatFontSize = 14, chatOpacity = 0.5, audioSync = false, chatShortcuts = false,
     itemLevels = false, itemTooltipLevels = false, characterItemLevel = false, upgradeHints = false, equipmentSetToggle = false,
     itemInventory = false, inventorySearch = false, characterDashboard = false, bagMoney = false, inventory = { schema = 1, characters = {}, accountBanks = {} },
@@ -95,6 +95,7 @@ function Suite.InitializeDB(saved)
     if not Suite.Scoring.presets[db.scorePreset] then db.scorePreset = "balanced" end
     db.upgradePreference = Suite.Scoring.Preference(db, true)
     db.inventoryBrowser = Suite.CharacterBrowser:InitializeOptions(db.inventoryBrowser)
+    db.coordinateTellHistory = Suite.Minimap:CoordinateRecipients(db.coordinateTellHistory)
     db.chatFontSize, db.chatOpacity = Suite.Chat:Options(db)
     db.keybindFont, db.keybindSize, db.keybindOutline, db.keybindBold = Suite.Keybinds:Options(db)
     db.procAlertIconSize = Suite.ProcAlerts:IconSize(db)

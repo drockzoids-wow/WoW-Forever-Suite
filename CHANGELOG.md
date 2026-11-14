@@ -1,5 +1,15 @@
 # Forever Suite
 
+## 1.0.17 — November 14, 2026
+
+- Add a clickable coordinate bar matching minimap stats. Choose a chat destination to share the captured location immediately, with a native map pin where available. Preserve native coordinate settings and restore native rendering when disabled.
+- Add a Recent menu with the five latest coordinate Tell recipients. Tell opens blank; selecting a saved full name fills the field without sending. History persists independently of settings profiles.
+- Add Random mount / dismount under Keybindings → Forever Suite, unassigned by default. Remove Random Mount from Macro Builder while preserving existing native macros and their ownership safeguards.
+- Discover profession-only tracking abilities such as Find Minerals from native profession spellbook ranges, including sparse profession rosters. Tracking reminders remain manual and outside combat only.
+- Make talent comparison badges more compact, with centered text and consistent silver borders.
+- Fix coordinate sharing to require confirmed waypoint placement before attaching a link; rejected placement falls back to text. Reuse one legacy mount status record to prevent accumulation on repeated use.
+- Offline review passes; native appearance, input, chat delivery, mount permissions and combat/taint checks remain pending. The existing bag-use taint investigation remains open.
+
 ## 1.0.16 — November 14, 2026
 
 - Add learned tracking spells such as Find Minerals, Find Herbs and Find Treasure to the optional Missing Buffs bar. Use native tracking state, offer individual Track choices under Self upkeep, and show these reminders only outside combat. Casting remains manual.

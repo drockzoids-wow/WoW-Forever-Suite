@@ -143,13 +143,13 @@ function Buffs:Learned()
     if not book or not Number(bank) or not Number(spellType) then return byName, false end
     local count = Call(book.GetNumSpellBookSkillLines)
     if not Number(count) or count < 0 or count > 32 or count % 1 ~= 0 then return byName, false end
-    local complete = true
-    for line = 1, count do
-        local info = Call(book.GetSpellBookSkillLineInfo, line)
-        if Read(info, "table") and Number(info.itemIndexOffset) and Number(info.numSpellBookItems)
-            and info.itemIndexOffset >= 0 and info.itemIndexOffset % 1 == 0 and info.numSpellBookItems >= 0
-            and info.numSpellBookItems <= 512 and info.numSpellBookItems % 1 == 0 and info.itemIndexOffset <= 4096 then
-            for slot = info.itemIndexOffset + 1, info.itemIndexOffset + info.numSpellBookItems do
+    local complete, visited = true, {}
+    local function ScanRange(offset, size)
+        if not Number(offset) or not Number(size) or offset < 0 or offset % 1 ~= 0
+            or size < 0 or size > 512 or size % 1 ~= 0 or offset > 4096 then complete = false; return end
+        for slot = offset + 1, offset + size do
+            if not visited[slot] then
+                visited[slot] = true
                 local entry = Call(book.GetSpellBookItemInfo, slot, bank)
                 if not Read(entry, "table") or not Number(entry.itemType) then complete = false
                 elseif entry.itemType == spellType then
@@ -167,6 +167,25 @@ function Buffs:Learned()
                         elseif known ~= false then complete = false end
                     end
                 end
+            end
+        end
+    end
+    for line = 1, count do
+        local info = Call(book.GetSpellBookSkillLineInfo, line)
+        if Read(info, "table") then ScanRange(info.itemIndexOffset, info.numSpellBookItems)
+        else complete = false end
+    end
+    -- Profession abilities have separate ranges outside the general tabs.
+    -- Match Blizzard_ProfessionsBook/Camelot; the five roster slots may be nil.
+    if type(GetProfessions) == "function" and type(GetProfessionInfo) == "function" then
+        local roster = { pcall(GetProfessions) }
+        if roster[1] then
+            for index = 2, 6 do
+                local profession = roster[index]
+                if ID(profession) then
+                    local ok, _, _, _, _, size, offset = pcall(GetProfessionInfo, profession)
+                    if ok then ScanRange(offset, size) else complete = false end
+                elseif not Suite.IsReadable(profession) or profession ~= nil then complete = false end
             end
         else complete = false end
     end
@@ -823,13 +842,13 @@ function Buffs:Apply()
                 elseif event == "UNIT_AURA" or event == "UNIT_FLAGS" or event == "UNIT_CONNECTION" or event == "UNIT_LEVEL" or event == "UNIT_INVENTORY_CHANGED" then
                     if Text(unit) and (unit == "player" or unit:match("^party%d+$") or unit:match("^raid%d+$")) then self:Queue() end
                 else
-                    if event == "SPELLS_CHANGED" or event == "SPELL_DATA_LOAD_RESULT" or event == "PLAYER_ENTERING_WORLD" then self.bookDirty = true end
+                    if event == "SPELLS_CHANGED" or event == "SKILL_LINES_CHANGED" or event == "SPELL_DATA_LOAD_RESULT" or event == "PLAYER_ENTERING_WORLD" then self.bookDirty = true end
                     if event == "BAG_UPDATE_DELAYED" or event == "ITEM_DATA_LOAD_RESULT" or event == "PLAYER_ENTERING_WORLD" then self.itemsDirty = true end
                     self:Queue()
                 end
             end)
         end
-        for _, event in ipairs({ "UNIT_AURA", "GROUP_ROSTER_UPDATE", "UNIT_CONNECTION", "UNIT_LEVEL", "PLAYER_LEVEL_UP", "SPELLS_CHANGED", "SPELL_DATA_LOAD_RESULT",
+        for _, event in ipairs({ "UNIT_AURA", "GROUP_ROSTER_UPDATE", "UNIT_CONNECTION", "UNIT_LEVEL", "PLAYER_LEVEL_UP", "SPELLS_CHANGED", "SKILL_LINES_CHANGED", "SPELL_DATA_LOAD_RESULT",
             "PLAYER_ENTERING_WORLD", "PLAYER_UPDATE_RESTING", "MINIMAP_UPDATE_TRACKING", "ZONE_CHANGED_NEW_AREA", "PLAYER_EQUIPMENT_CHANGED", "BAG_UPDATE_DELAYED", "ITEM_DATA_LOAD_RESULT",
             "UNIT_INVENTORY_CHANGED", "WEAPON_ENCHANT_CHANGED", "WEAPON_SLOT_CHANGED", "UNIT_FLAGS", "PLAYER_ALIVE", "PLAYER_UNGHOST",
             "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED" }) do

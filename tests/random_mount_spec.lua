@@ -9,20 +9,17 @@ SetCombat(false)
 MacroFrame:Hide()
 Suite.Print = function() end
 Suite.db.macroOwnership = {}
-macros:Initialize(nil)
-local entry
-for _, candidate in ipairs(macros:Entries()) do if candidate.recipe == "randomMount" then entry = candidate end end
-equal(entry ~= nil, true, "random mount is available alongside every class's shared recipes")
-local body, _, pending, ready = macros:Generate(entry, { incomplete = true })
-equal(body, "#showtooltip\n/stopmacro [combat]\n/wfs randommount", "mount recipe is independent of bag data and has a stable command")
-equal(pending, false, "mount recipe does not wait for consumable data")
-equal(ready, true, "mount macro can be created before riding is learned")
-local gui, oldSelected = Suite.GUI, Suite.GUI.macroSelected
-gui.macroSelected = entry; gui:RefreshMacros()
-equal(gui.macroChoose:IsShown(), false, "random mount has no inventory item picker")
-equal(gui.macroCombat:IsShown(), false, "random mount has no combat consumable option")
-equal(gui.macroSave:IsEnabled(), true, "random mount exposes the existing Create macro action")
-gui.macroSelected = oldSelected
+local entry = { recipe = "randomMount", name = "FS Random Mount", created = true }
+local body = "#showtooltip\n/stopmacro [combat]\n/wfs randommount"
+local index = 117
+local keptLegacy = Native()[index]
+Native()[index] = { name = entry.name, body = body }
+macros:Initialize({ entries = { entry } })
+equal(macros.byRecipe.randomMount, nil, "retired mount recipe cannot be created by the builder")
+for _, candidate in ipairs(macros:Entries()) do
+    equal(candidate.recipe ~= "randomMount", true, "saved mount recipes are removed from the builder on initialization")
+end
+equal(Native()[index].body, body, "retiring the recipe preserves the existing native macro")
 local ids, rows, available, calls, reads = {}, {}, {}, {}, 0
 C_MountJournal = {
     GetMountIDs = function() reads = reads + 1; return ids end,
@@ -48,9 +45,7 @@ math.random = function(count) equal(choice <= count, true, "random choice stays 
 local function Use() SlashCmdList.WOWFOREVERSUITE("randommount") end
 Use()
 equal(reads, 0, "uncreated recipe cannot summon or enumerate mounts")
-equal(macros:Save(entry), true, "Macros page can explicitly create the mount macro")
-local index = macros:Find(entry.name)
-equal(Native()[index].body, body, "created General macro retains its preview text")
+Suite.db.macroOwnership[entry.name] = body
 Use()
 equal(#calls, 0, "empty collection does not attempt a summon")
 equal(writes, 0, "empty collection does not change the icon")
@@ -141,6 +136,42 @@ Use(); equal(#calls, 3, "failed collection reads cannot trigger a summon")
 api.GetMountIDs = getter
 EditMacro = function() error("No edit") end
 Use(); equal(#calls, 3, "refused icon update does not claim a selected action")
+local function StatusCount()
+    local count = 0
+    for _ in pairs(macros.statuses) do count = count + 1 end
+    return count
+end
+local statusCount = StatusCount()
+for _ = 1, 10 do Use() end
+equal(StatusCount(), statusCount, "repeated legacy mount attempts retain only one status record")
+
+-- Native keybind uses the addon directly, even without a macro database or API.
+macros:Apply()
+local button = macros.mountButton
+local function Bind() button:GetScript("OnClick")(button, "LeftButton") end
+equal(button ~= nil, true, "mount binding target is initialized independently of automatic macro updates")
+equal(button:IsShown(), false, "mount binding needs no visible button")
+equal(_G["BINDING_NAME_CLICK WoWForeverSuiteMountButton:LeftButton"], "Random mount / dismount", "mount binding has a native settings label")
+Suite.macroDB = nil
+local macroInfo = GetMacroInfo
+GetMacroInfo = function() error("Binding must not read General macros") end
+EditMacro = nil
+MacroFrame:Show()
+local bindingReads, bindingWrites = reads, writes
+Bind()
+equal(#calls, 4, "keybind summons without any created macro, edit API or closed macro editor")
+equal(calls[4], 9, "keybind retains eligible collected mount selection")
+equal(writes, bindingWrites, "keybind never writes a macro icon")
+mounted = true; Bind()
+equal(dismounts, 3, "keybind dismounts independently of macro ownership")
+equal(reads, bindingReads + 1, "keybind dismount skips mount enumeration")
+SetCombat(true); Bind(); SetCombat(false)
+equal(dismounts, 3, "keybind does not dismount in combat")
+equal(reads, bindingReads + 1, "keybind does not query mounts in combat")
+mounted = false
+MacroFrame:Hide()
+GetMacroInfo = macroInfo
 EditMacro, math.random, C_MountJournal, Suite.Print = previous.edit, previous.random, previous.api, previous.print
 IsMounted, Dismount = previous.mounted, previous.dismount
 Suite.macroDB, Suite.db.macroOwnership = previous.db, previous.ownership
+Native()[index] = keptLegacy

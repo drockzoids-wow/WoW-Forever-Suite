@@ -97,7 +97,7 @@ Add("levelingBar", "Leveling tracker", "Leveling", { "UnitXP", "UnitXPMax" }, "l
 Add("trainingPlanner", "Training planner", "Training", { "C_Spell.GetSpellInfo" }, "trainingApply trainingOpen trainingView")
 Add("talentPlanner", "Talent planner", "TalentPlanner", { "C_Traits.GetTreeNodes", "C_Traits.GetNodeInfo" }, "talentPlanner")
 Add("manualMacros", "Macro Builder actions", "Macros", { "GetMacroInfo", "CreateMacro", "EditMacro" }, "", true)
-Add("randomMount", "Random mount recipe", "Macros", { "C_MountJournal.GetMountIDs", "C_MountJournal.GetMountInfoByID", "C_MountJournal.GetMountUsabilityByID", "C_MountJournal.SummonByID", "IsMounted", "Dismount", "EditMacro" }, "", true)
+Add("randomMount", "Random mount keybinding", "Macros", { "C_MountJournal.GetMountIDs", "C_MountJournal.GetMountInfoByID", "C_MountJournal.GetMountUsabilityByID", "C_MountJournal.SummonByID", "IsMounted", "Dismount" }, "mountBinding", true)
 Add("contactBook", "Standalone contact book", "Mail")
 for _, unit in ipairs({ "player", "target", "focus" }) do Add("castbars." .. unit .. ".enabled", unit .. " castbar sizing", "Castbars", {}, "castbars") end
 
@@ -208,7 +208,7 @@ function Support:State(entry, combat)
     end
     if combat == true and entry.combat then return "Paused", "This feature's actions or changes wait until combat ends." end
     if combat == nil and entry.combat then return "Unknown", "Combat state is unavailable; action readiness cannot be determined." end
-    if entry.key == "macroUpdates" or entry.key == "randomMount" or entry.key == "manualMacros" then
+    if entry.key == "macroUpdates" or entry.key == "manualMacros" then
         local visible = Visible("MacroFrame")
         if visible == nil then return "Unknown", "Native macro editor visibility is unreadable." end
         if visible then return "Paused", "Native macro editor is open; Suite preserves its edits." end
@@ -251,7 +251,7 @@ function Support:State(entry, combat)
         if not spells and not talents then return "Waiting", "Native talent window is not loaded; open it to initialize the planner." end
         if not Read(Field(module, "model"), "table") then return "Waiting", "Native talent data is not initialized; open the planner after it loads." end
     end
-    if entry.key == "randomMount" then return "Ready", "Capabilities present; requires an explicitly created, owned macro and usable collected mount." end
+    if entry.key == "randomMount" then return "Ready", "Capabilities present; assign Random mount / dismount in Keybindings → Forever Suite. Requires a usable collected mount." end
     return "Ready", #entry.requires > 0 and "Required functions present; context/data/permissions are not verified." or "Suite component loaded; native widget/context readiness is not probed."
 end
 
