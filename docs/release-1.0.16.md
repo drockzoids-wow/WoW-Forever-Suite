@@ -18,4 +18,12 @@ Native follow-up: record actual running build/Interface and /wfs status. Check t
 
 scripts/Package.ps1 produced dist/WoWForeverSuite-1.0.16.zip. All 101 non-directory entries match src/WoWForeverSuite by SHA256, with no extra, duplicate, missing or mismatched files. Development caches, tests, documentation and SavedVariables are excluded. ZIP SHA256: 9461E7D9DC4148D95CEF16DF37808ACA02BC1790E16BC35510091F5DEC2660A2.
 
-Publication receipts will be appended after execution.
+## Publication verified
+
+The user explicitly approves pushing the reviewed release commit to GitHub main and publishing v1.0.16 after the initial automatic approval review required specific default-branch authorization.
+
+Release commit eff38dd510295c185ceb39add7ecca86a40fcc1c passes [Addon checks 43577745508](https://github.com/drockzoids-wow/WoW-Forever-Suite/actions/runs/43577745508). The annotated v1.0.16 tag triggers [Package and Release 43577866793](https://github.com/drockzoids-wow/WoW-Forever-Suite/actions/runs/43577866793); job 132395974924 completes every step successfully, including repeated addon checks, tag/version matching, CurseForge authentication, addon-only archive comparison, upload and GitHub asset verification.
+
+Job logs record uploading WoWForeverSuite-v1.0.16-forever.zip as a 1.60.1 release to CurseForge project 1749120 at 2026-11-14T08:53:31Z, followed by Success at 08:53:32Z (November 14, 2026, 2:53 a.m. America/Chicago). Upload acceptance is verified; CurseForge moderation/public availability was not independently checked.
+
+[GitHub release v1.0.16](https://github.com/drockzoids-wow/WoW-Forever-Suite/releases/tag/v1.0.16) is published with release.json and WoWForeverSuite-v1.0.16-forever.zip in uploaded state. GitHub reports published ZIP SHA256 e5fd046302df751df441e09197cc033d8ab5105347fc77a27922e2184ad7db75. Local and packager archive hashes can differ because of line endings and archive metadata. Native test limitations remain as recorded above.
