@@ -2,6 +2,8 @@
 
 ## Full review and authorized 1.0.17 release — November 14, 2026
 
+Published v1.0.17 from a7d025c061847957434692cae4bcd9da4412e434: main and release CI pass, CurseForge accepts the upload, and GitHub assets are verified. [Publication receipts](release-1.0.17.md#publication-verified). Native smoke tests and CurseForge public moderation availability remain unverified.
+
 The user requests an addon-wide review and authorizes CurseForge publication, superseding the earlier no-release notes for the included changes. Review covers all 92 runtime Lua files through Lua 5.1 parsing, pinned build-70862 API/event/signature/global-write/duplicate-key scans, package/media/load-order inventory and the complete behavior suite, with focused manual inspection of every pending runtime diff and action/lifecycle boundaries. The 78 Lua test files are reachable from the entry point; 101 addon package inputs are accounted for. No detected duplicate literal keys, unknown directly registered literal events, too-short documented calls, unused local/function candidates or unreachable statements remain. Two existing capability-guarded MerchantKnown pet-journal fallbacks remain undocumented in the pinned source.
 
 Fix two review findings: SetUserWaypoint returns a success boolean, so a non-throwing false or unreadable result must not attach the previous native pin link; retained legacy mount execution must reuse one status key rather than accumulating an entry per press. Regression covers both. Include clickable coordinates and recent Tell recipients, the independent native mount keybinding and retired builder recipe, profession-only tracking discovery and compact silver talent badges. Core and both identical TOCs advance to 1.0.17.
