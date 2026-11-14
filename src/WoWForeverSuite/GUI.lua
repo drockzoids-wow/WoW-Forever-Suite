@@ -152,7 +152,7 @@ local pages = {
         { key = "missingBuffSelf", label = "My missing buffs", help = "Show learned group buffs you can cast on yourself." },
         { key = "missingBuffOutgoing", label = "Buff my party and raid", help = "Click to buff the first listed member missing your learned buff." },
         { key = "missingBuffIncoming", label = "Buffs my group can give me", help = "Show gold Group icons for relevant buffs a nearby teammate may provide.\nLeft-click an icon to request that buff in group chat; browsing never sends." },
-        { key = "missingBuffClass", label = "Class upkeep", help = "Aspects, armor, auras, shields, imbues and rogue poisons." },
+        { key = "missingBuffClass", label = "Self upkeep", help = "Aspects, armor, auras, shields, imbues, rogue poisons and learned tracking spells. Tracking reminders appear only outside combat." },
         { action = "buffPreview", label = "Preview position", help = "Drag the preview header. Closing settings ends the preview." },
         { action = "buffReset", label = "Reset bar position", help = "Restore the top-center position near breath and fatigue bars.\nCtrl+right-click its header also resets." },
         { action = "buffChoices", label = "Restore buff choices", help = "Undo hidden families, selected alternatives and chosen poisons." },

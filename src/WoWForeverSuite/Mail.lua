@@ -706,7 +706,7 @@ end
 
 function Mail:SelectContactTab(tab)
     if InCombatLockdown() or not self:GroupDefinitions()[tab] then return end
-    self.contactTab, self.page, self.selected, self.confirm = tab, 1, nil, nil
+    self.contactTab, self.page, self.selected = tab, 1, nil
     if self.book then
         self.book.tab, self.book.groupFilter, self.book.filter = tab:match("^custom:%d+$") and "all" or tab, tab:match("^custom:%d+$") and tab or nil, nil
         self.book.unassigned, self.book.page, self.book.confirm = false, 1, nil
@@ -737,7 +737,7 @@ function Mail:Choose(key)
         if field.ClearFocus then field:ClearFocus() end
         if Accessible(SendMailSubjectEditBox) and SendMailSubjectEditBox.SetFocus then SendMailSubjectEditBox:SetFocus() end
     end
-    self.selected, self.confirm = key, nil
+    self.selected = key
     self:Refresh()
     if chosen.incomplete then self:SetNotice("Choose a full name, then save.") end
 end
@@ -765,7 +765,7 @@ function Mail:SaveRecipient()
     local key = self:Store(name, ruleset, region, guid, class, level, faction)
     if not key then self:SetNotice("Character details are not available yet."); return end
     self.removed[key] = nil
-    self.selected, self.confirm = key, nil
+    self.selected = key
     self.query, self.page = "", 1
     local saved = self:Database()[key]
     self.contactTab = String(saved.guid, 128) and "alts" or "other"
@@ -787,34 +787,6 @@ end
 
 function Mail:SetNotice(message)
     if self.notice and not InCombatLockdown() then self.notice:SetText(message) end
-end
-
-function Mail:ConfirmRemove(key)
-    if not String(key, 200) or InCombatLockdown() or not Suite.db.mailHelper or not self.visit then return end
-    for _, entry in ipairs(self:List(true)) do if entry.key == key and entry.current then return end end
-    self.confirm = key
-    self:Refresh()
-end
-
-function Mail:RemoveConfirmed()
-    if InCombatLockdown() or not Suite.db.mailHelper or not self.visit or not self.confirm then return end
-    local key = self.confirm
-    local entries = self:Database()
-    local old = entries[key]
-    if Suite.IsReadable(old) and type(old) == "table" then
-        local normalized = Entry(old.name, old.ruleset, old.region, old.guid, old.class, old.level, old.faction, true)
-        if normalized then
-            local reference = Key(normalized.region, normalized.name, normalized.ruleset)
-            self.removed[reference] = true
-            for _, group in pairs(self:GroupDefinitions()) do
-                if Suite.IsReadable(group.contacts) and type(group.contacts) == "table" then group.contacts[reference] = nil end
-            end
-        end
-    end
-    entries[key], self.removed[key] = nil, true
-    if self.selected == key then self.selected = nil end
-    self.confirm = nil
-    self:Refresh()
 end
 
 -- Mailbox and standalone entry points share the same UIParent window.
@@ -1050,7 +1022,7 @@ end
 
 function Mail:EndVisit()
     self.visit, self.sendPending, self.pendingRecipient, self.lastRecipient = nil, nil, nil, nil
-    self.selected, self.confirm = nil, nil
+    self.selected = nil
     self.nameAttempts, self.guildEntries, self.guildLoaded, self.guildRequested = nil, nil, nil, nil
     self:Cancel()
     Suite.pending.mailRecipient = nil
@@ -1304,17 +1276,6 @@ function Mail:DeleteContact(key)
         end
     end
     return false
-end
-
-function Mail:Categories(unassigned)
-    local categories, seen = {}, {}
-    for _, entry in ipairs(self:List(true, "", nil, unassigned)) do
-        if entry.category and not seen[entry.category] then
-            seen[entry.category] = true; categories[#categories + 1] = entry.category
-        end
-    end
-    table.sort(categories)
-    return categories
 end
 
 function Mail:ChooseBookFilter()
@@ -1756,7 +1717,7 @@ function Mail:OpenBook(anchor, tab)
             Suite.pending.mailBook = nil
             if not self.visit then self.guildEntries = nil end
             for _, field in ipairs({ "search", "name", "notes" }) do book[field]:ClearFocus() end
-            book.confirm, self.confirm = nil, nil; book.remove.label:SetText("Remove")
+            book.confirm = nil; book.remove.label:SetText("Remove")
             if self.groupEditor then self.groupEditor.name:ClearFocus(); self.groupEditor.search:ClearFocus(); self.groupEditor.confirm = nil; self.groupEditor.frame:Hide() end
         end)
         self.frame, self.search, self.rows = window, book.search, book.rows

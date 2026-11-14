@@ -48,7 +48,7 @@ Setup.pages = {
         { key = "missingBuffSelf", label = "My missing buffs", help = "Show learned buffs you can cast on you.\nNeeds the Missing buff bar.", suggested = true },
         { key = "missingBuffOutgoing", label = "Buff party and raid", help = "Offer buffs your group is missing.\nCasting needs an outside-combat click.", suggested = true },
         { key = "missingBuffIncoming", label = "Group buffs for me", help = "Show buffs teammates could provide.\nOnly an icon click sends a request.", suggested = true },
-        { key = "missingBuffClass", label = "Class upkeep", help = "Aspects, armor, shields and poisons.\nNeeds the Missing buff bar.", suggested = true },
+        { key = "missingBuffClass", label = "Self upkeep", help = "Aspects, armor, shields, poisons and tracking.\nTracking reminders appear only outside combat.\nNeeds the Missing buff bar.", suggested = true },
         { key = "missingBuffExpiry", label = "Expiring buff warnings", help = "Warn before readable buffs expire.\nChoose warning times in Buffs.", suggested = false },
         { key = "missingBuffCombat", label = "Combat buff reminders", help = "Passive reminders for selected buffs.\nRefresh them from your action bar.", suggested = false },
         { key = "missingBuffWeapons", label = "Weapon coatings", help = "Remind you of selected oils and poisons.\nChoose supplies in Macros first.", suggested = false },

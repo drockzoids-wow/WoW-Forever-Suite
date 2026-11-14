@@ -377,8 +377,8 @@ function Planner:Render()
     if self.notice then self.status:SetText(self.notice) end
     if self.model.staged then self.status:SetText(self.status:GetText() .. "\nNative tree has uncommitted changes.") end
     if self.guiding and not self.preview then
-        self:RenderGuideMarks()
         local step, message = self:GuideStep()
+        self:RenderGuideMarks(nil, step)
         self.status:SetText(message or "Choose a saved build to follow.")
         self.ruleHint:SetText("+N: ranks to add • OK: matches • X: differs\nGold outline: next point. Use native Apply.")
         self:ShowGuideInstruction(step, message)
@@ -492,11 +492,25 @@ function Planner:ShowGuideInstruction(step, message, reference)
     self.guideInstruction:SetHeight(38); self.guideInstruction.caption:SetHeight(30)
     self.guideInstruction.caption:SetText(instruction); self.guideInstruction:Show()
 end
-function Planner:RenderGuideMarks(reference)
+function Planner:RenderGuideMarks(reference, nextStep)
     if InCombatLockdown() or not self:Ready() then return end
     local comparison = self:GuideComparison(reference)
     local host = self.model.host
     if not comparison or type(host.GetTalentButtonByNodeID) ~= "function" then return end
+    -- Fall back to the earliest missing point in the reference order even when
+    -- live guidance pauses for a mismatch or no points. This does not enable learning.
+    if not nextStep then
+        local build = reference or self:Current()
+        local order = build and (build.starter and self:CleanOrder(build.sequence)
+            or self:ValidateOrder(build.ranks, build.sequence) or self:BuildSequence(build.ranks, build.sequence))
+        for _, step in ipairs(order or {}) do
+            local value = comparison[step.node]
+            if value and value.kind == "planned" then
+                local actual = self.model.native[step.node]
+                if not actual or actual.rank < step.rank then nextStep = step; break end
+            end
+        end
+    end
     self.guideMarks = self.guideMarks or {}
     for id, value in pairs(comparison) do
         local ok, native = pcall(host.GetTalentButtonByNodeID, host, id)
@@ -512,9 +526,10 @@ function Planner:RenderGuideMarks(reference)
                     mark.caption = Label(mark, 12, 1, -3, "", 30)
                     mark.caption:SetJustifyH("CENTER"); mark.caption:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
                 end
-                local r, g, b = 0.65, 0.85, 0.9
-                if value.kind == "conflict" then r, g, b = 1, 0.3, 0.25
-                elseif value.kind == "complete" then r, g, b = 0.4, 0.9, 0.55 end
+                local r, g, b = 1, 0.3, 0.25
+                if value.kind == "complete" or (value.kind == "planned" and nextStep and nextStep.node == id) then
+                    r, g, b = 0.4, 0.9, 0.55
+                end
                 mark.caption:SetText(value.text); mark.caption:SetTextColor(r, g, b)
                 mark:SetBackdropBorderColor(r, g, b, 1)
                 mark:ClearAllPoints(); mark:SetPoint("TOPLEFT", native, "TOPRIGHT", 5, 0)

@@ -1,5 +1,21 @@
 # Forever Suite feature plan
 
+## Full review and authorized 1.0.16 release — November 14, 2026
+
+The user requests an addon-wide review and authorizes CurseForge publication if the review passes. Reviewed all 92 runtime Lua files with syntax, static API/global/duplicate/dead-code scans and the full behavior suite. Removed three unused Mail helpers (ConfirmRemove, RemoveConfirmed and Categories) plus obsolete self.confirm state; current book.confirm and DeleteContact remain the sole Contacts confirmation/deletion path. Updated regression cases to exercise the active UI and shared deletion logic. No new concrete release blocker was identified. Core and matching TOCs advance to 1.0.16 with the pending tracking reminders and talent-badge colors. Native permissions, appearance, input and combat/taint smoke tests remain pending; the existing UseContainerItem taint investigation is not claimed fixed.
+
+Final offline validation: node scripts/check-addon.cjs passes 92 Lua 5.1 files, identical TOCs/Core 1.0.16 and 46,381 substitute behavior assertions; all 11 separate gear-baseline tests and git diff --check pass. All 77 Lua test files are reachable from the test entry point. Static analysis against the pinned build-70862 documentation indexes 5,144 functions and finds no duplicate literal keys, unknown directly registered literal events or detected too-short documented calls. The two pre-existing, capability-guarded MerchantKnown pet-journal fallback APIs remain undocumented in that reference. Static and substitute checks do not prove native compatibility or taint safety.
+
+[Review and publication record](release-1.0.16.md). Earlier no-release notes describe historical feature work and are superseded by this publication request. No deployment, junction or real SavedVariables changes.
+
+## Talent comparison badge colors — November 13, 2026
+
+Color +N missing-rank badges green for the active NEXT talent and red otherwise. Without an actionable next step, default to the lowest-level unfilled talent in the reference leveling order, including passive full-build/level views, no available points and live talents spent out of order. No Learn this build click required. Preserve OK/X colors, existing level-reference outlines and learning safety checks; fallback color is informational. Native appearance retest pending.
+
+## Permanent tracking reminders — November 13, 2026
+
+Extend the optional buff bar with the character's learned castable tracking spells, such as Find Minerals, Find Herbs and Find Treasure. Discover them from the native tracking list and spellbook, use native active state, and show a clickable reminder when inactive, including after resurrection. Put individual Track checkboxes in the existing buff list under the Self upkeep preference. Respect hidden choices, rested/campfire suppression and the master default-off switch. These reminders are self-only and appear exclusively out of combat, regardless of the combat-reminder preference. No automatic casts or idle polling. Offline regression passes; actual client behavior remains pending. No release or deployment action.
+
 ## Authorized 1.0.15 release — November 13, 2026
 
 Published v1.0.15 from 83e929a8f1735573eb25bb51a4e1658a8cf114e5: main and release CI pass, CurseForge accepts the upload, and GitHub assets are verified. [Publication receipts](release-1.0.15.md#publication-verified). Native smoke tests and CurseForge public moderation availability remain unverified.

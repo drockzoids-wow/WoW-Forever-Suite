@@ -144,7 +144,7 @@ function Extra:Prepare()
         if class then
             for _, family in ipairs(buffs:Families(class, buffs.learned or {})) do
                 local catalog = family.catalog
-                if family.spell and (catalog.combat or catalog.weapon) and not catalog.custom
+                if family.spell and (catalog.combat or catalog.weapon) and not catalog.custom and not catalog.outOfCombatOnly
                     and ((not catalog.group or catalog.upkeep) and Suite.db.missingBuffClass or catalog.group and Suite.db.missingBuffSelf or catalog.group and Suite.db.missingBuffOutgoing) then
                     self.watches[#self.watches + 1] = family
                     if catalog.weapon then family.weaponID = Call(GetInventoryItemID, "player", 16) end

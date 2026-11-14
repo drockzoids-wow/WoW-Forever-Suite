@@ -1,5 +1,12 @@
 # Forever Suite
 
+## 1.0.16 — November 14, 2026
+
+- Add learned tracking spells such as Find Minerals, Find Herbs and Find Treasure to the optional Missing Buffs bar. Use native tracking state, offer individual Track choices under Self upkeep, and show these reminders only outside combat. Casting remains manual.
+- Color missing-rank talent badges green for the next reference talent and red for other planned talents. Passive comparisons use the earliest unfilled point in the reference order; learning and purchase checks remain unchanged.
+- Remove obsolete Contacts category and deletion helpers and their unused confirmation state. Exercise the current confirmation and shared deletion path in regression checks.
+- Offline checks pass: 92 Lua 5.1 files, matching TOCs, 46,381 behavior assertions and all 11 gear-baseline tests. Native appearance, input and combat/taint smoke tests remain pending. The existing bag-use taint investigation remains open.
+
 ## 1.0.15 — November 13, 2026
 
 - Expand food and drink macro detection with 345 reviewed direct-use candidates, including Forever consumables, edible raw fish and quest food. Recognize decimal restoration, restorative Well Fed drinks, heals-damage wording and direct health/mana percentages. Preserve native usability checks, explicit choices, XP-food priority and macro ownership safeguards; exclude deployable feasts and equipped gear from recovery macros.

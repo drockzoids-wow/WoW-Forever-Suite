@@ -84,7 +84,7 @@ function Combat:Descriptors()
     if not player then return descriptors end
     if buffs.bookDirty then buffs.learned, buffs.learnedComplete = buffs:Learned(); buffs.bookDirty = false end
     for _, family in ipairs(buffs:Families(player.class, buffs.learned or {})) do
-        if family.spell and not family.catalog.weapon then
+        if family.spell and not family.catalog.weapon and not family.catalog.outOfCombatOnly then
             local descriptor = { key = family.key, family = family, spell = family.spell, members = {} }
             for _, member in ipairs(roster) do
                 local personal = not family.catalog.group or family.catalog.upkeep

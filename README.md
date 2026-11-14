@@ -6,11 +6,11 @@
 
 **Gear profiles:** `/wfs gear` → **Upgrades → Comparison profile** offers manual class specs alongside existing roles/custom weights. The expanded editor includes hit, crit, haste, expertise, defenses, penetration and school/resistance weights. Existing custom weights and active choices are preserved; Automatic keeps its previous behavior. Spec starters are editable preferences rather than simulated output gains. School bonuses currently require English tooltips. See [gear modeling](docs/gear-modeling.md) for supported stats and native-validation limits.
 
-**Current source: 1.0.15.** This release expands food/drink macro detection, improves delayed bank snapshot recovery, adds saved profession skills and independently collapsible guide sections, offers optional account-money tooltips on bag coins, and adds a Disenchant hover glow. See the [release notes](docs/release-1.0.15.md).
+**Current source: 1.0.16.** This release adds optional learned tracking reminders, clarifies next-talent badge colors and removes obsolete Contacts helpers after a full offline review. See the [release notes](docs/release-1.0.16.md).
 
 **Training Planner** has per-character pins and a wishlist cost estimate (`/wfs wishlist`). **Tools → Supply Checklist** (`/wfs checklist`) accepts item drops into its editor, IDs or pasted links; choose a quantity and explicitly **Save target**. Hover rows for native item details. Optional carried-stock tracking starts off; tooltips and targets work independently. **Mail → Mail Deadlines** optionally records mailbox deadlines and reminds at login (`/wfs maildeadlines`). Both tracking switches start off. **Suite Settings → What's New** links to recent additions (`/wfs whatsnew`).
 
-**Validation:** 92 Lua files pass Lua 5.1 syntax checks, both TOCs match and 46,294 substitute behavior assertions pass. All 11 separate gear-baseline tests pass. Native appearance, input, refresh behavior and combat/taint checks remain pending in the [in-game test guide](docs/testing.md). See the [1.0.15 changes](CHANGELOG.md#1015--november-13-2026) and [release review](docs/release-1.0.15.md).
+**Validation:** 92 Lua files pass Lua 5.1 syntax checks, both TOCs match and 46,381 substitute behavior assertions pass. All 11 separate gear-baseline tests pass. Native appearance, input, refresh behavior and combat/taint checks remain pending in the [in-game test guide](docs/testing.md). See the [1.0.16 changes](CHANGELOG.md#1016--november-14-2026) and [release review](docs/release-1.0.16.md).
 
 Optional **Ability proc popups** are under `/wfs actionbars` → **Ability Proc Popups**. Native highlighted class procs and supported reactive skills such as Overpower show a passive spell icon/name during combat. Use **Preview proc popups** outside combat to drag them into place. The feature starts off; cast through your normal keybind/action bar. Native class coverage and appearance still need in-game testing.
 
@@ -24,7 +24,7 @@ Drag the settings window past screen edges to get it out of the way of previews.
 
 **Known vendor items:** enable `/wfs vendor` → **Known Items → Highlight already-known vendor items** for green highlights/checkmarks on learned recipes and collected items. Ordinary items in your bags do not count as learned. Missing data remains unmarked. This feature starts off and does not enable vendor automation. See the [smoke test](docs/testing.md#known-vendor-items---02102).
 
-The official source is **C:\Games\Development\GitHub Repos\WoW Forever Suite** (user-selected October 25, 2026). After restarting with this source, the footer should show **1.0.15**. The readable journey journal, default training catalog, vendor highlights and existing optional tools remain available.
+The official source is **C:\Games\Development\GitHub Repos\WoW Forever Suite** (user-selected October 25, 2026). After restarting with this source, the footer should show **1.0.16**. The readable journey journal, default training catalog, vendor highlights and existing optional tools remain available.
 
 Open /wfs leveling > **Session journal** for six labeled cards and **Summary, Loot, Reputation, Levels and History**. New tracking adds deaths, loot estimates, ordinary reputation, level milestones and confirmed Suite sales/repairs. Old XP/gold/time remains; details not collected earlier show **Not recorded**. No EverCore history is imported. See the [smoke checklist](docs/testing.md#readable-journal-and-default-training-catalog---02103-october-22-2026).
 

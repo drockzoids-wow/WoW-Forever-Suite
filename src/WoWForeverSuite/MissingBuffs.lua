@@ -41,6 +41,10 @@ function Buffs:InitializeChoices(value, custom)
         if Number(chosen) and chosen == 0 then result[key] = 0
         elseif ID(chosen) then result[key] = chosen end
     end
+    -- Keep individual tracking opt-outs even before the native list has loaded.
+    for key, chosen in pairs(value) do
+        if Text(key) and key:match("^TRACKING:%d+$") and Number(chosen) and chosen == 0 then result[key] = 0 end
+    end
     for _, record in ipairs(Suite.BuffReminders:Custom(custom)) do
         local key = "CUSTOM:" .. record.id
         if Number(value[key]) and value[key] == 0 then result[key] = 0 end
@@ -169,6 +173,30 @@ function Buffs:Learned()
     return byName, complete
 end
 
+function Buffs:TrackingFamilies(learned)
+    local families = {}
+    if InCombatLockdown() or not C_Minimap then return families end
+    local count = Call(C_Minimap.GetNumTrackingTypes)
+    if not Number(count) or count < 0 or count > 256 or count % 1 ~= 0 then return families end
+    local seen = {}
+    for index = 1, count do
+        local info = Call(C_Minimap.GetTrackingInfo, index)
+        if Read(info, "table") and ID(info.spellID) and Text(info.name) and Read(info.active, "boolean") then
+            local spell = learned[info.name]
+            -- Exclude service filters, unlearned spells and passive abilities.
+            if spell and spell.id == info.spellID and not seen[spell.id] then
+                seen[spell.id] = true
+                local key = "TRACKING:" .. spell.id
+                families[#families + 1] = { key = key,
+                    catalog = { key = key, roots = { spell.id }, tracking = true, outOfCombatOnly = true, active = info.active },
+                    names = { [spell.name] = true }, ids = { [spell.id] = true }, choices = { spell },
+                    spell = Suite.db.missingBuffChoices[key] ~= 0 and spell or nil }
+            end
+        end
+    end
+    return families
+end
+
 function Buffs:Families(class, learned)
     local families = {}
     for _, catalog in ipairs(Suite.BuffCatalog) do
@@ -202,6 +230,9 @@ function Buffs:Families(class, learned)
             families[#families + 1] = family
         end
     end
+    if class == Class("player") then
+        for _, family in ipairs(self:TrackingFamilies(learned)) do families[#families + 1] = family end
+    end
     Suite.BuffReminders:AppendCustom(families, learned)
     return families
 end
@@ -224,7 +255,7 @@ function Buffs:Recipient(family,class)
     family.recipients = family.recipients or {}
     if family.recipients[class] then return family.recipients[class] end
     local result={key=family.key,catalog=family.catalog,names={},ids={},choices={}}
-    if family.catalog.custom then return family end
+    if family.catalog.custom or family.catalog.tracking then return family end
     for index,root in ipairs(family.catalog.roots) do
         if self:Relevant(family.catalog,class,root) then
             result.ids[root]=true
@@ -256,6 +287,7 @@ function Buffs:DisplayOptions(db)
 end
 
 function Buffs:Present(family, auras, expiry)
+    if family.catalog.tracking then return family.catalog.active end
     if not auras then return nil end
     if expiry and Suite.db.missingBuffExpiry and auras.records then return Suite.BuffReminders:Presence(family, auras) end
     for name in pairs(family.names) do if auras.names[name] then return true end end
@@ -798,7 +830,7 @@ function Buffs:Apply()
             end)
         end
         for _, event in ipairs({ "UNIT_AURA", "GROUP_ROSTER_UPDATE", "UNIT_CONNECTION", "UNIT_LEVEL", "PLAYER_LEVEL_UP", "SPELLS_CHANGED", "SPELL_DATA_LOAD_RESULT",
-            "PLAYER_ENTERING_WORLD", "PLAYER_UPDATE_RESTING", "ZONE_CHANGED_NEW_AREA", "PLAYER_EQUIPMENT_CHANGED", "BAG_UPDATE_DELAYED", "ITEM_DATA_LOAD_RESULT",
+            "PLAYER_ENTERING_WORLD", "PLAYER_UPDATE_RESTING", "MINIMAP_UPDATE_TRACKING", "ZONE_CHANGED_NEW_AREA", "PLAYER_EQUIPMENT_CHANGED", "BAG_UPDATE_DELAYED", "ITEM_DATA_LOAD_RESULT",
             "UNIT_INVENTORY_CHANGED", "WEAPON_ENCHANT_CHANGED", "WEAPON_SLOT_CHANGED", "UNIT_FLAGS", "PLAYER_ALIVE", "PLAYER_UNGHOST",
             "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED" }) do
             if C_EventUtils and type(C_EventUtils.IsEventValid) == "function" then

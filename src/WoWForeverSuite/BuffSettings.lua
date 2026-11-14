@@ -153,7 +153,7 @@ function View:Build()
     Setting(general,"missingBuffExpiry","Warn before buffs expire",396,-64)
     Setting(general,"missingBuffSelf","My buffs",0,-100)
     Setting(general,"missingBuffOutgoing","Party / raid buffs I can cast",396,-100)
-    Setting(general,"missingBuffClass","Class upkeep (armor, shields, poisons)",0,-136)
+    Setting(general,"missingBuffClass","Self upkeep (armor, shields, tracking)",0,-136)
     self.appearanceToggle=Button(panel,"Appearance",0,0,780,function()
         self.appearanceOpen=not self.appearanceOpen
         if not self.appearanceOpen then Buffs:SetPreview(false);if Suite.CombatBuffs then Suite.CombatBuffs:SetPreview(false) end end
@@ -313,6 +313,14 @@ function View:FamilyRows(book)
             rows[#rows+1]={key=key,name=name,icon=spell and spell.icon or 134400,hidden=hidden,family=family,class=catalog.class,mine=catalog.class==class}
         end
     end
+    for _,family in ipairs(Buffs:TrackingFamilies(book)) do
+        local spell=family.choices[1]
+        local hidden=Suite.db.missingBuffChoices[family.key]==0
+        if (self.filter~="hidden" or hidden) and spell.name:lower():find((self.choiceQuery or ""):lower(),1,true) then
+            rows[#rows+1]={key=family.key,name=spell.name,icon=spell.icon,hidden=hidden,
+                family=family,class="Tracking",mine=true}
+        end
+    end
     for _,record in ipairs(Suite.db.missingBuffCustom) do
         local key="CUSTOM:"..record.id;local spell=Buffs:Spell(record.id)
         if spell and (self.filter~="hidden" or Suite.db.missingBuffChoices[key]==0)
@@ -370,10 +378,11 @@ function View:Refresh()
                     local reason="Tracked"
                     if record.mine and catalog then
                         if not record.family.spell then reason="Not learned"
-                        elseif (not catalog.group or catalog.upkeep) and not Suite.db.missingBuffClass then reason="Class upkeep is off"
+                        elseif (not catalog.group or catalog.upkeep) and not Suite.db.missingBuffClass then reason="Self upkeep is off"
                         elseif catalog.group and not catalog.upkeep and not Suite.db.missingBuffSelf then
                             reason=Suite.db.missingBuffOutgoing and "Party / raid only" or "My buffs and party / raid are off"
-                        elseif catalog.combatOnly then reason="Combat only" end
+                        elseif catalog.combatOnly then reason="Combat only"
+                        elseif catalog.outOfCombatOnly then reason="Out of combat only" end
                     end
                     if catalog and catalog.combatOnly and not Suite.db.missingBuffCombat then reason="Combat reminders off" end
                     if not Suite.db.missingBuffs then reason="Reminders off" end

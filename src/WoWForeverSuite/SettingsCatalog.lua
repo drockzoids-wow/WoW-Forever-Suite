@@ -111,7 +111,7 @@ local synonyms = { characterDashboard = "recorded characters dashboard alts mone
     buffAppearance = "scale icon size header movement preview position", missingBuffExpiry = "expiry expiring duration refresh timer",
     missingBuffCombat = "combat shout thorns lightning shield righteous fury reminders",
     missingBuffWeapons = "weapon coating oil stone poison mainhand offhand",
-    bagSpaceReset = "blacklist protect trash items", preset = "weights upgrades role spec specialization feral cat bear fury frost automatic class character profile custom", weights = "editable custom stat weights score breakdown tooltip details hit crit haste expertise dodge parry block school spell resistance", scorePreset = "weights upgrades role spec", missingBuffClass = "poison imbue aspect upkeep" }
+    bagSpaceReset = "blacklist protect trash items", preset = "weights upgrades role spec specialization feral cat bear fury frost automatic class character profile custom", weights = "editable custom stat weights score breakdown tooltip details hit crit haste expertise dodge parry block school spell resistance", scorePreset = "weights upgrades role spec", missingBuffClass = "poison imbue aspect upkeep tracking find minerals herbs treasure permanent" }
 
 function Catalog:Configure(pages)
     self.pages, self.pageGroup, self.labels, self.entries = pages, {}, {}, {}

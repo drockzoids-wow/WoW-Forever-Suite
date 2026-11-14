@@ -669,6 +669,7 @@ equal(step,nil,"live choice outside the plan pauses guidance")
 equal(message:find("differ",1,true)~=nil,true,"guide explains live-build mismatches")
 equal(planner.guideMarks[102].caption:GetText(),"X","wrong live choice identifies the conflicting talent")
 equal(planner.guideMarks[101]:IsShown(),true,"a mismatch does not hide other planned talents")
+equal(planner.guideMarks[nextPlanned.node].caption.textColor[1],0.4,"a conflicting live talent still highlights the earliest missing planned rank green")
 Live(102,0);activeConfig=999;planner:Refresh();step,message=planner:GuideStep()
 equal(step,nil,"inactive spec cannot receive guide highlights")
 equal(message:find("active spec",1,true)~=nil,true,"inactive spec pause is explained")
@@ -678,6 +679,7 @@ equal(planner.guideHighlight:IsShown(),false,"unavailable native permission hide
 canPurchase=true;unspent,spent=0,1;planner:Refresh();step,message=planner:GuideStep()
 equal(step,nil,"guide waits when no native talent points remain")
 equal(message:find("Earn another",1,true)~=nil,true,"point shortage is explained without guessing future levels")
+equal(planner.guideMarks[nextPlanned.node].caption.textColor[1],0.4,"no available points still leaves the earliest missing planned rank green")
 Live(101,5);Live(102,2,202);Live(103,2);unspent,spent=0,9;planner:Refresh();step,message=planner:GuideStep()
 equal(step,nil,"completed build has no extra proposed point")
 equal(message:find("All 9",1,true)~=nil,true,"guide reports matching live completion")
@@ -841,6 +843,22 @@ for token, data in pairs(planner.starters) do
     planner:Render()
     equal(planner.guideMarks[full.sequence[51].node]:IsShown(),true,token.." persistent full plan shows future-rank markers with Builds closed")
     equal(planner.guideHighlight.label:GetText(),"LEVEL 60",token.." persistent starter always highlights the full plan")
+    equal(planner.guideMarks[full.sequence[1].node].caption.textColor[1],0.4,token.." passive full build colors its first missing talent green without learning")
+    local firstReference=full.sequence[1]
+    model.native[firstReference.node]={entry=firstReference.entry,rank=full.ranks[firstReference.node].rank}
+    planner:Render()
+    local nextReference
+    for _, point in ipairs(full.sequence) do
+        if point.node~=firstReference.node then nextReference=point;break end
+    end
+    equal(planner.guideMarks[nextReference.node].caption.textColor[1],0.4,token.." passive green badge advances after learned ranks")
+    equal(planner.guiding,false,token.." passive next badge never starts the learning guide")
+    model.native[firstReference.node]=nil;planner:Render()
+    equal(planner.guideMarks[nextReference.node].caption.textColor[1],1,token.." passive refresh clears the previous next badge back to red")
+    model.native[nextReference.node]={entry=nextReference.entry,rank=1}
+    planner:Render()
+    equal(planner.guideMarks[firstReference.node].caption.textColor[1],0.4,token.." spending a later point cannot skip the lowest-level unfilled talent")
+    model.native[nextReference.node]=nil;planner:Render()
     equal(planner.panel:IsShown(),false,token.." persistent comparison does not open Builds")
     equal(planner.overlay:IsShown(),false,token.." persistent comparison leaves native talent input available")
     equal(planner.footer:IsShown(),false,token.." persistent comparison leaves native Apply controls available")

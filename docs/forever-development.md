@@ -1,5 +1,23 @@
 # WoW Forever addon development reference
 
+## Full review and authorized 1.0.16 release — November 14, 2026
+
+The user requests an addon-wide review and authorizes CurseForge publication if the review passes. Reviewed all 92 runtime Lua files with syntax, static API/global/duplicate/dead-code scans and the full behavior suite. Removed three unused Mail helpers (ConfirmRemove, RemoveConfirmed and Categories) plus obsolete self.confirm state; current book.confirm and DeleteContact remain the sole Contacts confirmation/deletion path. Updated regression cases to exercise the active UI and shared deletion logic. No new concrete release blocker was identified. Core and matching TOCs advance to 1.0.16 with the pending tracking reminders and talent-badge colors. Native permissions, appearance, input and combat/taint smoke tests remain pending; the existing UseContainerItem taint investigation is not claimed fixed.
+
+Final offline validation: node scripts/check-addon.cjs passes 92 Lua 5.1 files, identical TOCs/Core 1.0.16 and 46,381 substitute behavior assertions; all 11 separate gear-baseline tests and git diff --check pass. All 77 Lua test files are reachable from the test entry point. Static analysis against the pinned build-70862 documentation indexes 5,144 functions and finds no duplicate literal keys, unknown directly registered literal events or detected too-short documented calls. The two pre-existing, capability-guarded MerchantKnown pet-journal fallback APIs remain undocumented in that reference. Static and substitute checks do not prove native compatibility or taint safety.
+
+[Review and publication record](release-1.0.16.md). Earlier no-release notes describe historical feature work and are superseded by this publication request. No deployment, junction or real SavedVariables changes.
+
+## Talent comparison badge colors — November 13, 2026
+
+Missing-rank +N badges use green for the active learning guide's NEXT talent and red for other planned talents. When no actionable GuideStep exists, including passive full-build/level views, fall back to the earliest unfilled point in the reference leveling order. Later spending, live mismatches and unavailable points must not skip an earlier missing talent. Color is informational and never overrides learning/purchase checks. Recompute from current native ranks; preserve LEVEL N milestone outlines, green OK and red X badges, click-through input and manual native learning. Passive coloring never starts the guide or spends points. Native appearance remains pending; no version or deployment changes.
+
+## Permanent tracking reminders — November 13, 2026
+
+Add learned castable tracking spells to the existing optional Missing Buffs bar, including Find Minerals, Find Herbs and Find Treasure when the client exposes them. Use the pinned build-70862 MinimapDocumentation.lua contract: C_Minimap.GetNumTrackingTypes / GetTrackingInfo return spellID, localized name and boolean active. Intersect native records with the guarded non-passive learned spellbook; exclude service filters and unavailable/unreadable states. Native tracking state establishes presence independently of aura visibility. No guessed spell list or automatic casts.
+
+Tracking is self-only and explicitly out-of-combat-only, including when combat reminders are enabled; exclude it from native combat descriptors and legacy watches. Reuse Self upkeep (existing missingBuffClass preference), normal location/death suppression and secure manual spell clicks. Individual Track opt-outs use TRACKING:spellID and survive initialization before discovery. Native tracking events coalesce through the existing cancellable queue; existing resurrection events restore lost reminders. No polling, version/release/deployment/junction or real SavedVariables changes. Offline checks pass; native detection, rendering, persistence and taint remain pending in testing.md.
+
 ## Authorized 1.0.15 release — November 13, 2026
 
 Published v1.0.15 from 83e929a8f1735573eb25bb51a4e1658a8cf114e5: main and release CI pass, CurseForge accepts the upload, and GitHub assets are verified. [Publication receipts](release-1.0.15.md#publication-verified). Native smoke tests and CurseForge public moderation availability remain unverified.

@@ -1,6 +1,6 @@
 local Suite, equal, Frame, SetCombat = ...
 local buffs, oldDB, oldPending = Suite.MissingBuffs, Suite.db, Suite.pending
-local names = { "CreateFrame", "RegisterStateDriver", "C_Timer", "C_Spell", "C_SpellBook", "C_UnitAuras", "C_Secrets", "C_Item", "C_EventUtils", "C_ChatInfo", "Enum",
+local names = { "CreateFrame", "RegisterStateDriver", "C_Timer", "C_Spell", "C_SpellBook", "C_UnitAuras", "C_Secrets", "C_Item", "C_EventUtils", "C_ChatInfo", "C_Minimap", "Enum",
     "UnitExists", "UnitIsConnected", "UnitIsVisible", "UnitIsDeadOrGhost", "UnitCanAssist", "UnitGUID", "UnitName", "UnitClass", "UnitLevel",
     "UnitInParty", "IsInRaid", "IsInGroup", "LE_PARTY_CATEGORY_HOME", "LE_PARTY_CATEGORY_INSTANCE", "GetTime",
     "GetNumGroupMembers", "GetNumSubgroupMembers", "IsResting", "GetInventoryItemID", "C_PaperDollInfo", "UnitIsUnit" }
@@ -1220,6 +1220,75 @@ do
     enchants[0], enchants[1] = prior.mainEnchant, prior.offEnchant
     Suite.db.missingBuffCombat, Suite.db.missingBuffClass, Suite.db.missingBuffWeapons = prior.combat, prior.classEnabled, prior.coatings
     buffs.bookDirty, buffs.itemsDirty = true, true; buffs:Refresh()
+end
+
+do
+    local priorLearned, priorClass = learned, units.player.class
+    local priorUpkeep, priorCombat = Suite.db.missingBuffClass, Suite.db.missingBuffCombat
+    local priorTracking = C_Minimap
+    Spell(2580, "Find Minerals"); Spell(2383, "Find Herbs"); Spell(2481, "Find Treasure")
+    learned, units.player.class = {2580,2383,2481}, "WARRIOR"
+    Suite.db.missingBuffClass, Suite.db.missingBuffCombat = true, true
+    local tracking = {
+        {spellID=2580,name="Find Minerals",active=false},
+        {spellID=2383,name="Find Herbs",active=true},
+        {spellID=2481,name="Find Treasure",active=false},
+        {name="Repair",active=false},
+        {spellID=9999,name="Unlearned tracking",active=false},
+    }
+    C_Minimap = {
+        GetNumTrackingTypes=function() assert(not InCombatLockdown(),"tracking metadata is never read in combat");return #tracking end,
+        GetTrackingInfo=function(index) return tracking[index] end,
+    }
+    buffs.bookDirty=true;buffs:Refresh()
+    equal(buffs.events.registered.MINIMAP_UPDATE_TRACKING,true,"native tracking changes refresh normal reminders")
+    local entry,button=Find("self","TRACKING:2580")
+    equal(entry~=nil,true,"inactive learned permanent tracking is missing")
+    equal(button.attributes.spell1,2580,"tracking reminder casts its learned spell on click")
+    equal(Find("self","TRACKING:2383"),nil,"active tracking needs no aura to suppress its reminder")
+    equal(Find("self","TRACKING:2481")~=nil,true,"racial tracking works on any class")
+    equal(#buffs:TrackingFamilies(buffs.learned),3,"service filters and unlearned tracking are excluded")
+    local priorFilter,priorQuery=Suite.BuffSettings.filter,Suite.BuffSettings.choiceQuery
+    Suite.BuffSettings.filter,Suite.BuffSettings.choiceQuery="mine",""
+    local rows=Suite.BuffSettings:FamilyRows(buffs.learned)
+    Suite.BuffSettings.filter,Suite.BuffSettings.choiceQuery=priorFilter,priorQuery
+    local row
+    for _,record in ipairs(rows) do if record.key=="TRACKING:2580" then row=record end end
+    equal(row and row.mine,true,"tracking is available in the My class buff choices")
+    Suite.db.missingBuffChoices["TRACKING:2481"]=0
+    equal(buffs:InitializeChoices(Suite.db.missingBuffChoices)["TRACKING:2481"],0,"tracking opt-outs survive initialization before native discovery")
+    buffs:Refresh();equal(Find("self","TRACKING:2481"),nil,"individual tracking opt-out hides reminder")
+    tracking[1].active=true
+    buffs.events:OnEvent("MINIMAP_UPDATE_TRACKING");Flush()
+    equal(Find("self","TRACKING:2580"),nil,"native tracking activation removes reminder")
+    units.player.dead=true;tracking[1].active=false;buffs:Refresh()
+    equal(Find("self","TRACKING:2580"),nil,"dead characters have no tracking reminder")
+    units.player.dead=false;buffs.events:OnEvent("PLAYER_ALIVE");Flush()
+    equal(Find("self","TRACKING:2580")~=nil,true,"reviving restores the reminder for lost permanent tracking")
+    tracking[1].active=secret;buffs:Refresh()
+    equal(Find("self","TRACKING:2580"),nil,"unreadable tracking state never authorizes a reminder")
+    tracking[1].active=false
+    Suite.db.missingBuffClass=false;buffs:Refresh()
+    equal(Find("self","TRACKING:2580"),nil,"tracking respects the self upkeep switch")
+    Suite.db.missingBuffClass=true;buffs:Refresh()
+    for _,descriptor in ipairs(Suite.CombatBuffs:Descriptors()) do
+        equal(descriptor.family.catalog.tracking,nil,"tracking never occupies native combat reminder slots")
+    end
+    Suite.BuffReminders:Prepare()
+    for _,family in ipairs(Suite.BuffReminders.watches or {}) do
+        equal(family.catalog.tracking,nil,"tracking never enters combat watches")
+    end
+    SetCombat(true)
+    equal(#buffs:Collect(),0,"tracking is absent during combat even with combat reminders enabled")
+    equal(#buffs:TrackingFamilies(buffs.learned),0,"combat performs no native tracking reads")
+    SetCombat(false)
+    C_Minimap=nil;buffs:Refresh()
+    equal(Find("self","TRACKING:2580"),nil,"missing tracking API cannot produce a false missing reminder")
+    C_Minimap=priorTracking
+    Suite.db.missingBuffChoices["TRACKING:2481"]=nil
+    Suite.db.missingBuffClass,Suite.db.missingBuffCombat=priorUpkeep,priorCombat
+    learned,units.player.class=priorLearned,priorClass
+    buffs.bookDirty=true;buffs:Refresh()
 end
 
 SlashCmdList.WOWFOREVERSUITE("buffs")
