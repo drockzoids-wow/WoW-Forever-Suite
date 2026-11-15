@@ -259,7 +259,7 @@ end
 gear:Dismiss()
 
 -- Main-page menus retain draft protection and inline editor ownership.
-local ChooseMenu=assert(loadfile("tests/menu_helper.lua"))()
+local ChooseMenu=assert(loadfile("tests/menu_helper.lua"))(Suite)
 gui:OpenPage("items")
 ChooseMenu(function() gui:Action("preset",gui.rows[6]) end,"Healer")
 equal(scoring:ActiveID(),"healer","comparison profile can be selected from the main page menu")

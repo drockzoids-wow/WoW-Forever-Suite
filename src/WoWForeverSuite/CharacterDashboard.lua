@@ -196,11 +196,8 @@ function Dashboard:Build(parent)
     self.rosterPanel = panel
     self.viewTabs = {}
     for index, entry in ipairs({ { "characters", "Characters" }, { "inventory", "Inventory" } }) do
-        local tab = CreateFrame("Button", nil, root, "BackdropTemplate")
-        Suite.Theme:ButtonFeedback(tab)
+        local tab = Suite.Theme:ActionButton(root, entry[2], 384, 28)
         tab:SetPoint("TOPLEFT", (index - 1) * 396, 0); tab:SetSize(384, 28)
-        tab:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" })
-        tab.label = Label(tab, 11, teal, 10, -8, 364); tab.label:SetText(entry[2])
         local key = entry[1]; tab:SetScript("OnClick", function() self:SetView(key) end)
         self.viewTabs[key] = tab
     end
@@ -217,12 +214,9 @@ function Dashboard:Build(parent)
     search:SetScript("OnEscapePressed", function(box) box:SetText(""); box:ClearFocus() end)
     search:SetScript("OnEnterPressed", function(box) box:ClearFocus() end)
     local function Button(x, y, width, text, callback)
-        local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
-        Suite.Theme:ButtonFeedback(button)
-        button:SetSize(width, 26); button:SetPoint("TOPLEFT", x, y)
-        button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" }); button:SetBackdropColor(0.1, 0.2, 0.21)
-        button.label = Label(button, 11, teal, 8, -7, width - 16); button.label:SetText(text)
-        button:SetScript("OnClick", callback); return button
+        local button = Suite.Theme:ActionButton(panel, text, width, 28, callback)
+        button:SetPoint("TOPLEFT", x, y)
+        return button
     end
     self.sortButton = Button(596, 0, 184, "Sort: Name", function()
         self.sort = ({ name = "money", money = "level", level = "at", at = "name" })[self.sort] or "name"

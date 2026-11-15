@@ -141,7 +141,7 @@ function Deposit:Discover()
         self.hookedFrame = BankFrame
     end
     if not self.button then
-        self.button = CreateFrame("Button", nil, BankFrame, "UIPanelButtonTemplate")
+        self.button = Suite.Theme:ActionButton(BankFrame, "Deposit Reagents", 140, 21)
         self.button:SetSize(140, 21); self.button:SetText("Deposit Reagents")
         self.button:RegisterForClicks("LeftButtonUp")
         self.button:SetScript("OnClick", function() self:Start() end)

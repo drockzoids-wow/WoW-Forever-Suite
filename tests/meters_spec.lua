@@ -1647,7 +1647,7 @@ do
     Suite.GUI:OpenMeters(3)
     equal(Suite.GUI.meterIndex, 3, "settings directly select the third meter")
     equal(Suite.GUI.meterButtons.window3.label.text, "Window 3", "third meter has its own settings tab")
-    local ChooseMenu=assert(loadfile("tests/menu_helper.lua"))()
+    local ChooseMenu=assert(loadfile("tests/menu_helper.lua"))(Suite)
     local callbacks=ChooseMenu(function() Suite.GUI.meterButtons.visibility:OnClick() end,"In a group")
     equal(Suite.db.meterWindows[3].visibility,"group","meter visibility menu chooses the third window directly")
     Suite.GUI.meterButtons.window1:OnClick()

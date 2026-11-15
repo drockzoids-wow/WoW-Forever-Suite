@@ -326,7 +326,7 @@ gui.frame.OnHide()
 equal(dragBar.OnUpdate, nil, "closing the GUI cancels all scrollbar gestures")
 GetCursorPosition = cursorBefore
 -- Choice menus show every option and reject callbacks from a stale UI context.
-local ChooseMenu=assert(loadfile("tests/menu_helper.lua"))()
+local ChooseMenu=assert(loadfile("tests/menu_helper.lua"))(Suite)
 gui:OpenPage("professions")
 local selected,selectedCount=nil,0
 local options={{value="alt",label="Alt"},{value="ctrl",label="Ctrl"},{value="shift",label="Shift"}}

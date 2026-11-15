@@ -11,19 +11,11 @@ local function Label(parent,text,x,y,width,size,color)
     f:SetPoint("TOPLEFT",x,y);f:SetWidth(width);f:SetJustifyH("LEFT");f:SetWordWrap(true)
     f:SetTextColor(unpack(color or colors.text));f:SetText(text);return f
 end
-local function Button(parent,text,x,y,width,callback)
-    local b=CreateFrame("Button",nil,parent,"BackdropTemplate")
-    Suite.Theme:ButtonFeedback(b)
-    b:SetPoint("TOPLEFT",x,y);b:SetSize(width,28)
-    b:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
-    b:SetBackdropColor(0.07,0.095,0.11,1);Suite.Theme:Backdrop(b, 1)
-    b.label=Label(b,text,9,-8,width-18,11,colors.teal);b.label:SetWordWrap(false)
-    local enable=b.SetEnabled
-    b.SetEnabled=function(self,enabled) enable(self,enabled);self.label:SetTextColor(unpack(enabled and colors.teal or colors.muted)) end
-    b:SetScript("OnClick",function() if not InCombatLockdown() then callback() end end)
-    b:SetScript("OnEnter",function() b:SetBackdropColor(0.09,0.13,0.145,1) end)
-    b:SetScript("OnLeave",function() b:SetBackdropColor(0.07,0.095,0.11,1) end)
-    View.controls[#View.controls+1]=b;return b
+local function Button(parent, text, x, y, width, callback)
+    local button = Suite.Theme:ActionButton(parent, text, width, 28, function() if not InCombatLockdown() then callback() end end)
+    button:SetPoint("TOPLEFT", x, y)
+    View.controls[#View.controls+1]=button
+    return button
 end
 local function Input(parent,x,y,width,callback)
     local f=CreateFrame("EditBox",nil,parent,"BackdropTemplate")
@@ -41,7 +33,7 @@ local function Input(parent,x,y,width,callback)
     return f
 end
 local function Check(parent,text,x,y,width,callback)
-    local b=CreateFrame("CheckButton",nil,parent,"UICheckButtonTemplate")
+    local b=Suite.Theme:CheckButton(parent)
     b:SetPoint("TOPLEFT",x,y);b:SetSize(24,24)
     b.label=Label(b,text,28,-6,width-28,11);b.label:SetWordWrap(false)
     b:SetHitRectInsets(0,-(width-24),0,0)
@@ -218,8 +210,8 @@ function View:Build()
         end)
         row.alternative=Button(row,"Choose buff",592,0,188,function()
             local record=row.record;if not record then return end
-            if not MenuUtil or type(MenuUtil.CreateContextMenu)~="function" then self.message="Buff selection is unavailable on this client.";self:Refresh();return end
-            MenuUtil.CreateContextMenu(row.alternative,function(_,root)
+            if not Suite.Menus or type(Suite.Menus.CreateContextMenu)~="function" then self.message="Buff selection is unavailable on this client.";self:Refresh();return end
+            Suite.Menus.CreateContextMenu(row.alternative,function(_,root)
                 local function Option(name,id)
                     root:CreateRadio(name,function() return Suite.db.missingBuffChoices[record.key]==id end,function()
                         if InCombatLockdown() or not self.mode or GUI.page~="buffs" or not GUI.frame:IsShown() or row.record~=record then return end

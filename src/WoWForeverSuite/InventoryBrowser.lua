@@ -32,15 +32,8 @@ local function Label(parent, text, x, y, width, size, color)
     return label
 end
 local function Button(parent, text, x, y, width, callback)
-    local button = CreateFrame("Button", nil, parent, "BackdropTemplate")
-    Suite.Theme:ButtonFeedback(button)
-    button:SetPoint("TOPLEFT", x, y); button:SetSize(width, 28)
-    button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-    button:SetBackdropColor(unpack(colors.row)); Suite.Theme:Backdrop(button, 1)
-    button.label = Label(button, text, 9, -8, width - 18, 11, colors.teal)
-    button:SetScript("OnClick", function() if not InCombatLockdown() then callback() end end)
-    button:SetScript("OnEnter", function() button:SetBackdropColor(0.09, 0.13, 0.145) end)
-    button:SetScript("OnLeave", function() button:SetBackdropColor(unpack(colors.row)) end)
+    local button = Suite.Theme:ActionButton(parent, text, width, 28, function() if not InCombatLockdown() then callback() end end)
+    button:SetPoint("TOPLEFT", x, y)
     return button
 end
 

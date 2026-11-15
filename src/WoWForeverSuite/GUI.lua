@@ -71,8 +71,8 @@ local pages = {
         { key = "modifierDisenchant", label = "Modifier-click Disenchant", help = "Hold the selected modifier and left-click highlighted bag equipment.\nDisenchant destroys the item; the character must know the spell." },
         { action = "disenchantModifier", label = "Modifier key", help = "Choose Alt, Ctrl or Shift. Hold only that modifier.\nEquipped gear, bank items, locked slots and combat are excluded." },
         { key = "autoReplaceEnchant", label = "Automatically replace existing enchants", help = "Enchanters: skip Yes when replacing an enchant on your gear or through trade.\nThe old enchant is lost. You still choose the enchant and item; unavailable in combat." },
-        { key = "professionLeveling", label = "Profession leveling guides", help = "Add Leveling to the profession window. Starts off. Collapse materials and steps separately.\nBrowse other guides using your character's saved skill levels. Hide Done clears old materials; Auto steps follows the skill range." },
-        { key = "professionLevelingAutoRecipe", label = "Select current leveling recipe", help = "With leveling guides enabled, select the current step's learned recipe when the profession opens or the step changes. Starts on.\nCrafting stays manual. Waits for active crafting to finish; reopen the profession after combat." },
+        { key = "professionLeveling", label = "Profession leveling guides", help = "Add Leveling to the profession window. Starts off. Collapse materials and steps separately.\nChoose any profession from the dropdown; Current returns to your open profession.\nHide completed hides finished steps and their materials. Auto steps follows the skill range." },
+        { key = "professionLevelingAutoRecipe", label = "Select current leveling recipe", help = "While the guide is open and showing your active profession, select the current step's learned recipe on opening or a recipe-range change. Starts on.\nClosing the guide leaves your recipe choice alone. Crafting stays manual; waits for active crafting to finish. Reopen the profession after combat." },
     }, note = "Only uncommon, rare or epic weapons and armor are offered.\nThe game makes the final skill and eligibility check. Nothing is disenchanted automatically." },
     training = { title = "Training Planner", description = "Review class skills, future training costs and weapon trainers.", rows = {
         { action = "trainingOpen", label = "Open Training Planner", help = "Browse class skills through level 60; pin ranks to a wishlist with estimated costs.\nWeapon trainers include locations, class eligibility and base costs." },
@@ -223,11 +223,11 @@ Catalog:Configure(pages)
 
 function GUI:Choose(anchor, options, current, apply)
     if InCombatLockdown() then return end
-    if not MenuUtil or type(MenuUtil.CreateContextMenu) ~= "function" then
+    if not Suite.Menus or type(Suite.Menus.CreateContextMenu) ~= "function" then
         Suite.Print("Selection menus are unavailable on this client."); return
     end
     local page, serial = self.page, self.selectionSerial
-    MenuUtil.CreateContextMenu(anchor or self.frame, function(_, root)
+    Suite.Menus.CreateContextMenu(anchor or self.frame, function(_, root)
         for _, option in ipairs(options) do
             local value, label = option.value, option.label
             root:CreateRadio(label, function() return current == value end, function()
@@ -591,11 +591,8 @@ function GUI:BuildHome(key)
             self.homeToolHeading:SetPoint("TOPLEFT", 0, -342); self.homeToolHeading:SetText("Open a tool")
             self.homeToolButtons = {}
             for index, route in ipairs({ "characters", "training", "talents", "macros" }) do
-                local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
-                Suite.Theme:ButtonFeedback(button); Fill(button, palette.row)
+                local button = Suite.Theme:ActionButton(panel, route == "characters" and "Characters & inventory" or Catalog.labels[route], 186, 34)
                 button:SetSize(186, 34); button:SetPoint("TOPLEFT", (index - 1) * 198, -370)
-                local text = Text(button, 12, palette.accent); text:SetPoint("CENTER")
-                text:SetText(route == "characters" and "Characters & inventory" or Catalog.labels[route])
                 button:SetScript("OnClick", function()
                     if InCombatLockdown() then return end
                     if route == "training" then Suite.Training:Open(nil, nil, self.frame)
@@ -652,15 +649,9 @@ function GUI:BuildLevelingLog()
         text:SetWordWrap(true); text:SetJustifyV("TOP")
         return text
     end
-    local function Button(label, x, y, w, callback)
-        local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
-        Suite.Theme:ButtonFeedback(button)
-        button:SetSize(w, 30); button:SetPoint("TOPLEFT", x, y)
-        button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-        button:SetBackdropColor(unpack(palette.row)); Suite.Theme:Backdrop(button, 0.5)
-        button.label = Text(button, 11, palette.accent); button.label:SetPoint("CENTER"); button.label:SetWidth(w - 12)
-        button.label:SetWordWrap(false); button.label:SetJustifyH("CENTER"); button.label:SetText(label)
-        button:SetScript("OnClick", function() if not InCombatLockdown() then callback() end end)
+    local function Button(label, x, y, width, callback)
+        local button = Suite.Theme:ActionButton(panel, label, width, 30, function() if not InCombatLockdown() then callback() end end)
+        button:SetPoint("TOPLEFT", x, y)
         return button
     end
     Label(panel, 17, palette.text, 0, -2, width, 22):SetText("Session journal")
@@ -979,15 +970,8 @@ function GUI:BuildSetup()
     panel:SetSize(width, 550)
     self.setupPanel, self.setupCards, self.setupSteps = panel, {}, {}
     local function Button(x, y, width, label, callback)
-        local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
-        Suite.Theme:ButtonFeedback(button)
-        button:SetSize(width, 26)
+        local button = Suite.Theme:ActionButton(panel, label, width, 26, callback)
         button:SetPoint("TOPLEFT", x, y)
-        Fill(button, palette.row)
-        button.label = Text(button, 11, palette.accent)
-        button.label:SetPoint("CENTER")
-        button.label:SetText(label)
-        button:SetScript("OnClick", callback)
         return button
     end
     local stepWidth = (width - (#Suite.Setup.pages - 1) * 6) / #Suite.Setup.pages
@@ -1159,11 +1143,9 @@ function GUI:BuildCastbars()
     self.castbarPanel, self.castbarKey, self.castbarFields, self.castbarTabs = panel, "player", {}, {}
     panel:SetSize(514, 302)
     local function Button(x, y, width, label, callback)
-        local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
-        Suite.Theme:ButtonFeedback(button)
-        button:SetPoint("TOPLEFT", x, -y); button:SetSize(width, 32); Fill(button, palette.row)
-        button.label = Text(button, 12, palette.accent); button.label:SetPoint("LEFT", 10, 0); button.label:SetText(label)
-        button:SetScript("OnClick", callback); return button
+        local button = Suite.Theme:ActionButton(panel, label, width, 32, callback)
+        button:SetPoint("TOPLEFT", x, -y)
+        return button
     end
     for index, key in ipairs(Suite.Castbars.order) do
         self.castbarTabs[key] = Button((index - 1) * 176, 0, 162, key:sub(1,1):upper() .. key:sub(2), function()
@@ -1262,13 +1244,9 @@ function GUI:BuildProgress()
     local heading = Text(panel, 14, palette.text)
     heading:SetPoint("TOPLEFT"); heading:SetText("Progress bar options")
     local function Button(key, label, x, y, callback)
-        local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
-        Suite.Theme:ButtonFeedback(button)
+        local button = Suite.Theme:ActionButton(panel, "", 244, 34, function() callback(); self:RefreshProgress() end)
         self.progressControls[key] = { button = button, label = label }
-        button:SetPoint("TOPLEFT", x, -y); button:SetSize(244, 34); Fill(button, palette.row)
-        button.label = Text(button, 12, palette.accent)
-        button.label:SetPoint("LEFT", 12, 0); button.label:SetWidth(220)
-        button:SetScript("OnClick", function() callback(); self:RefreshProgress() end)
+        button:SetPoint("TOPLEFT", x, -y)
     end
     local function Toggle(key)
         return function() Suite.Set(key, not (Suite.IsReadable(Suite.db[key]) and Suite.db[key] == true)) end
@@ -1404,13 +1382,9 @@ function GUI:BuildKeybinds()
     local heading = Text(panel, 14, palette.text)
     heading:SetPoint("TOPLEFT"); heading:SetText("Keybind labels")
     local function Button(key, x, y, callback)
-        local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
-        Suite.Theme:ButtonFeedback(button)
+        local button = Suite.Theme:ActionButton(panel, "", 244, 34, function() callback(); self:RefreshKeybinds() end)
         self.keybindControls[key] = button
-        button:SetPoint("TOPLEFT", x, -y); button:SetSize(244, 34); Fill(button, palette.row)
-        button.label = Text(button, 12, palette.accent)
-        button.label:SetPoint("LEFT", 12, 0); button.label:SetWidth(220)
-        button:SetScript("OnClick", function() callback(); self:RefreshKeybinds() end)
+        button:SetPoint("TOPLEFT", x, -y)
     end
     local function Toggle(key)
         return function() Suite.Set(key, not (Suite.IsReadable(Suite.db[key]) and Suite.db[key] == true)) end
@@ -1583,11 +1557,9 @@ function GUI:BuildChat()
     end
     Field("chatFontSize", "Default text size", 0, 10, 24, false)
     Field("chatOpacity", "Background opacity", 112, 0, 100, true)
-    local apply = CreateFrame("Button", nil, panel, "BackdropTemplate")
-    Suite.Theme:ButtonFeedback(apply)
+    local apply = Suite.Theme:ActionButton(panel, "", 504, 34)
     self.chatApply = apply
-    apply:SetPoint("TOPLEFT", 0, -235); apply:SetSize(504, 34); Fill(apply, palette.row)
-    apply.label = Text(apply, 12, palette.accent); apply.label:SetPoint("CENTER")
+    apply:SetPoint("TOPLEFT", 0, -235)
     apply:SetScript("OnClick", function()
         Suite.Set("chatStyle", not Suite.Chat:Enabled()); self:RefreshChat()
     end)
@@ -1599,11 +1571,9 @@ function GUI:BuildChat()
     help:SetPoint("TOPLEFT", 0, -376); help:SetWidth(504); help:SetWordWrap(true)
     help:SetText("Remember up to 250 recent main-chat lines for this character. Restore automatically after reload or login, with either chat style.")
     local function HistoryButton(field, x, width, callback)
-        local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
-        Suite.Theme:ButtonFeedback(button)
+        local button = Suite.Theme:ActionButton(panel, "", width, 34)
         self[field] = button
-        button:SetPoint("TOPLEFT", x, -426); button:SetSize(width, 34); Fill(button, palette.row)
-        button.label = Text(button, 12, palette.accent); button.label:SetPoint("CENTER")
+        button:SetPoint("TOPLEFT", x, -426)
         button:SetScript("OnClick", function() callback(); self:RefreshChat() end)
         return button
     end
@@ -2222,7 +2192,7 @@ function GUI:RegisterSettings()
         description:SetPoint("TOPRIGHT", -16, -56)
         description:SetJustifyH("LEFT")
         description:SetText("Open the Suite panel to choose features and customize your setup.\nType /wfs setup for the five-step guide, or /wfs for settings.")
-        local button = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+        local button = Suite.Theme:ActionButton(panel, "Open Forever Suite", 220, 28)
         button:SetSize(220, 28)
         button:SetPoint("TOPLEFT", description, "BOTTOMLEFT", 0, -20)
         button:SetText("Open Forever Suite")
@@ -2345,11 +2315,9 @@ function GUI:BuildMeters()
     self.meterPanel, self.meterFields, self.meterButtons, self.meterIndex = panel, {}, {}, self.meterIndex or 1
     panel:SetPoint("TOPLEFT", 0, -154); panel:SetSize(514, 504)
     local function Button(name, x, y, width, callback)
-        local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
-        Suite.Theme:ButtonFeedback(button)
-        button:SetSize(width, 30); button:SetPoint("TOPLEFT", x, -y); Fill(button, palette.row)
-        button.label = Text(button, 11, palette.text); button.label:SetPoint("LEFT", 10, 0); button.label:SetWidth(width - 20)
-        button:SetScript("OnClick", function() self:FinishMeterInputs(); callback() end); self.meterButtons[name] = button
+        local button = Suite.Theme:ActionButton(panel, "", width, 30, function() self:FinishMeterInputs(); callback() end)
+        self.meterButtons[name] = button
+        button:SetPoint("TOPLEFT", x, -y)
         return button
     end
     for index = 1, 3 do
@@ -2517,19 +2485,8 @@ function GUI:RefreshCamping()
 end
 
 local function MacroButton(parent, x, y, width, label, callback)
-    local button = CreateFrame("Button", nil, parent, "BackdropTemplate")
-    Suite.Theme:ButtonFeedback(button)
+    local button = Suite.Theme:ActionButton(parent, label, width, 28, callback)
     button:SetPoint("TOPLEFT", x, y)
-    button:SetSize(width, 28)
-    Fill(button, palette.row)
-    button.label = Text(button, 11, palette.accent)
-    button.label:SetPoint("LEFT", 10, 0)
-    button.label:SetWidth(width - 20)
-    button.label:SetWordWrap(false)
-    button.label:SetText(label)
-    button:SetScript("OnClick", callback)
-    button:SetScript("OnEnter", function() button:SetBackdropColor(0.09, 0.13, 0.145) end)
-    button:SetScript("OnLeave", function() Fill(button, palette.row) end)
     return button
 end
 
@@ -2542,7 +2499,7 @@ function GUI:ChooseMacroItem()
     macros.snapshot = Suite.MacroItems:Scan()
     local choices, choiceNote = Suite.MacroItems:Choices(macros.snapshot, entry.recipe)
     local function Choose(id)
-        if InCombatLockdown() then return end
+        if InCombatLockdown() or self.macroSelected ~= entry then return end
         if recipe.foodChoice then
             local accepted, problem = Suite.MacroItems:PetCanEat(id)
             if accepted ~= true then
@@ -2560,26 +2517,15 @@ function GUI:ChooseMacroItem()
         end
         self:RefreshMacros()
     end
-    if MenuUtil and type(MenuUtil.CreateContextMenu) == "function" then
-        MenuUtil.CreateContextMenu(self.macroChoose, function(_, root)
-            if choiceNote then root:CreateTitle(choiceNote) end
-            if entry.recipe ~= "item" and not recipe.foodChoice then root:CreateButton("Select automatically", function() Choose(nil) end) end
-            for _, item in ipairs(choices) do
-                local id = item.id
-                root:CreateButton(item.name .. " (" .. item.count .. " carried)", function() Choose(id) end)
-            end
-            if #choices == 0 and not choiceNote then root:CreateTitle("No suitable carried items. Check your bags.") end
-        end)
-    else
-        -- A small capability fallback for clients without native context menus.
-        local nextIndex = 1
-        for i, item in ipairs(choices) do if item.id == entry.item then nextIndex = i + 1; break end end
-        if choices[nextIndex] then Choose(choices[nextIndex].id)
-        elseif entry.recipe ~= "item" and not recipe.foodChoice then Choose(nil)
-        elseif choices[1] then Choose(choices[1].id) end
-        macros.statuses[entry] = choiceNote or (#choices > 0 and "Click Choose / change item again to cycle carried items." or "No suitable carried items.")
-        self:RefreshMacros()
-    end
+    Suite.Menus.CreateContextMenu(self.macroChoose, function(_, root)
+        if choiceNote then root:CreateTitle(choiceNote) end
+        if entry.recipe ~= "item" and not recipe.foodChoice then root:CreateButton("Select automatically", function() Choose(nil) end) end
+        for _, item in ipairs(choices) do
+            local id = item.id
+            root:CreateButton(item.name .. " (" .. item.count .. " carried)", function() Choose(id) end)
+        end
+        if #choices == 0 and not choiceNote then root:CreateTitle("No suitable carried items. Check your bags.") end
+    end)
 end
 
 local function MacroGroup(entry)
@@ -2634,6 +2580,7 @@ function GUI:BuildMacros()
         row:SetHeight(46)
         row.label:ClearAllPoints()
         row.label:SetPoint("TOPLEFT", 10, -7)
+        row.label:SetJustifyH("LEFT")
         row.subtitle = Text(row, 10, palette.muted)
         row.subtitle:SetPoint("TOPLEFT", 10, -26)
         row.subtitle:SetWidth(228)
@@ -2672,7 +2619,7 @@ function GUI:BuildMacros()
     self.macroHelp:SetSize(492, 52)
     self.macroHelp:SetJustifyV("TOP")
     self.macroChoose = MacroButton(panel, 288, -105, 492, "Choose / change item", function() self:ChooseMacroItem() end)
-    self.macroCombat = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    self.macroCombat = Suite.Theme:CheckButton(panel)
     self.macroCombat:SetPoint("TOPLEFT", 286, -146)
     self.macroCombat:SetSize(24, 24)
     self.macroCombat.label = Text(self.macroCombat, 10, palette.text)

@@ -59,9 +59,18 @@ local function Frame(name)
         StopMovingOrSizing = function(self) self.moving = false end,
         AddDoubleLine = function(self, label, value) self.lines[#self.lines + 1] = { label, value } end,
         AddLine = function(self, text) self.lines[#self.lines + 1] = { text } end,
-        SetText = function(self, text) self.text = text end,
+        SetText = function(self, text) self.text = text; if self.fontString then self.fontString:SetText(text) end end,
+        SetFontString = function(self, font) self.fontString = font end,
+        GetFontString = function(self) return self.fontString end,
+        SetCheckedTexture = function(self, texture) self.checkedTexture = texture end,
+        SetAlpha = function(self, alpha) self.alpha = alpha end,
         GetText = function(self) return self.text or "" end,
-        SetEnabled = function(self, enabled) self.enabled = enabled end,
+        SetEnabled = function(self, enabled)
+            local previous = self.enabled ~= false
+            self.enabled = enabled
+            local handler = enabled and self.OnEnable or self.OnDisable
+            if previous ~= (enabled == true) and handler then handler(self) end
+        end,
         IsEnabled = function(self) return self.enabled ~= false end,
         SetChecked = function(self, checked) self.checked = checked end,
         GetChecked = function(self) return self.checked end,
@@ -1815,4 +1824,5 @@ assert(loadfile("tests/supply_input_spec.lua"))(Suite, equal, Frame, function(va
 assert(loadfile("tests/window_placement_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/diagnostics_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/version_check_spec.lua"))(Suite, equal, function(value) combat = value end)
+assert(loadfile("tests/menus_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 print("Behavior checks passed: " .. checks)

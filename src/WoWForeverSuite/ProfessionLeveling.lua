@@ -36,9 +36,22 @@ local function Surface(frame)
     frame:SetBackdropColor(0.035, 0.05, 0.065, 0.98); Suite.Theme:Backdrop(frame, 0.85)
 end
 local function Button(parent, text, width, callback)
-    local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-    button:SetSize(width, 23); button:SetText(text)
-    button:SetScript("OnClick", function() if not InCombatLockdown() then callback() end end)
+    return Suite.Theme:ActionButton(parent, text, width, 23, function() if not InCombatLockdown() then callback() end end)
+end
+local function GuideDropdown(parent, callback)
+    local button = Button(parent, "Choose profession", 188, callback)
+    button.label:ClearAllPoints(); button.label:SetPoint("LEFT", 9, 0)
+    button.label:SetWidth(148); button.label:SetJustifyH("LEFT")
+    local divider = button:CreateTexture(nil, "ARTWORK")
+    divider:SetSize(1, 13); divider:SetPoint("RIGHT", -28, 0)
+    divider:SetColorTexture(0.22, 0.43, 0.46, 0.7)
+    -- Draw the chevron separately so it stays crisp and never shrinks with the label.
+    for side = 1, 2 do
+        local line = button:CreateLine(nil, "OVERLAY")
+        line:SetThickness(1.5); line:SetColorTexture(0.55, 0.85, 0.81, 1)
+        line:SetStartPoint("RIGHT", button, side == 1 and -21 or -13, 2)
+        line:SetEndPoint("RIGHT", button, -17, -2)
+    end
     return button
 end
 function Leveling:Enabled() return Suite.db and Read(Suite.db.professionLeveling, "boolean") and Suite.db.professionLeveling == true end
@@ -243,6 +256,7 @@ function Leveling:SelectGuideRecipe(button)
     return self:RequestRecipe(id, guideIndex, context, false)
 end
 function Leveling:RequestRecipe(id, guideIndex, context, automatic, expectedRank)
+    if automatic and (not self.open or not Shown(self.frame) or self.selected ~= guideIndex) then return false end
     local _, initialRank = self:Context()
     if automatic and initialRank ~= expectedRank then return false end
     local getInfo, inSkill, openRecipe = Field(C_TradeSkillUI, "GetRecipeInfo"),
@@ -271,7 +285,8 @@ function Leveling:RequestRecipe(id, guideIndex, context, automatic, expectedRank
     if InCombatLockdown() or not self:Enabled() or not Shown(self.owner)
         or fresh ~= guideIndex or freshContext ~= context then return false end
     if automatic then
-        if not self:ViewOption("professionLevelingAutoRecipe") or self.autoBlocked or self.autoCrafting or freshRank ~= initialRank then return false end
+        if not self:ViewOption("professionLevelingAutoRecipe") or not self.open or not Shown(self.frame)
+            or self.selected ~= guideIndex or self.autoBlocked or self.autoCrafting or freshRank ~= initialRank then return false end
         -- Set before OpenRecipe: native responses may immediately cause another refresh.
         self.autoAttempt = context .. ":" .. tostring(id)
     elseif not self.open or not Shown(self.frame) or self.selected ~= guideIndex then return false end
@@ -284,9 +299,10 @@ function Leveling:RequestRecipe(id, guideIndex, context, automatic, expectedRank
 end
 function Leveling:AutoSelectRecipe()
     if not self:ViewOption("professionLevelingAutoRecipe") then self.autoAttempt = nil; return end
-    if InCombatLockdown() or self.autoBlocked or self.autoCrafting or not Shown(self.owner) then return end
+    if InCombatLockdown() or not self:Enabled() or not self.open or not Shown(self.frame)
+        or self.autoBlocked or self.autoCrafting or not Shown(self.owner) then return end
     local index, rank, context = self:Context()
-    if not index or not Number(rank) then return end
+    if not index or self.selected ~= index or not Number(rank) then return end
     -- Never drive a linked, guild or NPC profession rather than this character's book.
     for _, name in ipairs({ "IsTradeSkillLinked", "IsTradeSkillGuild", "IsTradeSkillGuildMember", "IsNPCCrafting" }) do
         local fn = Field(C_TradeSkillUI, name)
@@ -464,23 +480,27 @@ function Leveling:Steps(guide, rank, offset)
         end
         local current = CurrentSection(section, rank)
         local done = Number(rank) and rank >= section[2] and not current
-        local expanded = not Number(rank) or not self:ViewOption("professionLevelingAutoSteps") or current
-        if self.stepOverrides[index] ~= nil then expanded = self.stepOverrides[index] end
-        row.sectionIndex, row.expanded = index, expanded
-        local title = guide.name == "Camping" and section[3] or section[1] .. "-" .. section[2] .. "  " .. section[3]
-        row.heading:SetText((current and "Current range  |  " or done and "Done · " or "") .. title)
-        row.heading:SetTextColor(unpack(done and {0.4,0.46,0.49} or {0.41,0.84,0.75}))
-        row.marker:SetText(expanded and "−" or "+")
-        local detail = self:StepDetail(section)
-        row.detail:SetText(detail); row.detail:SetShown(expanded)
-        local headerHeight = math.max(26, row.heading:GetStringHeight() + 8)
-        row.header:SetHeight(headerHeight)
-        row.detail:ClearAllPoints(); row.detail:SetPoint("TOPLEFT", 0, -headerHeight - 6)
-        local height = headerHeight + (expanded and row.detail:GetStringHeight() + 18 or 4)
-        local estimates = expanded and self:StepEstimates(guide, section, rank) or {}
-        height = self:StepMaterials(row, estimates, height, expanded)
-        row:SetHeight(height); row:ClearAllPoints(); row:SetPoint("TOPLEFT", 0, -y); row:Show()
-        y = y + height + 4
+        if not done or not self:ViewOption("professionLevelingHideDone") then
+            local expanded = not Number(rank) or not self:ViewOption("professionLevelingAutoSteps") or current
+            if self.stepOverrides[index] ~= nil then expanded = self.stepOverrides[index] end
+            row.sectionIndex, row.expanded = index, expanded
+            local title = guide.name == "Camping" and section[3] or section[1] .. "-" .. section[2] .. "  " .. section[3]
+            row.heading:SetText((current and "Current range  |  " or done and "Done · " or "") .. title)
+            row.heading:SetTextColor(unpack(done and {0.4,0.46,0.49} or {0.41,0.84,0.75}))
+            row.marker:SetText(expanded and "−" or "+")
+            local detail = self:StepDetail(section)
+            row.detail:SetText(detail); row.detail:SetShown(expanded)
+            local headerHeight = math.max(26, row.heading:GetStringHeight() + 8)
+            row.header:SetHeight(headerHeight)
+            row.detail:ClearAllPoints(); row.detail:SetPoint("TOPLEFT", 0, -headerHeight - 6)
+            local height = headerHeight + (expanded and row.detail:GetStringHeight() + 18 or 4)
+            local estimates = expanded and self:StepEstimates(guide, section, rank) or {}
+            height = self:StepMaterials(row, estimates, height, expanded)
+            row:SetHeight(height); row:ClearAllPoints(); row:SetPoint("TOPLEFT", 0, -y); row:Show()
+            y = y + height + 4
+        else
+            row:Hide()
+        end
     end
     return y
 end
@@ -494,6 +514,63 @@ function Leveling:HideTooltip()
     local tip, row = self.tooltip, self.hovered
     self.tooltip, self.hovered = nil, nil
     if OwnsTooltip(tip, row) then pcall(Field(tip, "Hide"), tip) end
+end
+function Leveling:CompletedTooltip(button)
+    self:HideTooltip()
+    local tip = GameTooltip
+    if InCombatLockdown() or not self.open or not self:Enabled() or not Shown(button) or not Safe(tip) then return end
+    for _, method in ipairs({ "SetOwner", "SetText", "Show", "Hide" }) do
+        if not Read(Field(tip, method), "function") then return end
+    end
+    self.tooltip, self.hovered = tip, button
+    if not pcall(tip.SetOwner, tip, button, "ANCHOR_RIGHT") or not OwnsTooltip(tip, button)
+        or not pcall(tip.SetText, tip, "Show or hide completed steps and their materials.\nYour current range and future steps stay visible.", 0.88, 0.91, 0.93, 1, true)
+        or not pcall(tip.Show, tip) then self:HideTooltip() end
+end
+function Leveling:CloseGuideMenu()
+    if self.guideMenu then self.guideMenu:Hide() end
+end
+function Leveling:GuideMenu()
+    if InCombatLockdown() or not self:Enabled() or not self.open or not Shown(self.frame) or not Shown(self.owner) then return end
+    if Shown(self.guideMenu) then self:CloseGuideMenu(); return end
+    self:HideTooltip()
+    if not self.guideMenu then
+        local menu = CreateFrame("Button", nil, self.frame); self.guideMenu = menu
+        menu:Hide(); menu:SetAllPoints(UIParent); menu:SetFrameStrata("DIALOG"); menu:SetFrameLevel(530)
+        menu:EnableMouse(true); menu:EnableKeyboard(true)
+        menu:SetScript("OnClick", function() self:CloseGuideMenu() end)
+        menu:SetScript("OnKeyDown", function(control, key)
+            if InCombatLockdown() then return end
+            control:SetPropagateKeyboardInput(key ~= "ESCAPE")
+            if key == "ESCAPE" then self:CloseGuideMenu() end
+        end)
+        menu.list = CreateFrame("Frame", nil, menu, "BackdropTemplate")
+        menu.list:SetSize(188, #guides * 23 + 8); menu.list:SetFrameLevel(531); menu.list:EnableMouse(true)
+        menu.list:SetPoint("TOPLEFT", self.frame.guideDropdown, "BOTTOMLEFT", 0, -3)
+        menu.list:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+        menu.list:SetBackdropColor(0.035, 0.05, 0.065, 1); Suite.Theme:Backdrop(menu.list, 0.85)
+        menu.rows = {}
+        for index, guide in ipairs(guides) do
+            local choice = index
+            local row = Button(menu.list, guide.name, 180, function()
+                if not self.open or not self:Enabled() or not Shown(menu) or self.menuContext ~= self.context
+                    or not Shown(self.frame) or not Shown(self.owner) then return end
+                self:CloseGuideMenu()
+                self:Select(choice)
+            end)
+            row:SetPoint("TOPLEFT", 4, -4 - (index - 1) * 23)
+            row:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" })
+            row.label:SetJustifyH("LEFT")
+            row.marker = row:CreateTexture(nil, "OVERLAY"); row.marker:SetSize(2, 13)
+            row.marker:SetPoint("LEFT", 2, 0); Suite.Theme:Texture(row.marker, 1)
+            menu.rows[index] = row
+        end
+    end
+    self.menuContext = self.context
+    for index, row in ipairs(self.guideMenu.rows) do
+        row.selected = index == self.selected; row.marker:SetShown(row.selected); row.paint()
+    end
+    self.guideMenu:SetPropagateKeyboardInput(true); self.guideMenu:Show()
 end
 function Leveling:ItemTooltip(row)
     self:HideTooltip()
@@ -514,12 +591,12 @@ function Leveling:ItemTooltip(row)
     -- Native item data and the existing tooltip post-call add recorded inventory.
     -- Do not scan possessions, enable tracking or append a second inventory block.
 end
-function Leveling:Stock(id, required)
+function Leveling:Stock(id, required, usedBefore)
     local summary = Call(Suite.Inventory.Summary, Suite.Inventory, id, true)
     if not Read(summary, "table") or Field(summary, "observed") ~= true then return "?", "?", false end
     local total, incomplete = Field(summary, "total"), Field(summary, "incomplete")
     if not Number(total) or total % 1 ~= 0 or total > 1000000000000 or not Read(incomplete, "boolean") then return "?", "?", false end
-    local need = math.max(0, required - total)
+    local need = math.min(required, math.max(0, required + (usedBefore or 0) - total))
     local have = string.format("%d", total) .. (incomplete and "+" or "")
     return have, (incomplete and need > 0 and "≤" or "") .. string.format("%d", need), need == 0
 end
@@ -586,9 +663,9 @@ function Leveling:Materials(guide, offset)
     local rank = self:GuideSkill()
     local doneRows, totals, shopping = self:MaterialPlan(guide, rank)
     local stock = {}
-    local function Counts(item, total)
-        local key = MaterialKey(item) .. ":" .. total
-        if not stock[key] then stock[key] = { self:Stock(item[2], total) } end
+    local function Counts(item, total, usedBefore)
+        local key = MaterialKey(item) .. ":" .. total .. ":" .. (usedBefore or 0)
+        if not stock[key] then stock[key] = { self:Stock(item[2], total, usedBefore) } end
         return stock[key]
     end
     local function Visible(row)
@@ -610,8 +687,9 @@ function Leveling:Materials(guide, offset)
         label:SetText(text); label:SetTextColor(unpack(color or {0.6, 0.68, 0.71})); label:Show()
         y = y + label:GetStringHeight() + 10
     end
-    local function Item(item, done, total)
+    local function Item(item, done, total, sectionTotal, usedBefore)
         local counts = not done and Counts(item, total)
+        local here = not done and Counts(item, sectionTotal, usedBefore)
         if counts and counts[3] and self:ViewOption("professionLevelingHideStocked") then return end
         rowIndex = rowIndex + 1
         local row = frame.materialRows[rowIndex]
@@ -622,6 +700,9 @@ function Leveling:Materials(guide, offset)
             row.name = Label(row, 13, 54, -3, 202)
             row.have = Label(row, 11, 264, -4, 68)
             row.need = Label(row, 11, 358, -4, 52)
+            row.sectionNeed = Label(row, 11, 358, -4, 52)
+            row.totalSummary = Label(row, 11, 0, 0, 334)
+            row.totalSummary:SetTextColor(0.6,0.72,0.76)
             row.check = row:CreateTexture(nil, "OVERLAY")
             row.check:SetTexture("Interface\\RaidFrame\\ReadyCheck-Ready"); row.check:SetSize(14, 14)
             row.check:SetPoint("TOPLEFT", 340, -3)
@@ -640,23 +721,44 @@ function Leveling:Materials(guide, offset)
         row.name:SetTextColor(unpack(done and {0.4,0.46,0.49} or {0.88,0.91,0.93}))
         if done then
             row.have:SetText("—"); row.need:SetText("Done"); row.need:SetTextColor(0.4,0.46,0.49)
+            row.sectionNeed:Hide(); row.totalSummary:Hide()
         else
             row.have:SetText(counts[1]); row.need:SetText(counts[2])
             row.need:SetTextColor(unpack(counts[3] and {0.41,0.84,0.75} or {1,0.74,0.44}))
+            row.sectionNeed:SetText(here[2]); row.sectionNeed:Show()
+            row.sectionNeed:SetTextColor(unpack(here[3] and {0.41,0.84,0.75} or {1,0.74,0.44}))
+            row.totalSummary:SetText("All remaining: " .. total .. " required · Still need")
+            row.totalSummary:Show()
         end
         row.have:SetTextColor(0.6,0.72,0.76)
-        local height = math.max(24, row.name:GetStringHeight() + 6, row.have:GetStringHeight() + 8, row.need:GetStringHeight() + 8)
+        local height = math.max(24, row.name:GetStringHeight() + 6, row.have:GetStringHeight() + 8, row.sectionNeed:GetStringHeight() + 8)
+        local summaryY = done and 4 or height
+        row.need:ClearAllPoints(); row.need:SetPoint("TOPLEFT", 358, -summaryY)
+        row.check:ClearAllPoints(); row.check:SetPoint("TOPLEFT", 340, -summaryY)
+        row.totalSummary:ClearAllPoints(); row.totalSummary:SetPoint("TOPLEFT", 0, -summaryY)
+        if not done then height = height + math.max(22, row.totalSummary:GetStringHeight() + 8, row.need:GetStringHeight() + 8) end
         row:SetSize(CONTENT_WIDTH, height); row:ClearAllPoints(); row:SetPoint("TOPLEFT", 0, -y); row:Show()
         y = y + height
     end
     if not shopping then Paragraph("No materials list for this guide."); return y end
     Paragraph("Saved character bags/banks + shared bank. + = incomplete; ≤ = upper estimate; ? = unknown.")
-    Paragraph(shopping.projected and "Required follows the remaining-step estimates below. Need combines all unfinished uses before subtracting stock. Actual crafts may vary."
-        or "Done = completed range. Active quantities are full-band estimates. Need combines unfinished main-route rows; alternatives replace one row.")
+    Paragraph(shopping.projected and "Required here estimates this section's remaining inputs. Need here uses stock left after earlier sections. All remaining combines every unfinished section, subtracting stock once. Actual crafts may vary."
+        or "Required here lists this section's full-band inputs. Need here uses stock left after earlier sections. All remaining combines unfinished main-route uses; alternatives replace one row. Done = completed range.")
     if shopping.note then Paragraph(shopping.note) end
     if #shopping == 0 then Paragraph("No unfinished recipe inputs in the available plan.") end
     local anyGroup = false
+    local usedBefore = {}
     for _, group in ipairs(shopping) do
+        local sectionTotals = {}
+        local usedHere = {}
+        for _, row in ipairs(group.rows) do
+            if not doneRows[row] then
+                for _, item in ipairs(row) do
+                    local key = MaterialKey(item)
+                    sectionTotals[key] = (sectionTotals[key] or 0) + item[1]
+                end
+            end
+        end
         local visible = false
         for _, row in ipairs(group.rows) do
             if Visible(row) then visible = true; break end
@@ -666,30 +768,43 @@ function Leveling:Materials(guide, offset)
             Paragraph(group.title, {0.41, 0.84, 0.75})
             if group.note then Paragraph(group.note, {1, 0.74, 0.44}) end
             local headerY = y
-            Paragraph("Required"); local headerEnd = y
+            Paragraph("Required here"); local headerEnd = y
             y = headerY; Paragraph("Have", nil, 264, 68)
-            y = headerY; Paragraph("Need total", nil, 340, 70)
+            y = headerY; Paragraph("Need here", nil, 340, 70)
             y = math.max(y, headerEnd)
             for _, row in ipairs(group.rows) do
                 local done = doneRows[row]
                 if Visible(row) then
-                    for _, item in ipairs(row) do Item(item, done, totals[MaterialKey(item)] or 0) end
+                    for _, item in ipairs(row) do
+                        local key = MaterialKey(item)
+                        Item(item, done, totals[key] or 0, item[1], (usedBefore[key] or 0) + (usedHere[key] or 0))
+                    end
                     if row.alternative then
                         Paragraph(#row > 1 and "OR replace the above " .. #row .. " items with:" or "OR replace the above item with:")
-                        local replacement = {}
+                        local replacement, alternativeUsed = {}, {}
                         for _, item in ipairs(row) do
                             local key = MaterialKey(item); replacement[key] = (replacement[key] or totals[key] or 0) - item[1]
                         end
                         for _, item in ipairs(row.alternative) do
                             local key = MaterialKey(item); replacement[key] = (replacement[key] or totals[key] or 0) + item[1]
                         end
-                        for _, item in ipairs(row.alternative) do Item(item, done, replacement[MaterialKey(item)]) end
+                        for _, item in ipairs(row.alternative) do
+                            local key = MaterialKey(item)
+                            Item(item, done, replacement[key], item[1], (usedBefore[key] or 0) + (usedHere[key] or 0) + (alternativeUsed[key] or 0))
+                            alternativeUsed[key] = (alternativeUsed[key] or 0) + item[1]
+                        end
                         y = y + 8
+                    end
+                end
+                if not done then
+                    for _, item in ipairs(row) do
+                        local key = MaterialKey(item); usedHere[key] = (usedHere[key] or 0) + item[1]
                     end
                 end
             end
             y = y + 14
         end
+        for key, count in pairs(sectionTotals) do usedBefore[key] = (usedBefore[key] or 0) + count end
     end
     if #shopping > 0 and not anyGroup then Paragraph("No materials to get in the current view.", {0.41,0.84,0.75}) end
     return y
@@ -716,6 +831,8 @@ function Leveling:Cancel()
 end
 function Leveling:Close()
     self.open = nil
+    self.autoAttempt, self.autoTarget = nil, nil
+    self:CloseGuideMenu()
     self:HideTooltip()
     if InCombatLockdown() then
         Suite.AfterCombat("professionLevelingRefresh", function() self:Close() end); return
@@ -751,18 +868,28 @@ function Leveling:CreatePanel()
     frame:SetFrameStrata("HIGH"); frame:SetFrameLevel(520); Surface(frame)
     frame.title = Label(frame, 16, 14, -14, WIDTH - 62)
     frame.status = Label(frame, 11, 14, -40, WIDTH - 30)
-    local close = Button(frame, "X", 24, function() self:Close() end); close:SetPoint("TOPRIGHT", -8, -8)
-    local previous = Button(frame, "< Guide", 92, function() self:Select((self.selected or 1) - 1) end)
-    previous:SetPoint("TOPLEFT", 14, -64)
-    local follow = Button(frame, "Current", 110, function() self:Refresh(true) end); follow:SetPoint("LEFT", previous, "RIGHT", 8, 0)
-    local nextGuide = Button(frame, "Guide >", 100, function() self:Select((self.selected or 1) + 1) end)
-    nextGuide:SetPoint("LEFT", follow, "RIGHT", 8, 0)
-    frame.hideDone = Button(frame, "Hide Done", 84, function() self:ToggleView("professionLevelingHideDone") end)
-    frame.hideDone:SetPoint("LEFT", nextGuide, "RIGHT", 8, 0)
+    local close = Button(frame, "", 24, function() self:Close() end); close:SetPoint("TOPRIGHT", -8, -8)
+    -- The compact text area can ellipsize an X; use font-independent strokes.
+    for index = 1, 2 do
+        local stroke = close:CreateLine(nil, "OVERLAY")
+        local y = index == 1 and 4 or -4
+        stroke:SetThickness(1.5); stroke:SetColorTexture(0.88, 0.91, 0.93, 1)
+        stroke:SetStartPoint("CENTER", close, -4, y)
+        stroke:SetEndPoint("CENTER", close, 4, -y)
+    end
+    frame.guideDropdown = GuideDropdown(frame, function() self:GuideMenu() end)
+    frame.guideDropdown:SetPoint("TOPLEFT", 14, -64)
+    local follow = Button(frame, "Current", 80, function() self:Refresh(true) end)
+    follow:SetPoint("LEFT", frame.guideDropdown, "RIGHT", 8, 0)
+    frame.hideDone = Button(frame, "Hide completed", 136, function() self:ToggleView("professionLevelingHideDone") end)
+    frame.hideDone:SetPoint("LEFT", follow, "RIGHT", 8, 0)
+    frame.hideDone:HookScript("OnEnter", function(button) self:CompletedTooltip(button) end)
+    local function LeaveCompleted(button) if self.hovered == button then self:HideTooltip() end end
+    frame.hideDone:HookScript("OnLeave", LeaveCompleted); frame.hideDone:HookScript("OnHide", LeaveCompleted)
     frame.scroll = Suite.GUI:CreateSuiteScrollFrame(frame)
     frame.scroll:SetPoint("TOPLEFT", 14, -98); frame.scroll:SetSize(CONTENT_WIDTH, 350)
     frame.scroll:HookScript("OnVerticalScroll", function() self:HideTooltip() end)
-    frame:HookScript("OnHide", function() self:HideTooltip() end)
+    frame:HookScript("OnHide", function() self:HideTooltip(); self:CloseGuideMenu() end)
     frame.body = CreateFrame("Frame", nil, frame.scroll); frame.body:SetWidth(CONTENT_WIDTH)
     frame.text = Label(frame.body, 13, 0, 0, CONTENT_WIDTH); frame.text:SetSpacing(4)
     frame.scroll:SetScrollChild(frame.body)
@@ -787,11 +914,12 @@ function Leveling:CreatePanel()
     frame.source:SetScript("OnEnterPressed", function(input) input:ClearFocus() end)
     frame.source:SetScript("OnEditFocusGained", function(input) input:HighlightText() end)
     frame.sourceButton = sourceButton
-    frame.previous, frame.follow, frame.nextGuide, frame.close = previous, follow, nextGuide, close
+    frame.follow, frame.close = follow, close
 end
 function Leveling:Render(reset)
     local frame = self.frame
     if not frame or InCombatLockdown() then return end
+    self:CloseGuideMenu()
     local guide = guides[self.selected]
     local rank, maximum, snapshot = self:GuideSkill()
     frame.title:SetText(guide and guide.name .. " · Leveling" or "Profession Leveling")
@@ -806,7 +934,8 @@ function Leveling:Render(reset)
     if reset then frame.scroll.suiteOffset = 0; frame.scroll:SetVerticalScroll(0) end
     Suite.GUI:SyncScrollBar(frame.scroll, math.max(0, height - 350))
     frame.scroll:SetVerticalScroll(frame.scroll.suiteOffset)
-    frame.hideDone:SetText(self:ViewOption("professionLevelingHideDone") and "Show Done" or "Hide Done")
+    frame.guideDropdown:SetText(guide and guide.name or "Choose profession")
+    frame.hideDone:SetText(self:ViewOption("professionLevelingHideDone") and "Show completed" or "Hide completed")
     frame.autoSteps:SetText(self:ViewOption("professionLevelingAutoSteps") and "Auto steps: On" or "Auto steps: Off")
     frame.hideStocked:SetText(self:ViewOption("professionLevelingHideStocked") and "Show Stocked" or "Hide Stocked")
     self.url = guide and guide.url or nil
@@ -852,7 +981,7 @@ end
 function Leveling:Toggle()
     if not self:Enabled() or InCombatLockdown() or not Shown(self.owner) then return end
     if self.open then self:Close(); return end
-    self:CreatePanel(); self.open = true; self:Refresh(true); self.frame:Show()
+    self:CreatePanel(); self.open = true; self:Refresh(true); self.frame:Show(); self:AutoSelectRecipe()
 end
 function Leveling:Discover()
     if not self:Enabled() or InCombatLockdown() then return end
@@ -897,7 +1026,7 @@ function Leveling:Apply()
         if not self.events then
             self.events = CreateFrame("Frame")
             self.events:SetScript("OnEvent", function(_, event, unit)
-                if event == "PLAYER_REGEN_DISABLED" then self:Cancel(); self:HideTooltip(); self.open = nil; self.autoBlocked = true
+                if event == "PLAYER_REGEN_DISABLED" then self:Cancel(); self:HideTooltip(); self:CloseGuideMenu(); self.open = nil; self.autoBlocked = true
                 else
                     if event == "UPDATE_TRADESKILL_CAST_STOPPED" or ((event == "UNIT_SPELLCAST_INTERRUPTED" or event == "UNIT_SPELLCAST_FAILED")
                         and Read(unit, "string") and unit == "player") then self.autoCrafting = nil end

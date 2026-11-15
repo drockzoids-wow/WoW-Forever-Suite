@@ -81,12 +81,12 @@ function Selectors:Select(guid, bags, owner)
 end
 
 function Selectors:Menu(control)
-    if InCombatLockdown() or not self:Enabled(control.kind) or not MenuUtil or not MenuUtil.CreateContextMenu then return end
+    if InCombatLockdown() or not self:Enabled(control.kind) or not Suite.Menus or not Suite.Menus.CreateContextMenu then return end
     local bank = Suite.OfflineBank
     local bags = control.kind == "bags" or control.kind == "saved" and bank.viewBags == true
     local selected = control.kind == "saved" and bank.viewGUID or self:CurrentGUID()
     local choices = self:Choices(bags)
-    MenuUtil.CreateContextMenu(control, function(_, root)
+    Suite.Menus.CreateContextMenu(control, function(_, root)
         root:CreateTitle(bags and "Character bags" or "Character bank")
         for _, choice in ipairs(choices) do
             local guid = choice.guid
@@ -132,7 +132,7 @@ end
 
 function Selectors:Attach(frame, kind)
     if InCombatLockdown() or not Accessible(frame) or self.watched[frame] then return end
-    local control = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    local control = Suite.Theme:ActionButton(frame, "Character", kind == "bags" and 126 or 186, 20)
     control.kind = kind
     control:SetSize(kind == "bags" and 126 or 186, 20)
     control:SetFrameLevel(math.max(frame:GetFrameLevel() + 10, 520))
@@ -157,7 +157,10 @@ function Selectors:Attach(frame, kind)
     reset:SetScript("OnLeave", HideResetTooltip)
     reset:SetScript("OnHide", HideResetTooltip)
     local label = control.GetFontString and control:GetFontString()
-    if label then label:SetWordWrap(false); label:SetWidth(control:GetWidth() - 20) end
+    if label then
+        label:ClearAllPoints(); label:SetPoint("LEFT", 6, 0); label:SetPoint("RIGHT", -20, 0)
+        label:SetWordWrap(false); label:SetJustifyH("LEFT")
+    end
     self.watched[frame] = control
     self.controls[#self.controls + 1] = control
     if kind ~= "bags" then control:SetPoint("TOPLEFT", frame, "TOPLEFT", 52, -33) end

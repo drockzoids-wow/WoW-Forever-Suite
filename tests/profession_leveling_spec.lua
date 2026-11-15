@@ -1,7 +1,7 @@
 local Suite, equal, Frame, SetCombat = ...
 local leveling, guides = Suite.ProfessionLeveling, Suite.ProfessionGuides
 local saved, state = {}, {}
-local globals = { "CreateFrame", "ProfessionsFrame", "C_TradeSkillUI", "Enum", "C_Timer", "UIParent", "GameTooltip", "GetCurrentRegion", "UnitFactionGroup", "UnitCastingInfo", "UnitChannelInfo", "C_Map", "UiMapPoint", "C_SuperTrack", "GetProfessions", "GetProfessionInfo" }
+local globals = { "CreateFrame", "ProfessionsFrame", "C_TradeSkillUI", "Enum", "C_Timer", "UIParent", "GameTooltip", "GetCurrentRegion", "UnitFactionGroup", "UnitCastingInfo", "UnitChannelInfo", "C_Map", "UiMapPoint", "C_SuperTrack", "GetProfessions", "GetProfessionInfo", "MenuUtil" }
 for _, name in ipairs(globals) do saved[name] = _G[name] end
 for key, value in pairs(leveling) do state[key] = value end
 local db, pending = Suite.db, Suite.pending
@@ -45,6 +45,14 @@ UnitFactionGroup = function() return "Alliance" end
 local timers, made, info = {}, 0
 local function Widget(parent)
     local frame = Frame(); frame.parent = parent
+    frame.SetFontString = function(self, label) self.fontString = label end
+    local setText = frame.SetText
+    frame.SetText = function(self, text)
+        setText(self, text)
+        if self.fontString then self.fontString:SetText(text) end
+    end
+    frame.EnableKeyboard = function(self, value) self.keyboard = value end
+    frame.SetPropagateKeyboardInput = function(self, value) self.propagate = value end
     frame.RegisterEvent = function(self, event) self.registered = self.registered or {}; self.registered[event] = true end
     frame.UnregisterAllEvents = function(self) self.registered = {} end
     frame.IsForbidden = function(self) return self.forbidden or false end
@@ -103,6 +111,37 @@ leveling.button:OnClick()
 equal(leveling.frame:IsShown(), true, "explicit button opens companion")
 equal(leveling.frame.parent, ProfessionsFrame, "companion inherits native movement and hiding")
 equal(leveling.frame:GetWidth(), 460, "flyout widened for shopping lists")
+equal(leveling.frame.previous, nil, "previous-guide button removed")
+equal(leveling.frame.nextGuide, nil, "next-guide button removed")
+leveling.frame.guideDropdown:OnClick()
+equal(#leveling.guideMenu.rows, #guides, "dropdown includes every available guide")
+equal(leveling.guideMenu.list.point[1], "TOPLEFT", "menu aligns to selector left edge")
+equal(leveling.guideMenu.list.point[2], leveling.frame.guideDropdown, "menu attaches directly to selector")
+equal(leveling.guideMenu.list.point[3], "BOTTOMLEFT", "menu opens below selector")
+equal(leveling.guideMenu.list.backdropAlpha, 1, "menu background is opaque")
+for index, guide in ipairs(guides) do
+    if not leveling.guideMenu:IsShown() then leveling.frame.guideDropdown:OnClick() end
+    local row = leveling.guideMenu.rows[index]
+    equal(row.label.text, guide.name, "dropdown names guide " .. index)
+    equal(row.marker:IsShown(), index == leveling.selected, "dropdown marks selected guide " .. index)
+    row:OnClick()
+    equal(leveling.guideMenu:IsShown(), false, "selection closes guide list")
+    equal(leveling.selected, index, "dropdown opens guide " .. guide.name)
+    equal(leveling.frame.guideDropdown.label.text, guide.name, "dropdown reflects selection " .. guide.name)
+    equal(leveling.url, guide.url, "dropdown refreshes source " .. guide.name)
+end
+leveling.frame.follow:OnClick()
+equal(leveling.selected, leveling.current, "Current returns to native profession after browsing")
+leveling.frame.guideDropdown:OnClick(); leveling.guideMenu:OnKeyDown("A")
+equal(leveling.guideMenu.propagate, true, "ordinary keys propagate while menu is open")
+leveling.guideMenu:OnKeyDown("ESCAPE")
+equal(leveling.guideMenu:IsShown(), false, "Escape dismisses guide list")
+equal(leveling.open, true, "menu Escape keeps companion open")
+leveling.frame.guideDropdown:OnClick(); leveling.guideMenu:OnClick()
+equal(leveling.guideMenu:IsShown(), false, "outside click dismisses guide list")
+leveling.frame.guideDropdown:OnClick(); leveling.frame.guideDropdown:OnClick()
+equal(leveling.guideMenu:IsShown(), false, "selector toggles guide list closed")
+leveling:Refresh()
 equal(leveling.frame.scroll:GetWidth(), 410, "readable content uses wider panel")
 equal(leveling.frame.text.point[3] < -500, true, "full shopping list precedes leveling prose")
 equal(leveling.frame.materialsHeader.label.text, "−  Required materials", "distinct materials heading appears first")
@@ -207,11 +246,47 @@ leveling:Refresh()
 equal(Material(12359).have.text, "28+", "unrecorded bank gives known minimum stock")
 equal(Material(12359).need.text, "≤1742", "partial storage gives upper projected shortage estimate")
 Suite.db.inventory.characters["Guide-Alt-B"].bank = savedBank
+-- Screenshot case: the section's shortage must be distinct from all future uses.
+local savedMithril = Suite.db.inventory.characters["Guide-Alt-A"].bags.items[3860]
+Suite.db.inventory.characters["Guide-Alt-A"].bags.items[3860] = 21
+Suite.db.inventory.characters["Guide-Alt-B"].bank = nil
+Blacksmith(218); leveling:Refresh()
+local function UnfinishedMithril()
+    local rows = {}
+    for _, row in ipairs(leveling.frame.materialRows) do
+        if row:IsShown() and row.materialID == 3860 and not row.done then rows[#rows + 1] = row end
+    end
+    return rows
+end
+local mithrilRows = UnfinishedMithril()
+equal(#mithrilRows, 2, "current and future Mithril sections remain separate")
+equal(mithrilRows[1].quantity.text, "112 x", "skill 218 current section requires seven breastplates")
+equal(mithrilRows[1].have.text, "21+", "section keeps incomplete stock marker")
+equal(mithrilRows[1].sectionNeed.text, "≤91", "current section subtracts 21 recorded bars from 112")
+equal(mithrilRows[1].totalSummary.text, "All remaining: 336 required · Still need", "overall requirement has its own labeled line")
+equal(mithrilRows[1].need.text, "≤315", "overall shortage subtracts recorded stock once from 336")
+equal(mithrilRows[2].sectionNeed.text, "≤224", "future section cannot reuse stock consumed by the current section")
+equal(mithrilRows[2].need.text, "≤315", "future section repeats the same explicitly labeled overall shortage")
+equal(mithrilRows[1].need.point[3] < mithrilRows[1].sectionNeed.point[3], true, "overall shortage is laid out beneath section shortage")
+Suite.db.inventory.characters["Guide-Alt-A"].bags.items[3860] = 200; leveling:Refresh()
+mithrilRows = UnfinishedMithril()
+equal(mithrilRows[1].sectionNeed.text, "0", "stock covers the current section first")
+equal(mithrilRows[2].sectionNeed.text, "≤136", "future section uses only leftover stock")
+equal(mithrilRows[1].need.text, "≤136", "overall shortage agrees with chronological allocation")
+Suite.db.inventory.characters["Guide-Alt-A"].bags.items[3860] = 400; leveling:Refresh()
+mithrilRows = UnfinishedMithril()
+equal(mithrilRows[1].sectionNeed.text, "0", "surplus does not produce a negative current shortage")
+equal(mithrilRows[2].sectionNeed.text, "0", "surplus covers future section too")
+equal(mithrilRows[1].need.text, "0", "overall shortage is zero when covered")
+Suite.db.inventory.characters["Guide-Alt-A"].bags.items[3860] = savedMithril
+Suite.db.inventory.characters["Guide-Alt-B"].bank = savedBank
+Blacksmith(173); leveling:Refresh()
 local savedInventory = Suite.db.inventory
 Suite.db.inventory = { schema = 1, characters = {}, accountBanks = {} }
 leveling:Refresh()
 equal(Material(12359).have.text, "?", "absent inventory is not asserted empty")
 equal(Material(12359).need.text, "?", "absent inventory does not invent shortage")
+equal(Material(12359).sectionNeed.text, "?", "absent inventory does not invent a section shortage")
 Suite.db.inventory = savedInventory
 Suite.db.inventory.characters["Guide-Alt-A"].bags.items[12359] = 3000
 leveling:Refresh()
@@ -239,6 +314,12 @@ GameTooltip.SetOwner = function(self, row) self.owner = row end
 GameTooltip.IsOwned = function(self, row) return self.owner == row end
 GameTooltip.GetOwner = function(self) return self.owner end
 local tooltipIDs = {}
+leveling.frame.hideDone:Show() -- Native template buttons start shown; the generic substitute starts hidden.
+leveling.frame.hideDone:OnEnter()
+equal(GameTooltip.owner, leveling.frame.hideDone, "completed filter owns its explanation tooltip")
+equal(GameTooltip.text:find("Show or hide completed steps", 1, true) ~= nil, true, "completed filter explains entire-step filtering")
+leveling.frame.hideDone:OnLeave()
+equal(GameTooltip:IsShown(), false, "leaving completed filter hides explanation")
 GameTooltip.SetItemByID = function(self, id)
     tooltipIDs[#tooltipIDs + 1] = id; self.lines = {}; Suite.Tooltips.records[self] = nil
     -- Simulate the native item post-call through the real Suite tooltip pipeline.
@@ -455,12 +536,23 @@ local originalShortage = Material(3860).need.text
 Material(2835):OnEnter()
 leveling.frame.hideDone:OnClick()
 equal(Suite.db.professionLevelingHideDone, true, "Hide Done preference saved")
-equal(leveling.frame.hideDone.text, "Show Done", "toggle offers restoring hidden rows")
+equal(leveling.frame.hideDone.text, "Show completed", "toggle offers restoring hidden rows")
 equal(GameTooltip:IsShown(), false, "hiding Done clears old hovered tooltip")
 equal(Material(2835), nil, "Hide Done removes completed rough stone")
 equal(Material(2841), nil, "Hide Done removes completed bronze")
 equal(Material(3575) ~= nil, true, "Hide Done preserves current materials")
 equal(Material(3860).need.text, originalShortage, "filter does not change aggregated stock or Need")
+for index, row in ipairs(leveling.frame.stepRows) do
+    equal(row:IsShown(), index >= 4, "Hide completed removes finished step " .. index)
+end
+equal(leveling.frame.stepRows[4].expanded, true, "Hide completed retains current expanded step")
+leveling.frame.stepRows[1].header:OnClick()
+equal(leveling.frame.stepRows[1].expanded, false, "hidden completed header cannot expand")
+local hiddenStepsHeight = leveling.frame.body:GetHeight()
+Blacksmith(175); leveling:Refresh()
+equal(leveling.frame.stepRows[4]:IsShown(), false, "newly completed step disappears on skill transition")
+equal(leveling.frame.stepRows[5]:IsShown(), true, "new current step remains visible")
+Blacksmith(173); leveling:Refresh()
 local oldBracketShown = false
 for _, label in ipairs(leveling.frame.materialLabels) do
     if label:IsShown() and label.text == "1-150" then oldBracketShown = true end
@@ -468,9 +560,12 @@ end
 equal(oldBracketShown, false, "empty completed bracket heading removed")
 info.skillLevel = {}; leveling:Refresh()
 equal(Material(2835) ~= nil, true, "unknown rank never filters materials as completed")
+for _, row in ipairs(leveling.frame.stepRows) do equal(row:IsShown(), true, "unknown skill never hides a step as completed") end
 Blacksmith(173); leveling:Refresh()
 leveling.frame.hideDone:OnClick()
 equal(Material(2835).need.text, "Done", "Show Done restores completed reference")
+equal(leveling.frame.body:GetHeight() > hiddenStepsHeight, true, "restoring completed content expands scroll extent")
+for _, row in ipairs(leveling.frame.stepRows) do equal(row:IsShown(), true, "Show completed restores step headings") end
 Blacksmith(175); leveling:Refresh()
 equal(leveling.frame.stepRows[4].expanded, false, "previous current range folds on skill transition")
 equal(leveling.frame.stepRows[5].expanded, true, "new current range opens on skill transition")
@@ -518,7 +613,7 @@ leveling:Refresh()
 equal(leveling.selected, nil, "unknown profession never displays previous guide as current")
 equal(leveling.url, nil, "unknown profession clears stale source")
 equal(leveling.frame.text.text:find("No summary", 1, true) ~= nil, true, "unknown profession explained")
-leveling.frame.nextGuide:OnClick()
+leveling.frame.guideDropdown:OnClick(); leveling.guideMenu.rows[2]:OnClick()
 equal(guides[leveling.selected].name, "Blacksmithing", "unknown context can still browse summaries")
 Blacksmith(); info.skillLevel = {}; leveling:Refresh(true)
 equal(leveling.rank, nil, "restricted rank omitted before arithmetic")
@@ -634,8 +729,13 @@ equal(#guides, 14, "profession, lockpicking and camping summaries available")
 leveling:Select(0); equal(leveling.selected, #guides, "previous wraps library")
 leveling:Select(#guides + 1); equal(leveling.selected, 1, "next wraps library")
 local size = made
+leveling.frame.guideDropdown:OnClick()
+local staleChoice, selectedBeforeCombat = function() leveling.guideMenu.rows[2]:OnClick() end, leveling.selected
 SetCombat(true)
 leveling.events:OnEvent("PLAYER_REGEN_DISABLED")
+leveling.frame.guideDropdown:OnClick(); staleChoice()
+equal(leveling.guideMenu:IsShown(), false, "combat closes menu and prevents reopening")
+equal(leveling.selected, selectedBeforeCombat, "combat ignores retained menu selection")
 local hidePreference = Suite.db.professionLevelingHideDone
 local autoPreference = Suite.db.professionLevelingAutoSteps
 local stockedPreference = Suite.db.professionLevelingHideStocked
@@ -653,13 +753,15 @@ equal(leveling.open, nil, "combat cancels open intent")
 equal(Suite.pending.professionLevelingApply ~= nil, true, "combat layout defers")
 SetCombat(false); Pending(); Flush()
 equal(leveling.frame:IsShown(), false, "combat exit does not reopen cancelled guide")
+staleChoice()
+equal(leveling.selected, selectedBeforeCombat, "closed guide ignores retained menu selection")
 leveling:Toggle()
 leveling:Queue()
 ProfessionsFrame:OnHide()
 equal(leveling.timer, nil, "native hide cancels queued refresh")
 equal(leveling.frame:IsShown(), false, "native hide dismisses flyout")
 Flush(); leveling:Toggle()
--- Follow native skill boundaries even with the flyout closed; never start a craft.
+-- Follow native skill boundaries only while the guide is open; never start a craft.
 equal(Suite.db.professionLevelingAutoRecipe, false, "automatic recipe selection can be disabled")
 local autoRequests, learned, canSkillUp, loading, rejects, cast = {}, true, true, false, false, nil
 UnitCastingInfo = function() return cast end
@@ -677,8 +779,22 @@ C_TradeSkillUI.CraftRecipe = function() error("automatic selection must never cr
 Blacksmith(173); ProfessionsFrame.CraftingPage:Show(); leveling:Close(); ProfessionsFrame:OnShow(); Flush()
 equal(#autoRequests, 0, "opening does not auto-select with option off")
 Suite.db.professionLevelingAutoRecipe = true; leveling:Apply(); Flush()
-equal(autoRequests[1], 3501, "enabling selects current Green Iron Bracers with guide closed")
+equal(#autoRequests, 0, "enabling with guide closed preserves manual recipe choice")
 equal(leveling.open, nil, "automatic selection does not open flyout")
+Blacksmith(175); leveling.events:OnEvent("TRADE_SKILL_LIST_UPDATE"); Flush()
+equal(#autoRequests, 0, "closed guide ignores queued recipe-range transitions")
+Blacksmith(173); leveling:Refresh()
+local guideContext = leveling.context
+leveling:RequestRecipe(3501, leveling.current, guideContext, true, 173)
+equal(#autoRequests, 0, "direct automatic request cannot bypass closed-guide guard")
+leveling:Toggle()
+equal(autoRequests[1], 3501, "opening guide selects current Green Iron Bracers")
+leveling.frame:Hide(); Blacksmith(175); leveling:AutoSelectRecipe()
+equal(#autoRequests, 1, "hidden guide cannot change a manually chosen recipe")
+Blacksmith(173); leveling.frame:Show()
+leveling:Select(1); Blacksmith(175); leveling:AutoSelectRecipe()
+equal(#autoRequests, 1, "browsing another guide cannot drive native profession selection")
+Blacksmith(173); leveling:Refresh(true)
 Flush(); leveling:Refresh(); Blacksmith(174); leveling:Refresh()
 equal(#autoRequests, 1, "feedback and skill gains within a recipe preserve manual choices")
 ProfessionsFrame.CraftingPage:CreateInternal()
@@ -688,7 +804,9 @@ leveling.events:OnEvent("UPDATE_TRADESKILL_CAST_STOPPED", false); Flush()
 equal(autoRequests[2], 9920, "batch completion selects next Solid Grinding Stone recipe")
 Flush(); equal(#autoRequests, 2, "next-recipe feedback does not loop")
 ProfessionsFrame:OnHide(); ProfessionsFrame:OnShow(); Flush()
-equal(#autoRequests, 3, "reopening selects the current recipe anew")
+equal(#autoRequests, 2, "reopening native profession alone preserves manual recipe")
+leveling:Toggle()
+equal(#autoRequests, 3, "explicitly reopening guide selects the current recipe anew")
 Blacksmith(173); learned = false; leveling:Refresh()
 equal(#autoRequests, 3, "automatic path never previews unlearned recipes")
 learned = true; canSkillUp = false; leveling:Refresh()
@@ -706,9 +824,25 @@ SetCombat(true); leveling.events:OnEvent("PLAYER_REGEN_DISABLED"); Blacksmith(18
 SetCombat(false); leveling.events:OnEvent("PLAYER_REGEN_ENABLED"); Pending(); Flush()
 equal(#autoRequests, 5, "combat exit cannot replay automatic selection")
 ProfessionsFrame:OnHide(); ProfessionsFrame:OnShow(); Flush()
-equal(#autoRequests, 6, "reopening after combat resumes automatic selection")
+equal(#autoRequests, 5, "native reopen after combat does not resume selection with guide closed")
+leveling:Toggle()
+equal(#autoRequests, 6, "explicitly reopening guide after combat resumes automatic selection")
 Suite.db.professionLevelingAutoRecipe = false; leveling:Refresh(); Blacksmith(173); leveling:Refresh()
 equal(#autoRequests, 6, "disabling optional selection stops following skill")
+-- Closing during a native data read must invalidate the final OpenRecipe call.
+local automaticRecipeInfo = C_TradeSkillUI.GetRecipeInfo
+local automaticRecipeReads = 0
+Suite.db.professionLevelingAutoRecipe = true
+C_TradeSkillUI.GetRecipeInfo = function(id)
+    automaticRecipeReads = automaticRecipeReads + 1
+    leveling:Close()
+    return { recipeID = id, learned = true, canSkillUp = true }
+end
+leveling:RequestRecipe(3501, leveling.current, leveling.context, true, 173)
+equal(automaticRecipeReads, 1, "close-during-read regression reaches native metadata lookup")
+equal(#autoRequests, 6, "closing guide during native reads prevents final automatic selection")
+C_TradeSkillUI.GetRecipeInfo = automaticRecipeInfo
+Suite.db.professionLevelingAutoRecipe = false
 equal(Suite.Profiles:Settings({ professionLevelingAutoRecipe = true }).professionLevelingAutoRecipe, true, "auto-selection participates in settings profiles")
 C_TradeSkillUI.OpenRecipe, C_TradeSkillUI.GetRecipeInfo, C_TradeSkillUI.IsRecipeInSkillLine = nil, nil, nil
 -- Every modeled profession/recipe must retain training and acquisition behavior
@@ -890,6 +1024,7 @@ equal(Suite.Profiles:Settings(Suite.db).professionLevelingAutoSteps, true, "auto
 equal(Suite.Profiles:Settings(Suite.db).professionLevelingHideStocked, false, "stocked filter participates in settings profiles")
 local found = Suite.SettingsCatalog:Search("blacksmithing")
 equal(#found > 0, true, "profession guides discoverable through settings search")
+assert(loadfile("tests/profession_material_math_spec.lua"))(Suite, equal)
 leveling:Cancel()
 while Suite.GUI.scrollWidgets and #Suite.GUI.scrollWidgets > scrollCount do table.remove(Suite.GUI.scrollWidgets) end
 for key in pairs(leveling) do leveling[key] = nil end

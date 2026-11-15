@@ -255,7 +255,7 @@ C_PlayerInfo,C_Item.GetItemInfoInstant,C_Item.IsUsableItem=oldPlayerInfo,oldInst
 Suite.Apply = function() end
 Suite.GUI:OpenPage("items")
 equal(Suite.GUI.rows[5].value.text, "Stats", "comparison control displays current preference")
-local ChooseMenu=assert(loadfile("tests/menu_helper.lua"))()
+local ChooseMenu=assert(loadfile("tests/menu_helper.lua"))(Suite)
 ChooseMenu(function() Suite.GUI.rows[5].OnClick() end,"Item level")
 equal(Suite.db.upgradePreference, "ilevel", "comparison control changes saved preference")
 equal(Suite.GUI.rows[5].value.text, "Item level", "comparison control refreshes its label")

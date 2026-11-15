@@ -149,17 +149,7 @@ local function Fill(frame, color)
 end
 
 local function Button(parent, width, label, callback)
-    local button = CreateFrame("Button", nil, parent, "BackdropTemplate")
-    Suite.Theme:ButtonFeedback(button)
-    button:SetSize(width, 24)
-    Fill(button)
-    button.label = Text(button, 10, colors.accent)
-    button.label:SetPoint("CENTER")
-    button.label:SetText(label)
-    button:SetScript("OnClick", function() if not InCombatLockdown() then callback() end end)
-    button:SetScript("OnEnter", function() button:SetBackdropColor(0.1, 0.2, 0.21) end)
-    button:SetScript("OnLeave", function() Fill(button) end)
-    return button
+    return Suite.Theme:ActionButton(parent, label, width, 24, function() if not InCombatLockdown() then callback() end end)
 end
 
 function Mail:Database()
@@ -1298,21 +1288,13 @@ function Mail:ChooseBookFilter()
         book.groupFilter, book.filter, book.tab, book.page, book.confirm = option and option.group, nil, "all", 1, nil
         self:RefreshBook()
     end
-    if MenuUtil and type(MenuUtil.CreateContextMenu) == "function" then
-        MenuUtil.CreateContextMenu(book.filterButton, function(_, root)
-            root:CreateButton("Clear custom filter", function() Select(nil) end)
-            for _, option in ipairs(options) do
-                local choice = option
-                root:CreateButton(choice.name, function() Select(choice) end)
-            end
-        end)
-    else
-        local nextIndex = 1
-        for index, option in ipairs(options) do
-            if option.group == book.groupFilter then nextIndex = index + 1; break end
+    Suite.Menus.CreateContextMenu(book.filterButton, function(_, root)
+        root:CreateButton("Clear custom filter", function() Select(nil) end)
+        for _, option in ipairs(options) do
+            local choice = option
+            root:CreateButton(choice.name, function() Select(choice) end)
         end
-        Select(options[nextIndex])
-    end
+    end)
 end
 
 function Mail:RefreshBookGroups()
@@ -1338,7 +1320,7 @@ end
 function Mail:ChooseContactGroups()
     local book = self.book
     if InCombatLockdown() or not book or not Shown(book.frame) or not Shown(book.content) then return end
-    if not MenuUtil or type(MenuUtil.CreateContextMenu) ~= "function" then book.status:SetText("The native group menu is unavailable."); return end
+    if not Suite.Menus or type(Suite.Menus.CreateContextMenu) ~= "function" then book.status:SetText("Group selection is unavailable."); return end
     self:RefreshBookGroups()
     local version, region, ruleset = book.editVersion, Region(), Ruleset()
     local function Current()
@@ -1346,7 +1328,7 @@ function Mail:ChooseContactGroups()
             and book.editVersion == version and Region() == region and Ruleset() == ruleset
     end
     local definitions, order = self:GroupDefinitions()
-    MenuUtil.CreateContextMenu(book.groupsChoose, function(_, root)
+    Suite.Menus.CreateContextMenu(book.groupsChoose, function(_, root)
         for _, id in ipairs(order) do
             if id:match("^custom:%d+$") then
                 local groupID = id
@@ -1588,7 +1570,7 @@ function Mail:OpenBook(anchor, tab)
         for index = 1, CONTACT_ROWS do
             local row = Button(frame, 264, "", function() end); book.rows[index] = row
             row:SetSize(264, 40); row:SetPoint("TOPLEFT", 160, -126 - (index - 1) * 43)
-            row.label:ClearAllPoints(); row.label:SetPoint("TOPLEFT", 9, -6); row.label:SetWidth(244)
+            row.label:ClearAllPoints(); row.label:SetPoint("TOPLEFT", 9, -6); row.label:SetWidth(244); row.label:SetJustifyH("LEFT")
             row.name = row.label
             row.detail = Text(row, 10, colors.muted); row.detail:SetPoint("TOPLEFT", 9, -24); row.detail:SetWidth(244)
             row:SetScript("OnClick", function() if row.entry and row.region == Region() and row.ruleset == Ruleset() then Select(row.entry) end end)

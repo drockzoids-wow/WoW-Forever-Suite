@@ -146,16 +146,10 @@ function Copy:Build()
         if user then box:SetText(self.body or "") end
     end)
     edit:SetScript("OnEscapePressed", function() self:Hide() end)
-    local refresh = CreateFrame("Button", nil, frame, "BackdropTemplate")
+    local refresh = Suite.Theme:ActionButton(frame, "Refresh", 92, 28)
     self.refresh = refresh
     refresh:SetPoint("BOTTOMRIGHT", -14, 9); refresh:SetSize(92, 28)
     refresh:SetFrameLevel(edit:GetFrameLevel() + 2)
-    refresh:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-    refresh:SetBackdropColor(0.07, 0.095, 0.11, 1); Suite.Theme:Backdrop(refresh, 0.5); Suite.Theme:ButtonFeedback(refresh)
-    local refreshText = refresh:CreateFontString(nil, "OVERLAY")
-    refreshText:SetFont("Fonts\\FRIZQT__.TTF", 12, ""); refreshText:SetAllPoints(refresh)
-    refreshText:SetJustifyH("CENTER"); refreshText:SetJustifyV("MIDDLE"); refreshText:SetText("Refresh")
-    refreshText:SetTextColor(0.41, 0.84, 0.75)
     refresh:SetScript("OnClick", function() self:Refresh() end)
     local status = frame:CreateFontString(nil, "OVERLAY")
     self.status = status

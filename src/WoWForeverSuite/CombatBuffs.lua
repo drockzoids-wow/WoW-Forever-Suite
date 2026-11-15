@@ -79,7 +79,7 @@ end
 
 function Combat:Descriptors()
     local buffs, descriptors = Suite.MissingBuffs, {}
-    local roster = buffs:Roster()
+    local roster = buffs:Roster(true)
     local player = roster[1]
     if not player then return descriptors end
     if buffs.bookDirty then buffs.learned, buffs.learnedComplete = buffs:Learned(); buffs.bookDirty = false end
@@ -92,8 +92,9 @@ function Combat:Descriptors()
                     or member.unit ~= "player" and family.catalog.group and Suite.db.missingBuffOutgoing
                 local recipient = buffs:Recipient(family, member.class)
                 local spell = recipient.spell
-                local inRange = member.unit == "player" or spell and Call(C_Spell and C_Spell.IsSpellInRange, spell.id, member.unit) ~= false
-                if allowed and spell and inRange and (not buffs:PartyOnly(family.catalog, spell.root or spell.id) or member.party) then
+                -- Prepare every eligible member, including distant members who
+                -- may approach during combat. Public range gates filter display.
+                if allowed and spell and (not buffs:PartyOnly(family.catalog, spell.root or spell.id) or member.party) then
                     local seconds
                     for name in pairs(recipient.names) do
                         local duration = (self.auraDurations[member.unit] or {})[name]
@@ -104,7 +105,7 @@ function Combat:Descriptors()
                     local warning = Suite.db.missingBuffExpiry and not family.catalog.toggle
                         and Suite.BuffReminders:Warning(self.durations[durationKey]) or 0
                     descriptor.members[#descriptor.members + 1] = {
-                        unit = member.unit, guid = member.guid, name = member.name,
+                        unit = member.unit, guid = member.guid, name = member.name, spellID = spell.id,
                         ids = self:IDs(recipient), warning = warning,
                     }
                 end
@@ -120,6 +121,7 @@ local function Signature(descriptor, size)
     for _, member in ipairs(descriptor.members) do
         parts[#parts + 1] = member.unit; parts[#parts + 1] = member.guid
         parts[#parts + 1] = member.name; parts[#parts + 1] = member.warning
+        parts[#parts + 1] = member.spellID or descriptor.spell.id
         local ids = {}; for id in pairs(member.ids) do ids[#ids + 1] = id end; table.sort(ids)
         for _, id in ipairs(ids) do parts[#parts + 1] = id end
     end
@@ -237,7 +239,8 @@ end
 
 function Combat:Container(record, member, row, soon)
     local cell, size = record.cell, record.size
-    local container = CreateFrame("AuraContainer", nil, cell, "CustomAuraContainerTemplate")
+    local gates = record.rangeGates[row]
+    local container = CreateFrame("AuraContainer", nil, gates.display, "CustomAuraContainerTemplate")
     record.containers[#record.containers + 1] = container
     container:SetEnabled(false); container:SetEditModePreviewEnabled(false)
     container:SetAuraProcessingPolicy(CustomAuraContainerAuraProcessingPolicy.None)
@@ -245,12 +248,12 @@ function Combat:Container(record, member, row, soon)
     local tipX = (size - record.tipWidth) / 2 + 4
     local tipY = -size - 14 - 6 - 26 - (row - 1) * LINE
     if not soon then
-        local iconClip = Clip(cell)
+        local iconClip = Clip(gates.display)
         iconClip:SetPoint("TOPLEFT", container, "TOPRIGHT", 0, 0)
         iconClip:SetPoint("BOTTOMRIGHT", cell, "TOPLEFT", PLANE, -size - 14)
         self:Chip(iconClip, record, cell)
-        self:Title(record, cell, container, false)
-        local nameClip = MissingClip(record.tooltip, container, cell, tipX, tipY)
+        self:Title(record, gates.display, container, false)
+        local nameClip = MissingClip(gates.tooltip, container, cell, tipX, tipY)
         local name = Label(nameClip, member.name)
         name:SetPoint("TOPLEFT", cell, "TOPLEFT", tipX, tipY)
     end
@@ -294,7 +297,7 @@ function Combat:Container(record, member, row, soon)
 end
 
 function Combat:Build(descriptor, size, titleX, titleY)
-    local record = { descriptor = descriptor, size = size, containers = {}, titleX = titleX, titleY = titleY }
+    local record = { descriptor = descriptor, size = size, containers = {}, rangeGates = {}, titleX = titleX, titleY = titleY }
     record.cell = CreateFrame("Frame", nil, self.frame, CLIP)
     record.cell:Hide(); record.cell:SetSize(size, size + 14)
     local tooltip = CreateFrame("Frame", nil, record.cell, "BackdropTemplate," .. CLIP)
@@ -326,6 +329,12 @@ function Combat:Build(descriptor, size, titleX, titleY)
     tooltip:Hide()
     local ok, failure = pcall(function()
         for row, member in ipairs(descriptor.members) do
+            -- These owned ancestors never inherit native aura visibility or
+            -- geometry. Only their public spell-range result controls them.
+            local display = CreateFrame("Frame", nil, record.cell, CLIP)
+            local tipGate = CreateFrame("Frame", nil, tooltip, CLIP)
+            display:EnableMouse(false); tipGate:EnableMouse(false)
+            record.rangeGates[row] = { display = display, tooltip = tipGate }
             self:Container(record, member, row, false)
             if member.warning > 0 and not self.soonUnavailable then
                 local before = #record.containers
@@ -463,6 +472,18 @@ function Combat:RefreshVisibility(event)
     end
     local allowed = InCombatLockdown() and Enabled() and not self.suspended and (self.count or 0) > 0
         and Call(UnitIsDeadOrGhost, "player") == false
+    for _, key in ipairs(self.order or {}) do
+        local record = self.records[key]
+        for row, member in ipairs(record.descriptor.members) do
+            local visible = member.unit == "player" or Call(UnitExists, member.unit) == true
+                and Call(UnitIsConnected, member.unit) == true and Call(UnitIsVisible, member.unit) == true
+                and Call(UnitIsDeadOrGhost, member.unit) == false and Call(UnitCanAssist, "player", member.unit) == true
+                and Call(C_Spell and C_Spell.IsSpellInRange, member.spellID or record.descriptor.spell.id, member.unit) == true
+            local gates = record.rangeGates[row]
+            gates.display:SetShown(allowed and visible)
+            gates.tooltip:SetShown(allowed and visible)
+        end
+    end
     -- The host is transparent, contains no protected widgets and has no input.
     -- Its visibility is driven by public context only, never aura display state.
     self.frame:SetShown(allowed == true)

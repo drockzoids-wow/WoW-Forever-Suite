@@ -1,4 +1,5 @@
 local Suite, equal, Frame, SetCombat = ...
+local savedMenus = Suite.Menus
 local macros, supplies = Suite.Macros, Suite.MacroItems
 SetCombat(false)
 local data = {
@@ -722,12 +723,17 @@ weapon[17] = 202
 gui.macroRows[2].OnClick()
 equal(gui.macroSelected, water, "recipe click changes the preview")
 local menuChoices = {}
-MenuUtil = { CreateContextMenu = function(_, build)
+Suite.Menus = { CreateContextMenu = function(_, build)
     build(nil, { CreateButton = function(_, label, callback) menuChoices[#menuChoices + 1] = { label, callback } end,
         CreateTitle = function() end })
 end }
 gui.macroRows[4].OnClick(); gui:ChooseMacroItem()
 equal(menuChoices[1][1], "Select automatically", "item picker offers automatic reset for coatings")
+local previousItem, previousSelection = mainhand.item, gui.macroSelected
+gui.macroSelected = water
+menuChoices[1][2]()
+equal(mainhand.item, previousItem, "stale item-menu callback cannot edit a previously selected macro")
+gui.macroSelected = previousSelection
 for _, choice in ipairs(menuChoices) do if choice[1]:find("Shadow Oil", 1, true) then choice[2]() end end
 equal(mainhand.item, 108, "picker chooses a carried coating without using it")
 gui.macroPreview.text = "/say altered"
@@ -1309,3 +1315,5 @@ native, Suite.db, Suite.macroDB = previousNative, previousDB, previousCharacter
 macros.events.RegisterEvent, macros.events.UnregisterAllEvents = eventRegister, eventUnregister
 macros:Cancel(); Flush()
 
+
+Suite.Menus = savedMenus

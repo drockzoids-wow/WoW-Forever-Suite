@@ -468,8 +468,8 @@ end
 
 function Map:OpenCoordinateRecipients()
     if InCombatLockdown() or not self.tell or not self.tell:IsShown() or not Suite.db.minimapStats
-        or not Suite.db.showCoordinates or not MenuUtil or type(MenuUtil.CreateContextMenu) ~= "function" then return end
-    MenuUtil.CreateContextMenu(self.tell.recent, function(_, root)
+        or not Suite.db.showCoordinates or not Suite.Menus or type(Suite.Menus.CreateContextMenu) ~= "function" then return end
+    Suite.Menus.CreateContextMenu(self.tell.recent, function(_, root)
         root:CreateTitle("Recent recipients")
         for _, name in ipairs(self:CoordinateRecipients(Suite.db.coordinateTellHistory)) do
             root:CreateButton(name, function()
@@ -515,15 +515,15 @@ function Map:AskCoordinateRecipient(location)
         frame.input:SetScript("OnEnterPressed", Send)
         frame.input:SetScript("OnEscapePressed", function() frame:Hide() end)
         frame:SetScript("OnHide", function() frame.input:ClearFocus(); frame.location = nil end)
-        frame.recent = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+        frame.recent = Suite.Theme:ActionButton(frame, "Recent", 80, 22)
         frame.recent:SetSize(80, 22)
         frame.recent:SetPoint("TOPRIGHT", -12, -30)
         frame.recent:SetText("Recent")
         frame.recent:SetScript("OnClick", function() self:OpenCoordinateRecipients() end)
-        local ready = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+        local ready = Suite.Theme:ActionButton(frame, "Send coordinates", 130, 22)
         ready:SetSize(130, 22); ready:SetPoint("BOTTOMLEFT", 12, 10); ready:SetText("Send coordinates")
         ready:SetScript("OnClick", Send)
-        local cancel = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+        local cancel = Suite.Theme:ActionButton(frame, "Cancel", 110, 22)
         cancel:SetSize(110, 22); cancel:SetPoint("BOTTOMRIGHT", -12, 10); cancel:SetText("Cancel")
         cancel:SetScript("OnClick", function() frame:Hide() end)
     end
@@ -536,9 +536,9 @@ end
 
 function Map:OpenCoordinateMenu()
     if InCombatLockdown() or not Suite.db.minimapStats or not Suite.db.showCoordinates
-        or not MenuUtil or type(MenuUtil.CreateContextMenu) ~= "function" then return end
+        or not Suite.Menus or type(Suite.Menus.CreateContextMenu) ~= "function" then return end
     local location = self:ReadCoordinates()
-    MenuUtil.CreateContextMenu(self.coordinates, function(_, root)
+    Suite.Menus.CreateContextMenu(self.coordinates, function(_, root)
         root:CreateTitle(location and string.format("Share %.1f, %.1f", location.x * 100, location.y * 100) or "Coordinates unavailable")
         if not location then return end
         local function Add(label, channel, target)

@@ -1,4 +1,5 @@
 local Suite, equal, Frame, SetCombat = ...
+local savedMenus = Suite.Menus
 local buffs, oldDB, oldPending = Suite.MissingBuffs, Suite.db, Suite.pending
 local names = { "CreateFrame", "RegisterStateDriver", "C_Timer", "C_Spell", "C_SpellBook", "C_UnitAuras", "C_Secrets", "C_Item", "C_EventUtils", "C_ChatInfo", "C_Minimap", "Enum",
     "UnitExists", "UnitIsConnected", "UnitIsVisible", "UnitIsDeadOrGhost", "UnitCanAssist", "UnitGUID", "UnitName", "UnitClass", "UnitLevel",
@@ -84,7 +85,7 @@ local function LeaveCombat()
     for _, callback in pairs(pending) do callback() end
 end
 local function Unit(token, class, level)
-    units[token] = { guid = "guid:" .. token, name = "Name " .. token, class = class, level = level or 40, connected = true, visible = true, dead = false, party = true }
+    units[token] = { guid = "guid:" .. token, name = "Name " .. token, class = class, level = level or 40, connected = true, visible = true, dead = false, party = true, range = true }
     auras[token] = {}
 end
 Unit("player", "MAGE"); Unit("party1", "PRIEST"); Unit("party2", "DRUID"); Unit("party3", "WARRIOR")
@@ -221,6 +222,58 @@ local combined,combinedButton=Find("group","intellect")
 equal(#combined.names,2,"covering the player removes only their name from the combined tooltip")
 equal(combinedButton.attributes.unit,"party1","combined icon advances its cast target when the player is covered")
 equal(combinedButton.caption,nil,"combined icon has no number beneath it")
+do
+    units.party1.range, units.party2.range = false, false
+    buffs:Refresh()
+    equal(Find("group", "intellect"), nil, "out-of-range missing recipients do not show a buff icon")
+    equal(Suite.BuffReminders.deadline.delay, 1, "hidden out-of-range recipients schedule a movement recheck")
+    units.party2.range = true
+    Flush()
+    local entry, button = Find("group", "intellect")
+    equal(entry.unit, "party2", "entering spell range reveals the reminder without an aura event")
+    equal(#entry.names, 1, "out-of-range recipients are excluded from the tooltip")
+    equal(button.attributes.unit, "party2", "the actionable target is in spell range")
+    units.party2.range = false
+    button:PreClick("LeftButton")
+    equal(button.attributes.type1, nil, "leaving range before the next refresh cancels the stale cast")
+    Flush()
+    equal(Find("group", "intellect"), nil, "leaving spell range hides the reminder without an aura event")
+    units.party1.visible, units.party2.visible = false, false
+    buffs:Refresh()
+    equal(Find("group", "intellect"), nil, "unseen recipients do not appear on the clickable bar")
+    equal(Suite.BuffReminders.deadline.delay, 1, "unseen roster members retain a movement recheck")
+    local descriptor = Suite.CombatBuffs:Descriptors()[1]
+    local preparedHidden = false
+    for _, member in ipairs(descriptor and descriptor.members or {}) do
+        if member.unit == "party2" then preparedHidden = true end
+    end
+    equal(preparedHidden, true, "combat preparation includes known but currently unseen roster members")
+    units.party2.visible, units.party2.range = true, true
+    Flush()
+    equal(Find("group", "intellect").unit, "party2", "returning from beyond visibility restores the reminder without aura events")
+    units.party1.visible, units.party2.range = true, false
+    local rangeAPI = C_Spell.IsSpellInRange
+    for _, result in ipairs({ secret, 0, 1, "true" }) do
+        C_Spell.IsSpellInRange = function() return result end
+        buffs:Refresh()
+        equal(Find("group", "intellect"), nil, "unreadable or non-boolean range never authorizes a group reminder")
+    end
+    C_Spell.IsSpellInRange = function() return nil end; buffs:Refresh()
+    equal(Find("group", "intellect"), nil, "unknown spell range hides the group reminder")
+    C_Spell.IsSpellInRange = function() error("unavailable range") end; buffs:Refresh()
+    equal(Find("group", "intellect"), nil, "failed spell range hides the group reminder")
+    C_Spell.IsSpellInRange = nil; buffs:Refresh()
+    equal(Find("group", "intellect"), nil, "missing spell range API hides the group reminder")
+    auras.party1 = { { name = "Arkane Intelligenz", spellId = 1461 } }
+    auras.party2 = { { name = "Arkane Intelligenz", spellId = 1461 } }
+    buffs:Refresh()
+    equal(Suite.BuffReminders.deadline, nil, "covered group members stop movement rechecks")
+    auras.party1, auras.party2 = {}, {}
+    auras.player = {}; buffs:Refresh()
+    equal(Find("self", "intellect") ~= nil, true, "self reminders do not require a group range result")
+    C_Spell.IsSpellInRange = rangeAPI
+    units.party1.range, units.party2.range = true, true
+end
 auras.player={};buffs:Refresh()
 local intellectIcons=0
 for _,button in ipairs(buffs.buttons) do
@@ -275,11 +328,14 @@ local beforeBook = bookReads
 buffs:Refresh(); buffs:Refresh()
 equal(bookReads, beforeBook, "ordinary aura refreshes reuse learned spellbook discovery")
 for _ = 1, 200 do buffs.events:OnEvent("UNIT_AURA", "party1") end
-equal(#timers, 1, "raid aura bursts coalesce to one timer")
+local activeTimers = 0
+for _, timer in ipairs(timers) do if not timer.cancelled then activeTimers = activeTimers + 1 end end
+equal(activeTimers, 2, "raid aura bursts share one queued refresh alongside the range deadline")
 local stale = buffs.timer
 SetCombat(true); buffs.controller:RunState("combat"); buffs.events:OnEvent("PLAYER_REGEN_DISABLED")
 equal(buffs.bar:IsShown(), false, "secure combat entry hides the protected bar")
 equal(buffs.timer, nil, "combat entry cancels pending scans")
+equal(Suite.BuffReminders.deadline, nil, "combat entry cancels group range rechecks")
 local beforeCombatReads, beforeMade = reads, made
 local beforeCombatMessages = #messages
 buffs.buttons[1]:PostClick("LeftButton", false)
@@ -646,6 +702,29 @@ do
     equal(extra.combatFrame:IsShown(),true,"unknown resting state cannot hide secondary combat reminders")
     resting=false;Suite.db.missingBuffCampfire=false
     equal(extra.combatButtons[1].entry.spell.id, 6673, "selected Battle Shout is combat useful")
+    do
+        local own, upkeep = Suite.db.missingBuffSelf, Suite.db.missingBuffClass
+        local oldClass, outgoing = units.party1.class, Suite.db.missingBuffOutgoing
+        Suite.db.missingBuffSelf, Suite.db.missingBuffClass = false, false
+        units.party1.class, Suite.db.missingBuffOutgoing = "WARRIOR", true
+        units.party1.range = false
+        extra:RefreshCombat()
+        local function Shout()
+            for _, button in ipairs(extra.combatButtons) do
+                if button.entry and button.entry.spell.id == 6673 then return button.entry end
+            end
+        end
+        equal(Shout(), nil, "fallback combat reminders exclude out-of-range group members")
+        units.party1.range = true; extra:RefreshCombat()
+        equal(#Shout().names, 1, "fallback combat tooltip lists only the in-range missing member")
+        equal(Shout().names[1], units.party1.name, "fallback combat reminder uses the in-range recipient")
+        units.party1.range = nil; extra:RefreshCombat()
+        equal(Shout(), nil, "fallback combat reminders suppress unknown group range")
+        units.party1.range = true
+        units.party1.class, Suite.db.missingBuffOutgoing = oldClass, outgoing
+        Suite.db.missingBuffSelf, Suite.db.missingBuffClass = own, upkeep
+        extra:RefreshCombat()
+    end
     buffs.itemsDirty = true; extra:RefreshCombat()
     local dirtyCoating = false
     for _, button in ipairs(extra.combatButtons) do
@@ -874,10 +953,10 @@ do
     manager.advancedToggle:OnClick();manager.warningChoices[3]:OnClick()
     equal(Suite.db.missingBuffWarning,120,"warning interval selects an explicit value without cycling")
     manager.warningChoices[2]:OnClick();manager.advancedToggle:OnClick()
-    local oldMenu,options=MenuUtil,{}
+    local oldMenu,options=Suite.Menus,{}
     Spell(469,"Commanding Shout");learned={6673,469};manager.cachedLearned=nil;manager:Refresh()
     equal(manager.choiceRows[1].alternative:IsShown(),true,"learned shout alternatives have a direct selector")
-    MenuUtil={CreateContextMenu=function(_,generate)
+    Suite.Menus={CreateContextMenu=function(_,generate)
         generate(nil,{CreateRadio=function(_,label,selected,callback) options[#options+1]={label=label,selected=selected,callback=callback} end})
     end}
     manager.choiceRows[1].alternative:OnClick()
@@ -892,7 +971,7 @@ do
     -- A refresh retires this menu's row binding; use a fresh menu to select Automatic.
     options={};manager.choiceRows[1].alternative:OnClick();options[1].callback();Flush()
     equal(Suite.db.missingBuffChoices["WARRIOR:shout"],nil,"Automatic can be selected directly")
-    MenuUtil=oldMenu
+    Suite.Menus=oldMenu
     manager.filters.all:OnClick()
     equal(manager.filter,"all","all-class list has a direct button")
     equal(manager.choiceCount:IsShown(),true,"switching from a short class list restores the multi-page count")
@@ -1343,6 +1422,7 @@ buffs:ResetPosition()
 Suite.db.missingBuffs = false; buffs:Apply()
 equal(next(buffs.events.registered), nil, "disable removes buff feature event subscriptions")
 equal(buffs.timer, nil, "disable leaves no timer")
+equal(Suite.BuffReminders.deadline, nil, "disable cancels group range rechecks")
 equal(buffs.bar:IsShown(), false, "disable hides the bar")
 equal(#messages, countBeforeRightClick, "later aura, spell data, enchant, preview and disable events send no automatic requests")
 Suite.db, Suite.pending = oldDB, oldPending
@@ -1350,3 +1430,5 @@ Suite.MacroItems.Scan = oldScan
 Suite.Print = oldPrint
 for _, name in ipairs(names) do _G[name] = previous[name] end
 SetCombat(false)
+
+Suite.Menus = savedMenus

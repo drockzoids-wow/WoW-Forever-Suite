@@ -34,15 +34,9 @@ local function Surface(frame)
     frame:SetBackdropColor(0.035, 0.05, 0.065, 0.96); Suite.Theme:Backdrop(frame, 0.75)
 end
 local function Button(parent, text, x, y, width, callback)
-    local button = CreateFrame("Button", nil, parent, "BackdropTemplate"); Surface(button)
-    Suite.Theme:ButtonFeedback(button)
-    button:SetSize(width, 26); button:SetPoint("TOPLEFT", x, y)
-    button.label = Label(button, 12, 6, 0, width - 12)
-    button.label:ClearAllPoints(); button.label:SetPoint("TOPLEFT", 6, 0); button.label:SetPoint("BOTTOMRIGHT", -6, 0)
-    button.label:SetJustifyH("CENTER"); button.label:SetJustifyV("MIDDLE"); button.label:SetText(text)
-    button:SetScript("OnDisable", function() button.label:SetTextColor(0.4, 0.47, 0.51) end)
-    button:SetScript("OnEnable", function() button.label:SetTextColor(0.88, 0.91, 0.93) end)
-    button:SetScript("OnClick", callback)
+    local button = Suite.Theme:ActionButton(parent, text, width, 26, callback)
+    button:SetPoint("TOPLEFT", x, y)
+
     return button
 end
 function Training:Enabled() return Suite.db and Suite.db.trainingPlanner == true end

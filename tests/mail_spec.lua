@@ -1,4 +1,5 @@
 local Suite, equal, Frame, SetCombat = ...
+local savedMenus = Suite.Menus
 local mail = Suite.Mail
 local names = { "CreateFrame", "C_Timer", "MenuUtil", "UnitGUID", "UnitName", "UnitClass", "UnitLevel", "UnitFactionGroup",
     "GetCurrentRegion", "GetNormalizedRealmName", "GetRealmName", "C_GameRules", "C_AutoComplete", "C_CreatureInfo", "Enum", "RAID_CLASS_COLORS", "MailFrame", "SendMailFrame",
@@ -754,17 +755,20 @@ local bookSaved = Suite.Copy(Suite.db)
 Suite.db = Suite.InitializeDB(bookSaved)
 equal(mail:Database()[guided].notes, "Bank alt", "book metadata survives saved-data initialization")
 book.search:SetText("")
-local previousFilterMenu = MenuUtil; MenuUtil = nil
-book.filterButton.OnClick()
-equal(mail:GroupDefinitions()[book.groupFilter].name, "Alts", "fallback starts with first named group")
+local previousFilterMenu, filterChoices = Suite.Menus, {}
+Suite.Menus = { CreateContextMenu = function(_, generate)
+    generate(nil, { CreateButton = function(_, label, callback) filterChoices[label] = callback end })
+end }
+book.filterButton.OnClick(); filterChoices.Alts()
+equal(mail:GroupDefinitions()[book.groupFilter].name, "Alts", "owned menu selects the named group")
 equal(book.rows[1].entry.key, guided, "category picker filters shared contact list")
-book.filterButton.OnClick()
-equal(mail:GroupDefinitions()[book.groupFilter].name, "Crafters", "fallback includes empty named groups")
-book.filterButton.OnClick()
-equal(mail:GroupDefinitions()[book.groupFilter].name, "Friends", "fallback reaches next named group")
-book.filterButton.OnClick()
-equal(book.groupFilter, nil, "fallback returns to all contacts")
-MenuUtil = previousFilterMenu
+book.filterButton.OnClick(); filterChoices.Crafters()
+equal(mail:GroupDefinitions()[book.groupFilter].name, "Crafters", "owned menu includes empty named groups")
+book.filterButton.OnClick(); filterChoices.Friends()
+equal(mail:GroupDefinitions()[book.groupFilter].name, "Friends", "owned menu reaches another named group")
+book.filterButton.OnClick(); filterChoices["Clear custom filter"]()
+equal(book.groupFilter, nil, "owned menu explicitly clears the group filter")
+Suite.Menus = previousFilterMenu
 equal(book.category, nil, "contact editor has no separate category field")
 equal(book.categoryChoose, nil, "contact editor has only the unified groups chooser")
 equal(mail:DeleteContact("110:guid:Old-Drock"), false, "standalone removal protects active character")
@@ -1274,7 +1278,7 @@ local parentGroup = mail:SaveGroup(nil, "Everyone close")
 mail:ToggleGroupMember(parentGroup, "sources", assignedGroup)
 mail:OpenBook(); book.search:SetText("")
 local contactMenus = {}
-MenuUtil = { CreateContextMenu = function(owner, generate)
+Suite.Menus = { CreateContextMenu = function(owner, generate)
     contactMenus = {}
     generate(owner, {
         CreateButton = function(_, label, callback) contactMenus[label] = { callback = callback } end,
@@ -1343,7 +1347,7 @@ equal(book.groupFilter, secondGroup, "current scoped group filter works")
 mail:SaveGroup(secondGroup, "Relatives"); mail:RefreshBook()
 equal(book.filterSummary.text, "Relatives", "active group filter follows renamed group identity")
 equal(mail:SaveContact(nil, "Bad Choices", "", "", { secret = true }), nil, "unreadable membership changes fail before contact save")
-book.close.OnClick(); MenuUtil = old.MenuUtil
+book.close.OnClick(); Suite.Menus = savedMenus
 
 -- Adopt category metadata into the same named groups, across every scope.
 Suite.db = Suite.InitializeDB(nil); player.realm, player.region = "ClassicBetaPvE", 110
@@ -1391,7 +1395,7 @@ equal(#mail:ContactList(familyID, "", nil, true), 3, "other unified memberships 
 book.filter, book.groupFilter, book.unassigned, book.tab = nil, nil, false, "all"
 mail:OpenBook(); book.search:SetText("")
 local unifiedMenu, menuNameCounts = {}, {}
-MenuUtil = { CreateContextMenu = function(owner, generate)
+Suite.Menus = { CreateContextMenu = function(owner, generate)
     unifiedMenu = {}; menuNameCounts = {}
     generate(owner, {
         CreateButton = function(_, label, callback) unifiedMenu[label] = { callback = callback }; menuNameCounts[label] = (menuNameCounts[label] or 0) + 1 end,
@@ -1418,7 +1422,7 @@ equal(mail:GroupDefinitions()[familyID], nil, "deleted adopted group does not re
 local laterGroup = mail:SaveGroup(nil, "Later")
 equal(laterGroup ~= familyID, true, "deleted adopted IDs are not reused by new groups")
 equal(mail:GroupDefinitions()["category:Family"], nil, "old category alias cannot select a newly created unrelated group")
-book.close.OnClick(); MenuUtil = old.MenuUtil
+book.close.OnClick(); Suite.Menus = savedMenus
 
 -- Unified directory: a saved contact is immediately addressable with no transfer step.
 Suite.db = Suite.InitializeDB(nil); mail:Apply(); mail:EndVisit()
@@ -1624,3 +1628,5 @@ equal(Suite.db.mailContacts.preserved, legacyBook, "legacy migration retains its
 SetCombat(false)
 for _, name in ipairs(names) do _G[name] = old[name] end
 Suite.db, Suite.pending = oldDB, oldPending
+
+Suite.Menus = savedMenus

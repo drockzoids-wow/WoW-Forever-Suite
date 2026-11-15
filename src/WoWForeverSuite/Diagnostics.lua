@@ -357,12 +357,10 @@ function Support:Open(owner)
         edit:HookScript("OnTextChanged", function(box, user) if user then box:SetText(self.body or "") end end)
         edit:SetScript("OnEscapePressed", function() frame:Hide() end)
         local function Button(text, x, width, callback)
-            local button = CreateFrame("Button", nil, frame, "BackdropTemplate"); button:SetPoint("BOTTOMLEFT", x, 10); button:SetSize(width, 28)
+            local button = Suite.Theme:ActionButton(frame, text, width, 28, function() if not InCombatLockdown() then callback() end end)
+            button:SetPoint("BOTTOMLEFT", x, 10)
             button:SetFrameLevel(edit:GetFrameLevel() + 2)
-            button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-            button:SetBackdropColor(0.07, 0.095, 0.11, 1); Suite.Theme:Backdrop(button, 0.5); Suite.Theme:ButtonFeedback(button)
-            Label(button, text, 10, -7, width - 20, 12)
-            button:SetScript("OnClick", function() if not InCombatLockdown() then callback() end end); return button
+            return button
         end
         self.select = Button("Select all", 14, 112, function() edit:SetFocus(); edit:HighlightText() end)
         self.refresh = Button("Refresh", 614, 112, function() self:Refresh() end)

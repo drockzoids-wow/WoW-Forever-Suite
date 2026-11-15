@@ -23,12 +23,9 @@ local function Surface(frame)
     frame:SetBackdropColor(0.035, 0.05, 0.065, 1); Suite.Theme:Backdrop(frame, 0.75)
 end
 local function Button(parent, text, x, y, width, callback)
-    local button = CreateFrame("Button", nil, parent, "BackdropTemplate"); Surface(button)
-    button:SetSize(width, 26); button:SetPoint("TOPLEFT", x, y)
-    button.label = Label(button, 5, -6, width - 10); button.label:SetJustifyH("CENTER"); button.label:SetText(text)
-    button.label:SetWordWrap(false); button.label:SetHeight(16)
-    Suite.Theme:ButtonFeedback(button)
-    button:SetScript("OnClick", function() if not InCombatLockdown() then callback() end end)
+    local button = Suite.Theme:ActionButton(parent, text, width, 26, function() if not InCombatLockdown() then callback() end end)
+    button:SetPoint("TOPLEFT", x, y)
+
     return button
 end
 local function Window(owner, name, title)

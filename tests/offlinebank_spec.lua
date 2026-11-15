@@ -1,4 +1,5 @@
 local Suite, equal, Frame, SetCombat = ...
+local savedMenus = Suite.Menus
 local bank = Suite.OfflineBank
 local names = { "CreateFrame", "C_Timer", "C_Container", "C_Bank", "C_Item", "Enum", "BankFrame", "UIParent",
     "UnitGUID", "UnitName", "UnitClass", "GetNormalizedRealmName", "GetCurrentRegion", "GetServerTime", "date",
@@ -613,7 +614,7 @@ bank.frame:Hide()
 
 -- Native search keeps its owner and scripts; the individual backpack uses its
 -- existing header space rather than moving protected item buttons.
-local oldCombined, oldInput, oldMenu = ContainerFrameCombinedBags, InputUtil, MenuUtil
+local oldCombined, oldInput, oldMenu = ContainerFrameCombinedBags, InputUtil, Suite.Menus
 local combined, single, search = Widget(), Widget(), Widget()
 ContainerFrameCombinedBags = combined
 search.parent = combined
@@ -658,7 +659,7 @@ InputUtil = nil
 selectors:UpdateLabels()
 equal(singleControl:IsShown(), true, "keyboard layout restores the enabled bag selector")
 local menuRows = {}
-MenuUtil = { CreateContextMenu = function(_, build)
+Suite.Menus = { CreateContextMenu = function(_, build)
     build(nil, { CreateTitle = function() end, CreateRadio = function(_, label, selected, callback)
         local row = { label = label, selected = selected, callback = callback }
         row.SetEnabled = function(self, enabled) self.enabled = enabled end
@@ -732,7 +733,7 @@ bank:OpenFor("Player-alt", 0)
 Suite.Set("offlineBank", false)
 equal(bank.frame:IsShown(), false, "disabling bank recording still closes a saved bank view")
 Suite.modules = oldModules
-ContainerFrameCombinedBags, InputUtil, MenuUtil = oldCombined, oldInput, oldMenu
+ContainerFrameCombinedBags, InputUtil, Suite.Menus = oldCombined, oldInput, oldMenu
 
 sizes[0], bags[0] = 2, { [1] = Item(123, 7, "321:654") }
 local view = Suite.Inventory:ScanBagView({ 0 })
@@ -756,3 +757,5 @@ Suite.db, Suite.pending, Suite.Print, Suite.Windows, Suite.Items = oldDB, oldPen
 bank.frame, bank.events, bank.bindingButton, bank.active, bank.bankOpen = nil, nil, nil, nil, nil
 bank.layoutFrame = oldLayoutFrame
 bank.searchHooked = oldSearchHooked
+
+Suite.Menus = savedMenus

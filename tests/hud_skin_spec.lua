@@ -697,7 +697,7 @@ equal(Suite.db.progressBarCustomSize, true, "custom size toggle enables its own 
 Suite.GUI.progressControls.reset.button:OnClick()
 equal(Suite.db.progressBarCustomSize, false, "native size button disables only the size override")
 equal(Suite.db.progressBarWidth, 120, "native size button retains chosen custom width")
-local ChooseMenu=assert(loadfile("tests/menu_helper.lua"))()
+local ChooseMenu=assert(loadfile("tests/menu_helper.lua"))(Suite)
 for _, key in ipairs({ "progressBarValues", "progressBarSegments" }) do
     Suite.db[key] = false
     if key=="progressBarSegments" then ChooseMenu(function() Suite.GUI.progressControls[key].button:OnClick() end,"10% (10 bubbles)")

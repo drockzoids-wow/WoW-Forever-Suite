@@ -1,5 +1,45 @@
 # Forever Suite feature plan
 
+## Authorized 1.0.19 release — November 15, 2026
+
+Publish the pending GUI/menu consistency, profession-guide and missing-buff range changes under the user's explicit authorization. Core and both TOCs advance to 1.0.19; offline and package checks pass. [Release record](release-1.0.19.md). Upload pending; native smoke tests remain pending.
+
+## Missing-buff range review — November 15, 2026
+
+Fix distant members omitted beyond the client's visible area: prepare known hidden members for combat and keep outside-combat rechecks alive until they approach. Also suppress prepared native contributions when a member dies, disconnects, disappears or becomes unassistable, restoring them on public eligibility/range recovery. Preserve strict unknown-range suppression, per-recipient spells, self reminders and native aura composition. Native verification remains pending.
+
+## Combat buff recipient range — November 15, 2026
+
+Follow-up extends the clickable bar's range rule to combat reminders. Keep every eligible member prepared before combat so distant members can approach mid-fight. Show their missing/expiring icon, title contribution and tooltip name only when their selected spell reports in range; self reminders remain independent. Refresh through the cancellable one-second combat worker without reading secret aura state or rebuilding native widgets. Apply the same filter to fallback combat reminders. Native confirmation pending.
+
+## Missing-buff recipient range — November 15, 2026
+
+Only include party/raid recipients in the clickable buff bar when their selected spell explicitly reports them in range. Hide their reminders and tooltip names while out of range or range is unknown; preserve self reminders. A cancellable one-second recheck while group buffs need attention brings reminders back as members approach without requiring an aura event. Click-time range validation rejects stale actions. Native combat aura rendering is unchanged; native smoke confirmation pending.
+
+## All-profession material math audit — November 15, 2026
+
+Audit all eight modeled professions at unknown skill and every integer 0–300, with independent reagent/intermediate accounting and conserved stock allocation. Verify the six reference-only guides invent no budgets. Fix repeated inputs in fallback tables: Need here is each row's share after earlier rows/sections use their stock, rather than repeating the whole section shortage. Preserve primary-route totals and separate replacement scenarios for optional alternatives. Coverage includes rendered rows, stock surplus, incomplete/unknown inventory and view filters. Actual crafting estimates and native appearance still require in-game confirmation.
+
+## Shared GUI controls and whole-addon review — November 15, 2026
+
+Use common slate action buttons, 12px ivory labels, theme borders, hover/press feedback and disabled dimming across settings and tools. Suite checkboxes share that surface. Ordinary selectors use one owned opaque, scrollable slate list with selection markers and owner/Escape/click-away/combat cleanup; preserve separate meter submenus and purpose-specific navigation, toggle rows, links and secure icons. Reject stale macro item selections; retire obsolete native-menu cycling fallbacks. [Full review](addon-review-2026-11-15.md). Offline validation passes; native appearance and taint confirmation pending. No publication or deployment requested.
+
+## Clear section and overall material needs — November 15, 2026
+
+Separate material presentation into Required here / Have / Need here for the section, followed by an explicit All remaining requirement and still-needed amount. Allocate stock to unfinished sections in order, subtracting it once overall; preserve unknown/incomplete indicators and aggregate Hide Stocked behavior. Blacksmithing 218 with 21+ Mithril: 112 required here, ≤91 needed here, 336 required across all remaining steps and ≤315 still needed overall. Native row layout/appearance confirmation pending.
+
+## Guide-visible automatic recipe selection — November 15, 2026
+
+Supersede earlier closed-guide/browsing behavior: automatically select a learned current leveling recipe only while the Leveling companion is open, shown and displaying the native profession. Closing/hiding the guide or browsing another profession leaves manual recipe choice alone, including queued updates and native profession reopen. Revalidate visibility after native reads; explicitly opening resumes the existing optional follower. Internal accordion folding does not close the guide. Keep manual crafting, within-range manual choices, batch/combat guards and settings opt-out. Focused offline review found no other actionable issues; native confirmation pending. User confirms the drawn close cross looks good.
+
+## Profession guide dropdown — November 15, 2026
+
+Close-control correction: replace the clipped text X with a drawn ivory cross inside the existing slate/teal button. Preserve close behavior and placement; native visual retest pending.
+
+Use a profession dropdown for direct access to all 14 guides, preserving Current's return to the open profession/current skill range. Follow-up: use a slate/teal selector with left-aligned text and a separate drawn chevron. Show completed / Hide completed now restores/removes entire finished steps including headings, as well as past materials and recipe estimates. Preserve current/future steps, unknown-skill references and saved choices; update tooltip/help. Implemented; revised native appearance, menu layering, label fit and combat/taint confirmation pending.
+
+Subsequent visual follow-up: match the remaining guide action buttons and Leveling launcher to the selector, including hover/press feedback and dimmed disabled text. Replace the translucent offset native menu with an opaque slate list directly below the field, selected-row accent, click-away/Escape dismissal and existing lifecycle/combat guards. Keep Current, filters, source copy and manual recipe actions unchanged. Native appearance/input confirmation pending.
+
 ## Edge-case review — November 14, 2026
 
 Published v1.0.18: main and release CI pass, CurseForge accepts the upload, and GitHub assets are verified. [Receipts](release-1.0.18.md#publication-verified). Native smoke tests and CurseForge public moderation availability remain unverified.

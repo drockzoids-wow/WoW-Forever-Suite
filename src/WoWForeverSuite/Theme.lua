@@ -160,6 +160,61 @@ function Theme:ButtonFeedback(button)
     button:SetPushedTexture(pressed, "BLEND")
 end
 
+-- Shared action surface. Callers own sizing, placement, selection and actions;
+-- native button textures retain hover/press feedback without tooltip handlers.
+function Theme:ActionButton(parent, text, width, height, callback)
+    local button = CreateFrame("Button", nil, parent, "BackdropTemplate")
+    button:SetSize(width, height or 26)
+    button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+    button:SetBackdropColor(0.07, 0.095, 0.11, 1); self:Backdrop(button, 0.85)
+    local label = button:CreateFontString(nil, "OVERLAY")
+    label:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+    label:SetPoint("LEFT", 6, 0); label:SetPoint("RIGHT", -6, 0)
+    label:SetWidth(math.max(1, width - 12))
+    label:SetJustifyH("CENTER"); label:SetWordWrap(false)
+    button.label, button.caption = label, label
+    button:SetFontString(label); button:SetText(text or "")
+    label:SetText(text or "")
+    self:ButtonFeedback(button)
+    local function Paint()
+        local enabled = button:IsEnabled()
+        label:SetTextColor(0.88, 0.91, 0.93, enabled and 1 or 0.4)
+        self:Backdrop(button, enabled and 0.85 or 0.35)
+        button:SetBackdropColor(button.selected and 0.1 or 0.07,
+            button.selected and 0.2 or 0.095, button.selected and 0.21 or 0.11, 1)
+    end
+    button.paint = Paint
+    button:SetScript("OnEnable", Paint); button:SetScript("OnDisable", Paint)
+    button:SetScript("OnHide", Paint)
+    button:RegisterForClicks("LeftButtonUp")
+    button:SetScript("OnClick", function(...)
+        if button:IsEnabled() and callback then callback(...) end
+    end)
+    Paint()
+    return button
+end
+
+-- Suite checkboxes use the same slate surface, theme border and disabled text
+-- as actions. Preserve the native CheckButton checked-state/input semantics.
+function Theme:CheckButton(parent)
+    local button = CreateFrame("CheckButton", nil, parent, "BackdropTemplate")
+    button:SetSize(24, 24)
+    button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+    button:SetBackdropColor(0.07, 0.095, 0.11, 1); self:Backdrop(button, 0.85)
+    local check = button:CreateTexture(nil, "ARTWORK")
+    check:SetPoint("TOPLEFT", 5, -5); check:SetPoint("BOTTOMRIGHT", -5, 5)
+    self:Texture(check, 1); button:SetCheckedTexture(check)
+    self:ButtonFeedback(button)
+    local function Paint()
+        local enabled = button:IsEnabled()
+        self:Backdrop(button, enabled and 0.85 or 0.35)
+        check:SetAlpha(enabled and 1 or 0.35)
+        if button.label then button.label:SetTextColor(0.88, 0.91, 0.93, enabled and 1 or 0.4) end
+    end
+    button:SetScript("OnEnable", Paint); button:SetScript("OnDisable", Paint)
+    return button
+end
+
 -- Suite-owned dismiss/remove controls: a font-independent cross with a quiet,
 -- borderless hit target. Callers retain their own placement and action guards.
 function Theme:IconButton(parent, caption, callback, destructive)

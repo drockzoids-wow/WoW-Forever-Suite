@@ -9,22 +9,11 @@ local function Label(parent,text,x,y,width,size,color)
     f:SetWordWrap(true);f:SetJustifyH("LEFT");f:SetTextColor(unpack(color or colors.text));f:SetText(text)
     return f
 end
-local function Button(parent,text,x,y,width,callback)
-    local b=CreateFrame("Button",nil,parent,"BackdropTemplate")
-    Suite.Theme:ButtonFeedback(b)
-    b:SetPoint("TOPLEFT",x,y);b:SetSize(width,30)
-    b:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
-    b:SetBackdropColor(0.07,0.095,0.11,1);Suite.Theme:Backdrop(b, 1)
-    b.label=Label(b,text,10,-9,width-20,11,colors.teal);b.label:SetWordWrap(false)
-    local nativeEnable=b.SetEnabled
-    b.SetEnabled=function(self,enabled)
-        nativeEnable(self,enabled)
-        self.label:SetTextColor(unpack(enabled and colors.teal or colors.muted))
-    end
-    b:SetScript("OnClick",function() if not InCombatLockdown() then callback() end end)
-    b:SetScript("OnEnter",function() b:SetBackdropColor(0.09,0.13,0.145,1) end)
-    b:SetScript("OnLeave",function() b:SetBackdropColor(0.07,0.095,0.11,1) end)
-    return b
+local function Button(parent, text, x, y, width, callback)
+    local button = Suite.Theme:ActionButton(parent, text, width, 30, function() if not InCombatLockdown() then callback() end end)
+    button:SetPoint("TOPLEFT", x, y)
+
+    return button
 end
 function View:Dismiss()
     self.review,self.removing,self.message=nil,nil,nil

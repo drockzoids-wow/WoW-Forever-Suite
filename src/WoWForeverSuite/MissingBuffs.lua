@@ -79,20 +79,21 @@ function Buffs:CampfireNearby()
     return false
 end
 
-function Buffs:Unit(unit)
+function Buffs:Unit(unit, includeHidden)
+    local visible = Call(UnitIsVisible, unit)
     if Call(UnitExists, unit) ~= true or Call(UnitIsConnected, unit) ~= true
-        or Call(UnitIsVisible, unit) ~= true or Call(UnitIsDeadOrGhost, unit) ~= false then return end
+        or not (visible == true or includeHidden and visible == false) or Call(UnitIsDeadOrGhost, unit) ~= false then return end
     if unit ~= "player" and Call(UnitCanAssist, "player", unit) ~= true then return end
     if C_Secrets and type(C_Secrets.ShouldUnitIdentityBeSecret) == "function"
         and Call(C_Secrets.ShouldUnitIdentityBeSecret, unit) ~= false then return end
     local guid, name, class, level = Call(UnitGUID, unit), Call(UnitName, unit), Class(unit), Call(UnitLevel, unit)
     if not Text(guid) or not Text(name) or not class or not ID(level) then return end
     return { unit = unit, guid = guid, name = name, class = class, level = level,
-        party = unit == "player" or Call(UnitInParty, unit) == true }
+        party = unit == "player" or Call(UnitInParty, unit) == true, visible = visible }
 end
 
-function Buffs:Roster()
-    local list, seen = {}, {}
+function Buffs:Roster(includeHidden)
+    local list, seen, hidden = {}, {}, false
     local player = self:Unit("player")
     if not player then return list end
     list[1], seen[player.guid] = player, true
@@ -101,10 +102,13 @@ function Buffs:Roster()
     local count = raid and Call(GetNumGroupMembers) or Call(GetNumSubgroupMembers)
     if not Number(count) or count < 0 or count % 1 ~= 0 or count > (raid and 40 or 4) then return list end
     for index = 1, count do
-        local member = self:Unit((raid and "raid" or "party") .. index)
-        if member and not seen[member.guid] then list[#list + 1], seen[member.guid] = member, true end
+        local member = self:Unit((raid and "raid" or "party") .. index, true)
+        if member and not seen[member.guid] then
+            if member.visible or includeHidden then list[#list + 1], seen[member.guid] = member, true
+            else hidden = true end
+        end
     end
-    return list
+    return list, hidden
 end
 
 function Buffs:Auras(unit)
@@ -353,7 +357,8 @@ end
 
 function Buffs:Collect()
     if not Enabled() or not self:Context() then return {} end
-    local entries, roster = {}, self:Roster()
+    local entries = {}
+    local roster, hiddenMembers = self:Roster()
     local player = roster[1]
     if not player then return entries end
     if self.bookDirty then self.learned, self.learnedComplete = self:Learned(); self.bookDirty = false end
@@ -364,6 +369,7 @@ function Buffs:Collect()
     end
     local scanGroup, auras = false, { player = self:Auras("player") }
     for _, family in ipairs(families) do if family.spell and family.catalog.group and Suite.db.missingBuffOutgoing then scanGroup = true end end
+    if scanGroup and hiddenMembers then Suite.BuffReminders:Due(1) end
     if scanGroup then for index = 2, #roster do auras[roster[index].unit] = self:Auras(roster[index].unit) end end
     for _, family in ipairs(families) do
         local personalFamily = self:Recipient(family,player.class)
@@ -389,8 +395,12 @@ function Buffs:Collect()
                 local action=recipient.spell
                 local covered,seconds=self:Present(recipient,auras[member.unit],true)
                 if action and (not self:PartyOnly(catalog,action.root or action.id) or member.party) and covered == false then
+                    -- Movement need not fire an aura/roster event. Keep checking
+                    -- while an eligible group member needs this buff, even if
+                    -- every recipient is currently out of range and the bar hides.
+                    Suite.BuffReminders:Due(1)
                     local range=C_Spell and Call(C_Spell.IsSpellInRange,action.id,member.unit)
-                    if range ~= false then
+                    if range == true then
                         local bucket=buckets[action.id]
                         if not bucket then bucket={spell=action,family=recipient,members={}};buckets[action.id]=bucket;ordered[#ordered+1]=bucket end
                         bucket.members[#bucket.members+1]={member=member,remaining=seconds}
@@ -707,6 +717,7 @@ function Buffs:Button(index)
             if not entry.family.catalog.weapon then present = check and self:Present(entry.family, self:Auras(check.unit), true) end
             local toggleReady = not entry.family.catalog.toggle or self:Present(entry.family, self:Auras("player")) == false
             if not target or target.guid ~= entry.guid or not check or entry.checkGUID and check.guid ~= entry.checkGUID
+                or entry.kind == "group" and check.unit ~= "player" and Call(C_Spell and C_Spell.IsSpellInRange, entry.spell.id, check.unit) ~= true
                 or entry.kind == "group" and self:PartyOnly(entry.family.catalog,entry.spell.root or entry.spell.id) and not check.party or present ~= false or not toggleReady then
                 button:SetAttribute("type1", nil); self:Queue()
             end

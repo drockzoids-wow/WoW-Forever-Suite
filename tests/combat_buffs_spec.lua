@@ -1,7 +1,8 @@
 local Suite, equal, Frame, SetCombat = ...
 local combat = Suite.CombatBuffs
 local globals = { "CreateFrame", "C_AddOns", "CustomAuraContainerAuraProcessingPolicy", "AuraContainerSortMethod",
-    "AuraContainerSortDirection", "C_StringUtil", "C_Timer", "C_UnitAuras", "UnitIsDeadOrGhost", "IsResting", "UnitGUID" }
+    "AuraContainerSortDirection", "C_StringUtil", "C_Timer", "C_Spell", "C_UnitAuras", "UnitIsDeadOrGhost", "IsResting", "UnitGUID",
+    "UnitExists", "UnitIsConnected", "UnitIsVisible", "UnitCanAssist" }
 local old = {}; for _, name in ipairs(globals) do old[name] = _G[name] end
 local oldDB, oldPending = Suite.db, Suite.pending
 local buffs = Suite.MissingBuffs
@@ -20,11 +21,22 @@ local widgets, containers, snapshots, made = {}, {}, {}, 0
 local reject, rejectUnit, dead, resting = false, nil, false, false
 local blockedHandlers = 0
 local selectedSpell, selectedName, known = 1461, "Intellect", true
+local spellRange = false
+local memberState = { exists = true, connected = true, visible = true, dead = false, assist = true }
+UnitExists = function() return memberState.exists end
+UnitIsConnected = function() return memberState.connected end
+UnitIsVisible = function() return memberState.visible end
+UnitCanAssist = function() return memberState.assist end
+C_Spell = { IsSpellInRange = function(id, unit)
+    equal(id, selectedSpell, "combat range uses the recipient's learned spell")
+    equal(unit, "party1", "self combat reminders need no range query")
+    return spellRange
+end }
 local function NoRead() error("Lua must never inspect native aura display state") end
 local function Outside() assert(not InCombatLockdown(), "native discovery/setup must wait for combat") end
 C_Timer = setmetatable({}, { __index = function() error("native combat buffs must not poll") end })
 C_UnitAuras = setmetatable({}, { __index = function() error("combat code must not query raw auras") end })
-UnitIsDeadOrGhost = function() return dead end
+UnitIsDeadOrGhost = function(unit) if unit == "party1" then return memberState.dead end; return dead end
 IsResting = function() return resting end
 C_AddOns = { LoadAddOn = function() Outside() end }
 CustomAuraContainerAuraProcessingPolicy = { None = 0 }
@@ -202,6 +214,8 @@ combat:Prepare()
 equal(blockedHandlers, 0, "native aura descendants never receive secret visibility scripts")
 equal(combat.count, 1, "one family slot covers all eligible members")
 equal(#containers, 4, "two members have native presence and expiry displays")
+equal(#combat.records["MAGE:intellect"].descriptor.members, 2, "out-of-range teammates are prepared before combat")
+spellRange = true
 equal(containers[1].options.candidateFilters.includeSpellIDs[1461], true, "learned rank is covered")
 equal(containers[1].options.candidateFilters.includeSpellIDs[10157], true, "other classic ranks are included without spellbook API guesses")
 equal(combat.frame:IsShown(), false, "native combat host stays hidden outside combat")
@@ -275,6 +289,64 @@ Aura("player", true, 120)
 equal(Icons(), 1, "missing teammate retains the shared family icon")
 equal(Names().Caster, nil, "covered caster name is hidden by native geometry")
 equal(Names().Friend, true, "missing teammate name remains")
+do
+    spellRange = false; combat:RefreshVisibility()
+    equal(Icons(), 0, "out-of-range missing teammate cannot reveal the shared combat icon")
+    equal(TitleDrawn(), false, "out-of-range missing teammate cannot reveal the combat title")
+    equal(Names().Friend, nil, "out-of-range teammate is excluded from the combat tooltip")
+    spellRange = true; combat:RefreshVisibility()
+    equal(Icons(), 1, "entering range during combat restores the prepared missing reminder")
+    equal(Names().Friend, true, "entering range restores the teammate's tooltip name")
+    for _, state in ipairs({ "exists", "connected", "visible", "dead", "assist" }) do
+        local original = memberState[state]
+        memberState[state] = not original; combat:RefreshVisibility()
+        equal(Icons(), 0, "ineligible combat member is hidden after " .. state .. " changes")
+        equal(Names().Friend, nil, "ineligible combat member is removed from tooltip after " .. state .. " changes")
+        memberState[state] = original; combat:RefreshVisibility()
+        equal(Icons(), 1, "eligible combat member returns after " .. state .. " recovers")
+    end
+    local extra, queued = Suite.BuffReminders, {}
+    local oldTimerAPI, oldWatches, oldFrame = C_Timer, extra.watches, extra.combatFrame
+    local oldTimer, oldToken = extra.combatTimer, extra.combatToken
+    C_Timer = { NewTimer = function(delay, callback)
+        local timer = { delay = delay, callback = callback, Cancel = function(self) self.cancelled = true end }
+        queued[#queued + 1] = timer; return timer
+    end }
+    extra.watches, extra.combatFrame, extra.combatTimer = {}, nil, nil
+    extra:RefreshCombat()
+    equal(queued[1].delay, 1, "native group combat reminders schedule a one-second range recheck")
+    spellRange = false; queued[1].callback()
+    equal(Icons(), 0, "scheduled combat work hides a distant teammate without aura events")
+    spellRange = true; queued[2].callback()
+    equal(Icons(), 1, "scheduled combat work reveals an approaching teammate without aura events")
+    local staleTimer = queued[3]
+    extra:Cancel()
+    equal(staleTimer.cancelled, true, "combat cancellation stops repeating range work")
+    local queuedCount = #queued; staleTimer.callback()
+    equal(#queued, queuedCount, "cancelled range callbacks cannot restart the combat worker")
+    C_Timer, extra.watches, extra.combatFrame = oldTimerAPI, oldWatches, oldFrame
+    extra.combatTimer, extra.combatToken = oldTimer, oldToken
+    Aura("party1", true, 15)
+    spellRange = false; combat:RefreshVisibility()
+    equal(Icons(), 0, "out-of-range expiry warnings are also hidden")
+    spellRange = true; combat:RefreshVisibility()
+    equal(Icons(), 1, "entering range restores native expiry warnings")
+    spellRange = nil; combat:RefreshVisibility()
+    equal(Icons(), 0, "unknown combat spell range suppresses group warnings")
+    local query = C_Spell.IsSpellInRange
+    C_Spell.IsSpellInRange = function() return { secret = true } end; combat:RefreshVisibility()
+    equal(Icons(), 0, "unreadable combat range suppresses group warnings")
+    C_Spell.IsSpellInRange = function() error("restricted range") end; combat:RefreshVisibility()
+    equal(Icons(), 0, "failed combat range suppresses group warnings")
+    C_Spell.IsSpellInRange = nil; combat:RefreshVisibility()
+    equal(Icons(), 0, "unavailable combat range suppresses group warnings")
+    Aura("player", false, 0)
+    equal(Icons(), 1, "self combat reminders remain independent of group range")
+    Aura("player", true, 120)
+    C_Spell.IsSpellInRange, spellRange = query, true
+    combat:RefreshVisibility()
+    equal(made, prepared, "combat range transitions never construct native widgets")
+end
 Aura("party1", true, 120)
 equal(Icons(), 0, "all healthy buffs render no icon or permanent panel")
 equal(TitleDrawn(),false,"healthy buffs also hide the combat title through native masks")

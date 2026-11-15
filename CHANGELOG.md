@@ -1,5 +1,14 @@
 # Forever Suite
 
+## 1.0.19 — November 15, 2026
+
+- Hide missing and expiring group-buff reminders for recipients outside the selected spell's range, both outside combat and in combat. Recheck as members move, exclude distant names from tooltips, and reject stale outside-combat clicks. Preserve self reminders and safely handle unknown range.
+- Prepare known distant group members before combat so reminders can return as they approach. Suppress combat contributions from dead, disconnected, invisible or unassistable members and restore them when eligible again.
+- Unify ordinary Suite buttons, checkboxes and selectors with slate surfaces, consistent labels, theme borders and clear interaction feedback. Add opaque scrolling selector lists with selection markers, Escape/click-away dismissal and lifecycle cleanup. Fix stale macro item-picker selections.
+- Improve the profession companion with a direct profession dropdown, matching controls and a drawn close cross. Hide entire completed steps when requested. Automatic recipe selection now runs only while the companion is visible and showing the native profession; closing or browsing another guide preserves manual choices.
+- Separate each profession material's current-section requirement and shortage from its all-remaining totals. Allocate saved stock once in guide order, fix repeated-material fallback rows and keep alternative recipes independent. Audit all eight modeled professions across 2,416 skill states.
+- Offline checks pass; native rendering, combat/range behavior and taint confirmation remain pending. The existing bag-use taint investigation remains open.
+
 ## 1.0.18 — November 14, 2026
 
 - Restore the nearby quest-item action after dragging, including the first deliberate click before queued work finishes. Keep drag releases inactive and defer interrupted-drag cleanup through combat.

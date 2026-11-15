@@ -383,6 +383,18 @@ function Extra:CombatUnits()
 end
 function Extra:RefreshCombat()
     if Suite.CombatBuffs then Suite.CombatBuffs:RefreshVisibility() end
+    -- Range can change without aura events. Reuse the cancellable combat
+    -- worker; never rebuild or inspect native aura widgets during combat.
+    local group = false
+    for _, key in ipairs(Suite.CombatBuffs and Suite.CombatBuffs.order or {}) do
+        for _, member in ipairs(Suite.CombatBuffs.records[key].descriptor.members) do
+            if member.unit ~= "player" then group = true end
+        end
+    end
+    for _, family in ipairs(self.watches or {}) do
+        if family.catalog.group and Suite.db.missingBuffOutgoing then group = true end
+    end
+    if group then self:ScheduleCombat(1) end
     if not self.combatFrame then return end
     if not ActiveCombat() or Call(UnitIsDeadOrGhost, "player") ~= false then
         self.combatFrame:Hide(); return
@@ -396,6 +408,7 @@ function Extra:RefreshCombat()
             local catalog = family.catalog
             local selfFilter = (not catalog.group or catalog.upkeep) and Suite.db.missingBuffClass or catalog.group and Suite.db.missingBuffSelf
             if not native and Suite.MissingBuffs:Relevant(catalog,ClassForBuffs(member.unit),family.spell.root or family.spell.id) and (member.player and selfFilter or not member.player and catalog.group and Suite.db.missingBuffOutgoing)
+                and (member.player or Call(C_Spell and C_Spell.IsSpellInRange, family.spell.id, member.unit) == true)
                 and (not Suite.MissingBuffs:PartyOnly(catalog,family.spell.root or family.spell.id) or member.party) then
                 local auras = not catalog.weapon and self:CombatAuras(family, member.unit) or nil
                 local present, seconds
@@ -436,6 +449,15 @@ function Extra:RefreshCombat()
     end
     self.combatFrame:SetShown(count > 0); self:Schedule()
 end
+function Extra:ScheduleCombat(delay)
+    if ActiveCombat() and not self.combatTimer and C_Timer and C_Timer.NewTimer then
+        local token = {}; self.combatToken = token
+        self.combatTimer = C_Timer.NewTimer(delay, function()
+            if self.combatToken ~= token then return end
+            self.combatTimer = nil; self:RefreshCombat()
+        end)
+    end
+end
 function Extra:OnEvent(event)
     if Suite.CombatBuffs then Suite.CombatBuffs:RefreshVisibility(event) end
     if not Enabled() then return end
@@ -445,13 +467,7 @@ function Extra:OnEvent(event)
     if event == "PLAYER_REGEN_DISABLED" then
         self:Cancel()
     end
-    if ActiveCombat() and not self.combatTimer and C_Timer and C_Timer.NewTimer then
-        local token = {}; self.combatToken = token
-        self.combatTimer = C_Timer.NewTimer(0.15, function()
-            if self.combatToken ~= token then return end
-            self.combatTimer = nil; self:RefreshCombat()
-        end)
-    end
+    self:ScheduleCombat(0.15)
 end
 function Extra:AddCustom(text, group)
     if InCombatLockdown() or not Read(text, "string") or #text > 20 then return false end

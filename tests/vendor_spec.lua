@@ -368,7 +368,7 @@ equal(Suite.GUI.tabs.vendor.label.text, "Vendor", "tenth sidebar page has a plai
 equal(Suite.GUI.rows[2].value.text, "Personal gold", "repair funding is visible in settings")
 equal(Suite.GUI.rows[4].value.text, "Slow", "slow sale mode is visible in settings")
 equal(Suite.GUI.rows[5].help.text:find("12 stacks", 1, true) ~= nil, true, "slow settings disclose buyback capacity")
-local ChooseMenu=assert(loadfile("tests/menu_helper.lua"))()
+local ChooseMenu=assert(loadfile("tests/menu_helper.lua"))(Suite)
 ChooseMenu(function() Suite.GUI:Action("junkMode") end,"Instant (permanent sales)")
 equal(Suite.GUI.rows[4].value.text, "Instant", "mode control flips to instant")
 equal(Suite.GUI.rows[5].help.text:find("aren't recoverable", 1, true) ~= nil, true, "instant settings show the recovery warning")

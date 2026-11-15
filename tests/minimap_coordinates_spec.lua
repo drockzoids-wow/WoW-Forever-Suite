@@ -1,6 +1,7 @@
 local Suite, equal, SetCombat = ...
+local savedMenus = Suite.Menus
 local map = Suite.Minimap
-local oldMap, oldMenu, oldChat, oldChannels, oldPoint = C_Map, MenuUtil, ChatFrameUtil, GetChannelList, UiMapPoint
+local oldMap, oldMenu, oldChat, oldChannels, oldPoint = C_Map, Suite.Menus, ChatFrameUtil, GetChannelList, UiMapPoint
 local oldGuild, oldGroup, oldRaid, oldCreate = IsInGuild, IsInGroup, IsInRaid, CreateFrame
 local oldChatInfo = C_ChatInfo
 local locked, failSend = false, false
@@ -32,7 +33,7 @@ C_ChatInfo = {
 }
 GetChannelList = function() return 1, "General", false, 4, "Friends", false, 7, "Disabled", true end
 IsInGuild, IsInGroup, IsInRaid = function() return true end, function() return false end, function() return false end
-MenuUtil = { CreateContextMenu = function(_, build)
+Suite.Menus = { CreateContextMenu = function(_, build)
     menu = {}
     build(nil, { CreateTitle = function(_, title) menu.title = title end,
         CreateButton = function(_, label, callback) menu[label] = callback end })
@@ -163,8 +164,10 @@ equal(map.coordinates:IsShown(), false, "coordinate opt-out hides the custom row
 local native = MinimapCluster.MinimapContainer.PlayerCoords
 equal(native:GetAlpha(), 0.8, "coordinate opt-out restores native opacity independently of square mode")
 C_ChatInfo = oldChatInfo
-C_Map, MenuUtil, ChatFrameUtil, GetChannelList, UiMapPoint = oldMap, oldMenu, oldChat, oldChannels, oldPoint
+C_Map, Suite.Menus, ChatFrameUtil, GetChannelList, UiMapPoint = oldMap, oldMenu, oldChat, oldChannels, oldPoint
 IsInGuild, IsInGroup, IsInRaid, CreateFrame = oldGuild, oldGroup, oldRaid, oldCreate
 Suite.db.minimapStats, Suite.db.showCoordinates = oldStats, oldCoords
 Suite.db.coordinateTellHistory = oldHistory
 map:Apply()
+
+Suite.Menus = savedMenus

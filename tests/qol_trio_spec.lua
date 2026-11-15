@@ -1,4 +1,5 @@
 local Suite, equal, Frame, SetCombat = ...
+local savedMenus = Suite.Menus
 local helper, bars, rep = Suite.ProfessionHelper, Suite.Castbars, Suite.ZoneReputation
 local names = { "CreateFrame", "C_Timer", "RegisterStateDriver", "C_SpellBook", "C_Container", "C_Item", "C_Map", "C_Reputation", "GetMouseFoci",
     "UnitCastingInfo", "UnitChannelInfo", "UnitIsDeadOrGhost", "GetCursorInfo", "IsAltKeyDown", "IsControlKeyDown", "IsShiftKeyDown", "IsInInstance",
@@ -521,8 +522,8 @@ equal(bars:SetMatch("target","player"),false,"matching menu writes are rejected 
 SetCombat(false);Suite.pending.castbars();Suite.pending.castbars=nil
 equal(FocusFrame.spellbar.height,32,"deferred source changes update followers after combat")
 gui.page="castbars";gui.frame:Show();gui.castbarKey="target";gui:RefreshCastbars()
-local menu, choices=MenuUtil,{}
-MenuUtil={CreateContextMenu=function(_,generate)
+local menu, choices=Suite.Menus,{}
+Suite.Menus={CreateContextMenu=function(_,generate)
     generate(nil,{CreateRadio=function(_,label,selected,callback) choices[label]=callback end})
 end}
 gui.castbarMatch.OnClick()
@@ -549,7 +550,7 @@ gui.castbarMatch.OnClick();choices.Player()
 gui.castbarMatch.OnClick();choices.Manual()
 equal(bars:Options("target").match,"manual","Manual detaches without resetting the copied size")
 equal(TargetFrame.spellbar.width,390,"Manual retains the current matched dimensions")
-MenuUtil=menu
+Suite.Menus=menu
 gui.castbarKey,gui.castbarMessage=oldKey,oldMessage;gui:RefreshCastbars()
 for _,module in ipairs({helper,bars,rep}) do
     if module.timer then module.timer:Cancel() end
@@ -557,3 +558,5 @@ for _,module in ipairs({helper,bars,rep}) do
 end
 for _,name in ipairs(names)do _G[name]=old[name]end
 Suite.db,Suite.pending=oldDB,oldPending;SetCombat(false)
+
+Suite.Menus = savedMenus

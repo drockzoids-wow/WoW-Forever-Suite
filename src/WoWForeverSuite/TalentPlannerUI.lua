@@ -17,13 +17,10 @@ local function Surface(frame)
     frame:SetBackdropColor(0.035, 0.05, 0.065, 0.98); Suite.Theme:Backdrop(frame, 0.8)
 end
 local function Button(parent, x, y, width, text, callback)
-    local button = CreateFrame("Button", nil, parent, "BackdropTemplate")
-    button:SetPoint("TOPLEFT", x, y); button:SetSize(width, 26); Surface(button)
-    local font = Label(button, 11, 4, -7, text, width - 8); font:SetJustifyH("CENTER")
-    font:SetWordWrap(false)
-    button.caption = font
-    button:RegisterForClicks("LeftButtonUp"); Suite.Theme:ButtonFeedback(button)
-    button:SetScript("OnClick", function() if not InCombatLockdown() and Planner:Enabled() then callback() end end)
+    local button = Suite.Theme:ActionButton(parent, text, width, 26, function()
+        if not InCombatLockdown() and Planner:Enabled() then callback() end
+    end)
+    button:SetPoint("TOPLEFT", x, y)
     return button
 end
 local function Input(parent, x, y, width, limit)
