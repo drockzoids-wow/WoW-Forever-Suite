@@ -1,5 +1,9 @@
 # Forever Suite in game testing
 
+## Published 1.0.19 — November 15, 2026
+
+[Release validation and publication receipts](release-1.0.19.md). Main/release CI pass and CurseForge accepts the upload; both GitHub assets are verified. Offline checks pass 94 Lua 5.1 files, 47,711 behavior assertions, 1,240,360 profession audit invariants and all 11 independent gear-baseline tests. The local 103-file package matches source hashes. This does not establish CurseForge public moderation/availability, native appearance/input, combat/range behavior or taint safety. Run the following smoke checks and record actual running build/Interface. No game deployment, junction or real SavedVariables changes were made.
+
 ## Missing-buff range review — November 15, 2026
 
 Offline validation: `node scripts/check-addon.cjs` passes 94 Lua 5.1 runtime files, matching TOCs, 47,711 behavior assertions and 1,240,360 profession math/render invariants. Scoped `git diff --check` passes. Added coverage includes unseen roster preparation, timer-driven return from beyond visibility, and disappearance/death/connection/assistability recovery with no new combat widgets. No additional actionable findings in this focused review.

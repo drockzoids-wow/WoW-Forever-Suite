@@ -16,4 +16,10 @@ Native rendering, input, combat/range behavior and taint verification remain pen
 
 ## Publication
 
-Publication and upload acceptance are pending. CurseForge upload acceptance and public moderation availability are separate observations.
+Release commit `ee99214bb51182fba44f67a5f4b4f3a8b156f37f` passes [main Addon checks 43757291069](https://github.com/drockzoids-wow/WoW-Forever-Suite/actions/runs/43757291069). Annotated tag `v1.0.19` targets that commit.
+
+[Package and Release 43757474301](https://github.com/drockzoids-wow/WoW-Forever-Suite/actions/runs/43757474301), job `132944620625`, completes successfully: 47,711 behavior assertions, 1,240,360 profession audit invariants, tag/version matching, CurseForge authentication, addon-only package comparison, publication and GitHub release-asset verification.
+
+The job logs uploading `WoWForeverSuite-v1.0.19-forever.zip` as a 1.60.1 release to CurseForge project 1749120 at `2026-11-15T20:22:31.641Z`, followed by `Success!` at `20:22:31.961Z` (November 15, 2026, 2:22 p.m. America/Chicago). This verifies upload acceptance. CurseForge public moderation/availability was not independently verified.
+
+[GitHub release v1.0.19](https://github.com/drockzoids-wow/WoW-Forever-Suite/releases/tag/v1.0.19) is published, neither draft nor prerelease, with `WoWForeverSuite-v1.0.19-forever.zip` and `release.json` in uploaded state. Published ZIP SHA256 from GitHub's asset digest: `625b45f01e0adcb43bd6aac671fa026a430a6e7af0065f9b997d61e2ad6d5eb7`. The published archive's hash can differ from the local package because of source line endings and archive metadata. Native smoke tests and the existing bag-use taint investigation remain pending.

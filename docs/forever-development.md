@@ -2,7 +2,7 @@
 
 ## Authorized 1.0.19 release — November 15, 2026
 
-The user requests publishing the latest changes to CurseForge, including the shared GUI/menu work, profession-guide navigation/selection/material accounting and both buff-range paths. Core and identical TOCs advance to 1.0.19. Offline checks pass 94 Lua 5.1 files, 47,711 behavior assertions, 1,240,360 profession audit invariants and all 11 gear-baseline tests. The 103-file addon-only ZIP matches source hashes. [Release record](release-1.0.19.md). Publication is pending; native appearance, combat/range and taint checks and the existing bag-use investigation remain open. No game deployment or real SavedVariables changes.
+Published v1.0.19 from `ee99214bb51182fba44f67a5f4b4f3a8b156f37f` under the user's authorization, including the shared GUI/menu work, profession-guide navigation/selection/material accounting and both buff-range paths. Main and release CI pass; CurseForge accepts the upload and GitHub assets are verified. [Publication receipts](release-1.0.19.md#publication). Offline checks pass 94 Lua 5.1 files, 47,711 behavior assertions, 1,240,360 profession audit invariants and all 11 gear-baseline tests. The 103-file local addon-only ZIP matches source hashes. CurseForge public moderation/availability and native appearance, combat/range and taint checks remain unverified; the existing bag-use investigation remains open. No game deployment or real SavedVariables changes.
 
 ## Missing-buff range review — November 15, 2026
 

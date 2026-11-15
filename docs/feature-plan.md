@@ -2,7 +2,7 @@
 
 ## Authorized 1.0.19 release — November 15, 2026
 
-Publish the pending GUI/menu consistency, profession-guide and missing-buff range changes under the user's explicit authorization. Core and both TOCs advance to 1.0.19; offline and package checks pass. [Release record](release-1.0.19.md). Upload pending; native smoke tests remain pending.
+Published v1.0.19 with GUI/menu consistency, profession-guide and missing-buff range changes under the user's explicit authorization. Core and both TOCs match; main/release CI and package checks pass, CurseForge accepts the upload and GitHub assets are verified. [Publication receipts](release-1.0.19.md#publication). CurseForge public moderation/availability and native smoke tests remain unverified.
 
 ## Missing-buff range review — November 15, 2026
 
