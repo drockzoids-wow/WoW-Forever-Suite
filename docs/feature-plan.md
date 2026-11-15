@@ -2,6 +2,8 @@
 
 ## Edge-case review — November 14, 2026
 
+Published v1.0.18: main and release CI pass, CurseForge accepts the upload, and GitHub assets are verified. [Receipts](release-1.0.18.md#publication-verified). Native smoke tests and CurseForge public moderation availability remain unverified.
+
 All three recommendations are implemented for 1.0.18: restore the quest-item action after dragging, update the retained item's combat cooldown display and prune obsolete auto-open GUIDs after complete readable inventory scans. Keep release suppression, protected-update deferral and unchanged-stack retry protection. [Resolution](review-20261114-edge-cases.md), [release record](release-1.0.18.md). The user explicitly authorizes publication after passing checks; native confirmation remains pending.
 
 ## Target level number outlines — November 14, 2026

@@ -17,4 +17,12 @@ Native compatibility, combat activation, cooldown permissions, messaging deliver
 
 ## Publication
 
-Baseline is 53df88d27ce9853e96687f8f241a6822951241a7, confirmed as remote main. Publish the prepared commit to main, wait for Addon checks, then create a fresh annotated v1.0.18 tag to invoke the existing Package and Release workflow for CurseForge project 1749120, Forever flavor. Upload acceptance and public moderation availability are separate observations. Receipts will be recorded after completion.
+Baseline was 53df88d27ce9853e96687f8f241a6822951241a7, confirmed as remote main. The prepared commit was pushed to main; after Addon checks passed, a fresh annotated v1.0.18 tag invoked the existing Package and Release workflow for CurseForge project 1749120, Forever flavor. Upload acceptance and public moderation availability are separate observations.
+
+## Publication verified
+
+Release commit 9b56f163df78a4e3ac4249b6a0f48321f0a719d3 passes [main Addon checks 43663792178](https://github.com/drockzoids-wow/WoW-Forever-Suite/actions/runs/43663792178). A fresh annotated v1.0.18 tag targets that commit. [Package and Release 43663882160](https://github.com/drockzoids-wow/WoW-Forever-Suite/actions/runs/43663882160), job 132658898555, completes every step successfully: 46,599 assertions, tag/version check, CurseForge authentication, addon-only package comparison, upload and GitHub asset verification.
+
+The job records uploading WoWForeverSuite-v1.0.18-forever.zip as a 1.60.1 release to CurseForge project 1749120 at 2026-11-15T01:37:28Z, followed by Success at 01:37:29Z (November 14, 2026, 7:37 p.m. America/Chicago). This verifies upload acceptance; CurseForge moderation/public availability was not independently verified.
+
+[GitHub release v1.0.18](https://github.com/drockzoids-wow/WoW-Forever-Suite/releases/tag/v1.0.18) is published with its addon ZIP and release.json in uploaded state. Published ZIP SHA256: 9d7e30ffb444386694f5d669bdda65912530727973f52c8b968ce232ef426253. Differences from the local ZIP hash can result from line endings/archive metadata. Native checks and the existing bag-use taint investigation remain pending as described above.

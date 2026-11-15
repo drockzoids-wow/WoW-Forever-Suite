@@ -2,6 +2,8 @@
 
 ## Edge-case review — November 14, 2026
 
+Published v1.0.18 from 9b56f163df78a4e3ac4249b6a0f48321f0a719d3: main and release CI pass, CurseForge accepts the upload, and GitHub assets are verified. [Receipts](release-1.0.18.md#publication-verified). Native smoke tests and CurseForge public moderation availability remain unverified.
+
 The user authorizes fixing all three review findings and publishing the latest updates if checks pass. Version 1.0.18 restores the quest-item action after dragging, separates combat cooldown presentation from protected updates, and prunes obsolete auto-open GUID records only after complete corroborated bag scans. [Resolution and evidence](review-20261114-edge-cases.md), [release record](release-1.0.18.md). Offline checks pass 93 Lua 5.1 files, matching TOCs/Core and 46,599 assertions, all 11 gear-baseline tests, package/source hashes for 102 files and git diff --check. Native input/rendering/combat/taint verification remains pending, including the existing UseContainerItem investigation. No game deployment, junction or real SavedVariables changes.
 
 ## Target level number outlines — November 14, 2026
