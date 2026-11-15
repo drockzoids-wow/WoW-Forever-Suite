@@ -3,13 +3,14 @@
 ## Notes: A personal collection of optional tools for WoW Forever.
 ## Author: Drockzoids
 ## IconTexture: Interface\AddOns\WoWForeverSuite\Media\ForeverSuiteIcon.tga
-## Version: 1.0.17
+## Version: 1.0.18
 ## Bindings: Bindings.xml
 ## SavedVariables: WoWForeverSuiteDB
 ## SavedVariablesPerCharacter: WoWForeverSuiteCharDB
 ## Category: Quality of Life
 
 Core.lua
+VersionCheck.lua
 Shortcuts.lua
 WindowPlacement.lua
 Theme.lua

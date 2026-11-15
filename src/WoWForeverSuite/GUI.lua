@@ -28,6 +28,7 @@ end
 
 local pages = {
     support = { title = "Support", singleColumn = true, description = "Review unavailable or paused features and copy a support snapshot.", rows = {
+        { key = "updateNotifications", label = "Update notifications", help = "Warn once per login or reload when another Suite user has a newer version.\nChecks nearby players, guild and groups; check CurseForge to download updates." },
         { action = "supportOpen", label = "Open support report", help = "Copy client/build details, feature switches and capability reasons.\nNames, contacts, chat, inventory contents and custom weights are omitted." },
         { passive = true, label = "Current status in chat", help = "Use /wfs status, including during combat. /wfs support also captures in combat;\nrun it again afterward to copy that snapshot. Refresh captures current state." },
     }, note = "Reports are snapshots. Refresh to capture current reasons. Ready means capabilities are present;\nit does not verify gameplay, visuals or taint safety. Nothing is uploaded automatically." },
@@ -134,7 +135,7 @@ local pages = {
         { key = "itemInventory", label = "Item inventory", help = "Record bag slots and bag/bank counts for characters you play with this on.\nUse the bag character dropdown to view saved bags. Log into each alt after updating to record its slots; visit banks to record bank contents." },
         { key = "playerItemLevel", label = "Player equipment level", help = "Inspect nearby players when possible; recent results are cached." },
         { key = "classNames", label = "Class color names", help = "Use each player's class color for their tooltip name." },
-        { key = "unitLevelColors", label = "Level difficulty colors", help = "Color the level number in unit tooltips by difficulty relative to your level." },
+        { key = "unitLevelColors", label = "Level difficulty colors", help = "Color the level number in unit tooltips by difficulty relative to your level.\nAdd a black outline to target and focus level numbers." },
     }, note = "Player equipment details depend on inspect range and availability. New inspect requests pause during combat." },
     macros = { title = "Useful macros, without the setup.", description = "Shared recipes and macros for your class. Choose, preview, then create.\nGeneral macros are shared; the last character to update sets their supplies.", rows = {},
         note = "Create never uses an item. Drag the macro from Blizzard's General tab onto your action bar." },
@@ -212,7 +213,7 @@ local pages = {
         { key = "autoGossip", label = "Automatically advance gossip", help = "Select a single conversation option when no quests are listed.\nA sole shop or home-setting service can open beside informational chat.\nSeveral services and confirmation prompts wait for your choice." },
         { key = "quickLoot", label = "Quick loot", help = "Collect auto-loot as soon as it is ready.\nUses the game's Auto Loot setting and modifier key." },
         { key = "questTrackerSkin", label = "Suite quest tracker skin", help = "A slate tracker with one outline, underlined headers and teal buttons.\nKeep native quest colors, controls and text-size settings." },
-        { key = "questItemButton", label = "Nearby quest-item button", help = "A compact, draggable item icon near quest objectives; left-click to use it.\nHides in combat. Ctrl-right-click resets its position; bind it under Forever Suite." },
+        { key = "questItemButton", label = "Nearby quest-item button", help = "Keep a carried quest item visible near its quest area, including after completion and in combat.\nLeft-click to use in or out of combat. Ctrl-right-click resets its position; bind it under Forever Suite." },
         { key = "zoneReputation", label = "Track reputation for this zone", help = "Watch the primary quest faction in known outdoor zones.\nLocal towns and faction hubs take priority; reputation changes also update the watch.\nManual choices stay until another reputation change or zone change; instances keep your watch." },
         { key = "questTrackerRemember", label = "Remember tracker collapse", help = "Keep your last expanded or minimized choice through reloads and loading screens.\nSaved separately for each character. Changes during combat wait until it ends." },
     }, note = "Hold Shift when talking to pause quests. Repeatable quests run once per visit.\nLoot rolls and bind confirmations keep their normal behavior." },

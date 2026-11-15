@@ -1129,6 +1129,27 @@ do
     _G.DifficultyTooltipTextLeft2 = line
     local data = { guid = UnitGUID("mouseover"), lines = { { type = 0 }, { type = 0 }, { type = 47, lineIndex = 2 } } }
     equal(Suite.db.unitLevelColors, false, "level difficulty colors default off")
+    do
+        local savedTarget, savedFocus = TargetFrame, FocusFrame
+        local number = { font = { "native.ttf", 14, "MONOCHROME" } }
+        function number:GetFont() return unpack(self.font) end
+        function number:SetFont(...) self.font = { ... } end
+        TargetFrame = { TargetFrameContent = { TargetFrameContentMain = { LevelText = number } } }
+        FocusFrame = nil
+        Suite.Tooltips:ApplyLevelOutlines()
+        equal(number.font[3], "MONOCHROME", "disabled level option preserves native font")
+        Suite.db.unitLevelColors = true
+        Suite.Tooltips:ApplyLevelOutlines()
+        equal(number.font[3], "MONOCHROME,OUTLINE", "target level outline retains native flags")
+        equal(number.font[1], "native.ttf", "target outline retains native font")
+        equal(number.font[2], 14, "target outline retains native size")
+        Suite.Tooltips:ApplyLevelOutlines()
+        equal(number.font[3], "MONOCHROME,OUTLINE", "reapply does not duplicate outline")
+        Suite.db.unitLevelColors = false
+        Suite.Tooltips:ApplyLevelOutlines()
+        equal(number.font[3], "MONOCHROME", "disable restores target level font")
+        TargetFrame, FocusFrame = savedTarget, savedFocus
+    end
     Suite.db.unitLevelColors = true
     tooltipCallbacks[2](tip, data)
     equal(line.text, "Level |cff40bf4033|r Beast", "NPC tooltip colors only the matching level number")
@@ -1793,4 +1814,5 @@ assert(loadfile("tests/release_tools_spec.lua"))(Suite, equal, Frame, function(v
 assert(loadfile("tests/supply_input_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/window_placement_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/diagnostics_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/version_check_spec.lua"))(Suite, equal, function(value) combat = value end)
 print("Behavior checks passed: " .. checks)

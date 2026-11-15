@@ -1,10 +1,11 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "1.0.17"
+Suite.version = "1.0.18"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {
     schema = 1,
+    updateNotifications = false,
     borderColorMode = "default", customBorderColor = { r = 0.41, g = 0.84, b = 0.75 },
     setupGuide = { version = 2, seen = false, completed = false },
     squareMinimap = false, minimapStats = false,

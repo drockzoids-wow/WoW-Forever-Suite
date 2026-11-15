@@ -117,11 +117,46 @@ function Open:Cancel()
     self.inFlight = nil
     self.tooltipWait = nil
 end
+function Open:PruneAttempts(bags)
+    if not self.attempted or not next(self.attempted) then return end
+    local api, item = C_Container or {}, C_Item or {}
+    local present = {}
+    for _, bag in ipairs(bags) do
+        -- A temporarily unavailable backpack must not look like an empty inventory.
+        if bag.id == 0 and bag.count == 0 then return end
+        if bag.count == 0 then
+            local inventorySlot = Read(api.ContainerIDToInventoryID, bag.id)
+            if not Int(inventorySlot, 1000) or inventorySlot == 0 then return end
+            local equipped, state = Probe(GetInventoryItemID, "player", inventorySlot)
+            if state ~= "readable" or equipped ~= nil then return end
+        end
+        for slot = 1, bag.count do
+            local location = Read(ItemLocation and ItemLocation.CreateFromBagAndSlot, ItemLocation, bag.id, slot)
+            if not location then return end
+            local exists = Read(item.DoesItemExist, location)
+            local info, state = Probe(api.GetContainerItemInfo, bag.id, slot)
+            if state ~= "readable" then return end
+            if exists == true and type(info) == "table" and Int(info.itemID, 10000000) and info.itemID > 0
+                and Int(info.stackCount, 1000000000) and info.stackCount > 0 then
+                local guid = Read(item.GetItemGUID, location)
+                if type(guid) ~= "string" or guid == "" then return end
+                present[guid] = true
+            elseif exists ~= false or info ~= nil then return end
+        end
+        if Read(api.GetContainerNumSlots, bag.id) ~= bag.count then return end
+    end
+    -- Commit only a complete scan. Keep unchanged carried stacks deduplicated,
+    -- including locked or rejected containers, but retire vanished identities.
+    for guid in pairs(self.attempted) do
+        if not present[guid] then self.attempted[guid] = nil end
+    end
+end
 function Open:Run()
     if not self.active or not self:Enabled() or self.inFlight or not self:Idle() then return end
     if not C_Container or type(C_Container.UseContainerItem) ~= "function" then return end
     local bags = self:Bags()
     if not bags then return end
+    self:PruneAttempts(bags)
     self.tooltipWait = nil
     for _, bag in ipairs(bags) do
         for slot = 1, bag.count do

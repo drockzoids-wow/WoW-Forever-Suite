@@ -1,5 +1,17 @@
 # Forever Suite
 
+## 1.0.18 — November 14, 2026
+
+- Restore the nearby quest-item action after dragging, including the first deliberate click before queued work finishes. Keep drag releases inactive and defer interrupted-drag cleanup through combat.
+- Update the retained quest item's cooldown display during combat without changing its secure action, selection, position or visibility.
+- Prune auto-open attempt records for containers no longer carried after complete readable bag scans. Preserve retry suppression for moved, locked and rejected stacks and retain records while inventory data is incomplete.
+- Add black outlines to native target/focus level numbers when Level difficulty colors is enabled; preserve native colors and restore owned font flags when disabled.
+
+- Keep nearby quest-item icons visible through target changes, combat and quest completion. Continue hiding when the quest leaves the log, its item is no longer carried or the player leaves its quest area; protected changes reconcile after combat. Allow mouse/keybinding use of the prepared item in combat, subject to native item restrictions; selection changes wait until combat ends.
+
+- Add optional update notifications under Suite Settings → Support. Exchange installed stable versions with nearby Suite users through invisible addon YELL messages, plus guild and party/raid/instance groups. Show one local chat warning per login/reload when a newer version is detected, directing the user to CurseForge.
+- Keep networking event-driven, coalesced and throttled, with cancellation on disable/logout and transmission deferred during combat. This does not query CurseForge or provide realm-wide delivery. The setting starts off; native delivery/range and combat/taint tests remain pending.
+
 ## 1.0.17 — November 14, 2026
 
 - Add a clickable coordinate bar matching minimap stats. Choose a chat destination to share the captured location immediately, with a native map pin where available. Preserve native coordinate settings and restore native rendering when disabled.

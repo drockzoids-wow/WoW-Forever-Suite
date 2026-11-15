@@ -417,7 +417,50 @@ function Tips:Initialize()
     end)
 end
 
+function Tips:ApplyLevelOutlines()
+    Suite.AfterCombat("unitLevelOutlines", function()
+        self.levelOutlines = self.levelOutlines or {}
+        -- Only change the native number's font flags; Blizzard retains its color,
+        -- skull, text, positioning and faction/difficulty updates.
+        for _, record in ipairs(self.levelOutlines) do
+            local text = record.text
+            if not (text.IsForbidden and text:IsForbidden()) then
+                local path, size, flags = text:GetFont()
+                if Suite.IsReadable(path) and Suite.IsReadable(size) and Suite.IsReadable(flags)
+                    and path == record.path and size == record.size and flags == record.outlined then
+                    text:SetFont(record.path, record.size, record.flags)
+                end
+            end
+        end
+        self.levelOutlines = {}
+        if not Suite.db or not Suite.db.unitLevelColors then return end
+        for _, name in ipairs({ "TargetFrame", "FocusFrame" }) do
+            local frame = _G[name]
+            local content = frame and frame.TargetFrameContent
+            local main = content and content.TargetFrameContentMain
+            local text = main and main.LevelText
+            if text and not (text.IsForbidden and text:IsForbidden())
+                and type(text.GetFont) == "function" and type(text.SetFont) == "function" then
+                local path, size, flags = text:GetFont()
+                if Suite.IsReadable(path) and Suite.IsReadable(size) and Suite.IsReadable(flags)
+                    and type(path) == "string" and path ~= "" and type(size) == "number"
+                    and size > 0 and size < math.huge and (flags == nil or type(flags) == "string") then
+                    local outlined = flags or ""
+                    if not outlined:find("OUTLINE", 1, true) then
+                        outlined = outlined == "" and "OUTLINE" or outlined .. ",OUTLINE"
+                        self.levelOutlines[#self.levelOutlines + 1] = {
+                            text = text, path = path, size = size, flags = flags, outlined = outlined,
+                        }
+                        text:SetFont(path, size, outlined)
+                    end
+                end
+            end
+        end
+    end)
+end
+
 function Tips:Apply()
+    self:ApplyLevelOutlines()
     Suite.pending.tooltipInitialize = nil
     if Suite.db.itemTooltipLevels or Suite.db.upgradeHints or Suite.db.playerItemLevel or Suite.db.classNames or Suite.db.itemInventory or Suite.db.unitLevelColors then
         if not self.initialized and InCombatLockdown() then

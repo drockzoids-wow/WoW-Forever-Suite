@@ -22,7 +22,6 @@ local function Read(fn, ...)
     if not Suite.IsReadable(d) then d = nil end
     return a, b, c, d
 end
-local function Yes(value) return value == true or value == 1 end
 local function CursorEmpty()
     if type(GetCursorInfo) ~= "function" then return false end
     local ok, kind = pcall(GetCursorInfo)
@@ -32,7 +31,7 @@ function QuestItem:Enabled()
     return Suite.db and Suite.IsReadable(Suite.db.questItemButton) and Suite.db.questItemButton == true
 end
 function QuestItem:Find()
-    if InCombatLockdown() or Read(UnitIsDeadOrGhost, "player") ~= false then return end
+    if InCombatLockdown() then return end
     local api = C_QuestLog or {}
     local count = Read(api.GetNumQuestLogEntries)
     if not Number(count) or count < 0 or count % 1 ~= 0 or count > 200 then return end
@@ -44,10 +43,9 @@ function QuestItem:Find()
         if Suite.IsReadable(info) and type(info) == "table" and ID(info.questID, 1000000000)
             and Suite.IsReadable(info.isHeader) and info.isHeader ~= true
             and Suite.IsReadable(info.isHidden) and info.isHidden ~= true then
-            local complete = Read(api.IsComplete, info.questID)
-            local link, icon, _, showComplete = Read(GetQuestLogSpecialItemInfo, index)
+            local link, icon = Read(GetQuestLogSpecialItemInfo, index)
             local item = Text(link, 2048) and tonumber(link:match("item:(%d+)")) or nil
-            if ID(item) and (complete == false or complete == true and Yes(showComplete)) then
+            if ID(item) then
                 local countCarried = Read(C_Item and C_Item.GetItemCount, item, false, false, false, false)
                 local inside = Read(C_Minimap and C_Minimap.IsInsideQuestBlob, info.questID) == true
                 local distance, sameContinent = Read(api.GetDistanceSqToQuest, info.questID)
@@ -117,12 +115,12 @@ function QuestItem:StopDrag(save)
                 y = math.max(-0.5, math.min(0.5, y * ratio / height - 0.5)) }
         end
     end
-    self.cancelMove = nil; Suite.pending.questItemMove = nil; self:Place()
+    self.cancelMove = nil; Suite.pending.questItemMove = nil; self:Place(); self:Queue()
 end
 function QuestItem:Build()
     if self.button then return true end
-    if InCombatLockdown() or type(RegisterStateDriver) ~= "function" then return false end
-    local controller = CreateFrame("Frame", nil, UIParent, "SecureHandlerStateTemplate")
+    if InCombatLockdown() then return false end
+    local controller = CreateFrame("Frame", nil, UIParent)
     self.controller = controller
     -- The named action target is declared solely for the native CLICK binding.
     local button = CreateFrame("Button", "WoWForeverSuiteQuestItemButton", controller, "SecureActionButtonTemplate,BackdropTemplate")
@@ -135,18 +133,8 @@ function QuestItem:Build()
     button.cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
     button.cooldown:SetSize(44, 44); button.cooldown:SetPoint("CENTER")
     button:RegisterForClicks("AnyUp", "AnyDown"); button:SetAttribute("useOnKeyDown", false)
-    controller:SetFrameRef("button", button)
-    controller:SetAttribute("_onstate-combat", [[
-        if newstate == "blocked" then
-            local button = self:GetFrameRef("button")
-            button:SetAttribute("type1", nil)
-            button:Hide()
-            self:Hide()
-        else
-            self:Show()
-        end
-    ]])
-    RegisterStateDriver(controller, "combat", "[combat][dead] blocked; peaceful")
+    -- The prepared secure action remains usable in combat. Ordinary callbacks
+    -- must not change its item, attributes or layout until combat ends.
     button:SetScript("OnMouseDown", function() if not self.moving then self.suppressClick = nil end end)
     button:SetScript("OnDragStart", function()
         if InCombatLockdown() or not self:Enabled() or not CursorEmpty() then return end
@@ -164,6 +152,10 @@ function QuestItem:Build()
         local old = self.candidate
         if mouse ~= "LeftButton" or not fresh or not old or fresh.id ~= old.id or fresh.questID ~= old.questID then
             button:SetAttribute("type1", nil)
+        else
+            -- A new deliberate click may precede the queued post-drag refresh.
+            -- Re-arm only the same prepared item; never substitute an action here.
+            button:SetAttribute("type1", "macro")
         end
     end)
     button:SetScript("PostClick", function(_, _, down) if not down then self:Queue() end end)
@@ -171,6 +163,18 @@ function QuestItem:Build()
     button:SetScript("OnLeave", function() Suite.Theme:Backdrop(button, 0.7); self:HideTooltip() end)
     button:SetScript("OnHide", function() self:HideTooltip(); self:StopDrag(false) end)
     self:Place(); return true
+end
+function QuestItem:UpdateCooldown()
+    local candidate = self.candidate
+    local cooldown = self.button and self.button.cooldown
+    if not self.active or not self:Enabled() or not candidate or not cooldown
+        or cooldown.IsForbidden and Read(cooldown.IsForbidden, cooldown) ~= false then return end
+    -- Presentation only, including combat: retain the prepared item's identity.
+    -- Never change secure attributes, visibility or geometry from cooldown events.
+    local start, duration, enabled = Read(C_Item and C_Item.GetItemCooldown, candidate.id)
+    if Number(start) and start >= 0 and Number(duration) and duration >= 0 and enabled == true then
+        cooldown:SetCooldown(start, duration)
+    else cooldown:Clear() end
 end
 function QuestItem:Refresh()
     if InCombatLockdown() then Suite.pending.questItemRefresh = function() self:Refresh() end; return end
@@ -181,17 +185,14 @@ function QuestItem:Refresh()
     end
     if not self:Build() or self.moving then return end
     local candidate = self:Find(); self.candidate = candidate
-    -- The native condition also gates bindings to this named button, which can
-    -- otherwise click hidden secure frames before a visibility driver updates.
+    -- Native targeting and item restrictions apply to mouse and binding clicks.
+    -- Keep the prepared item stable throughout combat; block use while dead.
     self.button:SetAttribute("type1", candidate and "macro" or nil)
-    self.button:SetAttribute("macrotext1", candidate and "/use [nocombat,nodead] item:" .. candidate.id or nil)
+    self.button:SetAttribute("macrotext1", candidate and "/use [nodead] item:" .. candidate.id or nil)
     if candidate then
         self.button.icon:SetTexture(candidate.icon)
         self.button.icon:SetVertexColor(1, candidate.range and 0.25 or 1, candidate.range and 0.25 or 1)
-        local start, duration, enabled = Read(C_Item and C_Item.GetItemCooldown, candidate.id)
-        if Number(start) and start >= 0 and Number(duration) and duration >= 0 and enabled == true then
-            self.button.cooldown:SetCooldown(start, duration)
-        else self.button.cooldown:Clear() end
+        self:UpdateCooldown()
         self.button:Show(); if self.hovered then self:Tooltip() end
     else self.button:Hide() end
 end
@@ -203,7 +204,11 @@ function QuestItem:Queue()
     if not self.active or not self:Enabled() or self.shuttingDown then return end
     if InCombatLockdown() then Suite.pending.questItemRefresh = function() self:Refresh() end; return end
     if not self.timer and C_Timer and type(C_Timer.NewTimer) == "function" then
-        self.timer = C_Timer.NewTimer(0.12, function() self.timer = nil; self:Refresh() end)
+        self.timer = C_Timer.NewTimer(0.12, function()
+            self.timer = nil
+            if not self.moving then self.suppressClick = nil end
+            self:Refresh()
+        end)
     end
 end
 function QuestItem:MovingScan()
@@ -220,6 +225,7 @@ end
 function QuestItem:OnEvent(event)
     if event == "PLAYER_LOGOUT" then self.shuttingDown = true; self:Cancel(); self:HideTooltip(); return end
     if event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_DEAD" then self:Cancel(); self:HideTooltip(); return end
+    if event == "BAG_UPDATE_COOLDOWN" or event == "SPELL_UPDATE_COOLDOWN" then self:UpdateCooldown(); return end
     if event == "PLAYER_STARTED_MOVING" then self.traveling = true; self:MovingScan()
     elseif event == "PLAYER_STOPPED_MOVING" then
         self.traveling = nil; if self.moveTimer then self.moveTimer:Cancel(); self.moveTimer = nil end
@@ -250,7 +256,7 @@ function QuestItem:Apply()
         self.events = self.events or CreateFrame("Frame")
         self.events:SetScript("OnEvent", function(_, event) self:OnEvent(event) end)
         for _, event in ipairs({ "QUEST_LOG_UPDATE", "QUEST_POI_UPDATE", "SUPER_TRACKING_CHANGED", "PLAYER_INSIDE_QUEST_BLOB_STATE_CHANGED",
-            "PLAYER_TARGET_CHANGED", "BAG_UPDATE_DELAYED", "BAG_UPDATE_COOLDOWN", "SPELL_UPDATE_COOLDOWN", "PLAYER_ENTERING_WORLD",
+            "PLAYER_TARGET_CHANGED", "QUEST_ITEM_UPDATE", "BAG_UPDATE_DELAYED", "BAG_UPDATE_COOLDOWN", "SPELL_UPDATE_COOLDOWN", "PLAYER_ENTERING_WORLD",
             "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "PLAYER_ALIVE", "PLAYER_UNGHOST",
             "PLAYER_DEAD", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA", "DISPLAY_SIZE_CHANGED", "UI_SCALE_CHANGED", "PLAYER_LOGOUT" }) do
             local valid = not C_EventUtils or type(C_EventUtils.IsEventValid) ~= "function" or Read(C_EventUtils.IsEventValid, event) == true

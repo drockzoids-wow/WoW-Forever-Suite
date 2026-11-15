@@ -9,6 +9,7 @@ local oldDB, oldPending = Suite.db, Suite.pending
 Suite.db = Suite.Copy(Suite.defaults); Suite.pending = {}
 local rows, carried, tracked, dead, cursor, ctrl, speed = {}, {}, nil, false, nil, false, 0
 local timers, made, states = {}, 0, {}
+local cooldownStart, cooldownDuration, cooldownEnabled, cooldownItem = 10, 30, true, nil
 local function Drain()
     local pending = timers; timers = {}
     for _, timer in ipairs(pending) do if not timer.cancelled then timer.callback() end end
@@ -64,7 +65,10 @@ C_QuestLog = {
 C_Item = { GetItemCount = function(id, bank, uses, reagent, account)
     assert(bank == false and uses == false and reagent == false and account == false, "bank contents cannot authorize quest item use")
     return carried[id] or 0
-end, GetItemCooldown = function() return 10, 30, true end }
+end, GetItemCooldown = function(id)
+    cooldownItem = id
+    return cooldownStart, cooldownDuration, cooldownEnabled
+end }
 C_Minimap = { IsInsideQuestBlob = function(id) for _, row in ipairs(rows) do if row.id == id then return row.inside end end end }
 C_SuperTrack = { GetSuperTrackedQuestID = function() return tracked end }
 GetQuestLogSpecialItemInfo = function(index) local row = rows[index]; return row.link, row.icon or 134400, 1, row.showComplete end
@@ -83,12 +87,12 @@ SetCombat(false); Suite.pending.questItemDisable(); Suite.pending.questItemDisab
 rows, carried = { Row(1, 100), Row(2, 200, 400) }, { [100] = 2, [200] = 1 }
 Suite.db.questItemButton = true; module:Apply()
 equal(module.candidate.id, 100, "nearest objective supplies the item")
-equal(module.button:GetAttribute("macrotext1"), "/use [nocombat,nodead] item:100", "secure click uses stable item identity and native combat/death conditions even for bindings")
+equal(module.button:GetAttribute("macrotext1"), "/use [nodead] item:100", "secure click allows combat use while retaining stable item identity and native death gating")
 equal(module.button:GetAttribute("type1"), "macro", "guarded native action is prepared only after valid selection")
 equal(module.button.width, 48, "quest button matches the compact trash icon footprint")
 equal(module.button.icon.width, 44, "icon retains the trash button's inset")
 equal(module.button.cooldown.cooldownDuration, 30, "native cooldown widget receives public timing")
-equal(states[1][3], "[combat][dead] blocked; peaceful", "native driver hides during combat/death without automatically showing a stale button")
+equal(#states, 0, "no combat state driver clears the prepared item action")
 equal(module.events.registered.QUEST_POI_UPDATE, nil, "unsupported optional events are skipped")
 equal(Count(), 0, "stationary helper has no idle polling timer")
 tracked = 2; equal(module:Find().id, 200, "tracked quest wins between nearby candidates")
@@ -100,10 +104,10 @@ rows[1].inside = true; equal(module:Find().id, 100, "inside blob can authorize p
 rows[1].inside, rows[1].distance, rows[1].same = false, 100, false
 rows[2].same = false; equal(module:Find(), nil, "different-continent objectives cannot appear")
 rows[1].same, rows[1].complete = true, true
-equal(module:Find(), nil, "completed quest items stay hidden by default")
+equal(module:Find().id, 100, "completed quests retain their carried item until the quest leaves the log")
 rows[1].showComplete = true; equal(module:Find().id, 100, "native explicit show-when-complete items remain available")
 rows[1].complete, rows[1].showComplete = false, nil
-for _, key in ipairs({ "id", "link", "distance", "same", "complete", "hidden", "header" }) do
+for _, key in ipairs({ "id", "link", "distance", "same", "hidden", "header" }) do
     local original = rows[1][key]; rows[1][key] = { secret = true }
     equal(module:Find(), nil, "unreadable quest " .. key .. " cannot authorize an offer")
     rows[1][key] = original
@@ -115,14 +119,29 @@ carried[100] = { secret = true }; equal(module:Find(), nil, "secret carried coun
 carried[100] = 0; equal(module:Find(), nil, "quest log entry without carried item is suppressed")
 carried[100], rows[1].range = 2, 0; module:Refresh()
 equal(module.button.icon.vertexColor[2], 0.25, "native out-of-range result uses subdued red tint")
-dead = true; equal(module:Find(), nil, "dead players do not receive item candidates"); dead = false
+for _, range in ipairs({ 0, 1, false, { secret = true } }) do
+    rows[1].range = range; module:OnEvent("PLAYER_TARGET_CHANGED"); Drain()
+    equal(module.button:IsShown(), true, "target range never hides a nearby carried quest item")
+    equal(module.candidate.id, 100, "target changes retain the nearby quest item")
+end
+rows[1].complete, rows[1].showComplete = true, false
+module:OnEvent("QUEST_LOG_UPDATE"); Drain()
+equal(module.button:IsShown(), true, "completed quest remains visible even when native show-when-complete is false")
+rows[1].distance = 62501; module:Refresh()
+equal(module.button:IsShown(), false, "leaving the quest area hides even a completed quest item")
+rows[1].distance = 100; module:Refresh()
+equal(module.button:IsShown(), true, "returning to the area restores the completed quest item")
+local retainedRows = rows; rows = {}; module:Refresh()
+equal(module.button:IsShown(), false, "removing the quest hides its item despite retaining the item in bags")
+rows = retainedRows; rows[1].complete = false; module:Refresh()
+dead = true; equal(module:Find().id, 100, "death does not remove the quest item icon"); dead = false
 module.button.PreClick(module.button, "LeftButton", false)
 equal(module.button:GetAttribute("type1"), "macro", "fresh hardware click retains its prepared native action")
 cursor = "item"; module.button.PreClick(module.button, "LeftButton", false)
 equal(module.button:GetAttribute("type1"), nil, "occupied cursor blocks item use")
 cursor = nil; module:Refresh(); rows[1].complete = true
 module.button.PreClick(module.button, "LeftButton", false)
-equal(module.button:GetAttribute("type1"), nil, "completion between refresh and click invalidates the action")
+equal(module.button:GetAttribute("type1"), "macro", "completion between refresh and click retains the carried quest item")
 rows[1].complete = false; module:Refresh(); rows[1].link = "item:200"
 module.button.PreClick(module.button, "LeftButton", false)
 equal(module.button:GetAttribute("type1"), nil, "changed item identity is never substituted during a click")
@@ -136,6 +155,13 @@ equal(math.abs(Suite.db.questItemPosition.x - 0.2) < 0.000001, true, "drag persi
 equal(Suite.db.questItemPosition.y, 0.25, "drag persists normalized vertical placement")
 module.button.PreClick(module.button, "LeftButton", false)
 equal(module.button:GetAttribute("type1"), nil, "drag release cannot activate a quest item")
+module.button.OnMouseDown(); module.button.PreClick(module.button, "LeftButton", false)
+equal(module.button:GetAttribute("type1"), "macro", "first deliberate click after dragging works before the refresh timer")
+Drain()
+module.button.OnDragStart(); module.button.OnDragStop(); Drain()
+equal(module.button:GetAttribute("type1"), "macro", "drag completion re-arms the binding without needing another click or event")
+module.button.PreClick(module.button, "LeftButton", false)
+equal(module.button:GetAttribute("type1"), "macro", "binding-style PreClick without mouse-down works after the deferred drag refresh")
 module.button.OnMouseDown(); module:Refresh(); ctrl = true
 module.button.PreClick(module.button, "RightButton", false); ctrl = false
 equal(next(Suite.db.questItemPosition), nil, "Ctrl-right-click resets only quest button placement")
@@ -149,10 +175,53 @@ equal(module.moveTimer, nil, "stopping movement cancels repeated checks")
 module:OnEvent("PLAYER_STARTED_MOVING"); Drain()
 equal(module.traveling, nil, "a fresh stationary speed cancels checks even if the stop event was missed")
 equal(module.moveTimer, nil, "missing movement-stop notification cannot leave an idle poller")
+local savedX, savedY = Suite.db.questItemPosition.x, Suite.db.questItemPosition.y
+module.button.OnDragStart(); SetCombat(true); module:OnEvent("PLAYER_REGEN_DISABLED"); module.button.OnDragStop()
+equal(module.button:GetAttribute("type1"), nil, "combat interrupting a drag cannot restore an action on its release")
+equal(module.moving, true, "protected drag cleanup waits for combat exit")
+SetCombat(false); module:OnEvent("PLAYER_REGEN_ENABLED"); Drain()
+equal(module.moving, nil, "combat-exit drag cleanup completes")
+equal(Suite.db.questItemPosition.x, savedX, "interrupted drag does not overwrite saved horizontal placement")
+equal(Suite.db.questItemPosition.y, savedY, "interrupted drag does not overwrite saved vertical placement")
+equal(module.button:GetAttribute("type1"), "macro", "combat-exit refresh restores a drag-interrupted action")
 module:Queue(); SetCombat(true); Drain()
 equal(type(Suite.pending.questItemRefresh), "function", "timer crossing combat defers protected refresh")
 module:OnEvent("PLAYER_REGEN_DISABLED")
 equal(Count(), 0, "combat entry cancels work")
+equal(module.button:IsShown(), true, "combat events and deferred refresh leave the icon visible")
+equal(module.button:GetAttribute("type1"), "macro", "combat entry retains the secure action type")
+equal(module.button:GetAttribute("macrotext1"), "/use [nodead] item:100", "prepared item has no combat exclusion")
+rows[1].link = "item:200"
+cooldownStart, cooldownDuration = 50, 60
+module:OnEvent("BAG_UPDATE_COOLDOWN")
+equal(module.button.cooldown.cooldownStart, 50, "combat cooldown event starts the retained item's swipe immediately")
+equal(module.button.cooldown.cooldownDuration, 60, "combat cooldown event updates duration")
+equal(cooldownItem, 100, "combat presentation queries the prepared item despite changed quest data")
+equal(module.candidate.id, 100, "cooldown events cannot switch the retained candidate")
+equal(Count(), 0, "combat cooldown updates add no timers")
+cooldownStart, cooldownDuration = 70, 90
+module:OnEvent("SPELL_UPDATE_COOLDOWN")
+equal(module.button.cooldown.cooldownStart, 70, "a later combat use updates the existing swipe")
+for _, values in ipairs({ { { secret = true }, 30, true }, { 10, { secret = true }, true },
+    { 10, 30, { secret = true } }, { 10, 30, false }, { -1, 30, true }, { 10, math.huge, true } }) do
+    cooldownStart, cooldownDuration, cooldownEnabled = unpack(values)
+    module:OnEvent("BAG_UPDATE_COOLDOWN")
+    equal(module.button.cooldown.cooldownStart, nil, "restricted or invalid combat timing clears stale cooldown presentation")
+end
+cooldownStart, cooldownDuration, cooldownEnabled = 10, 30, true
+module:OnEvent("SPELL_UPDATE_COOLDOWN")
+module:OnEvent("PLAYER_TARGET_CHANGED"); module:OnEvent("QUEST_ITEM_UPDATE")
+module:Refresh(); module.button.OnDragStart()
+for _, down in ipairs({ true, false }) do
+    module.button.PreClick(module.button, "LeftButton", down)
+    module.button.PostClick(module.button, "LeftButton", down)
+end
+equal(module.button:GetAttribute("type1"), "macro", "combat mouse or binding click leaves secure activation enabled")
+equal(module.button:GetAttribute("macrotext1"), "/use [nodead] item:100", "combat quest updates never substitute another item on click")
+equal(module.moving, nil, "combat clicks cannot start movement")
+equal(Count(), 0, "combat use queues no insecure refresh timer")
+rows[1].link = "item:100"
+
 SetCombat(false); Suite.pending.questItemRefresh(); Suite.pending.questItemRefresh = nil
 equal(module.candidate.id, 100, "post-combat refresh uses fresh public quest data")
 Suite.db.questItemButton = false; SetCombat(true); module:Apply()

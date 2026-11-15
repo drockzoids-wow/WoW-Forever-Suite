@@ -19,7 +19,7 @@ Setup.pages = {
         { key = "vendorKnownItems", label = "Known vendor items", help = "Green highlights for learned recipes\nand collected vendor items.", suggested = false },
         { key = "autoVendor", label = "Open vendor shops", help = "Skip an extra shop dialogue click.\nHold Shift to keep the menu open.", suggested = false },
         { key = "autoOpenContainers", label = "Open bag containers", help = "Open loot containers one at a time.\nNeeds a free slot; pauses in combat.", suggested = false },
-        { key = "questItemButton", label = "Nearby quest items", help = "Show a usable quest-item button\nnear objectives. Hides in combat.", suggested = true },
+        { key = "questItemButton", label = "Nearby quest items", help = "Keep quest items visible near objectives.\nUse in or out of combat.", suggested = true },
         { key = "zoneReputation", label = "Zone reputation", help = "Watch the primary local quest faction.\nAlso follows reputation changes, including Other factions.", suggested = false },
         { key = "levelingBar", label = "Leveling tracker", help = "Track session XP, net gold and time.\nMove or lock it in Leveling settings.", suggested = false },
         { key = "trainingPlanner", label = "Record trainer skills", help = "Save class and weapon trainer visits.\nTraining purchases remain manual.", suggested = false },

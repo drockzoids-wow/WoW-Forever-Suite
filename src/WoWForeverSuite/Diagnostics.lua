@@ -24,6 +24,7 @@ local function Add(key, label, module, requires, pending, combat, parent)
 end
 local bags = { "C_Container.GetContainerNumSlots", "C_Container.GetContainerItemInfo" }
 local tooltip = { "TooltipDataProcessor.AddTooltipPostCall" }
+Add("updateNotifications", "Update notifications", "VersionCheck", { "C_ChatInfo.RegisterAddonMessagePrefix", "C_ChatInfo.SendAddonMessage", "C_Timer.NewTimer" }, "versionCheck", true)
 Add("minimapButton", "Settings launcher", "MinimapButton", {}, "minimapButton")
 Add("minimapDrawer", "Minimap button drawer", "MinimapDrawer", {}, "minimapDrawer")
 Add("squareMinimap", "Square minimap", "Minimap", {}, "minimap")

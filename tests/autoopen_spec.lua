@@ -3,7 +3,7 @@ local open=Suite.AutoOpen
 local names={"CreateFrame","C_Container","C_Item","ItemLocation","C_Timer","UnitIsDeadOrGhost","GetCursorInfo",
     "UnitCastingInfo","UnitChannelInfo","SpellIsTargeting","GetNumLootItems","NUM_TOTAL_EQUIPPED_BAG_SLOTS",
     "MerchantFrame","BankFrame","BankPanel","GuildBankFrame","MailFrame","TradeFrame","AuctionHouseFrame","AuctionFrame",
-    "ItemInteractionFrame","ScrappingMachineFrame","ItemUpgradeFrame","LootFrame","C_TooltipInfo","ITEM_OPENABLE","EventRegistry","Enum","GetLootSlotType","LootSlot"}
+    "ItemInteractionFrame","ScrappingMachineFrame","ItemUpgradeFrame","LootFrame","C_TooltipInfo","ITEM_OPENABLE","EventRegistry","Enum","GetLootSlotType","LootSlot","GetInventoryItemID"}
 local saved,state={},{}
 for _,key in ipairs(names)do saved[key]=_G[key]end
 for key,value in pairs(open)do state[key]=value end
@@ -355,6 +355,66 @@ FreshContainers(0);Drain()
 equal(open.active,true,"missing native registry does not disable ordinary container opening")
 equal(open.lootRegistry,nil,"missing native registry creates no observer")
 Suite.db.autoOpenContainers=false;open:Apply();EventRegistry=registry
+
+-- Retire vanished physical identities only after an entirely readable scan.
+FreshContainers(1);Drain()
+C_Item.DoesItemExist=function(location)return items[location.slot]~=nil end
+C_Container.ContainerIDToInventoryID=function(bag)return 19+bag end
+GetInventoryItemID=function()return nil end
+open.attempted["gone"]=1
+open:Cancel();open:Run()
+equal(open.attempted.gone,nil,"normal opening work prunes identities no longer carried")
+equal(open.attempted["sequence-1"],1,"unchanged carried attempt survives pruning")
+local pruneCalls=#calls
+open:Cancel();items[1].isLocked=true;open:Run()
+equal(#calls,pruneCalls,"pruning does not retry a locked unchanged container")
+items[1].isLocked=false
+local pruneBags={{id=0,count=4},{id=1,count=0}}
+local nativeInfo,nativeGUID,nativeSize=C_Container.GetContainerItemInfo,C_Item.GetItemGUID,C_Container.GetContainerNumSlots
+local function Retains(label)
+    open.attempted.gone=1;open:PruneAttempts(pruneBags)
+    equal(open.attempted.gone,1,label)
+end
+C_Item.DoesItemExist=function()return nil end
+Retains("unknown slot existence preserves all attempt records")
+C_Item.DoesItemExist=function(location)return items[location.slot]~=nil end
+C_Container.GetContainerItemInfo=function()return nil end
+Retains("missing occupied-slot info preserves attempt records")
+C_Container.GetContainerItemInfo=function()error("loading")end
+Retains("failed slot queries preserve attempt records")
+C_Container.GetContainerItemInfo=function()return {secret=true}end
+Retains("restricted slot data preserves attempt records")
+C_Container.GetContainerItemInfo=nativeInfo
+C_Item.GetItemGUID=function()return {secret=true}end
+Retains("restricted physical identity preserves attempt records")
+C_Item.GetItemGUID=nativeGUID
+GetInventoryItemID=function()return 123 end
+Retains("zero-capacity equipped bag preserves attempts while its contents load")
+GetInventoryItemID=function()return {secret=true}end
+Retains("unknown empty-bag equipment state preserves attempt records")
+GetInventoryItemID=function()return nil end
+items[1].stackCount={secret=true}
+Retains("incomplete item counts preserve attempt records")
+items[1].stackCount=1
+C_Container.GetContainerNumSlots=function()return 0 end
+Retains("bag sizes changing during a scan preserve attempt records")
+C_Container.GetContainerNumSlots=nativeSize
+open:PruneAttempts({{id=0,count=0}})
+equal(open.attempted.gone,1,"zero-size transient backpack cannot erase deduplication history")
+for i=1,1000 do open.attempted["consumed-"..i]=1 end
+open:PruneAttempts(pruneBags)
+local attemptCount=0;for _ in pairs(open.attempted)do attemptCount=attemptCount+1 end
+equal(attemptCount,1,"complete scan reduces long-session history to the carried attempted stack")
+local retained=items[1];items[1]=nil
+open:PruneAttempts(pruneBags)
+equal(next(open.attempted),nil,"confirmed empty carried inventory releases the last obsolete attempt")
+items[1]=retained;open.attempted["sequence-1"]=1
+items[2]=items[1];items[1]=nil
+open:PruneAttempts(pruneBags)
+equal(open.attempted["sequence-1"],1,"moving a physical stack between slots retains retry suppression")
+open:Cancel();open:Run()
+equal(#calls,pruneCalls,"a moved unchanged rejected stack is not retried after cleanup")
+Suite.db.autoOpenContainers=false;open:Apply()
 
 open:Cancel();for key in pairs(open)do open[key]=nil end;for key,value in pairs(state)do open[key]=value end
 for _,key in ipairs(names)do _G[key]=saved[key]end

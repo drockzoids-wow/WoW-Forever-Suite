@@ -1,5 +1,25 @@
 # Forever Suite feature plan
 
+## Edge-case review — November 14, 2026
+
+All three recommendations are implemented for 1.0.18: restore the quest-item action after dragging, update the retained item's combat cooldown display and prune obsolete auto-open GUIDs after complete readable inventory scans. Keep release suppression, protected-update deferral and unchanged-stack retry protection. [Resolution](review-20261114-edge-cases.md), [release record](release-1.0.18.md). The user explicitly authorizes publication after passing checks; native confirmation remains pending.
+
+## Target level number outlines — November 14, 2026
+
+Extend the existing Level difficulty colors option with black outlines on native target and focus level numbers for contrast against faction backgrounds. Preserve native fonts, sizes, colors and skull behavior; restore owned font flags on disable outside combat. User confirms existing colors work; outline appearance awaits native confirmation.
+
+## Quest-item combat use — November 14, 2026
+
+Supersede the earlier outside-combat use restriction. Allow hardware mouse/keybinding use of the prepared secure quest item in combat, subject to native item restrictions. Retain stable pre-combat selection and defer protected refresh/layout changes until combat ends. Completion and target changes do not hide the nearby item; quest removal, lost carried item or leaving its area reconcile outside lockdown. Native combat use/taint confirmation pending.
+
+## Persistent nearby quest item — November 14, 2026
+
+Supersede the original completion/combat visibility policy: keep carried native special items visible near their quest objectives even when the quest is complete or combat begins. Quest removal or leaving the blob/250-yard objective radius hides the item after protected updates can run. Target range only tints the icon. Preserve the existing outside-combat use restriction and default-off setting. Native smoke confirmation pending.
+
+## Peer version notifications — November 14, 2026
+
+Add Suite Settings → Support → Update notifications, independently default off. Warn in local chat once per login/reload when a peer reports a newer stable Suite version; include detected/installed versions and a CurseForge update prompt. Check nearby users through invisible addon YELL messages as well as guild and party/raid/instance groups, with bounded event-driven exchanges and no visible chat sends. Both users need the feature enabled. This expands beyond guild/groups but cannot reach all users simultaneously, contact CurseForge, or notify installations predating the protocol. Preserve the session limit through settings/profile changes and reject malformed/restricted packets. Native delivery/range and taint verification remains pending; no publication requested.
+
 ## Full review and authorized 1.0.17 release — November 14, 2026
 
 Published v1.0.17 from a7d025c061847957434692cae4bcd9da4412e434: main and release CI pass, CurseForge accepts the upload, and GitHub assets are verified. [Publication receipts](release-1.0.17.md#publication-verified). Native smoke tests and CurseForge public moderation availability remain unverified.

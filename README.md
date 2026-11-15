@@ -1,5 +1,7 @@
 # Forever Suite
 
+**1.0.18 — update notifications:** enable **Suite Settings → Support → Update notifications** to show one local chat warning per login/reload when another Suite user reports a newer stable version. Exchanges include nearby players through invisible addon YELL messages, guild members and party/raid/instance groups. Both players need this feature enabled. Delivery depends on native range, connectivity and channel permissions; this cannot notify every user immediately or check CurseForge directly. The setting starts off. Native delivery testing remains pending.
+
 **Full talent-plan sharing:** Talent Builds → Export now includes the build name, exact Point order and saved notes. Paste a code, choose Review import, then Import as new to create a separate saved draft. Existing WFS1 codes still import with generated order and no notes. Turn off Limit to current level when importing a future-level plan. New full-plan codes require the updated Suite; notes are included when you share them.
 
 **Support diagnostics:** open **Suite Settings → Support** or type `/wfs support` (`/wfs diagnostics` also works). Select/copy the report with Ctrl+A/Ctrl+C or Select all, and use Refresh for current state. `/wfs status` prints capability problems and paused reasons in chat. Either command can capture combat context; open `/wfs support` afterward to copy it. Reports omit player/realm names, contacts, chat, inventory contents, macro text and custom names/weights. See [support reports](docs/support-report.md) for the status meanings and coverage.
@@ -196,7 +198,7 @@ Disabling stops automatic refreshes; choose a fixed output through the game's Au
 
 Enable **Nearby quest-item button** under **Quests & Leveling → Quests, Loot & Tracker**; it starts off. A compact item icon appears when you carry a native quest-log special item and the game reports its nearby objective or quest area. Hover for the quest, count and normal item tooltip; left-click uses it with native targeting and cooldowns. Left-drag saves placement, and Ctrl-right-click resets it. **Use nearby quest item** is available under Forever Suite in native Keybindings.
 
-The button hides during combat/death and rechecks the item before clicks. Items without native special-item/location data may not appear. See the [quest-item checklist](docs/testing.md#compact-nearby-quest-item-button--0226) for native use, placement and taint tests.
+The button stays visible during combat and after quest completion while the quest remains in your log, its item is carried and you are near its objective area. Left-click or use its keybinding in or out of combat, subject to native item restrictions. The item prepared before combat remains selected until combat ends; outside combat, clicks recheck quest/item data. Quest removal or location changes during combat reconcile after combat. Items without native special-item/location data may not appear. See the [quest-item checklist](docs/testing.md#compact-nearby-quest-item-button--0226) for native use, placement and taint tests.
 
 ## Class macros
 
