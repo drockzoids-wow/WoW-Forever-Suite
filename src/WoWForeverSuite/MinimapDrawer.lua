@@ -6,7 +6,7 @@ local SIZE, GAP, PADDING = 24, 4, 4
 local CELL = SIZE + GAP
 -- Confirmed custom launchers whose artwork is private rather than exposed as
 -- icon/Icon or a normal texture. Keep this exact-name list narrow to avoid pins/HUD controls.
-local privateIconLaunchers = { ForeverWoWBiSMinimapButton = true }
+local privateIconLaunchers = { ForeverWoWBiSMinimapButton = true, EasyFishingMinimapButton = true }
 local ignored = {
     AddonCompartmentFrame = true, GameTimeFrame = true, TimeManagerClockButton = true,
     ExpansionLandingPageMinimapButton = true, GarrisonLandingPageMinimapButton = true,

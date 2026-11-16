@@ -1,6 +1,6 @@
 # Forever Suite
 
-**1.0.19:** group buff reminders now follow spell range outside combat and during combat. This release also unifies Suite controls and menus, improves profession-guide navigation and visible-guide automatic selection, and clarifies section versus overall material shortages. See [the changelog](CHANGELOG.md) and [release record](docs/release-1.0.19.md). Native rendering, range/combat and taint verification remain pending.
+**1.0.20:** preserve recorded gold at logout, hide incoming buff reminders from distant providers, and collect EasyFishing in the minimap drawer. See [the changelog](CHANGELOG.md) and [release record](docs/release-1.0.20.md). Native persistence, rendering, range/input and taint verification remain pending.
 
 **Update notifications:** enable **Suite Settings → Support → Update notifications** to show one local chat warning per login/reload when another Suite user reports a newer stable version. Exchanges include nearby players through invisible addon YELL messages, guild members and party/raid/instance groups. Both players need this feature enabled. Delivery depends on native range, connectivity and channel permissions; this cannot notify every user immediately or check CurseForge directly. The setting starts off. Native delivery testing remains pending.
 
@@ -10,11 +10,11 @@
 
 **Gear profiles:** `/wfs gear` → **Upgrades → Comparison profile** offers manual class specs alongside existing roles/custom weights. The expanded editor includes hit, crit, haste, expertise, defenses, penetration and school/resistance weights. Existing custom weights and active choices are preserved; Automatic keeps its previous behavior. Spec starters are editable preferences rather than simulated output gains. School bonuses currently require English tooltips. See [gear modeling](docs/gear-modeling.md) for supported stats and native-validation limits.
 
-**Current source: 1.0.17.** This release adds clickable coordinate sharing and recent Tell recipients, a native mount keybinding, profession tracking discovery and compact talent badges. See the [release notes](docs/release-1.0.17.md).
+**Current source: 1.0.20.** See the [release notes](docs/release-1.0.20.md).
 
 **Training Planner** has per-character pins and a wishlist cost estimate (`/wfs wishlist`). **Tools → Supply Checklist** (`/wfs checklist`) accepts item drops into its editor, IDs or pasted links; choose a quantity and explicitly **Save target**. Hover rows for native item details. Optional carried-stock tracking starts off; tooltips and targets work independently. **Mail → Mail Deadlines** optionally records mailbox deadlines and reminds at login (`/wfs maildeadlines`). Both tracking switches start off. **Suite Settings → What's New** links to recent additions (`/wfs whatsnew`).
 
-**Validation:** 92 Lua files pass Lua 5.1 syntax checks, both TOCs match and 46,489 substitute behavior assertions pass. All 11 separate gear-baseline tests pass. Native appearance, input, refresh behavior and combat/taint checks remain pending in the [in-game test guide](docs/testing.md). See the [1.0.17 changes](CHANGELOG.md#1017--november-14-2026) and [release review](docs/release-1.0.17.md).
+**Validation:** 94 Lua files pass Lua 5.1 syntax checks, both TOCs match and 47,801 substitute behavior assertions pass, alongside 1,240,360 profession audit invariants. All 11 separate gear-baseline tests pass. Native persistence, appearance, input, range/combat and taint checks remain pending in the [in-game test guide](docs/testing.md).
 
 Optional **Ability proc popups** are under `/wfs actionbars` → **Ability Proc Popups**. Native highlighted class procs and supported reactive skills such as Overpower show a passive spell icon/name during combat. Use **Preview proc popups** outside combat to drag them into place. The feature starts off; cast through your normal keybind/action bar. Native class coverage and appearance still need in-game testing.
 

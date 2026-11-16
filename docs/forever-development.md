@@ -1,5 +1,25 @@
 # WoW Forever addon development reference
 
+## Authorized 1.0.20 release — November 16, 2026
+
+The user authorizes verification and publication to CurseForge, superseding earlier no-release notes for the included money logout, incoming buff proximity and EasyFishing drawer fixes. Core and both TOCs advance to 1.0.20. [Release record](release-1.0.20.md) tracks validation and publication. Native persistence, range/rendering/input and taint checks remain pending; the existing bag-use investigation remains open. No game deployment, junction or real SavedVariables changes.
+
+## Account money logout preservation — November 15, 2026
+
+User reports Drockhilda Battleborn has about 50g while the bag hover shows 0g. Read-only last-disk inspection confirms her level-51 profile has money=0; other character profiles, including the screenshot's current character, also persist zero. Both BagMoney and CharacterDashboard resample GetMoney on PLAYER_LOGOUT and write the same profile fields. A substitute regression reproduces a positive in-world balance being erased when teardown returns a readable zero. This identifies a vulnerable path consistent with the disk evidence; the native logout return values and running build/Interface remain unreported.
+
+Preserve the last in-world snapshot on logout in both writers. Cancel deferred capture and the dashboard timer, and reject late capture callbacks after shutdown. Preserve genuine zero balances from normal money events; do not guess the user's balance or change real SavedVariables. The dashboard also retains its last profile/profession observation rather than reading empty teardown data. Existing zeros require a fresh login with recording enabled. No release, deployment or junction change. Native persistence retest remains pending.
+
+## Outside-combat incoming buff distance — November 15, 2026
+
+User screenshot and follow-up report distant icons persist outside combat while combat hiding works. Inspection identifies the incoming provider path: outgoing recipients already use per-spell range, but incoming providers were accepted anywhere within client visibility. Use UnitInRange with both inRange and checkedRange readable true, matching the pinned build-70862 UnitDocumentation.lua signature and CompactUnitFrame.lua validity handling. Do not query a teammate's unlearned spell to infer their cast range. Unknown, restricted, failed and absent checks suppress the provider. Native group proximity is not an exact incoming spell radius.
+
+Consider known hidden providers for recovery deadlines, while requiring visibility and proximity for display. Reuse BuffReminders:Due(1) only while an eligible incoming family needs attention, even with outgoing/self/class reminders disabled. Existing Request recollection automatically rejects stale provider distance. Alternate nearby providers remain eligible; own learned/self and combat paths are unchanged. Substitute regressions cover distance, movement without aura/roster events, beyond-visibility recovery, both range return values, alternate providers, stale requests and covered-family cancellation. Native running build, range threshold, rendering and taint confirmation remain pending. No release, deployment, junction or real SavedVariables changes.
+
+## EasyFishing minimap collection — November 15, 2026
+
+The user reports EasyFishing remaining outside the open drawer and confirms its identity. Read-only inspection of the installed `C:/Games/World of Warcraft/_forever_/Interface/AddOns/EasyFishing/Tackle.lua` finds `EasyFishingMinimapButton`, a standard 31-unit Button directly parented to Minimap. Its fishing artwork is a private texture, without icon/Icon fields or a normal texture, so the drawer rejects it. Its own placement also assumes a circular map radius; that is separate from collector eligibility. Add its exact frame name to the existing private-artwork launcher list, preserving all geometry, protection, active-gesture and combat guards. No third-party implementation/assets or settings are changed. Regression reproduces the omission before the fix and checks collection, original input/tooltips and restored geometry/dragging. Native confirmation remains pending; no publication, deployment or junction change.
+
 ## Authorized 1.0.19 release — November 15, 2026
 
 Published v1.0.19 from `ee99214bb51182fba44f67a5f4b4f3a8b156f37f` under the user's authorization, including the shared GUI/menu work, profession-guide navigation/selection/material accounting and both buff-range paths. Main and release CI pass; CurseForge accepts the upload and GitHub assets are verified. [Publication receipts](release-1.0.19.md#publication). Offline checks pass 94 Lua 5.1 files, 47,711 behavior assertions, 1,240,360 profession audit invariants and all 11 gear-baseline tests. The 103-file local addon-only ZIP matches source hashes. CurseForge public moderation/availability and native appearance, combat/range and taint checks remain unverified; the existing bag-use investigation remains open. No game deployment or real SavedVariables changes.

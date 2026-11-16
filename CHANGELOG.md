@@ -1,5 +1,12 @@
 # Forever Suite
 
+## 1.0.20 — November 16, 2026
+
+- Preserve the last recorded in-world gold balance at logout in both account money and the character dashboard. Cancel pending captures so client teardown cannot overwrite balances with zero; genuine zero balances still record normally. Previously overwritten balances require a fresh login with recording enabled.
+- Hide incoming missing-buff reminders when their teammate provider is outside native group proximity. Recheck as providers approach or leave, including beyond visibility, and reject stale requests. This proximity check does not establish each teammate spell's exact range.
+- Collect EasyFishing's minimap button in the optional drawer while preserving its original actions, tooltip and restored position/dragging when disabled.
+- Offline checks pass; native persistence, rendering, range/input and taint confirmation remain pending. The existing bag-use taint investigation remains open.
+
 ## 1.0.19 — November 15, 2026
 
 - Hide missing and expiring group-buff reminders for recipients outside the selected spell's range, both outside combat and in combat. Recheck as members move, exclude distant names from tooltips, and reject stale outside-combat clicks. Preserve self reminders and safely handle unknown range.

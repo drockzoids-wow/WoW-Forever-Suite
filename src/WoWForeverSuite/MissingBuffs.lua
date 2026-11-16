@@ -111,6 +111,14 @@ function Buffs:Roster(includeHidden)
     return list, hidden
 end
 
+function Buffs:ProviderInRange(unit)
+    -- A teammate's spell need not be learned by this character. Use the
+    -- native group proximity check, including its validity result, instead.
+    if type(UnitInRange) ~= "function" then return false end
+    local ok, inRange, checked = pcall(UnitInRange, unit)
+    return ok and Read(inRange, "boolean") and Read(checked, "boolean") and checked and inRange
+end
+
 function Buffs:Auras(unit)
     if InCombatLockdown() or not C_UnitAuras or type(C_UnitAuras.GetAuraDataByIndex) ~= "function" then return end
     local present = { names = {}, ids = {}, records = {} }
@@ -436,8 +444,9 @@ function Buffs:Collect()
         for _, family in ipairs(families) do
             if #family.choices > 0 then seen[family.key] = true end
         end
-        for index = 2, #roster do
-            local provider = roster[index]
+        local providers = self:Roster(true)
+        for index = 2, #providers do
+            local provider = providers[index]
             if not incomingFamilies[provider.class] then incomingFamilies[provider.class] = self:Families(provider.class, {}) end
             for _, family in ipairs(incomingFamilies[provider.class]) do
                 local catalog = family.catalog
@@ -456,8 +465,13 @@ function Buffs:Collect()
                         end
                     end
                     if spell then
-                        entries[#entries+1]={kind="incoming",spell=spell,names={provider.name},family=recipient,passive=true,remaining=remaining}
-                        seen[family.key]=true
+                        -- Keep the deadline alive even beyond visibility, so
+                        -- approaching providers need no aura/roster event.
+                        Suite.BuffReminders:Due(1)
+                        if provider.visible and self:ProviderInRange(provider.unit) then
+                            entries[#entries+1]={kind="incoming",spell=spell,names={provider.name},family=recipient,passive=true,remaining=remaining}
+                            seen[family.key]=true
+                        end
                     end
                 end
             end

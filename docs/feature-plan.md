@@ -1,5 +1,21 @@
 # Forever Suite feature plan
 
+## Authorized 1.0.20 release — November 16, 2026
+
+The user authorizes verification and publication to CurseForge, superseding earlier no-release notes for the included money logout, incoming buff proximity and EasyFishing drawer fixes. Core and both TOCs advance to 1.0.20. [Release record](release-1.0.20.md) tracks validation and publication. Native persistence, range/rendering/input and taint checks remain pending; the existing bag-use investigation remains open. No game deployment, junction or real SavedVariables changes.
+
+## Account money survives logout — November 15, 2026
+
+Fix the shared BagMoney/CharacterDashboard logout path that can replace recorded balances with a readable teardown zero. Keep the last in-world observation and its date, cancel pending work and reject late captures after shutdown. Genuine zero balances still record through normal events. Drockhilda's saved zero needs a fresh observation while logged in with recording enabled; do not invent the reported approximately 50g. Native cross-character persistence confirmation pending.
+
+## Nearby incoming buff providers — November 15, 2026
+
+User reports v1.0.19 hides distant reminders in combat but still shows them outside combat. The incoming teammate-buff path only checked provider visibility. Require readable true values for both native UnitInRange results before showing an incoming reminder or accepting its click request. This is native group proximity, not proof of another character's exact spell range. Recheck missing/expiring incoming families once per second, including providers beyond visibility, through the existing cancellable deadline; stop when covered, disabled or outside the allowed context. Preserve outgoing spell-range checks and self reminders. Native retest pending.
+
+## EasyFishing drawer compatibility — November 15, 2026
+
+Recognize the confirmed `EasyFishingMinimapButton` private-artwork launcher through the drawer's narrow exact-name compatibility list. Preserve original settings/ring actions, tooltip and owner visibility, and restore minimap geometry/dragging when disabled. Unknown iconless controls remain excluded. Native confirmation pending.
+
 ## Authorized 1.0.19 release — November 15, 2026
 
 Published v1.0.19 with GUI/menu consistency, profession-guide and missing-buff range changes under the user's explicit authorization. Core and both TOCs match; main/release CI and package checks pass, CurseForge accepts the upload and GitHub assets are verified. [Publication receipts](release-1.0.19.md#publication). CurseForge public moderation/availability and native smoke tests remain unverified.

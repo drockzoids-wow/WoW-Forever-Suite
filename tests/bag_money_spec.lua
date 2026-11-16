@@ -7,13 +7,14 @@ local old = { GetMoney = GetMoney, GetServerTime = GetServerTime, UnitGUID = Uni
     C_GameRules = C_GameRules, GameTooltip = GameTooltip, GetCoinTextureString = GetCoinTextureString,
     ContainerFrameCombinedBags = ContainerFrameCombinedBags, ContainerFrameContainer = ContainerFrameContainer,
     ContainerFrame1 = ContainerFrame1 }
-local oldEvents, oldHooked, oldOwner = feature.events, feature.hooked, feature.owner
+local oldEvents, oldHooked, oldOwner, oldShutdown = feature.events, feature.hooked, feature.owner, feature.shuttingDown
 Suite.db, Suite.pending = Suite.InitializeDB(nil), {}
 feature.events, feature.hooked, feature.owner = nil, {}, nil
+feature.shuttingDown = nil
 equal(Suite.db.bagMoney, false, "money hover defaults off")
-local balance, realm = 123456, "ForeverPvE"
+local balance, realm, now = 123456, "ForeverPvE", 1000
 GetMoney = function() return balance end
-GetServerTime = function() return 1000 end
+GetServerTime = function() return now end
 UnitGUID = function() return "Player-Money" end
 UnitName = function() return "Current", "Surname" end
 UnitClass = function() return "Mage", "MAGE" end
@@ -96,12 +97,36 @@ equal(summary.total, 999999, "switching type excludes PvE records")
 realm = "Unrecognized"
 equal(feature:Summary(), nil, "unknown current type never combines scopes")
 realm = "ForeverPvE"
+-- Logout can expose a readable zero after the last real money event.
+balance = 500123
+feature:OnEvent("PLAYER_MONEY")
+local profile = characters["Player-Money"].profile
+local moneyAt = profile.moneyAt
+SetCombat(true)
+feature:Capture()
+local deferred = Suite.pending.bagMoneyCapture
+SetCombat(false)
+balance, now = 0, 1100
+feature:OnEvent("PLAYER_LOGOUT")
+equal(profile.money, 500123, "logout preserves the last observed balance instead of a teardown zero")
+equal(profile.moneyAt, moneyAt, "logout does not give preserved money a fresh timestamp")
+equal(Suite.pending.bagMoneyCapture, nil, "logout cancels deferred money capture")
+deferred()
+feature:OnEvent("PLAYER_MONEY")
+equal(profile.money, 500123, "late events and callbacks cannot overwrite money after logout")
+local restored = Suite.InitializeDB(Suite.db)
+equal(restored.inventory.characters["Player-Money"].profile.money, 500123, "logout balance survives saved normalization")
+feature.shuttingDown = nil
+balance = 0
+feature:OnEvent("PLAYER_MONEY")
+equal(profile.money, 0, "a genuine zero money event still updates the balance")
 Suite.db.bagMoney = false
 feature:Apply()
 moneyFrame.GoldButton:OnEnter()
 equal(GameTooltip:IsShown(), false, "disabled hooks remain inert")
 feature.events:UnregisterAllEvents()
 feature.events, feature.hooked, feature.owner = oldEvents, oldHooked, oldOwner
+feature.shuttingDown = oldShutdown
 Suite.db, Suite.pending = oldDB, oldPending
 -- Restore globals whose original value was nil as well.
 for _, key in ipairs({ "GetMoney", "GetServerTime", "UnitGUID", "UnitName", "UnitClass", "GetCurrentRegion",

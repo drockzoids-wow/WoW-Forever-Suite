@@ -25,7 +25,7 @@ function Money:Enabled()
     return Suite.db and Suite.IsReadable(Suite.db.bagMoney) and Suite.db.bagMoney == true
 end
 function Money:Capture()
-    if not self:Enabled() then return end
+    if not self:Enabled() or self.shuttingDown then return end
     if InCombatLockdown() then
         Suite.AfterCombat("bagMoneyCapture", function() self:Capture() end); return
     end
@@ -119,10 +119,17 @@ function Money:Discover()
     AttachBag(ContainerFrame1)
 end
 function Money:OnEvent(event)
-    if not self:Enabled() then return end
+    if not self:Enabled() or self.shuttingDown then return end
+    if event == "PLAYER_LOGOUT" then
+        -- Keep the last in-world observation; teardown may expose a readable zero.
+        self.shuttingDown = true
+        Suite.pending.bagMoneyCapture, Suite.pending.bagMoneyDiscover = nil, nil
+        self:Hide()
+        return
+    end
     if event == "PLAYER_REGEN_DISABLED" then self:Hide(); return end
     if event ~= "ADDON_LOADED" then self:Capture() end
-    if event ~= "PLAYER_MONEY" and event ~= "PLAYER_LOGOUT" then
+    if event ~= "PLAYER_MONEY" then
         Suite.AfterCombat("bagMoneyDiscover", function() self:Discover() end)
     end
     if self.owner and event == "PLAYER_MONEY" then self:Tooltip(self.owner) end

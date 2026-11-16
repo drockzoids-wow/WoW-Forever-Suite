@@ -1,5 +1,31 @@
 # Forever Suite in game testing
 
+## Authorized 1.0.20 release — November 16, 2026
+
+The user authorizes verification and publication to CurseForge, superseding earlier no-release notes for the included money logout, incoming buff proximity and EasyFishing drawer fixes. Core and both TOCs advance to 1.0.20. [Release record](release-1.0.20.md) tracks validation and publication. Native persistence, range/rendering/input and taint checks remain pending; the existing bag-use investigation remains open. No game deployment, junction or real SavedVariables changes.
+
+## Account money logout preservation — November 15, 2026
+
+User screenshot shows Drockhilda Battleborn at zero despite reporting about 50g. Read-only last-disk profile agrees with the displayed zero; running build/Interface and native logout API results were not supplied. Regression fails before the fix when logout exposes zero after a valid positive observation. Cover both money writers, unchanged observation dates, dashboard profession retention, cancelled/deferred/late callbacks, saved normalization and genuine in-world zero money events.
+
+Offline validation: `node scripts/check-addon.cjs` passes 94 Lua 5.1 files, matching TOCs, 47,801 behavior assertions and 1,240,360 profession audit invariants. `git diff --check` passes. Substitute results do not establish native logout timing, persistence or taint safety.
+
+Native retest pending: record `/wfs status` and running build/Interface. With this source loaded, log into Drockhilda with Account money on bag hover enabled and hover the bag money to record her exact native balance. Log out, enter Drockafella and confirm Drockhilda's saved balance and the total include that amount. Repeat after gaining/spending money, `/reload` and a client restart. Test with dashboard recording on and off, and a genuine zero-balance character. Check combat deferral and Lua/taint errors. Existing overwritten zeros cannot be reconstructed automatically. No real SavedVariables edits, release or deployment.
+
+## Incoming buff provider distance — November 15, 2026
+
+User reports v1.0.19 combat hiding works while distant icons remain outside combat; running build/Interface not supplied. Regression covers visible-but-distant incoming providers, timer-driven movement and beyond-visibility recovery with outgoing/self/class reminders disabled, unknown/secret/invalid/failed/unavailable range results, nearby alternative providers, stale request rejection and cancellation once all incoming families are covered. Native confirmation pending.
+
+Offline validation: `node scripts/check-addon.cjs` passes 94 Lua 5.1 files, matching TOCs, 47,789 behavior assertions and 1,240,360 profession audit invariants. `git diff --check` passes. These are substitute API results, not native distance/rendering/taint verification.
+
+Record `/wfs status` and running build/Interface. Outside combat with an incoming buff missing, move far from its teammate provider while they remain visible: that family's icon must disappear within about one second unless another nearby provider exists. Approach without buff/roster events and confirm recovery. Repeat beyond client visibility, in a raid, and with expiring buffs; tooltips must name a nearby provider. Move away immediately before clicking: no stale request should send. Repeat with outgoing/self/class reminders disabled to isolate incoming behavior. Fully cover incoming families, disable the feature and enter combat to check deadline cleanup. Own missing buffs remain independent. UnitInRange supplies native group proximity rather than an exact radius for every teammate spell; record actual thresholds and any Lua/taint errors.
+
+## EasyFishing drawer collection — November 15, 2026
+
+Regression reproduces the missed private-texture launcher before the fix. Substitute coverage checks collection, tooltip ownership, right-click action with drawer retained, left-click action before dismissal, restored parent/scale/anchors/drag handler and no residual worker. `node scripts/check-addon.cjs` passes 94 Lua 5.1 files, matching TOCs, 47,725 behavior assertions and 1,240,360 profession audit invariants. `git diff --check` passes. These checks do not establish native rendering or taint safety.
+
+Native retest pending: record running build/Interface, reload with EasyFishing and the drawer enabled, and verify its fishing icon joins the grid in square and round modes. Left-click must open its settings, Shift-left-click its Fishiary and right-click its fishing ring. Hover must retain its tooltip. Toggle EasyFishing's own minimap visibility and then disable the Suite drawer: owner visibility must persist and the button must return to its original location with dragging restored. Check combat deferral and Lua/taint errors. EasyFishing's standalone circular placement remains its owner's behavior.
+
 ## Published 1.0.19 — November 15, 2026
 
 [Release validation and publication receipts](release-1.0.19.md). Main/release CI pass and CurseForge accepts the upload; both GitHub assets are verified. Offline checks pass 94 Lua 5.1 files, 47,711 behavior assertions, 1,240,360 profession audit invariants and all 11 independent gear-baseline tests. The local 103-file package matches source hashes. This does not establish CurseForge public moderation/availability, native appearance/input, combat/range behavior or taint safety. Run the following smoke checks and record actual running build/Interface. No game deployment, junction or real SavedVariables changes were made.

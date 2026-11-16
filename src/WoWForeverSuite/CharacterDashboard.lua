@@ -86,9 +86,9 @@ function Dashboard:ReadProfessions()
     return result
 end
 function Dashboard:Capture()
-    if not self:Enabled() then return end
+    if not self:Enabled() or self.shuttingDown then return end
     if InCombatLockdown() then
-        if not self.shuttingDown then Suite.pending.dashboardCapture = function() self:Schedule() end end
+        Suite.pending.dashboardCapture = function() self:Schedule() end
         return
     end
     local at = At(Call(GetServerTime))
@@ -382,7 +382,9 @@ end
 function Dashboard:OnEvent(event)
     if not self:Enabled() then return end
     if event == "PLAYER_LOGOUT" then
-        self.shuttingDown = true; self:Cancel(); Suite.pending.dashboardCapture = nil; self:Capture()
+        -- Preserve the last in-world profile, including money shared with BagMoney.
+        -- Player APIs may already return empty/zero values during teardown.
+        self.shuttingDown = true; self:Cancel(); Suite.pending.dashboardCapture = nil
     else self:Schedule() end
 end
 function Dashboard:Apply()

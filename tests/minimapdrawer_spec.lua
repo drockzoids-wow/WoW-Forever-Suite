@@ -451,6 +451,33 @@ bis.OnClick(bis, "LeftButton")
 equal(nativeClicks[bisClicks + 3], "LeftButton", "disabled drawer retains BiS click behavior")
 equal(TimerCount(), 0, "disabled BiS click leaves no drawer work")
 bis:Hide()
+-- EasyFishing also keeps its artwork private, without icon/Icon or a normal texture.
+local fishing = Launcher("EasyFishingMinimapButton", Minimap, 31)
+fishing.icon = nil
+fishing.GetNormalTexture = function() return nil end
+local fishingPoint = { unpack(fishing.point) }
+local fishingEnter, fishingDrag = fishing.OnEnter, fishing.OnDragStart
+Suite.db.minimapDrawer = true; drawer:Apply(); Flush()
+equal(fishing:GetParent(), drawer.panel, "private-texture EasyFishing launcher is collected")
+equal(fishing.OnDragStart, nil, "EasyFishing edge dragging is suspended in the drawer")
+equal(fishing.OnEnter, fishingEnter, "EasyFishing tooltip handler is retained")
+drawer:Toggle(); fishing.OnEnter(fishing)
+equal(GameTooltip.owner, fishing, "EasyFishing tooltip uses its original button")
+local fishingClicks = #nativeClicks
+fishing.OnClick(fishing, "RightButton"); Flush()
+equal(nativeClicks[fishingClicks + 1], "RightButton", "EasyFishing ring action reaches the owner")
+equal(drawer.panel:IsShown(), true, "EasyFishing right click keeps the drawer open")
+fishing.OnClick(fishing, "LeftButton"); Flush()
+equal(nativeClicks[fishingClicks + 2], "LeftButton", "EasyFishing settings action reaches the owner")
+equal(drawer.panel:IsShown(), false, "EasyFishing left click dismisses after the action")
+Suite.db.minimapDrawer = false; drawer:Apply(); Flush()
+equal(fishing:GetParent(), Minimap, "disable restores EasyFishing parent")
+equal(fishing:GetScale(), 1, "disable restores EasyFishing scale")
+equal(fishing.point[4], fishingPoint[4], "disable restores EasyFishing horizontal position")
+equal(fishing.point[5], fishingPoint[5], "disable restores EasyFishing vertical position")
+equal(fishing.OnDragStart, fishingDrag, "disable restores EasyFishing edge dragging")
+equal(TimerCount(), 0, "EasyFishing restoration leaves no worker")
+fishing:Hide()
 Suite.db.minimapDrawer = true; drawer:Apply(); Flush()
 equal(#UISpecialFrames, 1, "re-enable reuses Escape registration")
 equal(drawer.panel:IsShown(), false, "re-enable starts collapsed")

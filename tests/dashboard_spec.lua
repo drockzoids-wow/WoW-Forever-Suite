@@ -196,8 +196,20 @@ equal(Suite.Inventory:Enabled(), false, "shared inventory stops when all consume
 Suite.db.inventorySearch = true; equal(Suite.Inventory:Enabled(), true, "search remains an independent inventory consumer")
 Suite.db.inventorySearch = false
 equal(#dashboard:Rows("mining", "name"), 1, "saved records remain browsable with recording off")
-Suite.db.characterDashboard = true; dashboard:Apply(); dashboard:Schedule(); dashboard:OnEvent("PLAYER_LOGOUT"); dashboard:Schedule()
+Suite.db.characterDashboard = true; dashboard:Apply(); dashboard:Schedule()
+local logoutTimer = dashboard.timer
+local moneyAt, professionsAt = profile.moneyAt, profile.professionsAt
+money, now = 0, 1040
+GetProfessions = function() end
+dashboard:OnEvent("PLAYER_LOGOUT"); dashboard:Schedule()
 equal(Pending(), 0, "logout cancels work and never requeues a polling worker")
+equal(profile.money, 543210, "dashboard logout cannot erase account money with a teardown zero")
+equal(profile.moneyAt, moneyAt, "dashboard logout preserves the actual money observation date")
+equal(#profile.professions, 4, "dashboard logout preserves professions during client teardown")
+equal(profile.professionsAt, professionsAt, "dashboard logout preserves the profession observation date")
+logoutTimer.callback(); dashboard:Capture(); dashboard:OnEvent("PLAYER_MONEY")
+equal(profile.money, 543210, "late dashboard callbacks cannot erase the saved balance after logout")
+equal(Pending(), 0, "late dashboard events never restart capture after logout")
 dashboard:Cancel(); dashboard.panel:Hide()
 for _, key in ipairs(globals) do _G[key] = old[key] end
 for key in pairs(dashboard) do dashboard[key] = nil end

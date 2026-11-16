@@ -3,7 +3,7 @@ local savedMenus = Suite.Menus
 local buffs, oldDB, oldPending = Suite.MissingBuffs, Suite.db, Suite.pending
 local names = { "CreateFrame", "RegisterStateDriver", "C_Timer", "C_Spell", "C_SpellBook", "C_UnitAuras", "C_Secrets", "C_Item", "C_EventUtils", "C_ChatInfo", "C_Minimap", "Enum",
     "UnitExists", "UnitIsConnected", "UnitIsVisible", "UnitIsDeadOrGhost", "UnitCanAssist", "UnitGUID", "UnitName", "UnitClass", "UnitLevel",
-    "UnitInParty", "IsInRaid", "IsInGroup", "LE_PARTY_CATEGORY_HOME", "LE_PARTY_CATEGORY_INSTANCE", "GetTime",
+    "UnitInParty", "UnitInRange", "IsInRaid", "IsInGroup", "LE_PARTY_CATEGORY_HOME", "LE_PARTY_CATEGORY_INSTANCE", "GetTime",
     "GetNumGroupMembers", "GetNumSubgroupMembers", "IsResting", "GetInventoryItemID", "C_PaperDollInfo", "UnitIsUnit", "GetProfessions", "GetProfessionInfo" }
 local previous = {}; for _, name in ipairs(names) do previous[name] = _G[name] end
 local oldScan = Suite.MacroItems.Scan
@@ -99,6 +99,7 @@ UnitName = function(unit) return units[unit] and units[unit].name end
 UnitClass = function(unit) return "Localized class", units[unit] and units[unit].class end
 UnitLevel = function(unit) return units[unit] and units[unit].level end
 UnitInParty = function(unit) return units[unit] and units[unit].party end
+UnitInRange = function(unit) return units[unit] and units[unit].range, true end
 IsInRaid = function() return raid end
 GetNumSubgroupMembers = function() return 3 end
 GetNumGroupMembers = function() return 4 end
@@ -223,6 +224,8 @@ equal(#combined.names,2,"covering the player removes only their name from the co
 equal(combinedButton.attributes.unit,"party1","combined icon advances its cast target when the player is covered")
 equal(combinedButton.caption,nil,"combined icon has no number beneath it")
 do
+    local incomingEnabled = Suite.db.missingBuffIncoming
+    Suite.db.missingBuffIncoming = false
     units.party1.range, units.party2.range = false, false
     buffs:Refresh()
     equal(Find("group", "intellect"), nil, "out-of-range missing recipients do not show a buff icon")
@@ -273,6 +276,7 @@ do
     equal(Find("self", "intellect") ~= nil, true, "self reminders do not require a group range result")
     C_Spell.IsSpellInRange = rangeAPI
     units.party1.range, units.party2.range = true, true
+    Suite.db.missingBuffIncoming = incomingEnabled
 end
 auras.player={};buffs:Refresh()
 local intellectIcons=0
@@ -1171,6 +1175,56 @@ do
     C_SpellBook.GetNumSpellBookSkillLines=saved.skill;spells[1459].level=1
     Suite.db,units,auras,learned,raid,resting=saved.db,saved.units,saved.auras,saved.learned,saved.raid,saved.resting
     buffs.bookDirty=true;buffs:Refresh()
+end
+
+-- Incoming providers must be nearby even when the player cannot cast their spells.
+do
+    local saved = { db = Suite.db, units = units, auras = auras, learned = learned, range = UnitInRange }
+    Suite.db = Suite.InitializeDB(nil); Suite.db.missingBuffs = true
+    Suite.db.missingBuffOutgoing, Suite.db.missingBuffSelf, Suite.db.missingBuffClass = false, false, false
+    units, auras, learned = {}, {}, {}
+    Unit("player", "HUNTER"); Unit("party1", "PRIEST")
+    units.party1.range = false; buffs.bookDirty = true; buffs:Refresh()
+    equal(Find("incoming", "fortitude"), nil, "visible but distant provider cannot offer incoming buffs")
+    equal(buffs.bar:IsShown(), false, "all distant providers leave the outside-combat bar hidden")
+    equal(Suite.BuffReminders.deadline.delay, 1, "hidden incoming bar keeps a proximity recheck without outgoing watches")
+    units.party1.range = true; Suite.BuffReminders.deadline.callback()
+    local entry, button = Find("incoming", "fortitude")
+    equal(entry ~= nil, true, "approaching provider restores incoming reminder without aura events")
+    units.party1.range = false
+    equal(buffs:Request(entry), false, "departing provider cancels a stale incoming request")
+    Suite.BuffReminders.deadline.callback()
+    equal(Find("incoming", "fortitude"), nil, "departing visible provider hides incoming reminder on deadline")
+    units.party1.visible = false; buffs:Refresh()
+    equal(Suite.BuffReminders.deadline.delay, 1, "provider beyond client visibility retains a recovery deadline")
+    units.party1.visible, units.party1.range = true, true; Suite.BuffReminders.deadline.callback()
+    equal(Find("incoming", "fortitude") ~= nil, true, "provider returning from beyond visibility recovers without roster events")
+    for _, results in ipairs({ { false, true }, { true, false }, { true }, { secret, true }, { true, secret }, { 1, true } }) do
+        UnitInRange = function() return results[1], results[2] end; buffs:Refresh()
+        equal(Find("incoming", "fortitude"), nil, "both provider proximity returns must be readable true booleans")
+    end
+    UnitInRange = function() error("restricted range") end; buffs:Refresh()
+    equal(Find("incoming", "fortitude"), nil, "failed provider range cannot show an incoming reminder")
+    UnitInRange = nil; buffs:Refresh()
+    equal(Find("incoming", "fortitude"), nil, "unavailable provider range cannot show an incoming reminder")
+    UnitInRange = saved.range
+    Unit("party2", "PRIEST"); units.party1.range = false; buffs:Refresh()
+    equal(Find("incoming", "fortitude").names[1], units.party2.name, "distant first provider cannot suppress a nearby alternative")
+    units.party2.range = false; buffs:Refresh()
+    equal(Find("incoming", "fortitude"), nil, "all distant alternatives suppress incoming family")
+    auras.player = { { name = spells[1243].name, spellId = 1243 }, { name = spells[976].name, spellId = 976 },
+        { name = spells[14752].name, spellId = 14752 } }
+    -- Cover every family offered by this substitute priest.
+    for _, catalog in ipairs(Suite.BuffCatalog) do
+        if catalog.class == "PRIEST" and catalog.incoming then
+            local spell = buffs:Spell(catalog.roots[1])
+            if spell then auras.player[#auras.player + 1] = { name = spell.name, spellId = spell.id } end
+        end
+    end
+    buffs:Refresh()
+    equal(Suite.BuffReminders.deadline, nil, "covered incoming families stop proximity rechecks")
+    Suite.db, units, auras, learned = saved.db, saved.units, saved.auras, saved.learned
+    buffs.bookDirty = true; buffs:Refresh()
 end
 
 -- Explicit incoming-icon click requests; all senders below are substitutes, never live chat.
