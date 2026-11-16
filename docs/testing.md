@@ -2,7 +2,7 @@
 
 ## Authorized 1.0.20 release — November 16, 2026
 
-The user authorizes verification and publication to CurseForge, superseding earlier no-release notes for the included money logout, incoming buff proximity and EasyFishing drawer fixes. Core and both TOCs advance to 1.0.20. [Release record](release-1.0.20.md) tracks validation and publication. Native persistence, range/rendering/input and taint checks remain pending; the existing bag-use investigation remains open. No game deployment, junction or real SavedVariables changes.
+The user authorizes verification and publication to CurseForge, superseding earlier no-release notes for the included money logout, incoming buff proximity and EasyFishing drawer fixes. Published v1.0.20 from 7043a43181ae0877566257efb1b71c75404f2585. Main and release CI pass; CurseForge accepts the upload and both GitHub release assets are verified. Offline checks pass 94 Lua 5.1 files, 47,801 behavior assertions, 1,240,360 profession audit invariants and all 11 gear-baseline tests. The 103-file local addon-only ZIP matches source hashes. [Publication receipts](release-1.0.20.md#publication). CurseForge public moderation/availability remains unverified. Native persistence, range/rendering/input and taint checks remain pending; the existing bag-use investigation remains open. No game deployment, junction or real SavedVariables changes.
 
 ## Account money logout preservation — November 15, 2026
 
