@@ -15,6 +15,47 @@ local function Text(value, limit)
         and #value <= (limit or 128) and not value:find("[%c|]")
 end
 local function Table(value) return Suite.IsReadable(value) and type(value) == "table" end
+Search.filterChoices = {
+    kind = { { "all", "All item types" }, { "equipment", "Equipment" }, { "reagents", "Crafting reagents" }, { "consumables", "Consumables" }, { "quest", "Quest items" } },
+    quality = { { "all", "All qualities" }, { "0", "Poor" }, { "1", "Common" }, { "2", "Uncommon" }, { "3", "Rare" }, { "4", "Epic" }, { "5", "Legendary" }, { "6", "Artifact" }, { "7", "Heirloom" }, { "8", "WoW token" }, { "unknown", "Quality unavailable" } },
+    age = { { "all", "Any record age" }, { "recent", "Recorded within 24h" }, { "stale", "Recorded 24h+ ago" }, { "unknown", "Record date unavailable" } },
+}
+function Search:NormalizeFilters(value)
+    if not Suite.IsReadable(value) or (value ~= nil and not Table(value)) then return end
+    local result = {}
+    for key, choices in pairs(self.filterChoices) do
+        local selected = value and value[key]
+        if not Suite.IsReadable(selected) then return end
+        if selected == nil then selected = "all" end
+        if not Text(selected) then return end
+        local valid = false
+        for _, choice in ipairs(choices) do if selected == choice[1] then valid = true; break end end
+        if not valid then return end
+        result[key] = selected
+    end
+    return result
+end
+function Search:FilterLabel(key, value)
+    for _, choice in ipairs(self.filterChoices[key]) do if choice[1] == value then return choice[2] end end
+end
+function Search:MatchesFilters(item, filters)
+    if filters.quality ~= "all" then
+        if filters.quality == "unknown" then
+            if item and item.quality ~= nil then return false end
+        elseif not item or item.quality == nil then return nil
+        elseif tostring(item.quality) ~= filters.quality then return false end
+    end
+    if filters.kind == "all" then return true end
+    if not item then return nil end
+    if filters.kind == "equipment" then
+        if item.equip == nil then return nil end
+        return item.equip ~= "" and item.equip ~= "INVTYPE_BAG" and item.equip ~= "INVTYPE_NON_EQUIP_IGNORE"
+    elseif filters.kind == "reagents" then return item.reagent
+    elseif item.classID == nil then return nil
+    elseif filters.kind == "consumables" then return item.classID == 0
+    elseif filters.kind == "quest" then return item.classID == 12 end
+    return false
+end
 local function Number(value)
     return Suite.IsReadable(value) and type(value) == "number" and value == value
         and value > -math.huge and value < math.huge
@@ -125,7 +166,7 @@ end
 function Search:Item(id)
     if self.metadata[id] then return self.metadata[id] end
     if not C_Item or type(C_Item.GetItemInfo) ~= "function" then return end
-    local ok, name, link, quality, _, _, kind, subtype, _, equip, icon = pcall(C_Item.GetItemInfo, id)
+    local ok, name, link, quality, _, _, kind, subtype, _, equip, icon, _, classID, _, _, _, _, reagent = pcall(C_Item.GetItemInfo, id)
     if not ok or not Text(name, 512) then return end
     local words = name
     if Text(kind) then words = words .. " " .. kind end
@@ -133,7 +174,10 @@ function Search:Item(id)
     if Text(equip) and Text(_G[equip]) then words = words .. " " .. _G[equip] end
     local item = { name = name, words = words:lower(), link = Link(link, id) and link or nil,
         icon = Integer(icon, 1, 2147483647) and icon or "Interface\\Icons\\INV_Misc_QuestionMark",
-        quality = Integer(quality, 0, 8) and quality or nil }
+        quality = Integer(quality, 0, 8) and quality or nil,
+        equip = Suite.IsReadable(equip) and type(equip) == "string" and #equip <= 80 and equip or nil,
+        classID = Integer(classID, 0, 32) and classID or nil }
+    if Suite.IsReadable(reagent) and type(reagent) == "boolean" then item.reagent = reagent end
     self.metadata[id] = item
     return item
 end
@@ -153,6 +197,16 @@ function Search:Query(query, options)
         if location ~= nil and (not Text(location) or not ({ all = true, bags = true, bank = true, account = true })[location]) then return {}, 0, false end
     end
     location = location or "all"
+    local filters = self:NormalizeFilters(options and options.filters)
+    if not filters then return {}, 0, false end
+    local now = Call(GetServerTime)
+    local function AgeMatches(at)
+        if filters.age == "all" then return true end
+        local known = Integer(now, 1, 10000000000) and Integer(at, 1, 10000000000) and at <= now
+        if filters.age == "unknown" then return not known end
+        if not known then return false end
+        return filters.age == "recent" and now - at < 86400 or filters.age == "stale" and now - at >= 86400
+    end
     local region, guid = Call(GetCurrentRegion), Call(UnitGUID, "player")
     if not Integer(region, 1, 1000000) then self.index, self.region = nil, nil; return {}, 0, false end
     guid = Text(guid) and guid or nil
@@ -162,9 +216,9 @@ function Search:Query(query, options)
     local function Counts(saved)
         local shared = saved.owner.guid == "account"
         if owner ~= nil and saved.owner.guid ~= owner and not (location == "account" and shared) then return end
-        return (location == "all" or location == "bags") and saved.bags or nil,
-            (location == "all" or location == "bank") and saved.bank or nil,
-            (location == "all" or location == "account") and saved.account or nil
+        return (location == "all" or location == "bags") and AgeMatches(saved.bagsAt) and saved.bags or nil,
+            (location == "all" or location == "bank") and AgeMatches(saved.bankAt) and saved.bank or nil,
+            (location == "all" or location == "account") and AgeMatches(saved.accountAt) and saved.account or nil
     end
     for _, id in ipairs(self.ids) do
         local eligible = false
@@ -174,7 +228,8 @@ function Search:Query(query, options)
         end
         if eligible then
             local item = self:Item(id)
-            if not item then
+            local filtered = self:MatchesFilters(item, filters)
+            if not item or filtered == nil then
                 pending = pending + 1
                 if not self.requested[id] and C_Item and type(C_Item.RequestLoadItemDataByID) == "function" then
                     if loads < LOAD_BATCH then
@@ -187,7 +242,7 @@ function Search:Query(query, options)
                 matches = true
                 for _, token in ipairs(tokens) do if not item.words:find(token, 1, true) then matches = false; break end end
             end
-            if matches then for _, saved in pairs(self.index[id]) do
+            if matches and filtered == true then for _, saved in pairs(self.index[id]) do
                 local bags, bank, account = Counts(saved)
                 if bags or bank or account then
                     rows[#rows + 1] = { id = id, owner = saved.owner, bags = bags, bank = bank, account = account,
@@ -318,7 +373,7 @@ function Search:PlacePopup()
     local window = Read(self.owner, "GetParent")
     if window == UIParent or not Visible(window) then return false end
     local x, name = nil, Read(window, "GetName")
-    local positions = Suite.db.windowPositions
+    local positions = Suite.Windows.positions
     if Suite.IsReadable(Suite.db.windowTools) and Suite.db.windowTools == true and Table(positions) and Text(name) then
         local saved = positions[name]
         if Table(saved) and Number(saved.x) and Number(saved.y) and Number(saved.scale) and saved.scale > 0 then x = saved.x end

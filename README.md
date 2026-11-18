@@ -1,5 +1,21 @@
 # Forever Suite
 
+**Enabled features and addon overlap:** open `/wfs enabled` or `/wfs overlaps`, or use **Suite Settings → Support → Review enabled features / Review possible addon overlap**. Filter or page through the list; click a feature to open its settings. **Saved On options** also shows choices waiting for their main feature, such as buff filters saved while the buff bar is off. Rows identify shared settings, this character's differences and account-wide choices. Castbar sizing and individual meter-window options are included.
+
+Overlap guidance checks a limited list of known addon IDs and distinguishes loaded, enabled-but-not-loaded and unavailable states. Installed but disabled addons are excluded unless still loaded. Presence does not prove that another addon's matching option is on, or that a conflict exists. Hover for full details and choose ownership in the relevant settings; nothing changes automatically. The setup guide's **Review overlaps** button and final review use staged choices without applying them. Native layout/input and addon-state confirmation remain pending.
+
+**Gear comparison removed:** Suite no longer adds gear scores, stat differences, upgrade recommendations or upgrade “+” markers. Comparison profiles and weight settings are removed. Item levels, inventory counts, profession-use lines and keep/reserve details remain optional and available. Blizzard's normal side-by-side equipment tooltips are unchanged. Reload after updating to unload the removed modules.
+
+**Keep rules and reagent reserves:** open `/wfs keep` or Bags & Bank → **Keep rules and reagent reserves**. Enter an item ID/link, use **Load item** to review an existing rule, and choose **Never sell**, **Never suggest deleting**, **Pause auto sort** or a **Keep carried** minimum. **Save & enable** turns the account-wide rules on. Sell/trash/sort flags are shared; the reserve belongs to the character you are playing. Settings profiles cannot replace these records or disable their account switch. Existing trash blacklist entries remain honored and are shown in the editor.
+
+These rules apply to Suite actions. Protected junk makes Instant mode use guarded Slow selling. A carried pause-sort item prevents Suite auto cleanup for that opening; it does not pin native slots or change manual sorting. Reserves protect whole stacks from Suite sales, trash suggestions and reagent deposits. If one stack would cross the minimum, it stays carried; split off excess manually and deposit again. Normal manual game and other-addon actions remain available.
+
+**Profession uses in tooltips:** enable **Profession material uses** in Tooltips settings. Known guide materials show lines such as **Used for Tailoring · guide skill 1–30**, including other matching professions and separate ranges where applicable. These are modeled leveling-guide recipe ranges, not a complete recipe database or the item's required character level. This setting starts off independently of keep rules. Native rendering and taint confirmation remain pending.
+
+**Profession shopping:** open a profession's Leveling guide and choose **Track section** or **Track remaining**. Review the combined requirements, then **Save & track** to record bags and banks for shopping. Profession plans appear in the Supply Checklist without replacing manual targets. Open the list with `/wfs shopping`, from the checklist, or with the small **Shopping list** button on the auction house title bar. Shift-click an item to fill the open auction search, or link it to an active chat editor.
+
+Shopping subtracts recorded bags and personal banks across characters in the current region, plus the shared bank once. Current carried bags refresh while tracking is on. Log into alts with **Track profession shopping stock** enabled and visit their banks to refresh records. Old dates and partial/unknown stock remain disclosed; no addon can inspect an unvisited offline bank. Plans belong to the current character, follow its recorded profession skill, and leave purchases manual. Native layout, clipboard/input and combat/taint confirmation remain pending.
+
 **1.0.20:** preserve recorded gold at logout, hide incoming buff reminders from distant providers, and collect EasyFishing in the minimap drawer. See [the changelog](CHANGELOG.md) and [release record](docs/release-1.0.20.md). Native persistence, rendering, range/input and taint verification remain pending.
 
 **Update notifications:** enable **Suite Settings → Support → Update notifications** to show one local chat warning per login/reload when another Suite user reports a newer stable version. Exchanges include nearby players through invisible addon YELL messages, guild members and party/raid/instance groups. Both players need this feature enabled. Delivery depends on native range, connectivity and channel permissions; this cannot notify every user immediately or check CurseForge directly. The setting starts off. Native delivery testing remains pending.
@@ -8,9 +24,7 @@
 
 **Support diagnostics:** open **Suite Settings → Support** or type `/wfs support` (`/wfs diagnostics` also works). Select/copy the report with Ctrl+A/Ctrl+C or Select all, and use Refresh for current state. `/wfs status` prints capability problems and paused reasons in chat. Either command can capture combat context; open `/wfs support` afterward to copy it. Reports omit player/realm names, contacts, chat, inventory contents, macro text and custom names/weights. See [support reports](docs/support-report.md) for the status meanings and coverage.
 
-**Gear profiles:** `/wfs gear` → **Upgrades → Comparison profile** offers manual class specs alongside existing roles/custom weights. The expanded editor includes hit, crit, haste, expertise, defenses, penetration and school/resistance weights. Existing custom weights and active choices are preserved; Automatic keeps its previous behavior. Spec starters are editable preferences rather than simulated output gains. School bonuses currently require English tooltips. See [gear modeling](docs/gear-modeling.md) for supported stats and native-validation limits.
-
-**Current source: 1.0.20.** See the [release notes](docs/release-1.0.20.md).
+**Current source: 1.0.21.** See the [release notes](docs/release-1.0.21.md).
 
 **Training Planner** has per-character pins and a wishlist cost estimate (`/wfs wishlist`). **Tools → Supply Checklist** (`/wfs checklist`) accepts item drops into its editor, IDs or pasted links; choose a quantity and explicitly **Save target**. Hover rows for native item details. Optional carried-stock tracking starts off; tooltips and targets work independently. **Mail → Mail Deadlines** optionally records mailbox deadlines and reminds at login (`/wfs maildeadlines`). Both tracking switches start off. **Suite Settings → What's New** links to recent additions (`/wfs whatsnew`).
 
@@ -28,7 +42,7 @@ Drag the settings window past screen edges to get it out of the way of previews.
 
 **Known vendor items:** enable `/wfs vendor` → **Known Items → Highlight already-known vendor items** for green highlights/checkmarks on learned recipes and collected items. Ordinary items in your bags do not count as learned. Missing data remains unmarked. This feature starts off and does not enable vendor automation. See the [smoke test](docs/testing.md#known-vendor-items---02102).
 
-The official source is **C:\Games\Development\GitHub Repos\WoW Forever Suite** (user-selected October 25, 2026). After restarting with this source, the footer should show **1.0.17**. The readable journey journal, default training catalog, vendor highlights and existing optional tools remain available.
+The official source is **C:\Games\Development\GitHub Repos\WoW Forever Suite** (user-selected October 25, 2026). After restarting with this source, the footer should show **1.0.21**.
 
 Open /wfs leveling > **Session journal** for six labeled cards and **Summary, Loot, Reputation, Levels and History**. New tracking adds deaths, loot estimates, ordinary reputation, level milestones and confirmed Suite sales/repairs. Old XP/gold/time remains; details not collected earlier show **Not recorded**. No EverCore history is imported. See the [smoke checklist](docs/testing.md#readable-journal-and-default-training-catalog---02103-october-22-2026).
 
@@ -70,7 +84,7 @@ To save another setup, enter a new **Profile name**, choose **Current setup** or
 
 Changes normally apply to every character using the shared profile. Choose **Only this character** for personal differences; unchanged settings still inherit the shared setup. **Use shared settings** suspends private differences and keeps them available for later. Switching a profile or scope shows a review followed by **Use & reload**. Your outgoing setup saves first. Profile actions are unavailable in combat.
 
-Profiles include Suite feature choices, appearance and supported window/meter/bar layouts. Gear weights, macros, inventory/bank records, saved searches, mail contacts/deadlines, supply targets, item protection rules, training/wishlist and the character leveling tracker retain their own settings/data. Native Edit Mode layouts and keybindings remain in the game. Unused profiles can be renamed or deleted with confirmation; Default and profiles still assigned to a character are protected.
+Profiles include Suite feature choices, appearance and supported window/meter/bar layouts. Macros, inventory/bank records, saved searches, mail contacts/deadlines, supply targets, item protection rules, training/wishlist and the character leveling tracker retain their own settings/data. Native Edit Mode layouts and keybindings remain in the game. Unused profiles can be renamed or deleted with confirmation; Default and profiles still assigned to a character are protected.
 
 ## Class macro recipes
 
@@ -122,19 +136,9 @@ Search by item name, type, subtype or exact item ID. **Save view** keeps the sea
 
 **Open this character's bank** opens that owner's recorded slot layout when available. This view cannot move items. Refresh records by enabling the existing character/bank recording options, logging into your alts and visiting their banks. Existing records remain readable when recording is off. Ordinary scrolling moves the page; Shift+wheel changes result pages. Native bank artwork may require visiting a bank once after login.
 
-## Gear comparisons
+## Item levels
 
-Equipped item buttons keep their item levels but never display an upgrade plus. Separate bag copies remain eligible for upgrades to another compatible slot.
-
-Open **/wfs gear** → Gear Details and enable **Possible upgrades**. Choose **Comparison profile** for Automatic, Balanced, Physical, Caster, Healer or Tank. They work without editing. New characters start with Automatic and Stats; existing characters retain their previous role and Stats/Item level preference. These choices now save per character.
-
-Automatic supplies a class-aware leveling starter: Caster for Mage/Warlock/Priest, Physical with ranged weapon emphasis for Hunter, Physical with melee weapon emphasis for Rogue/Warrior, and Balanced for other classes. Choose a ready-made role for a different build or activity; no manual weights are required. Automatic does not infer your talents or current combat role.
-
-Each teal **+** has a tooltip explanation: equipped and candidate scores plus the largest signed stat changes. **Details & custom weights → Tooltip: full breakdown** shows every weighted change and multiplier, with the replaced armor/accessory item. Weapons compare the complete hand set, with the disclosed 50% off-hand base-DPS factor. Known empty slots get an explicit reason instead of an invented score gain. Item level remains an independent comparison choice.
-
-Customization is optional. Expand **Advanced: comparison weights**, then **Create custom copy**. Name it, enter weights and choose **Save & use profile**. Up to eight custom profiles save per character. Built-ins stay intact; typing changes nothing until Save. Cancel, closing settings or leaving the page discards edits. Removal needs a second confirmation click. Zero ignores a stat; positive weights assign points per stat. Values range from 0 to 1000 with up to three decimals.
-
-Scores express the selected preferences. Unweighted stats, special effects, set bonuses, talents, weapon speed and hit penalties still need your judgment; these are not definitive best-in-slot decisions. Native appearance, real item data, persistence and combat behavior need the [gear checklist](docs/testing.md#character-upgrade-profiles-and-explained-scores--0275).
+Optional item levels remain available on equipment icons, equipment tooltips and the character frame. Suite gear scores, upgrade advice, comparison profiles and upgrade markers have been removed. Blizzard's normal comparison tooltips remain available.
 
 ## Training Planner
 
@@ -278,8 +282,8 @@ See the [native smoke test](docs/testing.md#class-aware-buff-reminders-and-contr
 | World map | Reveal unexplored terrain over a translucent slate cover with a 0–100% terrain opacity slider; prepared maps refresh in combat |
 | Windows | Dragging from empty native header space, including bags and Calendar; saved positions, proportional resizing, Ctrl-right-click reset and reset all |
 | Bag sorting | Optional native cleanup once per carried-bag opening, independently of window movement; respects bag exclusions |
-| Bank snapshots | Saved character/account bank pages with native Forever framing, slots and side tabs; searchable items, native link tooltips, equipment comparisons, chat links and dress-up clicks |
-| Items | Quality-colored equipment and weapon icon levels, tooltip levels, an optional character-frame equipped average, and possible armor/weapon upgrades with a Stats / Item level preference |
+| Bank snapshots | Saved character/account bank pages with native Forever framing, slots and side tabs; searchable items, native item tooltips, chat links and dress-up clicks |
+| Items | Quality-colored equipment and weapon icon levels, tooltip levels, an optional character-frame equipped average, without gear scores or upgrade markers |
 | Players | Class color tooltip names and equipped item levels when inspect data is available |
 | Unit frames | Class colored player, target, target of target and focus health fills, replacing the native colored pixels and tint |
 | Inventory tooltips | Bag/bank quantities by recorded character, a combined total and shared account-bank contents counted once |
@@ -295,7 +299,7 @@ See the [native smoke test](docs/testing.md#class-aware-buff-reminders-and-contr
 | Mail | Searchable class-colored character/recipient list beside Send Mail, sorting/paging, saved contacts and optional successful-send recipient memory |
 | Chat | Slate chat with compact colored tabs, account-wide text size/background opacity and a recent-message Ctrl+C copy window |
 
-Features start off, apart from the minimap settings launcher. Enable each feature in the control panel after disabling the overlapping feature in another addon. Window support covers ordinary named Blizzard panels and registered UI panels; protected HUD elements remain under Blizzard Edit Mode. Weapon and special-effect comparisons are outside the initial stat model.
+Features start off, apart from the minimap settings launcher. Enable each feature in the control panel after disabling the overlapping feature in another addon. Window support covers ordinary named Blizzard panels and registered UI panels; protected HUD elements remain under Blizzard Edit Mode.
 
 Enable **Always show values** and **Addon button drawer** outside combat first. Existing unprotected progress labels now stay visible through combat, and the prepared drawer opens/closes with its usual input. Collected addons keep their own combat rules. Initial setup, protected layout changes and icon collection/restoration still wait; the [combat smoke test](docs/testing.md#combat-values-and-minimap-drawer--0190) remains pending.
 
@@ -496,3 +500,25 @@ Version 0.1.20 fixes the Lua error when opening Macros: the preview EditBox now 
 
 Automatic main/off-hand recipes can **Create placeholder** with an empty hand or no suitable carried coating. The placeholder has no use action. Use it again after equipping a suitable weapon and carrying its coating to update it for the next press, or click Update explicitly in Suite. Close Blizzard's Macros window before creating/updating through Suite; this protects unsaved editor text.
 
+
+### Inventory filters and saved categories
+
+Open **Characters → Inventory** to filter recorded bags and banks by character, location, item type, quality and record age. Type choices include equipment, crafting reagents, consumables and quest items. Recent means less than 24 hours; older records and unavailable dates have separate choices. Filters use each location’s own timestamp. Shared bank contents count once.
+
+Enter an optional category name beside **Saved categories**, choose filters and click **Save**. Up to eight categories remember the search, owner, location and filters across characters. Load a category to rename it or remove it. Existing saved searches are retained as categories. **Clear filters** returns to all recorded items. Missing metadata is disclosed; these categories browse saved records and do not rearrange live bags or enable recording.
+
+Item lists use icons beside names. The profession shopping list separates **Required**, **Recorded stock**, and **Buy** into aligned columns: gold requirements, blue stock, orange purchases and teal stocked status. **Unknown / Check stock** and **+ / Up to** keep missing or incomplete records explicit. Icons load independently of the item-level overlay setting; Shift-click items to use native auction search or chat linking.
+
+### Merchant restocking
+
+Open `/wfs restock` anywhere outside combat to edit your **Saved list**. Drop items to add them, press Enter to save an inline quantity, or use **Remove** to delete a target. At a merchant, switch between the full list and **Vendor offers**.
+
+Enable **Merchant restocking** under **Supply Checklist** or **Vendor**. Open **Restock** at a merchant and drag an item from the merchant or your bags into the drop field. Set the amount you want to carry. On later visits, Restock opens when the merchant can help fill a shortage. Review the quantity and exact cost, then choose **Buy** or **Skip**. Check **Automatic Purchase** on an item to buy its shortage on future visits without confirmation. This choice is saved per item and character.
+
+Purchases recheck stock, bundle size, safe bag space, targets, money and price. They wait for observed bag and money changes before continuing. Unknown prices, extended/currency costs and ambiguous offers stay manual; bundles never round above a target. **Stop**, closing the review/merchant, combat, a game error or unconfirmed purchase stops future requests. A sent purchase may still finish. Empty specialty-bag slots are excluded conservatively; unlocked partial stacks can still be filled.
+
+### Route recipes and intermediate materials
+
+In a profession’s **Leveling** guide, expand **Route recipes** to review missing recipes for the remaining route, including earlier intermediates still needed by later steps. Missing and unknown training states are separate. Rows show guide skill ranges, known acquisition methods and native requirements when available; guide ranges are not learning-skill requirements. Existing recipe-specific trainer/vendor/quest references and waypoint actions are reused.
+
+Click a craftable material in **Required materials** or an expanded step to open its learned recipe in the current profession. **Back to recipe** returns to the previous native recipe and guide position. Navigation pauses automatic route selection and refuses to interrupt a crafting batch. Unlearned or unknown intermediates open their source guidance; Shift-click still uses native auction/chat linking. This covers recipes in the selected route, not a complete recipe collection database.

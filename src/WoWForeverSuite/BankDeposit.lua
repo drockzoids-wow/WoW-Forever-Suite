@@ -39,7 +39,8 @@ function Deposit:Ready()
 end
 function Deposit:Cancel()
     if self.timer then self.timer:Cancel(); self.timer = nil end
-    if self.deadline then self.deadline:Cancel(); self.deadline = nil end
+    -- Cancelling a batch does not cancel the sent native request.
+    if self.deadline and not self.transfer then self.deadline:Cancel(); self.deadline = nil end
     self.job = nil
     if self.button and not InCombatLockdown() then self.button:SetEnabled(true); self.button:SetText("Deposit Reagents") end
 end
@@ -60,6 +61,15 @@ function Deposit:Queue()
     if not self.job or self.timer then return end
     self.timer = C_Timer.NewTimer(0.2, function() self.timer = nil; self:Step() end)
 end
+function Deposit:TransferSettled()
+    local transfer = self.transfer
+    if not transfer then return true end
+    local counts = Suite.ItemRules:Counts()
+    if not counts or (counts[transfer.id] or 0) >= transfer.before then return false end
+    self.transfer = nil
+    self.deadline:Cancel(); self.deadline = nil
+    return true
+end
 function Deposit:Step()
     if not self.job then return end
     if not self:Ready() then self:Cancel(); return end
@@ -73,27 +83,55 @@ function Deposit:Step()
         job.loading = nil
         if self.deadline then self.deadline:Cancel(); self.deadline = nil end
     end
+    if not self:TransferSettled() then return end
     while job.index <= #job.entries do
         local entry = job.entries[job.index]; job.index = job.index + 1
         local reagent = Reagent(entry.id)
         if reagent == nil then job.unavailable = true end
         if reagent == true and self:Current(entry) then
             if not self:Ready() then self:Cancel(); return end
-            -- Same explicit personal-bank destination as the native bag right-click.
-            -- Native storage rules handle partial stacks, specialty bags and full banks.
-            local ok = pcall(C_Container.UseContainerItem, entry.bag, entry.slot, nil, Enum.BankType.Character, false)
-            if not ok then
-                self:Cancel(); Suite.Print("Reagent deposit stopped: the game rejected a transfer."); return
+            local allowed, reason = Suite.ItemRules:CanRemove(entry.id, "deposit", entry.count)
+            if not allowed then
+                if reason == "reserve" then job.reserved = true else job.unavailable = true end
+            else
+                local counts = Suite.ItemRules:Counts()
+                local before = counts and counts[entry.id]
+                if not Int(before, entry.count, 1000000000) then
+                    self:Cancel(); Suite.Print("Reagent deposit stopped: carried bag data is unavailable."); return
+                end
+                -- A request is not a transfer. Wait for the carried total to fall before
+                -- authorizing another stack, including when the bank only took part of it.
+                self.transfer = { id = entry.id, before = before }
+                self.deadline = C_Timer.NewTimer(4, function()
+                    self.transfer, self.deadline = nil, nil
+                    if self.job == job then
+                        self:Cancel()
+                        Suite.Print("Reagent deposit stopped: the last transfer was unconfirmed. Check bags and bank space before trying again.")
+                    end
+                end)
+                -- Same explicit personal-bank destination as the native bag right-click.
+                -- Native storage rules handle partial stacks, specialty bags and full banks.
+                local ok = pcall(C_Container.UseContainerItem, entry.bag, entry.slot, nil, Enum.BankType.Character, false)
+                if not ok then
+                    self.transfer = nil
+                    self:Cancel(); Suite.Print("Reagent deposit stopped: the game rejected a transfer."); return
+                end
+                self:Queue(); return
             end
-            self:Queue(); return
         end
     end
     local unavailable = job.unavailable
+    local reserved = job.reserved
     self:Cancel()
     if unavailable then Suite.Print("Some item data was unavailable. Click Deposit Reagents again after it loads.") end
+    if reserved then Suite.Print("Reserved stacks kept in your bags. Split off excess manually, then deposit again.") end
 end
 function Deposit:Start()
     if self.job or not self:Ready() then return end
+    if not self:TransferSettled() then
+        Suite.Print("The previous reagent transfer is still unconfirmed. Wait for your bags to update before trying again.")
+        return
+    end
     local last = NUM_TOTAL_EQUIPPED_BAG_SLOTS
     if not Int(last, 0, 32) then return end
     local entries, pending = {}, {}
@@ -133,12 +171,11 @@ function Deposit:Discover()
     local panel = BankFrame.BankPanel
     local purchase = Safe(panel) and panel.PurchaseButton
     if not Safe(purchase) then return end
-    if self.hookedFrame ~= BankFrame and type(BankFrame.SetTab) == "function" and type(hooksecurefunc) == "function" then
-        hooksecurefunc(BankFrame, "SetTab", function()
-            self:Cancel()
-            if self:Enabled() then self:Discover() end
-        end)
-        self.hookedFrame = BankFrame
+    -- SetTab includes the protected, automatic first-slot purchase on Camelot.
+    -- Observe the native layout notification instead of wrapping that method.
+    if not self.layoutRegistered and EventRegistry and type(EventRegistry.RegisterCallback) == "function" then
+        EventRegistry:RegisterCallback("BankPanelMixin.ShowOrHideBagCost", self.OnBankLayout, self)
+        self.layoutRegistered = true
     end
     if not self.button then
         self.button = Suite.Theme:ActionButton(BankFrame, "Deposit Reagents", 140, 21)
@@ -154,17 +191,38 @@ function Deposit:Discover()
     self.button:SetEnabled(self.job == nil)
     self.button:SetText(self.job and "Depositing..." or "Deposit Reagents")
 end
+function Deposit:OnBankLayout()
+    if not self:Enabled() then return end
+    -- Check immediately so switching away and back cannot resume an old batch.
+    if self.job and not self:Ready() then self:Cancel() end
+    if self.layoutTimer or InCombatLockdown() or not C_Timer or type(C_Timer.NewTimer) ~= "function" then return end
+    -- Let the native tab selection/purchase finish before changing owned UI.
+    self.layoutTimer = C_Timer.NewTimer(0, function()
+        self.layoutTimer = nil
+        if self:Enabled() then self:Discover() end
+    end)
+end
 function Deposit:OnEvent(event)
     if event == "BANKFRAME_CLOSED" or event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_LOGOUT" then
+        if self.layoutTimer then self.layoutTimer:Cancel(); self.layoutTimer = nil end
         if event ~= "PLAYER_REGEN_DISABLED" then self.bankOpen = nil end
         self:Cancel()
     elseif event == "BANKFRAME_OPENED" then self.bankOpen = true
-    elseif event == "ITEM_DATA_LOAD_RESULT" and self.job and self.job.loading then self:Queue() end
+    elseif event == "ITEM_DATA_LOAD_RESULT" and self.job and self.job.loading then self:Queue()
+    elseif event == "BAG_UPDATE_DELAYED" then
+        if self.job and self.transfer then self:Queue() end
+        return
+    end
     if self.job and not self:Ready() then self:Cancel() end
     self:Discover()
 end
 function Deposit:Apply()
     if not self:Enabled() then
+        if self.layoutTimer then self.layoutTimer:Cancel(); self.layoutTimer = nil end
+        if self.layoutRegistered and EventRegistry and type(EventRegistry.UnregisterCallback) == "function" then
+            EventRegistry:UnregisterCallback("BankPanelMixin.ShowOrHideBagCost", self)
+            self.layoutRegistered = nil
+        end
         self:Cancel(); self.bankOpen = nil
         Suite.pending.bankDepositEnable = nil
         if self.events then self.events:UnregisterAllEvents() end
@@ -179,7 +237,7 @@ function Deposit:Apply()
         end
         if not self.active then
             for _, event in ipairs({ "BANKFRAME_OPENED", "BANKFRAME_CLOSED", "ADDON_LOADED", "BANK_TABS_CHANGED",
-                "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "ITEM_DATA_LOAD_RESULT", "PLAYER_LOGOUT" }) do
+                "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "ITEM_DATA_LOAD_RESULT", "BAG_UPDATE_DELAYED", "PLAYER_LOGOUT" }) do
                 self.events:RegisterEvent(event)
             end
             self.bankOpen = Safe(BankFrame) and Read(BankFrame.IsShown, BankFrame) == true

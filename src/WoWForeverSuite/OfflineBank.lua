@@ -265,7 +265,7 @@ function Bank:DefaultLayout()
     local character = self:Context()
     if character and Layout(character.bankViewLayout) then return character.bankViewLayout end
     -- Window tools may have a saved native-bank position before BankFrame has been opened this session.
-    local saved = Suite.db.windowTools and Suite.db.windowPositions.BankFrame
+    local saved = Suite.db.windowTools and Suite.Windows.positions.BankFrame
     local screenWidth, screenHeight = UIParent:GetWidth(), UIParent:GetHeight()
     if Layout(saved) and Number(screenWidth) and screenWidth > 0 and Number(screenHeight) and screenHeight > 0 then
         local width, height = BankFrame:GetWidth(), BankFrame:GetHeight()
@@ -298,7 +298,7 @@ function Bank:PlaceView()
         record.originalScale = scale
         record.originalPoints = { { "TOPLEFT", UIParent, "TOPLEFT", x, y } }
     end
-    local saved = Suite.db.windowTools and Suite.db.windowPositions[FRAME_NAME]
+    local saved = Suite.db.windowTools and Suite.Windows.positions[FRAME_NAME]
     if record and (record.dragging or Layout(saved)) then return end
     self.frame:SetScale(scale); self.frame:ClearAllPoints()
     self.frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
@@ -517,7 +517,7 @@ function Bank:Refresh()
         local name = item and (Text(item.name) and item.name or item.link) or ""
         button.searchOverlay:SetShown(search ~= "" and (not item or not name:lower():find(search, 1, true)))
         button:SetShown(row ~= nil)
-        if Suite.Items and (Suite.db.itemLevels or Suite.db.upgradeHints) then Suite.Items:Track(button, button.itemLink, true) end
+        if Suite.Items and Suite.db.itemLevels then Suite.Items:Track(button, button.itemLink, true) end
     end
     self.empty:SetText(snapshot and "No slots recorded." or (self.viewBags and "Log into this character with inventory recording enabled to save its bags."
         or "Visit a bank with Bank snapshots enabled to save this view."))

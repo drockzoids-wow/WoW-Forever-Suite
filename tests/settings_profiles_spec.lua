@@ -4,7 +4,7 @@ local old={db=Suite.db,account=WoWForeverSuiteDB,character=WoWForeverSuiteCharDB
     id=p.activeID,personal=p.activePersonal,guid=p.guid,pending=p.reloadPending,unit=UnitGUID,name=UnitName,
     realm=GetNormalizedRealmName,reload=ReloadUI,apply=Suite.Apply,page=gui.page,shown=gui.frame:IsShown(),
     leveling=Suite.Leveling.db,training=Suite.Training.db,macros=Suite.macroDB,
-    scoring=Suite.Scoring.character,scoreOwner=Suite.Scoring.owner,loaded=Suite.loadedSavedVariables}
+    windows=Suite.Windows.positions,loaded=Suite.loadedSavedVariables}
 local reloads,applied=0,0
 ReloadUI=function() reloads=reloads+1 end
 Suite.Apply=function() applied=applied+1 end
@@ -20,7 +20,7 @@ local function Load(db,char,guid,name)
     p:RegisterCharacter()
     return WoWForeverSuiteDB,WoWForeverSuiteCharDB
 end
-local db,char=Load({quickLoot=true,windowTools=true,windowPositions={Bag={x=0.2,scale=1.2}},
+local db,char=Load({quickLoot=true,windowTools=true,windowPositions={Bag={x=0.2,y=0.1,scale=1.2}},guiPosition={x=0.2,y=0.1,scale=1.2},
     meterWindows={{width=360}},inventory={schema=1,characters={keep={money=42}},accountBanks={}},
     macroOwnership={keep="manual"},mailContacts={schema=2,entries={},removed={}},
     bagSpaceBlacklist={[123]=true}}, {scoring={schema=1,active="healer",preference="stats",profiles={}},entries={}})
@@ -29,9 +29,13 @@ equal(p.activeID,"default","existing characters automatically use Default")
 equal(p.activePersonal,false,"existing shared behavior is preserved")
 equal(Suite.db.quickLoot,true,"migration preserves existing feature choices")
 equal(Suite.db.minimapButton,true,"launcher default stays visible")
-equal(Suite.db.windowPositions.Bag.scale,1.2,"migration preserves native window layouts")
+equal(Suite.db.guiPosition.scale,1.2,"migration preserves shared Suite panel layout")
 equal(char.suiteProfile,p.state,"character assignment survives macro root reconstruction")
-equal(Suite.Scoring:State().active,"healer","settings profiles do not replace character gear preference")
+equal(char.windowPositions.Bag.x,0.2,"legacy shared window layout migrates into current character")
+equal(Suite.Windows.positions,char.windowPositions,"window tools bind to character SavedVariables")
+equal(db.windowPositions,nil,"account no longer stores live window layouts")
+equal(p:Find("default").values.windowPositions,nil,"shared profiles exclude window layouts")
+assert(loadfile("tests/window_character_storage_spec.lua"))(Suite,equal)
 local inventory,ownership,contacts,blacklist=db.inventory,db.macroOwnership,db.mailContacts,db.bagSpaceBlacklist
 local default=p:Find("default")
 equal(default.values.inventory,nil,"inventory snapshots excluded")
@@ -50,8 +54,8 @@ equal(p:Find(copy).values.progressBarTextRestore,nil,"native text restoration st
 equal(p:Find(copy).values.bagSortDirectionRestore,nil,"native bag restoration state excluded")
 p:Find(copy).values.quickLoot=false
 p:Find(copy).values.autoQuestPickup=true
-p:Find(copy).values.windowPositions.Bag.x=-0.3
-equal(db.windowPositions.Bag.x,0.2,"copies do not alias live layouts")
+p:Find(copy).values.guiPosition.x=-0.3
+equal(db.guiPosition.x,0.2,"copies do not alias live layouts")
 equal(p:Create("quiet"),nil,"duplicate names ignore case")
 equal(p:Create("|cff00ff00bad"),nil,"formatting cannot enter profile labels")
 equal(p:Create(" \n "),nil,"control characters rejected")
@@ -61,7 +65,7 @@ equal(#review.enabled,1,"review explicitly lists newly enabled optional features
 equal(review.enabled[1],"Automatically pick up quests","review uses user-facing feature labels")
 equal(#review.changes>=3,true,"review includes settings and layout changes")
 local changed=false
-for _,line in ipairs(review.changes) do if line=="Window positions and sizes" then changed=true end end
+for _,line in ipairs(review.changes) do if line=="Suite panel position" then changed=true end end
 equal(changed,true,"layout changes have readable labels")
 Combat(true)
 equal(p:Activate(review),false,"combat cannot queue a later profile switch")
@@ -86,7 +90,8 @@ db,char=Load(Suite.Copy(db),Suite.Copy(char))
 equal(p.activeID,copy,"reload resolves selected named profile")
 equal(db.quickLoot,false,"reload installs target settings")
 equal(db.autoQuestPickup,true,"explicitly reviewed feature activation persists")
-equal(db.windowPositions.Bag.x,-0.3,"reload installs the target layout")
+equal(db.guiPosition.x,-0.3,"reload installs the target layout")
+equal(char.windowPositions.Bag.x,0.2,"profile switch preserves the character's native window layout")
 equal(db.inventory.characters.keep.money,42,"inventory retained across reload")
 equal(db.macroOwnership.keep,"manual","macro ownership retained across reload")
 equal(db.progressBarTextRestore,"0","native restoration value survives profile switch")
@@ -94,20 +99,26 @@ equal(db.bagSortDirectionRestore,false,"native false restoration survives profil
 -- Personal differences inherit unchanged shared keys, and remain private to this character.
 equal(p:Activate(p:Review(copy,true)),true,"personal scope is an explicit reload operation")
 db,char=Load(Suite.Copy(db),Suite.Copy(char))
-db.quickLoot=true;db.windowPositions.Bag.x=0.4;p:SaveActive()
+db.quickLoot=true;db.guiPosition.x=0.4;Suite.Windows.positions.Bag.x=0.45;p:SaveActive()
 equal(p.state.overrides[copy].quickLoot,true,"changed boolean becomes a personal override")
 equal(p.state.overrides[copy].chatFontSize,nil,"unchanged keys are inherited")
 equal(p:Find(copy).values.quickLoot,false,"personal choice does not change shared profile")
-equal(p:Find(copy).values.windowPositions.Bag.x,-0.3,"personal drag does not change shared layout")
+equal(p:Find(copy).values.guiPosition.x,-0.3,"personal drag does not change shared layout")
+equal(char.windowPositions.Bag.x,0.45,"drag writes directly to character storage")
+equal(p:Find(copy).values.windowPositions,nil,"profile saves never publish private windows")
 local alice=Suite.Copy(char)
 local bob={suiteProfile={id=copy,personal=false,overrides={}}}
 db,bob=Load(Suite.Copy(db),bob,"Profile-B","Bob")
 equal(db.quickLoot,false,"second character sees shared setting")
-equal(db.windowPositions.Bag.x,-0.3,"second character sees shared layout")
+equal(db.guiPosition.x,-0.3,"second character sees shared Suite panel layout")
+equal(next(bob.windowPositions),nil,"new character starts without another character's window positions")
+Suite.Windows.positions.Bag={x=-0.2,y=0.2,scale=0.9}
 db.chatFontSize=20;p:SaveActive()
 db,char=Load(Suite.Copy(db),alice)
 equal(db.quickLoot,true,"personal override survives character round trip")
-equal(db.windowPositions.Bag.x,0.4,"personal layout survives character round trip")
+equal(db.guiPosition.x,0.4,"personal Suite panel layout survives character round trip")
+equal(char.windowPositions.Bag.x,0.45,"first character keeps its private bag position")
+equal(bob.windowPositions.Bag.x,-0.2,"other character keeps its distinct bag position")
 equal(db.chatFontSize,20,"untouched keys inherit another character's shared edit")
 equal(p:Delete(copy),false,"active and assigned profiles cannot be deleted")
 local fromBob=p:Create("Bob's setup","Profile-B")
@@ -259,10 +270,10 @@ local ok,message=p:Activate(p:Review("p1",false))
 equal(ok,true,"selection persists if reload helper is unavailable")
 equal(message,"Selection saved. Type /reload to apply it.","reload fallback is explicit")
 equal(db.quickLoot,false,"fallback does not partially hot-apply settings")
+Suite.Windows.positions=old.windows
 Suite.db,WoWForeverSuiteDB,WoWForeverSuiteCharDB=old.db,old.account,old.character
 p.store,p.state,p.activeID,p.activePersonal,p.guid,p.reloadPending=old.store,old.state,old.id,old.personal,old.guid,old.pending
 UnitGUID,UnitName,GetNormalizedRealmName,ReloadUI=old.unit,old.name,old.realm,old.reload
 Suite.Apply,Suite.loadedSavedVariables=old.apply,old.loaded
 Suite.Leveling.db,Suite.Training.db,Suite.macroDB=old.leveling,old.training,old.macros
-Suite.Scoring.character,Suite.Scoring.owner=old.scoring,old.scoreOwner
 Combat(false);gui:Select(old.page or "overview");gui.frame:SetShown(old.shown)

@@ -111,6 +111,17 @@ leveling.button:OnClick()
 equal(leveling.frame:IsShown(), true, "explicit button opens companion")
 equal(leveling.frame.parent, ProfessionsFrame, "companion inherits native movement and hiding")
 equal(leveling.frame:GetWidth(), 460, "flyout widened for shopping lists")
+local oldShoppingReview, shoppingReview = Suite.ShoppingList.Review
+Suite.ShoppingList.Review = function(_, name, rank, limit, owner) shoppingReview = { name = name, rank = rank, limit = limit, owner = owner } end
+leveling.frame.trackSection:OnClick()
+equal(shoppingReview.name, "Blacksmithing", "section tracking uses the selected guide")
+equal(shoppingReview.rank, 173, "shopping review uses current guide skill")
+equal(shoppingReview.limit > 173, true, "section tracking limits the current unfinished range")
+equal(shoppingReview.owner, leveling.frame, "shopping review opens beside its guide")
+leveling.frame.trackRemaining:OnClick()
+equal(shoppingReview.limit, nil, "remaining-material action removes the section limit")
+equal(Suite.db.professionShopping, false, "guide actions only stage review without recording opt-in")
+Suite.ShoppingList.Review = oldShoppingReview
 equal(leveling.frame.previous, nil, "previous-guide button removed")
 equal(leveling.frame.nextGuide, nil, "next-guide button removed")
 leveling.frame.guideDropdown:OnClick()
@@ -146,6 +157,11 @@ equal(leveling.frame.scroll:GetWidth(), 410, "readable content uses wider panel"
 equal(leveling.frame.text.point[3] < -500, true, "full shopping list precedes leveling prose")
 equal(leveling.frame.materialsHeader.label.text, "−  Required materials", "distinct materials heading appears first")
 equal(leveling.frame.materialRows[1].materialID, 2835, "first shopping item uses Rough Stone item ID")
+local oldLinkClick, linkedMaterial = Suite.Items.ModifiedClick
+Suite.Items.ModifiedClick = function(_, id) linkedMaterial=id; return true end
+leveling.frame.materialRows[1]:OnClick("LeftButton")
+equal(linkedMaterial,2835,"leveling Materials row delegates its exact item identity to native link click")
+Suite.Items.ModifiedClick = oldLinkClick
 equal(leveling.frame.materialRows[1].quantity.text, "90 x", "first quantity matches published list")
 equal(leveling.frame.scroll.suiteMaximum > 500, true, "long materials list remains scrollable")
 local shoppingCreated = made
@@ -944,6 +960,10 @@ equal(leveling:RecipeLocation(9000000, "|Hworldmap:1455:5250:4150|h[A]|h |Hworld
 equal(leveling:RecipeLocation(9000000, "|Hworldmap:1455:99999:4150|h[Invalid]|h"), nil, "malformed source coordinates are rejected")
 faction = "Horde"
 equal(leveling:RecipeLocation(9920, "|Hworldmap:1455:5250:4150|h[A]|h |Hworldmap:1454:8200:2300|h[H]|h").map, 1454, "catalog picks current faction when native source lists multiple factions")
+assert(loadfile("tests/profession_trainer_spec.lua"))(Suite, equal, function(name)
+    info = { professionName = name, professionID = 197, skillLevel = 30, maxSkillLevel = 75 }
+    allLearned = false
+end, Flush)
 C_TradeSkillUI.OpenRecipe, C_TradeSkillUI.GetRecipeInfo, C_TradeSkillUI.IsRecipeInSkillLine = nil, nil, nil
 C_TradeSkillUI.GetRecipeSourceText, C_TradeSkillUI.IsDataSourceChanging = nil, nil
 -- Independent section minimization and character-owned profession snapshots.

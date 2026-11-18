@@ -26,7 +26,7 @@ end
 
 function Items:GetInfo(item)
     if not Suite.IsReadable(item) or not item or not C_Item or not C_Item.GetItemInfo then return nil end
-    local name, link, quality, level, requiredLevel, _, _, _, equipLoc, _, _, classID, subclassID = C_Item.GetItemInfo(item)
+    local name, link, quality, level, _, _, _, _, equipLoc = C_Item.GetItemInfo(item)
     if not Suite.IsReadable(name) then return nil end
     if not name then
         local id = C_Item.GetItemInfoInstant and C_Item.GetItemInfoInstant(item)
@@ -43,8 +43,7 @@ function Items:GetInfo(item)
     if not Suite.IsReadable(actual) then return nil end
     local itemLevel = actual or level
     if not Number(itemLevel) or itemLevel <= 0 then return nil end
-    return { link = link, quality = quality, level = itemLevel, requiredLevel = requiredLevel, equipLoc = equipLoc,
-        classID = classID, subclassID = subclassID }
+    return { link = link, quality = quality, level = itemLevel, equipLoc = equipLoc }
 end
 
 local function Read(callback, ...)
@@ -53,181 +52,91 @@ local function Read(callback, ...)
     if ok and Suite.IsReadable(value) then return value end
 end
 
-local armorSlots = { INVTYPE_HEAD = true, INVTYPE_SHOULDER = true, INVTYPE_CHEST = true, INVTYPE_ROBE = true,
-    INVTYPE_WAIST = true, INVTYPE_LEGS = true, INVTYPE_FEET = true, INVTYPE_WRIST = true, INVTYPE_HAND = true }
--- Blizzard item armor subclass IDs; compare IDs rather than localized item text.
-local armorNames = { "Cloth", "Leather", "Mail", "Plate" }
-local armorPreferences = { WARRIOR = { 3, 4 }, PALADIN = { 3, 4 }, HUNTER = { 2, 3 }, SHAMAN = { 2, 3 },
-    ROGUE = 2, DRUID = 2, MAGE = 1, PRIEST = 1, WARLOCK = 1 }
-
-function Items:UpgradeColor(info)
-    if not Suite.IsReadable(info) or type(info) ~= "table" or not Suite.IsReadable(info.equipLoc)
-        or type(info.equipLoc) ~= "string" then return end
-    -- Cloaks, jewelry, shields and weapons have no primary-armor preference.
-    if not armorSlots[info.equipLoc] then return 0.2, 1, 0.2 end
-    if not Number(info.classID) or info.classID ~= 4 or not Number(info.subclassID)
-        or info.subclassID ~= math.floor(info.subclassID) or not armorNames[info.subclassID]
-        or type(UnitClass) ~= "function" then return end
-    local ok, _, class = pcall(UnitClass, "player")
-    if not ok or not Suite.IsReadable(class) or type(class) ~= "string" then return end
-    local preferred = armorPreferences[class]
-    if type(preferred) == "table" then
-        local level = Read(UnitLevel, "player")
-        if not Number(level) or level <= 0 then return end
-        preferred = preferred[level < 40 and 1 or 2]
-    end
-    if not preferred then return end
-    local name = Read(C_Item and C_Item.GetItemSubClassInfo, 4, preferred)
-    if type(name) ~= "string" or name == "" then name = armorNames[preferred] end
-    if info.subclassID == preferred then return 0.2, 1, 0.2, "Preferred armor type: " .. name end
-    return 1, 0.82, 0, "Not your preferred armor type (" .. name .. " preferred)."
+-- Suite-owned list presentation, independent of the optional item-level overlay.
+function Items:Icon(id)
+    if not Number(id) or id < 1 or id > 2147483647 or id % 1 ~= 0 then return 134400, false end
+    local icon = C_Item and Read(C_Item.GetItemIconByID, id)
+    if Number(icon) and icon > 0 and icon <= 2147483647 and icon % 1 == 0 then return icon, true end
+    return 134400, false
 end
-
-function Items:CanEquip(info)
-    -- Native gear tutorials use player item eligibility, rather than the
-    -- action-use predicate (which also reports temporary use/mana state).
-    if C_PlayerInfo and type(C_PlayerInfo.CanUseItem) == "function" then
-        local id = Read(C_Item and C_Item.GetItemInfoInstant, info.link)
-        if not Number(id) or id <= 0 or id ~= math.floor(id) then return false end
-        return Read(C_PlayerInfo.CanUseItem, id) == true
+function Items:ListIconEvents()
+    local pending = self.listIcons and next(self.listIcons) ~= nil
+    if pending and not self.listIconEvents and InCombatLockdown() then
+        Suite.AfterCombat("listIcons", function()
+            for texture, id in pairs(self.listIcons) do self:SetListIcon(texture, id) end
+        end)
+    elseif not pending then Suite.pending.listIcons = nil end
+    if pending and not self.listIconEvents and not InCombatLockdown() then
+        self.listIconEvents = CreateFrame("Frame")
+        self.listIconEvents:SetScript("OnEvent", function(_, event, id)
+            if event == "ITEM_DATA_LOAD_RESULT" and (not Number(id) or id < 1 or id % 1 ~= 0) then return end
+            for texture, itemID in pairs(self.listIcons) do
+                if event == "PLAYER_REGEN_ENABLED" or itemID == id then self:SetListIcon(texture, itemID) end
+            end
+        end)
     end
-    -- Older capability sets retain the conservative existing check. Never
-    -- override a false/unknown answer from the modern player predicate.
-    return Read(C_Item and C_Item.IsUsableItem, info.link) == true
+    if self.listIconEvents then
+        self.listIconEvents:UnregisterAllEvents()
+        if pending then
+            self.listIconEvents:RegisterEvent("ITEM_DATA_LOAD_RESULT")
+            self.listIconEvents:RegisterEvent("PLAYER_REGEN_ENABLED")
+        end
+    end
 end
-
-function Items:WeaponUpgrade(info, preference, explain)
-    local scoring = Suite.Scoring
-    local profile = scoring:Profile()
-    local kind = scoring.WeaponKind(info.equipLoc)
-    local slots = (kind == "ranged" or kind == "relic") and { 18 } or { 16, 17 }
-    local current, baseline = {}, 0
-    local function Score(value, slot)
-        local stats = preference == "stats" and Suite.GearStats:Read(value.link, profile) or nil
-        return scoring.WeaponScore(value, stats, profile, preference, slot), stats
-    end
-    for _, slot in ipairs(slots) do
-        local ok, link = pcall(GetInventoryItemLink, "player", slot)
-        if not ok or not Suite.IsReadable(link) then return nil end
-        if link ~= nil then
-            local equipped = self:GetInfo(link)
-            if not equipped then return nil end
-            local equippedKind = scoring.WeaponKind(equipped.equipLoc)
-            if slot == 18 and equippedKind ~= kind then return nil end
-            if slot == 16 and (equippedKind ~= "melee" or equipped.equipLoc == "INVTYPE_WEAPONOFFHAND") then return nil end
-            if slot == 17 and (equippedKind ~= "offhand" and equippedKind ~= "melee"
-                or equipped.equipLoc == "INVTYPE_2HWEAPON" or equipped.equipLoc == "INVTYPE_WEAPONMAINHAND") then return nil end
-            local score, stats = Score(equipped, slot)
-            if not Number(score) then return nil end
-            current[slot] = { info = equipped, score = score, stats = stats }
-            baseline = baseline + score
-        end
-    end
-    -- Unmodeled two-handed dual wield must not be treated as a normal pair.
-    local main, off = current[16], current[17]
-    local twoHanded = main and main.info.equipLoc == "INVTYPE_2HWEAPON"
-    if twoHanded and off then return nil end
-    local choices = {}
-    if kind == "ranged" or kind == "relic" then
-        choices[1] = { slot = 18, label = "Ranged", remove = baseline }
-    elseif info.equipLoc == "INVTYPE_2HWEAPON" then
-        choices[1] = { slot = 16, label = "Both hands", remove = baseline }
-    elseif info.equipLoc == "INVTYPE_SHIELD" or info.equipLoc == "INVTYPE_HOLDABLE" then
-        if not twoHanded then choices[1] = { slot = 17, label = "Off hand", remove = off and off.score or 0 } end
-    else
-        if info.equipLoc ~= "INVTYPE_WEAPONOFFHAND" then
-            choices[#choices + 1] = { slot = 16, label = "Main hand", remove = main and main.score or 0 }
-        end
-        if info.equipLoc ~= "INVTYPE_WEAPONMAINHAND" and main and not twoHanded and Read(CanDualWield) == true then
-            choices[#choices + 1] = { slot = 17, label = "Off hand", remove = off and off.score or 0 }
-        end
-    end
-    local best, detail
-    for _, choice in ipairs(choices) do
-        local score, stats = Score(info, choice.slot)
-        if Number(score) then
-            local delta = scoring.Compare(baseline - choice.remove + score, { baseline })
-            local empty = choice.slot == 18 and not current[18]
-                or choice.slot == 17 and not off
-                or choice.slot == 16 and not main and (info.equipLoc ~= "INVTYPE_2HWEAPON" or not off)
-            -- A loaded usable item can fill an empty slot even when none of its
-            -- stats contribute to this preset. Keep hand eligibility above intact.
-            if not delta and empty then delta = 1 end
-            if delta and (not best or delta > best) then
-                best, detail = delta, { weapon = true, preference = preference, slot = choice.label,
-                    paired = choice.slot ~= 18, emptySlot = empty or nil,
-                    profile = profile.label, candidateScore = baseline - choice.remove + score, baselineScore = baseline }
-                if explain and preference == "stats" and not empty then
-                    local removed = {}
-                    for _, slot in ipairs(slots) do
-                        local record = current[slot]
-                        if record and (slot == choice.slot or info.equipLoc == "INVTYPE_2HWEAPON") then
-                            removed[#removed + 1] = scoring:Terms(record.stats, profile, record.info, slot) or {}
-                        end
-                    end
-                    detail.breakdown = scoring:Breakdown(scoring:Terms(stats, profile, info, choice.slot), removed)
-                end
+function Items:SetListIcon(texture, id)
+    if not Number(id) or id < 1 or id > 2147483647 or id % 1 ~= 0 then id = nil end
+    local icon, known = self:Icon(id)
+    texture.listItemID = id; texture:SetTexture(icon)
+    self.listIcons = self.listIcons or setmetatable({}, { __mode = "k" })
+    self.listIcons[texture] = nil
+    if not known and id and C_Item and type(C_Item.GetItemIconByID) == "function"
+        and Read(texture.listOwner.IsVisible, texture.listOwner) == true then
+        self.listIcons[texture] = id
+        self:ListIconEvents()
+        if not InCombatLockdown() and C_Item and type(C_Item.RequestLoadItemDataByID) == "function" then
+            self.listIconRequested = self.listIconRequested or {}
+            if not self.listIconRequested[id] then
+                self.listIconRequested[id] = true
+                pcall(C_Item.RequestLoadItemDataByID, id)
             end
         end
     end
-    return best, detail
+    self:ListIconEvents()
 end
-
-function Items:UpgradeDelta(item, explain)
-    local info = self:GetInfo(item)
-    if not self:IsEquipment(info) or not Number(info.requiredLevel) or type(UnitLevel) ~= "function"
-        or type(GetInventoryItemLink) ~= "function" then return nil end
-    local playerLevel = UnitLevel("player")
-    if not Number(playerLevel) or playerLevel <= 0 or info.requiredLevel > playerLevel then return nil end
-    if not self:CanEquip(info) then return nil end
-    local preference = Suite.Scoring.Preference(Suite.db)
-    if Suite.Scoring.WeaponKind(info.equipLoc) then
-        if preference == "stats" and type(C_Item.GetItemStats) ~= "function" then return nil end
-        return self:WeaponUpgrade(info, preference, explain)
+function Items:CreateListIcon(parent, size, x, y)
+    local icon = parent:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(size, size); icon:SetPoint("TOPLEFT", x, y); icon.listOwner = parent
+    parent:HookScript("OnShow", function() self:SetListIcon(icon, icon.listItemID) end)
+    parent:HookScript("OnHide", function()
+        if self.listIcons then self.listIcons[icon] = nil; self:ListIconEvents() end
+    end)
+    return icon
+end
+function Items:IconText(id, text)
+    return "|T" .. self:Icon(id) .. ":16:16:0:0|t " .. text
+end
+function Items:ModifiedClick(id, button)
+    if button ~= "LeftButton" or InCombatLockdown() or Read(IsModifiedClick, "CHATLINK") ~= true then return false end
+    if not Number(id) or id < 1 or id > 2147483647 or id % 1 ~= 0 then
+        Suite.Print("This item has no available link."); return true
     end
-    local slots = Suite.Scoring.slots[info.equipLoc]
-    if not slots then return nil end
-    local profile = Suite.Scoring:Profile()
-    local equipped, links, emptySlot = {}, {}
-    for _, slot in ipairs(slots) do
-        local ok, link = pcall(GetInventoryItemLink, "player", slot)
-        if not ok or not Suite.IsReadable(link) then return nil end
-        links[slot] = link
-        if link == nil then emptySlot = slot end
-    end
-    -- Filling a known empty armor/accessory slot is independent of stat data.
-    -- GetItemStats may return nothing even after the item's identity is loaded.
-    if emptySlot then return 1, { preference = preference, emptySlot = true } end
-    local stats = preference == "stats" and Suite.GearStats:Read(info.link, profile) or nil
-    local score = preference == "ilevel" and info.level or Suite.Scoring.Score(stats, profile)
-    if not Number(score) then return nil end
-    local lowest, replacement
-    for _, slot in ipairs(slots) do
-        local link = links[slot]
-        if link then
-            local equippedInfo = self:GetInfo(link)
-            if not equippedInfo then return nil end
-            local oldStats = preference == "stats" and Suite.GearStats:Read(link, profile) or nil
-            local equippedScore = preference == "ilevel" and equippedInfo.level
-                or Suite.Scoring.Score(oldStats, profile)
-            if not equippedScore then return nil end
-            equipped[#equipped + 1] = equippedScore
-            if not lowest or equippedScore < lowest then
-                lowest, replacement = equippedScore, { slot = slot, link = link, stats = oldStats }
-            end
-        else
-            equipped[#equipped + 1] = 0
+    local ok, _, link
+    if C_Item and type(C_Item.GetItemInfo) == "function" then ok, _, link = pcall(C_Item.GetItemInfo, id) end
+    if not ok or not Suite.IsReadable(link) or type(link) ~= "string" or #link > 4096
+        or link:find("%c") or tonumber(link:match("|Hitem:(%d+):")) ~= id or not link:find("|h%[.-%]|h") then
+        self.linkRequested = self.linkRequested or {}
+        if not self.linkRequested[id] and C_Item and type(C_Item.RequestLoadItemDataByID) == "function" then
+            self.linkRequested[id] = true; pcall(C_Item.RequestLoadItemDataByID, id)
         end
+        Suite.Print("Item data is unavailable or loading. Shift-click the item again after it loads.")
+        return true
     end
-    local delta = Suite.Scoring.Compare(score, equipped)
-    if not delta then return nil end
-    local detail = { preference = preference, profile = profile.label, candidateScore = score, baselineScore = lowest,
-        replacementSlot = replacement.slot, replacementLink = replacement.link }
-    if explain and preference == "stats" then
-        detail.breakdown = Suite.Scoring:Breakdown(Suite.Scoring:Terms(stats, profile),
-            { Suite.Scoring:Terms(replacement.stats, profile) or {} })
+    if type(HandleModifiedItemClick) ~= "function" then Suite.Print("Item linking is unavailable right now."); return true end
+    local success, handled = pcall(HandleModifiedItemClick, link)
+    if not success or not Suite.IsReadable(handled) or handled ~= true then
+        Suite.Print("Open the auction house search or a chat editor, then Shift-click the item again.")
     end
-    return delta, detail
+    return true
 end
 
 function Items:Resolve(button, record)
@@ -278,8 +187,8 @@ end
 
 function Items:Update(button, record)
     if not self:UsableFrame(button) then return end
-    if not Suite.db or (not Suite.db.itemLevels and not Suite.db.upgradeHints) then
-        if record.level then record.level:SetText(""); record.arrow:SetText("") end
+    if not Suite.db or not Suite.db.itemLevels then
+        if record.level then record.level:SetText("") end
         return
     end
     if not record.level then
@@ -292,15 +201,9 @@ function Items:Update(button, record)
         record.level:SetPoint("TOPRIGHT", button, "TOPRIGHT", -2, -2)
         record.level:SetJustifyH("RIGHT")
         record.level:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
-        record.arrow = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        record.arrow:SetDrawLayer("OVERLAY", 7)
-        record.arrow:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
-        record.arrow:SetPoint("BOTTOMLEFT", 2, 2)
     end
     record.level:SetText("")
-    record.arrow:SetText("")
-    local item, location, equipped = self:Resolve(button, record)
-    record.equipped = equipped == true
+    local item, location = self:Resolve(button, record)
     local info = self:GetInfo(item)
     if not self:IsEquipment(info) then return end
     if Suite.db.itemLevels and location and C_Item.GetCurrentItemLevel then
@@ -314,17 +217,10 @@ function Items:Update(button, record)
         if color then record.level:SetTextColor(color.r, color.g, color.b)
         else record.level:SetTextColor(1, 1, 1) end
     end
-    if Suite.db.upgradeHints and not record.equipped and self:UpgradeDelta(info.link) then
-        local red, green, blue = self:UpgradeColor(info)
-        if red then
-            record.arrow:SetTextColor(red, green, blue)
-            record.arrow:SetText("+")
-        end
-    end
 end
 
 function Items:Track(button, item, supplied)
-    if not Suite.db or (not Suite.db.itemLevels and not Suite.db.upgradeHints) then return end
+    if not Suite.db or not Suite.db.itemLevels then return end
     if not self:UsableFrame(button) or type(button.CreateFontString) ~= "function" then return end
     local record = self.buttons[button]
     if not record then
@@ -341,7 +237,7 @@ function Items:Track(button, item, supplied)
         end) end
         button:HookScript("OnShow", function() self:Update(button, record) end)
         button:HookScript("OnHide", function()
-            if record.level then record.level:SetText(""); record.arrow:SetText("") end
+            if record.level then record.level:SetText("") end
         end)
     end
     if supplied then
@@ -364,7 +260,7 @@ function Items:VisibleFrame(frame)
 end
 
 function Items:VisitContainer(frame)
-    if not Suite.db or (not Suite.db.itemLevels and not Suite.db.upgradeHints) then return end
+    if not Suite.db or not Suite.db.itemLevels then return end
     if not self:UsableFrame(frame) then return end
     if not self.containers[frame] then
         self.containers[frame] = true
@@ -435,15 +331,12 @@ function Items:Initialize()
 end
 
 function Items:Apply()
-    local enabled = Suite.db.itemLevels or Suite.db.upgradeHints
+    local enabled = Suite.db.itemLevels
     if enabled then self:Initialize() end
     if self.events then
         self.events:UnregisterAllEvents()
         if enabled then
             for _, event in ipairs({ "BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED", "GET_ITEM_INFO_RECEIVED", "ADDON_LOADED" }) do self.events:RegisterEvent(event) end
-            if Suite.db.upgradeHints then
-                for _, event in ipairs({ "PLAYER_LEVEL_UP", "SPELLS_CHANGED", "SKILL_LINES_CHANGED" }) do self.events:RegisterEvent(event) end
-            end
         end
     end
     if not enabled then

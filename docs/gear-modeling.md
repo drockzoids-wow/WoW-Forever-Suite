@@ -1,5 +1,7 @@
 # Gear stats and manual spec selection
 
+Historical reference: Suite gear comparisons were removed November 16, 2026. This document describes the retired implementation and is not current user guidance.
+
 November 9, 2026 implementation. Open `/wfs gear` → **Upgrades → Comparison profile** to select a spec, broad role or saved custom profile. Choices are manual and character-owned; they do not change learned talents. Automatic retains its previous class-based starter, and existing custom selections remain active after updating.
 
 ## Stats and units

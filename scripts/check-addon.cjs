@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 process.chdir(root);
+require('node:child_process').execFileSync(process.execPath, ['--test', 'tests/release_guard_spec.cjs'], { stdio: 'inherit' });
 const parse = require(path.join(root, '.cache/lua-tools/luaparse/luaparse.js')).parse;
 const directory = path.join(root, 'src/WoWForeverSuite');
 const files = fs.readdirSync(directory).filter(name => name.endsWith('.lua'));

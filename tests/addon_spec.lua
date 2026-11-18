@@ -221,8 +221,8 @@ equal(Suite.db.windowTools, false, "window tools start off")
 local saved = { scorePreset = "invalid", itemLevels = true, windowPositions = "corrupt" }
 Suite.InitializeDB(saved)
 equal(saved.itemLevels, true, "preserve valid saved preference")
-equal(saved.scorePreset, "balanced", "repair invalid preset")
-equal(type(saved.windowPositions), "table", "repair invalid window data")
+equal(saved.scorePreset, nil, "retire removed comparison preset")
+equal(next(Suite.Windows:InitializeCharacter(saved.windowPositions)), nil, "repair invalid character window data")
 local retired = Suite.InitializeDB({questLocations=true,questNameplates=true,questRecordLocations=true,
     questLocationHidden={[7]=true},questKnowledge={schema=1,entries={[7]={mapID=101,x=0.2,y=0.3,title="Old giver"}}},
     autoQuestPickup=true,autoQuestTurnIn=true,autoVendor=true,questItemButton=true,questTrackerSkin=true})
@@ -237,6 +237,7 @@ end
 
 equal(Suite.IsReadable({ secret = true }), false, "secret values rejected")
 assert(loadfile("tests/core_spec.lua"))(Suite, equal)
+assert(loadfile("tests/test_diagnostics_spec.lua"))(Suite, equal)
 
 local calls = 0
 combat = true
@@ -247,23 +248,8 @@ combat = false
 frames[1].OnEvent(frames[1], "PLAYER_REGEN_ENABLED")
 equal(calls, 1, "coalesce stale combat changes")
 
-equal(Suite.Scoring.Score({ ITEM_MOD_INTELLECT_SHORT = 8, ITEM_MOD_STAMINA_SHORT = 4 }, "caster"), 9, "caster weighting")
-equal(Suite.Scoring.Score({ ITEM_MOD_INTELLECT_SHORT = 8 }, "physical"), 0, "irrelevant stats score zero")
-equal(Suite.Scoring.Score(nil, "balanced"), nil, "unknown item data has no score")
-equal(Suite.Scoring.Compare(6, { 9, 3 }), 3, "compare ring with weaker equipped slot")
-equal(Suite.Scoring.Compare(3, { 3 }), nil, "ties are not upgrades")
-equipment[1] = "old"
-Suite.db.scorePreset = "caster"
-equal(Suite.Items:UpgradeDelta("better"), 5, "stat improvement detected")
-equal(Suite.Items:UpgradeDelta("worse"), nil, "higher item level alone is not a stat upgrade")
-equal(Suite.Items:UpgradeDelta("future"), nil, "level requirement enforced")
-equal(Suite.Items:UpgradeDelta("forbidden"), nil, "unusable item omitted")
-equal(Suite.Items:UpgradeDelta("weapon"), 12, "caster two-handed bonuses compare against empty hands")
-equipment[11], equipment[12] = "ring1", "ring2"
-equal(Suite.Items:UpgradeDelta("ring"), 3, "ring slots compared correctly")
-equipment[12] = "uncached"
-equal(Suite.Items:UpgradeDelta("ring"), nil, "missing equipped data prevents a hint")
 equal(Suite.Items:GetInfo({ secret = true }), nil, "secret item identifiers not passed to APIs")
+equipment[1] = "old"
 equipment[11], equipment[12] = nil, nil
 equipment[4], equipment[19] = "future", "future"
 local average, count = Suite.Tooltips:EquippedLevel()
@@ -304,7 +290,7 @@ window.GetFrameLevel = function() return 5 end
 window.GetRect = function() return 100, 100, 300, 200 end
 local windowRecord = { name = "Sample", frame = window, handles = {} }
 Suite.db.windowTools = true
-Suite.db.windowPositions.Sample = { x = 0.49, y = 0.49, scale = 1 }
+Suite.Windows.positions.Sample = { x = 0.49, y = 0.49, scale = 1 }
 Suite.Windows:ApplyRecord(windowRecord)
 equal(window.appliedPoint[4], 100, "clamp window horizontally to the screen")
 equal(window.appliedPoint[5], 100, "clamp window vertically to the screen")
@@ -339,22 +325,22 @@ bag.frame.centerX, bag.frame.centerY = 650, 450
 bag.handle.OnDragStart(bag.handle, "LeftButton")
 equal(bag.frame.moving, true, "bag drag starts without an edit mode")
 bag.handle.OnDragStop(bag.handle)
-equal(Suite.db.windowPositions[bag.name].x, 0.15, "bag drag saves its position")
+equal(Suite.Windows.positions[bag.name].x, 0.15, "bag drag saves its position")
 equal(bag.frame:IsMovable(), false, "drag restores the prior native movable flag")
 bag.handle.OnMouseUp(bag.handle, "RightButton")
-equal(Suite.db.windowPositions[bag.name] ~= nil, true, "ordinary right-click keeps saved layout")
+equal(Suite.Windows.positions[bag.name] ~= nil, true, "ordinary right-click keeps saved layout")
 controlDown = true
 bag.handle.OnMouseUp(bag.handle, "LeftButton")
-equal(Suite.db.windowPositions[bag.name] ~= nil, true, "Ctrl-left-click keeps saved layout")
+equal(Suite.Windows.positions[bag.name] ~= nil, true, "Ctrl-left-click keeps saved layout")
 bag.frame:SetScale(1.3)
 bag.handle.OnMouseUp(bag.handle, "RightButton")
-equal(Suite.db.windowPositions[bag.name], nil, "Ctrl-right-click resets saved layout")
+equal(Suite.Windows.positions[bag.name], nil, "Ctrl-right-click resets saved layout")
 equal(bag.frame:GetScale(), 1, "Ctrl-right-click restores default size")
 equal(bag.frame.point[1], "BOTTOMRIGHT", "Ctrl-right-click restores default anchor")
-Suite.db.windowPositions[bag.name] = { x = 0.1, y = 0.1, scale = 1.2 }
+Suite.Windows.positions[bag.name] = { x = 0.1, y = 0.1, scale = 1.2 }
 bag.frame.OnMouseUp(bag.frame, "RightButton")
-equal(Suite.db.windowPositions[bag.name], nil, "window background supports Ctrl-right-click reset")
-Suite.db.windowPositions[bag.name] = { x = 0.15, y = 0.05, scale = 1.2 }
+equal(Suite.Windows.positions[bag.name], nil, "window background supports Ctrl-right-click reset")
+Suite.Windows.positions[bag.name] = { x = 0.15, y = 0.05, scale = 1.2 }
 Suite.Windows:ApplyRecord(bag)
 bag.frame:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -30, 30)
 callbacks = queued; queued = {}
@@ -363,10 +349,10 @@ equal(bag.frame.point[1], "CENTER", "bag manager reflow preserves saved position
 equal(bag.frame:GetScale(), 1.2, "bag manager reflow preserves saved size")
 combat = true
 bag.handle.OnMouseUp(bag.handle, "RightButton")
-equal(Suite.db.windowPositions[bag.name] ~= nil, true, "reset waits for combat to finish")
+equal(Suite.Windows.positions[bag.name] ~= nil, true, "reset waits for combat to finish")
 combat = false
 frames[1].OnEvent(frames[1], "PLAYER_REGEN_ENABLED")
-equal(Suite.db.windowPositions[bag.name], nil, "deferred Ctrl-right-click reset applies after combat")
+equal(Suite.Windows.positions[bag.name], nil, "deferred Ctrl-right-click reset applies after combat")
 controlDown = false
 ContainerFrameCombinedBags, ContainerFrame2 = nil, nil
 
@@ -443,13 +429,13 @@ receiver.OnDragStart(receiver, "LeftButton")
 equal(standard.moving, true, "a drag routed above the native title layer moves the actual window")
 receiver.OnDragStop(receiver)
 equal(standard.moving, false, "routed header drag stops cleanly")
-equal(Suite.db.windowPositions.HeaderTest ~= nil, true, "routed header drag persists its layout")
+equal(Suite.Windows.positions.HeaderTest ~= nil, true, "routed header drag persists its layout")
 nativeHeader.handle.OnMouseWheel(nativeHeader.handle, 1)
 equal(standard:GetScale(), 1, "plain header scrolling does not resize")
 controlDown = true
 nativeHeader.handle.OnMouseWheel(nativeHeader.handle, 1)
 equal(math.floor(standard:GetScale() * 100 + 0.5), 105, "Ctrl-scroll up enlarges the window")
-equal(Suite.db.windowPositions.HeaderTest.scale, standard:GetScale(), "wheel scale is saved immediately")
+equal(Suite.Windows.positions.HeaderTest.scale, standard:GetScale(), "wheel scale is saved immediately")
 nativeHeader.handle.OnMouseWheel(nativeHeader.handle, -1)
 equal(math.floor(standard:GetScale() * 100 + 0.5), 100, "Ctrl-scroll down reduces the window")
 nativeHeader.handle.OnMouseWheel(nativeHeader.handle, 100)
@@ -462,7 +448,7 @@ equal(standard:GetScale(), 0.55, "wheel resizing never changes protected geometr
 combat = false
 nativeHeader.handle.OnMouseUp(nativeHeader.handle, "RightButton")
 equal(standard:GetScale(), 1, "Ctrl-right-click resets wheel sizing to its original scale")
-equal(Suite.db.windowPositions.HeaderTest, nil, "Ctrl-right-click clears saved wheel layout")
+equal(Suite.Windows.positions.HeaderTest, nil, "Ctrl-right-click clears saved wheel layout")
 controlDown = false
 local modal = HeaderChild(standard, standard, 0, -200, 400, 200, false)
 modal.name = "HeaderTestModalBlocker"
@@ -558,7 +544,7 @@ equal(menuBag.moving, true, "native bag header starts movement")
 menuHeader.handle.OnDragStop(menuHeader.handle)
 menuHeader.handle.OnMouseUp(menuHeader.handle, "LeftButton")
 equal(menuClicks, 2, "ending a bag drag does not open its menu")
-equal(Suite.db.windowPositions.ContainerFrameMenuTest ~= nil, true, "native header drag still saves bag placement")
+equal(Suite.Windows.positions.ContainerFrameMenuTest ~= nil, true, "native header drag still saves bag placement")
 menuHeader.handle.OnMouseDown(menuHeader.handle, "LeftButton")
 cursorX = 700
 menuHeader.handle.OnMouseUp(menuHeader.handle, "LeftButton")
@@ -580,7 +566,7 @@ controlDown = true
 menuHeader.handle.OnMouseDown(menuHeader.handle, "RightButton")
 menuHeader.handle.OnMouseUp(menuHeader.handle, "RightButton")
 controlDown = false
-equal(Suite.db.windowPositions.ContainerFrameMenuTest, nil, "Ctrl-right-click resets through the shared bag title")
+equal(Suite.Windows.positions.ContainerFrameMenuTest, nil, "Ctrl-right-click resets through the shared bag title")
 equal(menuClicks, 3, "bag title reset does not open its menu")
 cursorX, cursorY = 360, 588
 menuHeader.handle.OnMouseDown(menuHeader.handle, "LeftButton")
@@ -649,12 +635,8 @@ equal(Suite.GUI.frame.height, 760, "rectangular workspace adds room for content 
 equal(#Suite.GUI.homeCards, 6, "home exposes six navigation shortcuts without duplicate switches")
 equal(Suite.GUI.homeToolButtons[1].page, "characters", "home provides direct recorded inventory access")
 equal(Suite.GUI.homeCards[6].page, "browse_tools", "home lists the complete tools directory")
-Suite.GUI:Select("items", "upgrades")
+Suite.GUI:Select("items")
 local frameCount = #frames
-equal(Suite.GUI.rows[6].value.text, "Automatic", "fresh character has a ready-to-use automatic profile")
-Suite.GUI:Action("preset")
-Suite.GearSettings:Choose("physical")
-equal(Suite.Scoring:ActiveID(), "physical", "profile picker changes this character's chosen preset")
 frameCount = #frames
 Suite.GUI:Select("overview")
 equal(#frames, frameCount, "navigation reuses its controls")
@@ -865,16 +847,6 @@ do
     recycled:SetItemButtonQuality(2, "secretQuality")
     equal(record.level.text, 20, "readable gear level does not require indexing a restricted quality")
     C_Item.GetItemInfo = originalInfo
-    Suite.db.upgradeHints, Suite.db.itemLevels = true, false
-    Suite.Scoring:SetProfile("caster")
-    equipment[1] = "old"
-    recycled:SetItemButtonQuality(2, "better")
-    equal(record.level.text, "", "icon levels remain independently optional")
-    equal(record.arrow.text, "+", "equipment stat hints still work with icon levels disabled")
-    recycled:SetItemButtonQuality(2, "cookedFish")
-    equal(record.arrow.text, "", "recycled non-equipment clears the stat hint")
-    Suite.db.upgradeHints, Suite.db.itemLevels = false, true
-
     local originalInstant, originalRequest, originalQueue = C_Item.GetItemInfoInstant, C_Item.RequestLoadItemDataByID, queued
     queued = {}
     local loads = {}
@@ -917,7 +889,7 @@ do
     local oldLink, oldExists, oldCurrent, oldInfo = C_Item.GetItemLink, C_Item.DoesItemExist, C_Item.GetCurrentItemLevel, C_Item.GetItemInfo
     local oldQueue, oldPending = queued, Suite.pending
     queued, Suite.pending = {}, {}
-    Suite.db.itemLevels, Suite.db.upgradeHints = true, false
+    Suite.db.itemLevels = true
     local link, currentLevel, bagReads = "better", 24, 0
     ItemLocation = { CreateFromBagAndSlot = function(_, bag, slot) return { bagID = bag, slotIndex = slot } end }
     C_Container = { GetContainerItemLink = function(bag, slot)
@@ -1035,13 +1007,6 @@ do
     equal(Suite.Items.buttons[bankButton].level.text, "", "bank tab refresh clears emptied slots")
 
     link, currentLevel = "better", { secret = true }
-    Suite.db.itemLevels, Suite.db.upgradeHints = false, true
-    Suite.Scoring:SetProfile("caster")
-    equipment[1] = "old"
-    ContainerFrameCombinedBags:UpdateItems()
-    equal(record.arrow.text, "+", "stat hints do not read current item levels when icon levels are off")
-    Suite.db.itemLevels, Suite.db.upgradeHints = true, false
-
     local equipped = Frame()
     equipped.GetBagID, equipped.GetID = function() return nil end, function() return 16 end
     equipped.GetItemLink = function() return nil end
@@ -1777,10 +1742,6 @@ assert(loadfile("tests/mail_spec.lua"))(Suite, equal, Frame, function(value) com
 assert(loadfile("tests/chat_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/chat_copy_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/items_spec.lua"))(Suite, equal)
-assert(loadfile("tests/upgrade_spec.lua"))(Suite, equal, Frame)
-assert(loadfile("tests/armor_upgrade_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
-assert(loadfile("tests/gear_profiles_spec.lua"))(Suite, equal, Frame, function(value) combat = value end, frames[1])
-assert(loadfile("tests/gear_model_spec.lua"))(Suite, equal, Frame, function(value) combat = value end, frames[1])
 assert(loadfile("tests/quests_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/loot_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/bagsort_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
@@ -1825,4 +1786,13 @@ assert(loadfile("tests/window_placement_spec.lua"))(Suite, equal, Frame, functio
 assert(loadfile("tests/diagnostics_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 assert(loadfile("tests/version_check_spec.lua"))(Suite, equal, function(value) combat = value end)
 assert(loadfile("tests/menus_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/shopping_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/itemrules_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/gear_removed_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/feature_review_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/inventory_filters_spec.lua"))(Suite, equal)
+assert(loadfile("tests/list_icons_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/item_link_click_spec.lua"))(Suite, equal, function(value) combat = value end)
+assert(loadfile("tests/merchant_restock_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
+assert(loadfile("tests/profession_routes_spec.lua"))(Suite, equal, Frame, function(value) combat = value end)
 print("Behavior checks passed: " .. checks)

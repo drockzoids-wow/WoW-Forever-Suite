@@ -32,6 +32,9 @@ jobs:
         shell: pwsh
         run: ./scripts/Bootstrap-Checks.ps1
 
+      - name: Reject test-only taint logging
+        run: node scripts/check-release.cjs
+
       - name: Check addon
         run: node scripts/check-addon.cjs
 

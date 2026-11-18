@@ -22,7 +22,8 @@ local function Query(value)
     return value:match("^%s*(.-)%s*$")
 end
 local function Key(view)
-    return view.query:lower() .. "\031" .. (view.owner or "") .. "\031" .. view.location
+    return view.query:lower() .. "\031" .. (view.owner or "") .. "\031" .. view.location .. "\031" .. (view.filters and view.filters.kind or "all")
+        .. "\031" .. (view.filters and view.filters.quality or "all") .. "\031" .. (view.filters and view.filters.age or "all")
 end
 local function Label(parent, text, x, y, width, size, color)
     local label = parent:CreateFontString(nil, "OVERLAY")
@@ -47,8 +48,9 @@ function Browser:InitializeOptions(saved)
             local location = Text(entry.location) and locations[entry.location] and entry.location
             local owner = entry.owner
             if query and location and Suite.IsReadable(entry.owner) and (owner == nil or Text(owner)) then
-                local view = { query = query, location = location, owner = owner }
-                if not seen[Key(view)] then options.favorites[#options.favorites + 1], seen[Key(view)] = view, true end
+                local filters = Suite.InventorySearch:NormalizeFilters(entry.filters)
+                local view = filters and { query = query, location = location, owner = owner, filters = filters, name = Text(entry.name, 40) and entry.name or nil }
+                if view and not seen[Key(view)] then options.favorites[#options.favorites + 1], seen[Key(view)] = view, true end
             end
         end
     end
@@ -61,7 +63,31 @@ function Browser:Options()
     end
     return options
 end
-function Browser:View() return { query = Query(self.query) or "", owner = self.owner, location = self.location } end
+function Browser:View() return { query = Query(self.query) or "", owner = self.owner, location = self.location,
+    filters = Suite.InventorySearch:NormalizeFilters(self.filters) } end
+function Browser:SetFilter(key, value)
+    if InCombatLockdown() or not Text(key) or not Suite.InventorySearch.filterChoices[key] then return false end
+    local filters = Suite.InventorySearch:NormalizeFilters(self.filters)
+    filters[key] = value
+    filters = Suite.InventorySearch:NormalizeFilters(filters)
+    if not filters then return false end
+    self.filters, self.page, self.message = filters, 1, nil; self:Update(); return true
+end
+function Browser:FilterMenu(button, key)
+    if InCombatLockdown() then return end
+    Suite.Menus.CreateContextMenu(button, function(_, root)
+        for _, choice in ipairs(Suite.InventorySearch.filterChoices[key]) do
+            local value = choice[1]
+            root:CreateButton(choice[2], function() self:SetFilter(key, value) end)
+        end
+    end)
+end
+function Browser:RenameCategory()
+    if InCombatLockdown() then return false end
+    local index, name = self:FavoriteIndex(), self.categoryName and Query(Call(self.categoryName.GetText, self.categoryName))
+    if not index or not Text(name, 40) then self.message = "Load a category and enter a name first."; self:Update(); return false end
+    self:Options().favorites[index].name = name; self.message = "Category renamed."; self:Update(); return true
+end
 function Browser:FavoriteIndex()
     local key = Key(self:View())
     for index, view in ipairs(self:Options().favorites) do if Key(view) == key then return index end end
@@ -72,7 +98,12 @@ function Browser:SaveView()
     local success = true
     if index then table.remove(favorites, index); self.message = "Saved view removed."
     elseif #favorites >= MAX_FAVORITES then success = false; self.message = "Eight views are saved. Remove a saved view before adding another."
-    else favorites[#favorites + 1] = self:View(); self.message = "Search and filters saved." end
+    else
+        local view = self:View()
+        local name = self.categoryName and Query(Call(self.categoryName.GetText, self.categoryName))
+        view.name = Text(name, 40) and name or (view.query ~= "" and view.query:sub(1, 40) or Suite.InventorySearch:FilterLabel("kind", view.filters.kind))
+        favorites[#favorites + 1] = view; self.message = "Category saved."
+    end
     self:Update(); return success
 end
 function Browser:LoadView(index)
@@ -80,6 +111,8 @@ function Browser:LoadView(index)
     local view = self:Options().favorites[index]
     if not view then return false end
     self.query, self.owner, self.location = view.query, view.owner, view.location
+    self.filters = Suite.InventorySearch:NormalizeFilters(view.filters)
+    if self.categoryName then self.categoryName:SetText(view.name or "") end
     self.page, self.expanded, self.message = 1, false, nil
     self:Update(); return true
 end
@@ -152,12 +185,6 @@ function Browser:SetLocation(location)
     if InCombatLockdown() or not Text(location) or not locations[location] then return false end
     self.location, self.page, self.message = location, 1, nil; self:Update(); return true
 end
-function Browser:ToggleOwner()
-    if InCombatLockdown() then return end
-    if self.owner then self.owner = nil
-    else self.owner = Suite.CharacterDashboard.selected end
-    self.page, self.message = 1, nil; self:Update()
-end
 function Browser:Select(row)
     if InCombatLockdown() or not row then return end
     if row.link and (Call(IsModifiedClick, "CHATLINK") == true or Call(IsModifiedClick, "DRESSUP") == true) then
@@ -187,7 +214,6 @@ function Browser:Tooltip(button)
         tip:AddLine((key == "bags" and "Bags recorded: " or "Bank recorded: ") .. (Text(stamp) and stamp or "Date unavailable"), unpack(colors.muted))
     end end
     tip:AddLine("Recorded counts; item variants are combined.", unpack(colors.muted))
-    tip:AddLine("Gear comparisons use your current character.", unpack(colors.muted))
     tip:AddLine("Click to browse this owner. Modified item-link clicks stay native.", unpack(colors.muted))
     tip:Show()
     if row.link and type(GameTooltip_ShowCompareItem) == "function" and Call(IsModifiedClick, "COMPAREITEMS") == true then
@@ -201,6 +227,10 @@ function Browser:FavoriteTooltip(button)
     tip:AddLine(view.query ~= "" and view.query or "All recorded items", unpack(colors.teal))
     tip:AddLine(view.owner and self:OwnerName(view.owner) or "All characters", unpack(colors.text))
     tip:AddLine(locations[view.location], unpack(colors.muted))
+    local filters = Suite.InventorySearch:NormalizeFilters(view.filters)
+    for _, key in ipairs({ "kind", "quality", "age" }) do
+        tip:AddLine(Suite.InventorySearch:FilterLabel(key, filters[key]), unpack(colors.muted))
+    end
     tip:AddLine("Click to restore this search and its filters.", unpack(colors.muted)); tip:Show()
 end
 function Browser:Cancel()
@@ -255,9 +285,28 @@ function Browser:Build(parent)
     panel:SetPoint("TOPLEFT", 0, -40)
     panel:SetScript("OnEvent", function(_, ...) self:OnEvent(...) end)
     panel:SetScript("OnHide", function() self:SetVisible(false) end)
-    self.ownerButton = Button(panel, "All characters", 0, 0, 384, function() self:ToggleOwner() end)
+    self.ownerButton = Button(panel, "All characters", 0, 0, 384, function()
+        Suite.Menus.CreateContextMenu(self.ownerButton, function(_, root)
+            local function Select(guid) self.owner, self.page = guid, 1; self:Update() end
+            root:CreateButton("All characters", function() Select(nil) end)
+            local owners = {}
+            for guid, owner in pairs(Suite.InventorySearch.owners or {}) do
+                if guid ~= "account" then owners[#owners + 1] = owner end
+            end
+            table.sort(owners, function(a, b) if a.name ~= b.name then return a.name < b.name end; return a.guid < b.guid end)
+            for _, owner in ipairs(owners) do
+                local guid = owner.guid
+                root:CreateButton(owner.name .. " · " .. owner.context .. (owner.current and " (You)" or ""), function() Select(guid) end)
+            end
+        end)
+    end)
     self.locationButton = Button(panel, "All locations", 396, 0, 384, function()
-        self:SetLocation(({ all = "bags", bags = "bank", bank = "account", account = "all" })[self.location])
+        Suite.Menus.CreateContextMenu(self.locationButton, function(_, root)
+            for _, key in ipairs({ "all", "bags", "bank", "account" }) do
+                local location = key
+                root:CreateButton(locations[key], function() self:SetLocation(location) end)
+            end
+        end)
     end)
     self.scope = Label(panel, "", 0, -36, 780, 10, colors.muted)
     local search = CreateFrame("EditBox", nil, panel, "BackdropTemplate"); self.search = search
@@ -275,10 +324,28 @@ function Browser:Build(parent)
     search:SetScript("OnEnterPressed", function(box) box:ClearFocus(); self:Cancel(); self:Update() end)
     self.saveButton = Button(panel, "Save view", 692, -58, 88, function() self:SaveView() end)
     self.favoriteButton = Button(panel, "Saved searches", 0, -98, 384, function() self.expanded = not self.expanded; self:Update() end)
-    self.favoriteHint = Label(panel, "Searches remember these filters", 408, -107, 372, 10, colors.muted)
+    self.favoriteHint = Label(panel, "", 0, -184, 780, 10, colors.muted)
+    local name = CreateFrame("EditBox", nil, panel, "BackdropTemplate"); self.categoryName = name
+    name:SetPoint("TOPLEFT", 396, -98); name:SetSize(278, 28); name:SetAutoFocus(false); name:SetMaxLetters(40)
+    name:SetFont("Fonts\\FRIZQT__.TTF", 11, ""); name:SetTextInsets(8, 8, 0, 0)
+    name:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+    name:SetBackdropColor(unpack(colors.row)); Suite.Theme:Backdrop(name, 1)
+    name:SetScript("OnEscapePressed", function(box) box:ClearFocus() end)
+    name:SetScript("OnEnterPressed", function(box) box:ClearFocus(); self:RenameCategory() end)
+    self.renameButton = Button(panel, "Rename", 686, -98, 94, function() self:RenameCategory() end)
+    self.filterButtons = {}
+    for index, key in ipairs({ "kind", "quality", "age" }) do
+        local button
+        button = Button(panel, "", (index - 1) * 198, -136, 186, function() self:FilterMenu(button, key) end)
+        self.filterButtons[key] = button
+    end
+    self.clearButton = Button(panel, "Clear filters", 594, -136, 186, function()
+        self.filters, self.query, self.owner, self.location, self.page = nil, "", nil, "all", 1
+        self.categoryName:SetText(""); self:Update()
+    end)
     self.favoriteRows = {}
     for index = 1, MAX_FAVORITES do
-        self.favoriteRows[index] = Button(panel, "", ((index - 1) % 2) * 396, -136 - math.floor((index - 1) / 2) * 34, 384,
+        self.favoriteRows[index] = Button(panel, "", ((index - 1) % 2) * 396, -208 - math.floor((index - 1) / 2) * 34, 384,
             function() self:LoadView(index) end)
         local button = self.favoriteRows[index]
         button:SetScript("OnEnter", function() self:FavoriteTooltip(button) end)
@@ -320,7 +387,7 @@ function Browser:Refresh()
     if not self.panel or InCombatLockdown() then return end
     self:HideTooltip()
     local more
-    self.rows, self.pendingItems, more = Suite.InventorySearch:Query(self.query, { browse = true, owner = self.owner, location = self.location })
+    self.rows, self.pendingItems, more = Suite.InventorySearch:Query(self.query, { browse = true, owner = self.owner, location = self.location, filters = self.filters })
     local favorites, selected = self:Options().favorites, self:FavoriteIndex()
     self.updating = true; self.search:SetText(self.query); self.updating = nil
     self.placeholder:SetShown(self.query == "")
@@ -329,15 +396,18 @@ function Browser:Refresh()
     self.locationButton.label:SetText(locations[self.location])
     self.scope:SetText(self.location == "account" and "Shared contents are counted once for this region."
         or self.owner and ("Inventory belonging to " .. self:OwnerName(self.owner)) or "All recorded characters in this region")
-    self.saveButton.label:SetText(selected and "Remove" or "Save view")
-    self.favoriteButton.label:SetText((self.expanded and "Hide" or "Saved") .. " searches (" .. #favorites .. ")")
-    self.favoriteHint:SetText(self.expanded and #favorites == 0 and "Use Save view to keep a search." or "Saved views include character and location.")
-    local extra = self.expanded and math.ceil(#favorites / 2) * 34 + 8 or 0
+    self.saveButton.label:SetText(selected and "Remove" or "Save")
+    local filters = Suite.InventorySearch:NormalizeFilters(self.filters)
+    for key, button in pairs(self.filterButtons) do button.label:SetText(Suite.InventorySearch:FilterLabel(key, filters[key])) end
+    self.renameButton:SetEnabled(selected ~= nil)
+    self.favoriteButton.label:SetText((self.expanded and "Hide" or "Saved") .. " categories (" .. #favorites .. ")")
+    self.favoriteHint:SetText("Optional name beside categories; Save keeps search, filters, character and location. Load to rename or remove.")
+    local extra = 72 + (self.expanded and math.ceil(#favorites / 2) * 34 + 8 or 0)
     for index, button in ipairs(self.favoriteRows) do
         local view = favorites[index]
         button:SetShown(self.expanded and view ~= nil)
         button.view = view
-        if view then button.label:SetText((view.query ~= "" and view.query or "All items") .. " · "
+        if view then button.label:SetText((view.name or (view.query ~= "" and view.query or "All items")) .. " · "
             .. (view.owner and self:OwnerName(view.owner) or "Everyone") .. " · " .. locations[view.location]) end
     end
     local function Place(widget, x, y) widget:ClearAllPoints(); widget:SetPoint("TOPLEFT", x, -y) end
@@ -374,7 +444,7 @@ function Browser:Refresh()
     end
     Place(self.empty, 0, 192 + extra); self.empty:SetShown(#self.rows == 0)
     self.empty:SetText(not Suite.InventorySearch.region and "Character region unavailable."
-        or self.pendingItems > 0 and "Item names are loading or unavailable. Search by item ID to find an uncached item."
+        or self.pendingItems > 0 and "Some item data is unavailable. Clear type/quality filters or search by item ID."
         or self.owner and "No recorded items match this view. Unknown locations are not treated as empty."
         or "No recorded items match this view. Enable character recording, log into alts, and visit their banks.")
     local visibleRows = math.min(ROWS, #self.rows)
@@ -391,7 +461,7 @@ function Browser:Refresh()
     self.bankButton.label:SetTextColor(unpack(available and colors.teal or colors.muted))
     bottom = bottom + 39; Place(self.notice, 0, bottom)
     self.notice:SetText(self.message or (Suite.InventorySearch.limited and "Some results omitted. " or "")
-        .. (self.pendingItems > 0 and self.pendingItems .. " item names loading/unavailable. " or "")
+        .. (self.pendingItems > 0 and self.pendingItems .. " items with unavailable name/filter data. " or "")
         .. "Snapshots can be stale. Log into alts and visit banks to refresh; no items can be moved here.")
     self.panel:SetHeight(bottom + 38)
     if more then self:Schedule() end

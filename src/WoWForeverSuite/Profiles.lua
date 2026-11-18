@@ -3,8 +3,9 @@ local Profiles = { limit = 12 }
 Suite.Profiles = Profiles
 -- These records describe possessions, ownership, safety rules or native restoration state.
 -- They must never be rolled back or copied by a settings/layout switch.
-Profiles.excluded = { schema=true, setupGuide=true, inventory=true, inventoryBrowser=true,
-    mailContacts=true, coordinateTellHistory=true, macroOwnership=true, bagSpaceBlacklist=true, scorePreset=true, upgradePreference=true, talentBuilds=true }
+Profiles.excluded = { schema=true, setupGuide=true, inventory=true, inventoryBrowser=true, windowPositions=true,
+    mailContacts=true, coordinateTellHistory=true, macroOwnership=true, bagSpaceBlacklist=true,
+    itemKeepRules=true, itemKeepRulesEnabled=true, scorePreset=true, upgradePreference=true, talentBuilds=true }
 local function Table(v) return Suite.IsReadable(v) and type(v) == "table" end
 local function Text(v, limit) return Suite.IsReadable(v) and type(v) == "string" and #v > 0 and #v <= (limit or 80) and not v:find("[%c|]") end
 local function Clone(value, depth, seen, budget)
@@ -199,7 +200,7 @@ function Profiles:Review(id,personal)
     local labels = {}
     for _,entry in ipairs(Suite.SettingsCatalog.entries) do labels[entry.key]=entry.label end
     local current = self:Settings(Suite.db)
-    local layoutLabels = {windowPositions="Window positions and sizes",guiPosition="Suite panel position",
+    local layoutLabels = {guiPosition="Suite panel position",
         meterWindows="Meter layout and appearance",meterDock="Meter docking",castbars="Castbar sizes",
         campingPosition="Camping bar position",missingBuffPosition="Buff bar position",
         procAlertPosition="Proc popup position",combatIndicatorPosition="Combat indicator position",

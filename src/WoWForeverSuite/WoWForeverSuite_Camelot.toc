@@ -3,7 +3,7 @@
 ## Notes: A personal collection of optional tools for WoW Forever.
 ## Author: Drockzoids
 ## IconTexture: Interface\AddOns\WoWForeverSuite\Media\ForeverSuiteIcon.tga
-## Version: 1.0.20
+## Version: 1.0.21
 ## Bindings: Bindings.xml
 ## SavedVariables: WoWForeverSuiteDB
 ## SavedVariablesPerCharacter: WoWForeverSuiteCharDB
@@ -17,9 +17,6 @@ Theme.lua
 Menus.lua
 Profiles.lua
 Bindings.lua
-Scoring.lua
-GearStats.lua
-GearSpecs.lua
 Diagnostics.lua
 Minimap.lua
 MinimapButton.lua
@@ -27,6 +24,7 @@ MinimapDrawer.lua
 MapRevealData.lua
 WorldMap.lua
 Windows.lua
+ItemRules.lua
 BagSort.lua
 BankDeposit.lua
 CombinedBags.lua
@@ -49,11 +47,14 @@ ProfessionHelper.lua
 ProfessionGuideData.lua
 ProfessionRecipeSources.lua
 ProfessionLeveling.lua
+ProfessionRoutes.lua
 TrainingCatalogData.lua
 TrainingCatalog.lua
 TrainingWeapons.lua
 Training.lua
 ReleaseTools.lua
+ShoppingList.lua
+MerchantRestock.lua
 TalentPlanner.lua
 TalentPlannerRules.lua
 TalentPlannerOrder.lua
@@ -100,7 +101,7 @@ DamageMeterMenus.lua
 DamageMeterDetails.lua
 Setup.lua
 SettingsCatalog.lua
+FeatureReview.lua
 GUI.lua
-GearSettings.lua
 ProfileSettings.lua
 BuffSettings.lua

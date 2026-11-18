@@ -40,9 +40,11 @@ Read `docs/forever-development.md`, `docs/feature-plan.md` and `docs/testing.md`
 - Tooltip post-calls must use the supplied data and guard optional methods. Comparison tooltips lack GameTooltip's `GetItem`/`GetUnit` compatibility methods on this client.
 - Upgrade hints mean improvements under disclosed stat weights. Do not label them definitive best-in-slot decisions. Do not compare weapon configurations without a model for DPS and hand combinations.
 - The GUI is an original slate-and-teal panel with a sidebar, reusable controls and clear wording. Keep implementation and research details out of normal user flows.
+- User instruction, November 16, 2026: design for visual scanning. Item lists include item icons beside names; quantities use aligned, clearly labelled columns where useful. Use spacing, hierarchy and consistent colors to distinguish requirements, observed stock and shortages. Color supplements written labels, never replaces them; preserve explicit unknown/incomplete states.
 
 ## Validation and delivery
 
+- User instruction, November 16, 2026: development/test builds automatically enable level-2 taint logging at addon load and login. Keep this temporary instrumentation during testing/updates, but never ship it to CurseForge. Remove `TestDiagnostics.lua` and its entries in both TOCs before release; retain `scripts/check-release.cjs` and the local/CI release gates. Restore the temporary instrumentation for the next development/testing cycle. Removing it does not turn off a client CVar already enabled; use `/console taintLog 0` when testing ends.
 - Run `node scripts/check-addon.cjs` after code changes. If its cache is missing, `scripts/Bootstrap-Checks.ps1` fetches pinned test dependencies without install scripts.
 - The checks cover Lua syntax, packaging inputs and behavior with API substitutes. They do not prove game compatibility, taint safety or visual correctness.
 - In-game smoke tests in `docs/testing.md` are required before calling a feature verified. Record the actual build and results.

@@ -1,5 +1,7 @@
 local Suite, equal, Frame, setCombat, events = ...
 local setup, gui = Suite.Setup, Suite.GUI
+local priorWindowPositions = Suite.Windows.positions
+Suite.Windows.positions = {}
 local saved = { db = Suite.db, apply = Suite.Apply, cvar = C_CVar, pending = Suite.pending,
     hide = gui.frame.Hide, setShown = gui.frame.SetShown, page = gui.page, shown = gui.frame:IsShown() }
 local applies, writes = 0, 0
@@ -152,7 +154,7 @@ equal(total > 60, true, "guide includes newer tools beyond the original 36 choic
 for _, key in ipairs({ "autoOpenContainers", "questItemButton", "levelingBar", "zoneReputation", "playerBuffBorders", "targetThreat",
     "missingBuffs", "missingBuffSelf", "missingBuffOutgoing", "missingBuffIncoming", "missingBuffClass", "progressBarSegments",
     "borderColorMode", "bagSpaceAlert", "reverseCombinedBags", "reverseBagSlots", "inventorySearch", "characterDashboard",
-    "upgradeHints", "classNames", "modifierDisenchant", "disenchantModifier", "macroUpdates", "audioSync" }) do
+    "classNames", "modifierDisenchant", "disenchantModifier", "macroUpdates", "audioSync" }) do
     equal(keys[key], true, "guide includes supported newer choice: " .. key)
 end
 for _, key in ipairs({ "trainingPlanner", "trainingAuto", "trainingLevelUp", "trainingSpellbook", "chatHistory",
@@ -187,8 +189,8 @@ gui.setupReviewText.GetStringHeight = reviewHeight
 
 -- Successful application touches chosen settings only and coalesces module application.
 Fresh()
-Suite.db.windowPositions.example = { x = 0.3, y = 0.4 }
-Suite.db.upgradeHints, Suite.db.scorePreset = true, "caster"
+Suite.Windows.positions.example = { x = 0.3, y = 0.4 }
+Suite.db.professionUsage = true
 Suite.db.keybindSize = 19
 setup:Open()
 setup:Stage("quickLoot", true)
@@ -220,10 +222,9 @@ equal(Suite.db.quickLoot, true, "chosen loot feature applies")
 equal(Suite.db.windowTools, true, "chosen window feature applies")
 equal(Suite.db.minimapButton, false, "launcher can be independently disabled")
 equal(Suite.db.chatStyle, true, "untouched external feature is retained")
-equal(Suite.db.upgradeHints, true, "advanced feature outside the guide is retained")
-equal(Suite.db.scorePreset, "caster", "stat weights remain unchanged")
+equal(Suite.db.professionUsage, true, "profession uses outside the guide are retained")
 equal(Suite.db.keybindSize, 19, "custom font size remains unchanged")
-equal(Suite.db.windowPositions.example.x, 0.3, "existing layouts remain unchanged")
+equal(Suite.Windows.positions.example.x, 0.3, "existing layouts remain unchanged")
 equal(Suite.db.setupGuide.completed, true, "completion persists at account scope")
 equal(gui.page, "overview", "completion returns to normal settings")
 equal(setup:Finish(), false, "repeat completion cannot apply the stale draft")
@@ -400,3 +401,5 @@ Suite.db, Suite.Apply, C_CVar, Suite.pending = saved.db, saved.apply, saved.cvar
 gui.frame.Hide, gui.frame.SetShown = saved.hide, saved.setShown
 gui:Select(saved.page or "overview")
 gui.frame:SetShown(saved.shown)
+
+Suite.Windows.positions = priorWindowPositions

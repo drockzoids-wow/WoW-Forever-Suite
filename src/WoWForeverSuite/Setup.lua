@@ -83,7 +83,6 @@ Setup.pages = {
         { key = "mailRememberRecipient", label = "Remember recipient", help = "Keep To after a successful send.\nClears when you close the mailbox.", suggested = false },
         { key = "chatStyle", label = "Suite chat style", help = "A quieter chat panel and copy tool.\nAdjust font and opacity in Chat.", suggested = false },
         { key = "campingBar", label = "Camping bar", help = "Rest and use carried camp objects\nwhile Campfire Nearby is active.", suggested = false },
-        { key = "upgradeHints", label = "Gear upgrade hints", help = "Hints use your chosen stat weights.\nThey are not definitive best-in-slot.", suggested = false },
         { key = "classNames", label = "Class-colored names", help = "Color player tooltip names by class.\nKeeps the native tooltip content.", suggested = true },
         { key = "modifierDisenchant", label = "Disenchant shortcut", help = "Modifier-click eligible bag gear.\nDisenchanting destroys that item.", suggested = false },
         { key = "disenchantModifier", label = "Disenchant modifier", help = "Choose Alt, Ctrl or Shift for the\noptional disenchant shortcut above.", choices = { "alt", "ctrl", "shift" }, labels = { alt = "Alt", ctrl = "Ctrl", shift = "Shift" }, suggested = "alt" },
@@ -192,6 +191,7 @@ function Setup:Dismiss()
     if not Suite.db or not self.draft then return end
     Suite.db.setupGuide.seen = true
     self.draft, self.dirty, self.message = nil, nil, nil
+    if Suite.FeatureReview then Suite.FeatureReview:Apply() end
 end
 
 function Setup:Open()

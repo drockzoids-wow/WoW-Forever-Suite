@@ -82,7 +82,9 @@ function Leveling:InitializeCharacter(saved)
 end
 function Leveling:RememberSkill(index, rank, maximum)
     if self.skills and guides[index] and ValidSkill(rank, maximum) then
+        local previous = self.skills[guides[index].name]
         self.skills[guides[index].name] = { rank = rank, maximum = maximum }
+        if Suite.ShoppingList and (not previous or previous.rank ~= rank) then Suite.ShoppingList:Changed() end
     end
 end
 function Leveling:CaptureSkills()
@@ -198,7 +200,60 @@ function Leveling:RecipeTraining(id)
         or Call(Field(C_TradeSkillUI, "IsRecipeInSkillLine"), id, skillLine) ~= true then return end
     return Field(info, "learned")
 end
+local function Coordinate(value) return Read(value, "number") and value == value and math.abs(value) < 10000000 end
+local function Vector(position, normalized)
+    local x = Call(Field(position, "GetX"), position)
+    local y = Call(Field(position, "GetY"), position)
+    if not Coordinate(x) or not Coordinate(y) then return end
+    if normalized and (x < 0 or x > 1 or y < 0 or y > 1 or x == 0 and y == 0) then return end
+    return x, y
+end
+local function WorldPosition(map, position)
+    local fn = Field(C_Map, "GetWorldPosFromMapPos")
+    if not Read(fn, "function") then return end
+    local ok, continent, vector = pcall(fn, map, position)
+    if not ok or not Number(continent) then return end
+    local x, y = Vector(vector)
+    if x then return continent, x, y end
+end
+function Leveling:NearestTrainer(id)
+    local reference = Suite.ProfessionRecipeSources[id]
+    local faction = self:Faction()
+    local candidates = reference and reference.kind == "Trainer" and reference.trainers
+    candidates = candidates and faction and candidates[faction]
+    if not candidates then return end
+    local map = Call(Field(C_Map, "GetBestMapForUnit"), "player")
+    if not Number(map) or map <= 0 or map % 1 ~= 0 then return end
+    local position = Call(Field(C_Map, "GetPlayerMapPosition"), map, "player")
+    local px, py = Vector(position, true)
+    if not px then return end
+    local continent, wx, wy = WorldPosition(map, position)
+    local nearest, distance, localNearest, localDistance
+    for _, point in ipairs(candidates) do
+        -- Coordinates from different zone maps are comparable only after native
+        -- conversion into a shared continent/world space. Never compare percentages.
+        if continent then
+            local vector = Call(CreateVector2D, point.x, point.y)
+            local other, x, y = WorldPosition(point.map, vector)
+            if other and other == continent then
+                local squared = (x - wx) ^ 2 + (y - wy) ^ 2
+                if not distance or squared < distance then nearest, distance = point, squared end
+            end
+        end
+        if point.map == map then
+            local squared = (point.x - px) ^ 2 + (point.y - py) ^ 2
+            if not localDistance or squared < localDistance then localNearest, localDistance = point, squared end
+        end
+    end
+    -- Maps/instances without comparable positions retain the existing source.
+    return nearest or localNearest
+end
 function Leveling:RecipeSource(id)
+    local trainer = self:NearestTrainer(id)
+    if trainer then
+        local reference = Suite.ProfessionRecipeSources[id]
+        return "Trainer: " .. trainer.name .. (reference.note and "\n" .. reference.note or "")
+    end
     -- Native source text includes trainer/vendor names and locations where provided.
     local source = Call(Field(C_TradeSkillUI, "GetRecipeSourceText"), id)
     if Read(source, "string") and #source > 0 and #source <= 4096 then return source end
@@ -209,9 +264,11 @@ function Leveling:RecipeSource(id)
         return reference.kind .. ": " .. (point and point.name or "See the guide source for learning details.")
             .. (reference.note and "\n" .. reference.note or "")
     end
-    return "Trainer/source details unavailable. Check the guide's source link for how to learn it."
+    return "Source unavailable. Check the guide's source link for how to learn it."
 end
 function Leveling:RecipeLocation(id, source)
+    local trainer = self:NearestTrainer(id)
+    if trainer then return trainer end
     -- A single valid native location takes precedence over reference coordinates.
     -- Multiple native links can list factions in any order; use the catalog then.
     local map, x, y, name = source:match("|Hworldmap:(%d+):([%d%.]+):([%d%.]+)|h%[?(.-)%]?|h")
@@ -253,9 +310,16 @@ function Leveling:SelectGuideRecipe(button)
         or not Number(guideIndex) or guideIndex % 1 ~= 0 or not guides[guideIndex] then return false end
     local current, _, context = self:Context()
     if current ~= guideIndex or self.selected ~= guideIndex then return self:RecipeMessage("Open this profession before selecting its recipes.") end
-    return self:RequestRecipe(id, guideIndex, context, false)
+    local requested = self:RequestRecipe(id, guideIndex, context, false)
+    if requested then Suite.ProfessionRoutes:Reset(); Suite.ProfessionRoutes:UpdateBack() end
+    return requested
 end
 function Leveling:RequestRecipe(id, guideIndex, context, automatic, expectedRank)
+    if self:RecipeBusy() then return self:RecipeMessage("Finish or stop the current crafting batch before selecting another recipe.") end
+    for _, name in ipairs({ "IsTradeSkillLinked", "IsTradeSkillGuild", "IsTradeSkillGuildMember", "IsNPCCrafting" }) do
+        local fn = Field(C_TradeSkillUI, name)
+        if Read(fn, "function") and Call(fn) ~= false then return self:RecipeMessage("Open your own profession before selecting recipes.") end
+    end
     if automatic and (not self.open or not Shown(self.frame) or self.selected ~= guideIndex) then return false end
     local _, initialRank = self:Context()
     if automatic and initialRank ~= expectedRank then return false end
@@ -297,10 +361,25 @@ function Leveling:RequestRecipe(id, guideIndex, context, automatic, expectedRank
     if not InCombatLockdown() and self.open then self.frame.status:SetText("Recipe requested. Crafting stays manual.") end
     return true
 end
+function Leveling:RecipeBusy()
+    if self.autoCrafting then return true end
+    local page = Field(self.owner, "CraftingPage")
+    if page then
+        local ok, value = pcall(function() return page.isOverrideCastBarActive end)
+        if not ok or not Suite.IsReadable(value) or value ~= nil and not Read(value, "boolean") or value == true then return true end
+    end
+    for _, fn in ipairs({ UnitCastingInfo or false, UnitChannelInfo or false }) do
+        if Read(fn, "function") then
+            local ok, name = pcall(fn, "player")
+            if not ok or not Suite.IsReadable(name) or name ~= nil then return true end
+        end
+    end
+    return false
+end
 function Leveling:AutoSelectRecipe()
     if not self:ViewOption("professionLevelingAutoRecipe") then self.autoAttempt = nil; return end
     if InCombatLockdown() or not self:Enabled() or not self.open or not Shown(self.frame)
-        or self.autoBlocked or self.autoCrafting or not Shown(self.owner) then return end
+        or self.autoBlocked or self.autoCrafting or self.routeHold or not Shown(self.owner) then return end
     local index, rank, context = self:Context()
     if not index or self.selected ~= index or not Number(rank) then return end
     -- Never drive a linked, guild or NPC profession rather than this character's book.
@@ -323,6 +402,19 @@ function Leveling:AutoSelectRecipe()
     if token ~= self.autoTarget then self.autoTarget, self.autoAttempt = token, nil end
     if target and self.autoAttempt ~= token then self:RequestRecipe(target, index, context, true, rank) end
 end
+function Leveling:RecipeIcon(id)
+    if not Number(id) or id <= 0 or id % 1 ~= 0 then return 134400 end
+    local output = Call(Field(C_TradeSkillUI, "GetRecipeOutputItemData"), id)
+    local icon = Field(output, "icon")
+    if Number(icon) and icon > 0 and icon % 1 == 0 then return icon end
+    local info = Call(Field(C_TradeSkillUI, "GetRecipeInfo"), id)
+    local nativeID = Field(info, "recipeID")
+    icon = Field(info, "icon")
+    if Number(nativeID) and nativeID == id and Number(icon) and icon > 0 and icon % 1 == 0 then return icon end
+    -- Spell textures also resolve recipes while browsing another profession.
+    icon = Call(Field(C_Spell, "GetSpellTexture"), id)
+    return Number(icon) and icon > 0 and icon % 1 == 0 and icon or 134400
+end
 function Leveling:StepMaterials(row, estimates, y, expanded)
     row.estimateLabels, row.estimateItems, row.recipeButtons = row.estimateLabels or {}, row.estimateItems or {}, row.recipeButtons or {}
     row.trainingButtons = row.trainingButtons or {}
@@ -340,7 +432,7 @@ function Leveling:StepMaterials(row, estimates, y, expanded)
         label:ClearAllPoints(); label:SetPoint("TOPLEFT", 0, -y); label:SetText(text); label:Show()
         y = y + label:GetStringHeight() + 8
     end
-    Note("Click a recipe name to select it in the open profession. Crafting stays manual. Estimates may vary; keep intermediate supplies.")
+    Note("Click a recipe to select it or a craftable material to open its recipe. Shift-click items for auction search or chat. Crafting stays manual. Estimates may vary; keep intermediate supplies.")
     if not row.estimateColumns then
         row.estimateColumns = CreateFrame("Frame", nil, row); row.estimateColumns:SetSize(CONTENT_WIDTH, 22)
         Label(row.estimateColumns, 11, 0, -3, 252):SetText("Required for this step")
@@ -353,20 +445,31 @@ function Leveling:StepMaterials(row, estimates, y, expanded)
         local button = row.recipeButtons[recipeIndex]
         if not button then
             button = CreateFrame("Button", nil, row); button:EnableMouse(true); button:RegisterForClicks("LeftButtonUp")
-            button.label = Label(button, 12, 0, -3, CONTENT_WIDTH)
+            button.icon = button:CreateTexture(nil, "ARTWORK")
+            button.icon:SetSize(20, 20); button.icon:SetPoint("TOPLEFT", 0, -2)
+            button.label = Label(button, 12, 26, -3, CONTENT_WIDTH - 26)
             local highlight = button:CreateTexture(nil, "HIGHLIGHT"); highlight:SetAllPoints()
             highlight:SetColorTexture(0.41, 0.84, 0.75, 0.12)
             button:SetScript("OnClick", function(_, mouseButton)
+                if InCombatLockdown() then return end
+                if mouseButton == "LeftButton" and Call(IsModifiedClick, "CHATLINK") == true then
+                    Suite.Items:ModifiedClick(button.outputItemID, mouseButton); return
+                end
                 if mouseButton == nil or mouseButton == "LeftButton" then self:SelectGuideRecipe(button) end
             end)
             row.recipeButtons[recipeIndex] = button
         end
         button.recipeID, button.guideIndex, button.recipeRow = estimate.recipeID, self.selected, row
+        local output = Number(estimate.recipeID) and estimate.recipeID > 0 and estimate.recipeID % 1 == 0
+            and Call(Field(C_TradeSkillUI, "GetRecipeOutputItemData"), estimate.recipeID)
+        local outputID = Field(output, "itemID") or Suite.ProfessionMaterialIDs[estimate.recipe]
+        button.outputItemID = Number(outputID) and outputID > 0 and outputID <= 2147483647 and outputID % 1 == 0 and outputID or nil
+        button.icon:SetTexture(self:RecipeIcon(estimate.recipeID))
         button.label:SetText(estimate.recipe .. " · " .. (estimate.done and "Done · full-band reference" or "estimated " .. estimate.crafts .. " crafts to " .. estimate.target))
         local available = self.selected == self.current and Number(estimate.recipeID)
             and Read(Field(C_TradeSkillUI, "GetRecipeInfo"), "function")
             and Read(Field(C_TradeSkillUI, "IsRecipeInSkillLine"), "function") and Read(Field(C_TradeSkillUI, "OpenRecipe"), "function")
-        button:SetEnabled(available == true)
+        button:SetEnabled(available == true or button.outputItemID ~= nil)
         button.label:SetTextColor(unpack(available and {0.41,0.84,0.75} or {0.55,0.65,0.7}))
         local recipeHeight = math.max(24, button.label:GetStringHeight() + 6)
         button:SetSize(CONTENT_WIDTH, recipeHeight); button:ClearAllPoints(); button:SetPoint("TOPLEFT", 0, -y); button:Show()
@@ -413,18 +516,22 @@ function Leveling:StepMaterials(row, estimates, y, expanded)
             local item = row.estimateItems[itemIndex]
             if not item then
                 item = CreateFrame("Button", nil, row); item:EnableMouse(true)
-                item.label = Label(item, 13, 0, -3, 252)
+                item.icon = Suite.Items:CreateListIcon(item, 18, 0, -2)
+                item.label = Label(item, 13, 24, -3, 228)
                 item.have = Label(item, 11, 264, -4, 68)
                 item.need = Label(item, 11, 358, -4, 52)
                 item.check = item:CreateTexture(nil, "OVERLAY")
                 item.check:SetTexture("Interface\\RaidFrame\\ReadyCheck-Ready"); item.check:SetSize(14, 14)
                 item.check:SetPoint("TOPLEFT", 340, -3)
+                item:RegisterForClicks("LeftButtonUp")
+                item:SetScript("OnClick", function(_, button) Suite.ProfessionRoutes:MaterialClick(item, button) end)
                 item:SetScript("OnEnter", function() self:ItemTooltip(item) end)
                 local function Leave() if self.hovered == item then self:HideTooltip() end end
                 item:SetScript("OnLeave", Leave); item:SetScript("OnHide", Leave)
                 row.estimateItems[itemIndex] = item
             end
             item.materialID = material.id
+            Suite.Items:SetListIcon(item.icon, material.id)
             item.label:SetText("|cffe6bf7a" .. material.count .. " x|r " .. material.name)
             local have, need, sufficient = self:Stock(material.id, material.count)
             item.have:SetText(have); item.need:SetText(estimate.done and "Done" or need)
@@ -608,7 +715,7 @@ function Leveling:RemainingShopping(guide, rank)
     if not guide or not guide.estimates then return guide and guide.shopping end
     local shopping, produced = {}, {}
     shopping.projected = true
-    shopping.note = "Uses the primary recipes below and reuses intermediate items made by earlier remaining steps. Recipe quests and optional alternatives are not included."
+    shopping.note = "Uses the primary recipes below and reuses intermediate items made by earlier remaining steps. Recipe quests and optional alternatives are not included. Click a craftable material to open its recipe; Shift-click for auction search or chat."
     for _, section in ipairs(guide.sections) do
         local group, merged, target = { rows = {}, endSkill = section[2] }, {}, section[1]
         for _, estimate in ipairs(self:StepEstimates(guide, section, rank)) do
@@ -696,8 +803,9 @@ function Leveling:Materials(guide, offset)
         if not row then
             row = CreateFrame("Button", nil, frame.body)
             row:EnableMouse(true)
-            row.quantity = Label(row, 13, 0, -3, 54)
-            row.name = Label(row, 13, 54, -3, 202)
+            row.icon = Suite.Items:CreateListIcon(row, 18, 0, -2)
+            row.quantity = Label(row, 13, 24, -3, 54)
+            row.name = Label(row, 13, 78, -3, 178)
             row.have = Label(row, 11, 264, -4, 68)
             row.need = Label(row, 11, 358, -4, 52)
             row.sectionNeed = Label(row, 11, 358, -4, 52)
@@ -708,12 +816,15 @@ function Leveling:Materials(guide, offset)
             row.check:SetPoint("TOPLEFT", 340, -3)
             local highlight = row:CreateTexture(nil, "HIGHLIGHT"); highlight:SetAllPoints()
             highlight:SetColorTexture(0.41, 0.84, 0.75, 0.12)
+            row:RegisterForClicks("LeftButtonUp")
+            row:SetScript("OnClick", function(_, button) Suite.ProfessionRoutes:MaterialClick(row, button) end)
             row:SetScript("OnEnter", function() self:ItemTooltip(row) end)
             local function Leave() if self.hovered == row then self:HideTooltip() end end
             row:SetScript("OnLeave", Leave); row:SetScript("OnHide", Leave)
             frame.materialRows[rowIndex] = row
         end
         row.materialID = item[2]
+        Suite.Items:SetListIcon(row.icon, item[2])
         row.done = done == true
         row.check:SetShown(counts and counts[3] == true or false)
         row.quantity:SetText(item[1] .. " x"); row.quantity:SetTextColor(unpack(done and {0.4,0.46,0.49} or {0.9,0.75,0.48}))
@@ -830,6 +941,7 @@ function Leveling:Cancel()
     Suite.pending.professionLevelingRefresh = nil
 end
 function Leveling:Close()
+    Suite.ProfessionRoutes:Reset()
     self.open = nil
     self.autoAttempt, self.autoTarget = nil, nil
     self:CloseGuideMenu()
@@ -861,10 +973,23 @@ function Leveling:Place()
     if side == "LEFT" then frame:SetPoint("TOPRIGHT", owner, "TOPLEFT", -gap, 0)
     else frame:SetPoint("TOPLEFT", owner, "TOPRIGHT", gap, 0) end
 end
+function Leveling:TrackMaterials(sectionOnly)
+    if not self:Enabled() or InCombatLockdown() or not self.open then return end
+    local guide, rank = guides[self.selected], self:GuideSkill()
+    if not guide or not guide.estimates or not Number(rank) then Suite.Print("Choose a modeled guide with a known skill level first."); return end
+    local limit
+    if sectionOnly then
+        for _, section in ipairs(guide.sections) do
+            if rank >= section[1] and rank < section[2] then limit = section[2]; break end
+        end
+        if not limit then Suite.Print("There is no unfinished section at this skill level."); return end
+    end
+    Suite.ShoppingList:Review(guide.name, rank, limit, self.frame)
+end
 function Leveling:CreatePanel()
     if self.frame or InCombatLockdown() then return end
     local frame = CreateFrame("Frame", nil, self.owner, "BackdropTemplate"); self.frame = frame
-    frame:Hide(); frame:SetSize(WIDTH, 550); frame:SetClampedToScreen(true); frame:EnableMouse(true)
+    frame:Hide(); frame:SetSize(WIDTH, 585); frame:SetClampedToScreen(true); frame:EnableMouse(true)
     frame:SetFrameStrata("HIGH"); frame:SetFrameLevel(520); Surface(frame)
     frame.title = Label(frame, 16, 14, -14, WIDTH - 62)
     frame.status = Label(frame, 11, 14, -40, WIDTH - 30)
@@ -895,6 +1020,9 @@ function Leveling:CreatePanel()
     frame.scroll:SetScrollChild(frame.body)
     frame.credit = Label(frame, 10, 14, -460, WIDTH - 28)
     frame.credit:SetText("Original summary · WoW-Professions reference\nReviewed November 11, 2026 · English")
+    frame.credit:SetWidth(286)
+    frame.recipeBack = Button(frame, "Back to recipe", 134, function() Suite.ProfessionRoutes:Back() end)
+    frame.recipeBack:SetPoint("TOPRIGHT", -14, -460); frame.recipeBack:Hide()
     local sourceButton = Button(frame, "Copy source link", 132, function()
         if self.url then frame.source:SetFocus(); frame.source:HighlightText() end
     end)
@@ -914,6 +1042,12 @@ function Leveling:CreatePanel()
     frame.source:SetScript("OnEnterPressed", function(input) input:ClearFocus() end)
     frame.source:SetScript("OnEditFocusGained", function(input) input:HighlightText() end)
     frame.sourceButton = sourceButton
+    frame.trackSection = Button(frame, "Track section", 132, function() self:TrackMaterials(true) end)
+    frame.trackSection:SetPoint("TOPLEFT", 14, -552)
+    frame.trackRemaining = Button(frame, "Track remaining", 144, function() self:TrackMaterials(false) end)
+    frame.trackRemaining:SetPoint("LEFT", frame.trackSection, "RIGHT", 8, 0)
+    frame.shopping = Button(frame, "Shopping list", 134, function() Suite.ShoppingList:Open(frame) end)
+    frame.shopping:SetPoint("LEFT", frame.trackRemaining, "RIGHT", 8, 0)
     frame.follow, frame.close = follow, close
 end
 function Leveling:Render(reset)
@@ -928,13 +1062,18 @@ function Leveling:Render(reset)
         or "Browse guides · choose Current to follow your profession")
     local offset = self:SectionHeader("materialsHeader", "Required materials", "professionLevelingMaterialsCollapsed", 0)
     offset = self:Materials(guide, offset)
+    offset = Suite.ProfessionRoutes:Render(guide, rank, offset + 12)
     offset = self:SectionHeader("stepsHeader", "Leveling steps", "professionLevelingStepsCollapsed", offset + 12)
     local height = math.max(350, self:Steps(guide, rank, offset) + 12)
     frame.body:SetHeight(height)
     if reset then frame.scroll.suiteOffset = 0; frame.scroll:SetVerticalScroll(0) end
     Suite.GUI:SyncScrollBar(frame.scroll, math.max(0, height - 350))
     frame.scroll:SetVerticalScroll(frame.scroll.suiteOffset)
+    Suite.ProfessionRoutes:AfterRender()
     frame.guideDropdown:SetText(guide and guide.name or "Choose profession")
+    local canTrack = guide and guide.estimates ~= nil and Number(rank)
+    frame.trackSection:SetEnabled(canTrack == true and rank < 300)
+    frame.trackRemaining:SetEnabled(canTrack == true)
     frame.hideDone:SetText(self:ViewOption("professionLevelingHideDone") and "Show completed" or "Hide completed")
     frame.autoSteps:SetText(self:ViewOption("professionLevelingAutoSteps") and "Auto steps: On" or "Auto steps: Off")
     frame.hideStocked:SetText(self:ViewOption("professionLevelingHideStocked") and "Show Stocked" or "Hide Stocked")
@@ -946,6 +1085,7 @@ end
 function Leveling:Select(index)
     if not self:Enabled() or InCombatLockdown() or not self.open then return end
     self.selected = (index - 1) % #guides + 1
+    Suite.ProfessionRoutes:Reset()
     self.stepContext, self.stepOverrides = nil, {}
     self:Render(true)
 end
@@ -962,6 +1102,7 @@ function Leveling:Refresh(follow)
     local changed = context ~= self.context
     self.current, self.rank, self.maximum, self.context = current, rank, maximum, context
     if changed or follow then
+        Suite.ProfessionRoutes:Reset()
         self.stepContext, self.stepOverrides = nil, {}
         if context then self.selected = current else self.selected = self.selected or 1 end
     end
@@ -1026,6 +1167,8 @@ function Leveling:Apply()
         if not self.events then
             self.events = CreateFrame("Frame")
             self.events:SetScript("OnEvent", function(_, event, unit)
+                if (event == "ZONE_CHANGED_NEW_AREA" or event == "ZONE_CHANGED" or event == "ZONE_CHANGED_INDOORS"
+                    or event == "PLAYER_STOPPED_MOVING") and not self.open then return end
                 if event == "PLAYER_REGEN_DISABLED" then self:Cancel(); self:HideTooltip(); self:CloseGuideMenu(); self.open = nil; self.autoBlocked = true
                 else
                     if event == "UPDATE_TRADESKILL_CAST_STOPPED" or ((event == "UNIT_SPELLCAST_INTERRUPTED" or event == "UNIT_SPELLCAST_FAILED")
@@ -1037,6 +1180,7 @@ function Leveling:Apply()
         if not self.active then
             for _, event in ipairs({ "ADDON_LOADED", "TRADE_SKILL_SHOW", "TRADE_SKILL_LIST_UPDATE",
                 "NEW_RECIPE_LEARNED", "TRADE_SKILL_DETAILS_UPDATE",
+                "ZONE_CHANGED_NEW_AREA", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "PLAYER_STOPPED_MOVING",
                 "TRADE_SKILL_DATA_SOURCE_CHANGED", "SKILL_LINES_CHANGED", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED",
                 "UPDATE_TRADESKILL_CAST_STOPPED", "UNIT_SPELLCAST_INTERRUPTED", "UNIT_SPELLCAST_FAILED" }) do
                 self.events:RegisterEvent(event)

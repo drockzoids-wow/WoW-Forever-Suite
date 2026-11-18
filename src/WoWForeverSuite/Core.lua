@@ -1,6 +1,6 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "1.0.20"
+Suite.version = "1.0.21"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {
@@ -13,7 +13,7 @@ Suite.defaults = {
     minimapButton = true, minimapButtonAngle = 225,
     minimapDrawer = false, minimapDrawerAngle = 225, minimapDrawerMoved = false,
     showFPS = true, showLatency = true, showCoordinates = true, showClock = true,
-    windowTools = false, windowPositions = {}, guiPosition = {}, offlineBank = false, bankDepositReagents = false,
+    windowTools = false, guiPosition = {}, offlineBank = false, bankDepositReagents = false,
     fullButtonRange = false, actionBarSkin = false, classHealthBars = false, targetThreat = false,
     combatIndicator = false, combatIndicatorPersistent = false, combatIndicatorLocked = false, combatIndicatorPosition = {},
     procAlerts = false, procAlertPosition = {}, procAlertIconSize = 42,
@@ -31,13 +31,14 @@ Suite.defaults = {
     professionLevelingHideStocked = true,
     professionLevelingMaterialsCollapsed = false, professionLevelingStepsCollapsed = false,
     bagSpaceAlert = false, bagSpaceBlacklist = {}, bagSpacePosition = {},
-    mailHelper = false, mailRememberRecipient = false, mailExpiry = false, supplyChecklist = false,
+    itemKeepRulesEnabled = false, itemKeepRules = {}, professionUsage = false,
+    mailHelper = false, mailRememberRecipient = false, mailExpiry = false, supplyChecklist = false, professionShopping = false, merchantRestock = false,
     mailContacts = { schema = 2, entries = {}, removed = {} }, coordinateTellHistory = {},
     chatHistory = false, chatStyle = false, chatFontSize = 14, chatOpacity = 0.5, audioSync = false, chatShortcuts = false,
-    itemLevels = false, itemTooltipLevels = false, characterItemLevel = false, upgradeHints = false, equipmentSetToggle = false,
+    itemLevels = false, itemTooltipLevels = false, characterItemLevel = false, equipmentSetToggle = false,
     itemInventory = false, inventorySearch = false, characterDashboard = false, bagMoney = false, inventory = { schema = 1, characters = {}, accountBanks = {} },
     inventoryBrowser = { schema = 1, favorites = {} },
-    scorePreset = "balanced", upgradePreference = "stats", playerItemLevel = false, classNames = false, unitLevelColors = false,
+    playerItemLevel = false, classNames = false, unitLevelColors = false,
     macroUpdates = false, macroOwnership = {},
     campingBar = false, campingPose = "sit", campingPosition = {},
     levelingBar = false, trainingPlanner = false, trainingAuto = true, trainingLevelUp = true, trainingSpellbook = true,
@@ -79,6 +80,8 @@ function Suite.InitializeDB(saved)
         db.reverseBagSlots = Suite.IsReadable(db.reverseBagSort) and db.reverseBagSort == true or false
     end
     db.reverseBagSort = nil
+    -- Retire removed Suite gear-comparison settings, including old enabled profiles.
+    db.upgradeHints, db.scorePreset, db.upgradePreference = nil, nil, nil
     if not Suite.IsReadable(db.minimapDrawerMoved) or type(db.minimapDrawerMoved) ~= "boolean" then
         local angle = db.minimapDrawerAngle
         -- Older releases did not distinguish their default angle from a dragged position.
@@ -93,8 +96,6 @@ function Suite.InitializeDB(saved)
     db.questLocations, db.questNameplates, db.questRecordLocations = nil, nil, nil
     db.questLocationHidden, db.questKnowledge = nil, nil
     Suite.Theme:Initialize(db)
-    if not Suite.Scoring.presets[db.scorePreset] then db.scorePreset = "balanced" end
-    db.upgradePreference = Suite.Scoring.Preference(db, true)
     db.inventoryBrowser = Suite.CharacterBrowser:InitializeOptions(db.inventoryBrowser)
     db.coordinateTellHistory = Suite.Minimap:CoordinateRecipients(db.coordinateTellHistory)
     db.chatFontSize, db.chatOpacity = Suite.Chat:Options(db)
@@ -113,6 +114,7 @@ function Suite.InitializeDB(saved)
     db.setupGuide = Suite.Setup:InitializeState(db.setupGuide)
     db.missingBuffChoices = Suite.MissingBuffs:InitializeChoices(db.missingBuffChoices, db.missingBuffCustom)
     db.bagSpaceBlacklist = Suite.BagSpace:InitializeBlacklist(db.bagSpaceBlacklist)
+    db.itemKeepRules = Suite.ItemRules:Normalize(db.itemKeepRules)
     db.bagSpacePosition = Suite.BagSpace:InitializePosition(db.bagSpacePosition)
     db.questItemPosition = Suite.BagSpace:InitializePosition(db.questItemPosition)
     db.combatIndicatorPosition = Suite.CombatIndicator:InitializePosition(db.combatIndicatorPosition)
@@ -163,20 +165,21 @@ events:SetScript("OnEvent", function(_, event, name, second)
         WoWForeverSuiteDB = Suite.InitializeDB(WoWForeverSuiteDB)
         Suite.db = WoWForeverSuiteDB
         local character = Suite.IsReadable(WoWForeverSuiteCharDB) and type(WoWForeverSuiteCharDB) == "table" and WoWForeverSuiteCharDB or {}
-        local scoring = Suite.Scoring:InitializeCharacter(character.scoring,
-            Suite.IsReadable(WoWForeverSuiteCharDB) and type(WoWForeverSuiteCharDB) == "table" and Suite.db or nil)
+        local windowPositions = Suite.Windows:InitializeCharacter(character.windowPositions, Suite.db, character.suiteProfile)
         local leveling = Suite.Leveling:InitializeCharacter(character.leveling)
         local training = Suite.Training:InitializeCharacter(character.training)
         local supplies = Suite.SupplyChecklist:InitializeCharacter(character.supplies)
+        local itemReserves = Suite.ItemRules:InitializeCharacter(character.itemReserves)
         local chatHistory = Suite.ChatHistory:InitializeCharacter(character.chatHistory)
         local talentGuide = Suite.TalentPlanner:InitializeGuide(character.talentGuide)
         WoWForeverSuiteCharDB = Suite.Macros:Initialize(character)
         WoWForeverSuiteCharDB.leveling = leveling
         WoWForeverSuiteCharDB.training = training
         WoWForeverSuiteCharDB.supplies = supplies
+        WoWForeverSuiteCharDB.itemReserves = itemReserves
         WoWForeverSuiteCharDB.chatHistory = chatHistory
         WoWForeverSuiteCharDB.talentGuide = talentGuide
-        WoWForeverSuiteCharDB.scoring = scoring
+        WoWForeverSuiteCharDB.windowPositions = windowPositions
         WoWForeverSuiteCharDB.professionSkills = Suite.ProfessionLeveling:InitializeCharacter(character.professionSkills)
         local trackerCollapsed = character.questTrackerCollapsed
         if Suite.IsReadable(trackerCollapsed) and type(trackerCollapsed) == "boolean" then
@@ -248,6 +251,11 @@ SlashCmdList.WOWFOREVERSUITE = function(message)
     elseif command == "bankstatus" then Suite.OfflineBank:Status()
     elseif command == "contacts" or command == "addressbook" then Suite.Mail:OpenBook()
     elseif command == "checklist" then Suite.SupplyChecklist:Open()
+    elseif command == "shopping" then Suite.ShoppingList:Open()
+    elseif command == "restock" then Suite.MerchantRestock:Open()
+    elseif command == "keep" or command == "itemrules" then Suite.ItemRules:Open()
+    elseif command == "enabled" or command == "features" then Suite.FeatureReview:Open("enabled")
+    elseif command == "overlap" or command == "overlaps" then Suite.FeatureReview:Open("overlaps")
     elseif command == "maildeadlines" then Suite.MailExpiry:Open()
     elseif command == "wishlist" then Suite.Training.wishlistOnly = true; Suite.Training:SelectView("class"); Suite.Training:Open()
     elseif command == "macrostatus" then Suite.Macros:Status()

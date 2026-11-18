@@ -1,4 +1,6 @@
 local Suite, equal, Frame, SetCombat = ...
+local priorWindowPositions = Suite.Windows.positions
+Suite.Windows.positions = {}
 local search, inventory = Suite.InventorySearch, Suite.Inventory
 local keys = { "CreateFrame", "C_Timer", "C_Item", "C_Container", "C_Bank", "C_EventUtils", "UIParent",
     "UnitGUID", "UnitName", "UnitClass", "GetNormalizedRealmName", "GetCurrentRegion", "GetServerTime", "Enum",
@@ -182,35 +184,35 @@ equal(search.popup.point[3], "TOPLEFT", "results align with the bag's outer top 
 equal(search.popup.point[4], -8, "left popup has a gap outside the bag")
 equal(search.popup.parent, UIParent, "results retain independent scale and native bag parenting")
 Suite.db.windowTools = true
-Suite.db.windowPositions.ContainerFrame1 = { x = -0.25, y = 0, scale = 1 }
+Suite.Windows.positions.ContainerFrame1 = { x = -0.25, y = 0, scale = 1 }
 search:WindowChanged(bagParent)
 equal(search.popup.point[1], "TOPLEFT", "saved left-side placement takes precedence over transient native geometry")
 equal(search.popup.point[3], "TOPRIGHT", "left-side bag places results beyond its right edge")
 equal(search.popup.point[4], 8, "right popup has a gap outside the bag")
 bagParent.centerX = 250
-Suite.db.windowPositions.ContainerFrame1.x = 0.25
+Suite.Windows.positions.ContainerFrame1.x = 0.25
 search:WindowChanged(bagParent)
 equal(search.popup.point[1], "TOPRIGHT", "saved right-side placement wins while live geometry is still on the left")
 Suite.db.windowTools = false; search:WindowChanged(bagParent)
 equal(search.popup.point[1], "TOPLEFT", "disabled window tools use actual placement rather than an inactive saved position")
 Suite.db.windowTools = true
-Suite.db.windowPositions.ContainerFrame1.x = { secret = true }; search:WindowChanged(bagParent)
+Suite.Windows.positions.ContainerFrame1.x = { secret = true }; search:WindowChanged(bagParent)
 equal(search.popup.point[1], "TOPLEFT", "restricted saved coordinates fall back to readable live geometry")
-Suite.db.windowPositions.ContainerFrame1.x = math.huge; search:WindowChanged(bagParent)
+Suite.Windows.positions.ContainerFrame1.x = math.huge; search:WindowChanged(bagParent)
 equal(search.popup.point[1], "TOPLEFT", "nonfinite saved coordinates cannot determine placement")
-Suite.db.windowPositions.ContainerFrame1 = nil
+Suite.Windows.positions.ContainerFrame1 = nil
 bagParent.centerX = 850; Suite.Windows:Save({ frame = bagParent, name = "ContainerFrame1" })
 equal(search.popup.point[1], "TOPRIGHT", "saving a moved bag immediately updates the existing popup's side")
 equal(search.page, 1, "moving the window preserves the current result page")
 equal(Pending(), 0, "placement notifications add no polling or query work")
 local moved = { frame = bagParent, name = "ContainerFrame1" }
-Suite.db.windowPositions.ContainerFrame1.x = -0.25
-Suite.Windows:ApplySavedPosition(moved, Suite.db.windowPositions.ContainerFrame1)
+Suite.Windows.positions.ContainerFrame1.x = -0.25
+Suite.Windows:ApplySavedPosition(moved, Suite.Windows.positions.ContainerFrame1)
 equal(search.popup.point[1], "TOPLEFT", "native saved-position restores update the popup without a new query")
 Suite.db.windowTools = false; bagParent.centerX = 850
 Suite.Windows:ApplyRecord({ frame = bagParent, name = "ContainerFrame1", handles = {} })
 equal(search.popup.point[1], "TOPRIGHT", "window reset or restore completion reconsiders the live side")
-Suite.db.windowPositions.ContainerFrame1 = nil
+Suite.Windows.positions.ContainerFrame1 = nil
 UIParent.scale = 0.8; bagParent.scale = 2; bagParent.centerX = 300
 search:WindowChanged(bagParent)
 equal(search.popup.point[1], "TOPRIGHT", "live side comparison converts scaled bag coordinates into screen units")
@@ -377,3 +379,5 @@ for key in pairs(inventory) do inventory[key] = nil end
 for key, value in pairs(oldInventory) do inventory[key] = value end
 Suite.db, Suite.pending, Suite.OfflineBank.search = oldDB, oldPending, oldOfflineSearch
 SetCombat(false)
+
+Suite.Windows.positions = priorWindowPositions

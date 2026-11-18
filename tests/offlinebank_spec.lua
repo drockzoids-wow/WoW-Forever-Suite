@@ -135,7 +135,7 @@ IsModifiedClick = function(mode) return keyMode == mode end
 HandleModifiedItemClick = function(link) modified[#modified + 1] = link end
 HideUIPanel = function(frame) frame:Hide(); if bank.events then Fire("BANKFRAME_CLOSED") end end
 Suite.Print = function(message) messages[#messages + 1] = message end
-Suite.Windows = { Track = function() end }
+Suite.Windows = { positions = {}, Track = function() end }
 Suite.Items = { Track = function() end }
 
 equal(Suite.db.offlineBank, false, "offline bank defaults off")
@@ -151,10 +151,10 @@ equal(bank.active, true, "bank recording enabled independently of inventory tool
 equal(Suite.db.itemInventory, false, "offline bank does not enable inventory tooltips")
 equal(calls, 0, "enabling away from banker does not scan inaccessible bank")
 Suite.db.windowTools = true
-Suite.db.windowPositions.WoWForeverSuiteBankView = { x = 0.1, y = 0.1, scale = 1 }
+Suite.Windows.positions.WoWForeverSuiteBankView = { x = 0.1, y = 0.1, scale = 1 }
 bank.bindingButton:Click()
 equal(bank.frame:GetNumPoints(), 1, "existing snapshot placement still initializes a native reset anchor before mover discovery")
-Suite.db.windowTools = false; Suite.db.windowPositions.WoWForeverSuiteBankView = nil
+Suite.db.windowTools = false; Suite.Windows.positions.WoWForeverSuiteBankView = nil
 equal(bank.frame.template, "PortraitFrameTemplate", "viewer uses native portrait framing")
 equal(bank.frame.toplevel, true, "native bank window raises on mouse interaction")
 equal(bank.empty:IsShown(), true, "first use offers a bank-visit prompt")
@@ -338,7 +338,7 @@ equal(bank.frame.point[5], -116, "first unlaid-out bank uses native default top 
 layoutCharacter.bankViewLayout = storedLayout
 BankFrame.GetRect = liveRect
 Suite.db.windowTools = true
-Suite.db.windowPositions.BankFrame = { x = 0, y = 0, scale = 1 }
+Suite.Windows.positions.BankFrame = { x = 0, y = 0, scale = 1 }
 bank:PlaceView()
 Near(bank.frame.point[4], 200, "last displayed bank geometry takes precedence over generic saved center")
 layoutCharacter.bankViewLayout = nil
@@ -347,17 +347,17 @@ Near(bank.frame.point[4], 720, "saved native mover position works before bank is
 Near(bank.frame.point[5], -310, "saved native mover center is converted to its top edge")
 local mover = { frame = bank.frame }
 Suite.Windows.tracked = { WoWForeverSuiteBankView = mover }
-Suite.db.windowPositions.WoWForeverSuiteBankView = { x = 0.1, y = 0.1, scale = 0.8 }
+Suite.Windows.positions.WoWForeverSuiteBankView = { x = 0.1, y = 0.1, scale = 0.8 }
 local ownPoint = bank.frame.point
 bank:PlaceView()
 equal(bank.frame.point, ownPoint, "intentional snapshot placement is preserved")
 Near(mover.originalPoints[1][4], 720, "snapshot reset target follows saved native bank position")
 equal(mover.originalScale, 1, "snapshot reset target follows saved native bank scale")
-Suite.db.windowPositions.WoWForeverSuiteBankView = nil
+Suite.Windows.positions.WoWForeverSuiteBankView = nil
 mover.dragging = true; BankFrame.rect = { 300, 160, 480, 460 }
 bank:PlaceView()
 equal(bank.frame.point, ownPoint, "default placement never interrupts an active snapshot drag")
-mover.dragging = nil; Suite.db.windowPositions.BankFrame = nil
+mover.dragging = nil; Suite.Windows.positions.BankFrame = nil
 BankFrame:Show(); Fire("BANKFRAME_OPENED"); Flush(); BankFrame:SetPoint("TOPLEFT", 300, -244)
 local movedLayout = layoutCharacter.bankViewLayout
 BankFrame:Hide(); BankFrame.rect = { 16, 100, 480, 460 }; Fire("BANKFRAME_CLOSED")

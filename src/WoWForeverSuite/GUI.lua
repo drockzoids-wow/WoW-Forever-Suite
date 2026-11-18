@@ -29,8 +29,10 @@ end
 local pages = {
     support = { title = "Support", singleColumn = true, description = "Review unavailable or paused features and copy a support snapshot.", rows = {
         { key = "updateNotifications", label = "Update notifications", help = "Warn once per login or reload when another Suite user has a newer version.\nChecks nearby players, guild and groups; check CurseForge to download updates." },
-        { action = "supportOpen", label = "Open support report", help = "Copy client/build details, feature switches and capability reasons.\nNames, contacts, chat, inventory contents and custom weights are omitted." },
+        { action = "supportOpen", label = "Open support report", help = "Copy client/build details, feature switches and capability reasons.\nNames, contacts, chat, inventory contents and private notes are omitted." },
         { passive = true, label = "Current status in chat", help = "Use /wfs status, including during combat. /wfs support also captures in combat;\nrun it again afterward to copy that snapshot. Refresh captures current state." },
+        { action = "enabledFeatures", label = "Review enabled features", help = "See enabled switches and options, their settings scope and links to their controls.\nSaved On options includes preferences waiting for a main feature." },
+        { action = "addonOverlap", label = "Review possible addon overlap", help = "Check known addons that may offer the same tools as your enabled Suite features.\nPresence is only a hint; matching options may be off. No settings change automatically." },
     }, note = "Reports are snapshots. Refresh to capture current reasons. Ready means capabilities are present;\nit does not verify gameplay, visuals or taint safety. Nothing is uploaded automatically." },
     whatsnew = { title = "What's New", singleColumn = true, description = "Recent additions · Choose a feature to find its controls.", rows = {
         { action = "newsTraining", label = "Pin your next training", help = "Pin class skills and ranks in Training Planner. Review their estimated total\nwith trained skills excluded, then choose base or recorded prices." },
@@ -44,7 +46,13 @@ local pages = {
     supplies = { title = "Supply Checklist", singleColumn = true, description = "Plan the items you want to carry for your next trip.", rows = {
         { action = "suppliesOpen", label = "Open Supply Checklist", help = "Drop an item into the editor, or paste an ID/link, then Save target.\nHover rows for item details; click to edit. Targets save per character." },
         { key = "supplyChecklist", label = "Track carried supplies", help = "Starts off. Count current bags while the checklist is open.\nBank stock is excluded; unreadable inventory is shown as unavailable." },
-    }, note = "Open directly with /wfs checklist. Targets remain available with tracking off.\nNo automatic purchases, item use or changes to your macros." },
+        { key = "merchantRestock", label = "Merchant restocking", help = "Review shortages when opening a merchant that sells your checklist items.\nEnable Automatic Purchase on individual items to buy them on later visits." },
+        { action = "restockOpen", label = "Open Restock list", help = "Edit saved targets and Automatic Purchase settings anywhere.\nVendor offers appear when a shop is open." },
+        { key = "professionShopping", label = "Track profession shopping stock", help = "Record bags on each character and banks when visited.\nProfession plans subtract all recorded stock; shared banks count once." },
+        { key = "itemKeepRulesEnabled", label = "Enable shared keep rules", help = "Shared sell/trash/sort rules apply to Suite actions on every character.\nCarried reserves are character-specific. Manual game actions stay available." },
+        { action = "keepRulesOpen", label = "Edit keep rules and reserves", help = "Choose Never sell, Never suggest deleting or Pause auto sort per item.\nKeep a minimum carried quantity; crossing stacks stay until split manually." },
+        { action = "shoppingOpen", label = "Open profession shopping list", help = "Review material targets; Shift-click items for auction search or chat.\nA small Shopping list button is available above the auction house when tracking is on." },
+    }, note = "Open directly with /wfs checklist. Targets remain available with tracking off." },
     shortcuts = { title = "Chat Shortcuts", singleColumn = true, description = "Open familiar Blizzard tools with a short chat command.", rows = {
         { key = "chatShortcuts", label = "Enable chat shortcuts", help = "Starts off. Existing commands from the game or other addons take priority.\nUse /wfs commands for the list, or /wfs followed by a shortcut if its alias is taken." },
         { passive = true, label = "/kb  ·  Quick Keybind", help = "Hover an action button and press a key using Blizzard's binding mode." },
@@ -88,14 +96,13 @@ local pages = {
         { action = "audioRefresh", label = "Sync now", help = "Refresh game sound for your current Windows default device.\nWaits until movies and cinematics finish." },
     }, note = "Disabling stops syncing. Choose a fixed device in the game's Audio settings.\nYour volume, mute, microphone and voice-chat choices stay under your control." },
     profiles = { title = "Profiles", description = "Save a familiar setup, share it, or make it personal.", rows = {},
-        note = "Switches reload the UI. Gear weights, macros, inventory and contacts stay separate.\nNative Edit Mode layouts, keybindings and the character leveling tracker keep their own settings." },
+        note = "Switches reload the UI. Macros, inventory and contacts stay separate.\nNative Edit Mode layouts, keybindings and the character leveling tracker keep their own settings." },
     setup = { title = "Setup guide", description = "Choose your tools in five steps, then review and apply.", rows = {} },
     overview = { title = "A little less friction.", description = "Choose the tools that belong in your everyday setup.\nStart with Setup guide for a tour of the main choices.", rows = {
         { key = "squareMinimap", label = "Square minimap", help = "Equal-width-and-height map with an area and subzone header.\nUse Edit Mode to change its overall size and position." },
         { key = "minimapStats", label = "Minimap stats", help = "FPS and home/world latency below Blizzard's coordinates.\nClick the stats row to open this panel; customize it in Minimap." },
         { key = "windowTools", label = "Window tools", help = "Drag a header to move. Ctrl+scroll to resize.\nCtrl+right-click the header to reset position and size." },
         { key = "itemLevels", label = "Item levels on icons", help = "Show quality-colored levels at the top right of gear icons.\nEnable tooltip item levels separately in Items or Tooltips." },
-        { key = "upgradeHints", label = "Possible upgrades", help = "Green +: preferred armor; yellow +: another usable armor type.\nBoth follow your comparison; weapons and accessories stay green." },
         { key = "playerItemLevel", label = "Player item levels", help = "Hover yourself or a nearby player to see equipment level.\nOther players need an available inspect; requests pause in combat." },
     } },
     minimap = { title = "Minimap", description = "A compact header, a clear map, and coordinates you can share.", rows = {
@@ -112,30 +119,28 @@ local pages = {
         { key = "revealWorldMap", label = "Reveal unexplored areas", help = "Show unvisited terrain over a dark, translucent area cover.\nExplored areas and surrounding map artwork keep their normal appearance." },
     }, note = "This changes the map view. Discoveries and exploration credit still require visiting each area." },
     windows = { title = "Put things where you want them.", description = "Window movement, bag sorting and bank snapshots have independent switches.", rows = {
-        { key = "windowTools", label = "Move and remember windows", help = "Drag a header to move. Ctrl+scroll to resize.\nCtrl+right-click the header to reset position and size." },
-        { action = "reset", label = "Reset all windows", help = "Clear all saved window positions and sizes at once.\nBags return to Blizzard's default arrangement." },
+        { key = "windowTools", label = "Move and remember windows", help = "Save positions and sizes separately for each character.\nDrag a header to move. Ctrl+scroll to resize. Ctrl+right-click to reset." },
+        { action = "reset", label = "Reset all windows", help = "Clear this character's saved window positions and sizes.\nBags return to Blizzard's default arrangement." },
         { key = "offlineBank", label = "Bank snapshots", help = "Save bank items and slot positions during bank visits.\nChoose a recorded character from the bank dropdown to view its saved bank." },
         { action = "bankView", label = "Open bank view", help = "Browse saved character and account bank pages.\nMoving items and buying bank slots require a bank visit." },
         { action = "bankBindings", label = "Bank keybind", help = "Assign Open bank view under Forever Suite in Keybindings.\nYou can also open the saved view with /wfs bank." },
         { key = "sortBagsOnOpen", label = "Sort bags on opening", help = "Use the game's cleanup and bag exclusions once per opening.\nWaits through combat; skips sorting while you hold an item." },
         { key = "inventorySearch", label = "Search across characters", help = "Show recorded item owners beside the bag or bank.\nLog into alts and visit their banks to record counts; hover for dates." },
+        { action = "keepRulesOpen", label = "Keep rules and reagent reserves", help = "Protect selected items from Suite sales and trash suggestions.\nReserves retain carried stock during Suite reagent deposits." },
     }, note = "Move and resize outside combat. Layouts save automatically. Bag title clicks open their menus; dragging moves the bag." },
-    items = { title = "Know what you picked up.", description = "Clear item levels and a stat comparison you can understand.", rows = {
+    items = { title = "Know what you picked up.", description = "Item levels for equipment, plus equipment-set tools.", rows = {
         { key = "itemLevels", label = "Item levels on icons", help = "Show quality-colored equipment and weapon levels at the top right of icons." },
         { key = "itemTooltipLevels", label = "Item levels in tooltips", help = "Show item levels for equipment and weapons only." },
         { key = "characterItemLevel", label = "Character frame item level", help = "Show your equipped average above the character model.\nThe level and class line keeps its full space." },
-        { key = "upgradeHints", label = "Possible upgrades", help = "Green +: preferred armor; yellow +: another usable armor type.\nMarks possible upgrades or empty slots under your chosen comparison." },
-        { action = "upgradePreference", label = "Compare upgrades by", help = "Choose Stats or Item level. Stats includes role weights and DPS.\nWeapon comparisons include the hands being replaced." },
-        { action = "preset", label = "Comparison profile", help = "Choose your intended spec, a broad role or saved custom weights.\nManual and character-only; Automatic keeps the class-aware starter." },
-        { action = "weights", label = "Advanced: comparison weights", help = "Expand scoring details and custom weights on this page.\nCreate or edit your own weights; built-in presets stay intact." },
         { key = "equipmentSetToggle", label = "Equipment set slot toggle", help = "Show a small button when an existing equipment set is selected.\nIgnore or include non-weapon slots; weapons and ammo stay unchanged. Use Save to keep changes." },
-    }, note = "Special effects, set bonuses and weapon abilities need your judgment.\nHigher item level can still be worse for your build." },
+    }, note = "Show item levels without scoring or upgrade recommendations." },
     tooltips = { title = "Useful details, right on hover.", description = "A few additions to the tooltips you already use.", rows = {
         { key = "itemTooltipLevels", label = "Item level", help = "Show item levels for equipment and weapons, including comparisons." },
         { key = "itemInventory", label = "Item inventory", help = "Record bag slots and bag/bank counts for characters you play with this on.\nUse the bag character dropdown to view saved bags. Log into each alt after updating to record its slots; visit banks to record bank contents." },
         { key = "playerItemLevel", label = "Player equipment level", help = "Inspect nearby players when possible; recent results are cached." },
         { key = "classNames", label = "Class color names", help = "Use each player's class color for their tooltip name." },
         { key = "unitLevelColors", label = "Level difficulty colors", help = "Color the level number in unit tooltips by difficulty relative to your level.\nAdd a black outline to target and focus level numbers." },
+        { key = "professionUsage", label = "Profession material uses", help = "Show professions and skill ranges from the leveling guides.\nThese are guide recipe ranges, not every possible use or recipe difficulty." },
     }, note = "Player equipment details depend on inspect range and availability. New inspect requests pause during combat." },
     macros = { title = "Useful macros, without the setup.", description = "Shared recipes and macros for your class. Choose, preview, then create.\nGeneral macros are shared; the last character to update sets their supplies.", rows = {},
         note = "Create never uses an item. Drag the macro from Blizzard's General tab onto your action bar." },
@@ -204,8 +209,9 @@ local pages = {
         { key = "autoSellJunk", label = "Automatically sell junk", help = "Clear gray-quality items when you visit a vendor.\nBoth modes respect bags excluded from junk selling." },
         { action = "junkMode", label = "Junk sale mode", help = "Slow sells one stack at a time, up to 12 per vendor visit.\nInstant sells permanently and accepts the junk-sale popup for you." },
         { action = "junkDetails", label = "Sale and recovery", help = "", passive = true },
-        { key = "autoVendor", label = "Automatically open vendor shops", help = "Open the shop when it is the only service; informational chat is ignored.\nSeveral services, such as shopping and setting your home, wait for your choice.\nHold Shift when talking to keep the menu open." },
+        { key = "autoVendor", label = "Automatically open vendor shops", help = "Open the shop when it is the only service and no quests remain listed.\nInformational chat is ignored; quests and several services wait for your choice.\nHold Shift when talking to keep the menu open." },
         { key = "vendorKnownItems", label = "Highlight already-known vendor items", help = "Green highlights and a checkmark mark learned or collected items.\nIncludes already-known recipes and collected pets; not ordinary bag contents." },
+        { key = "merchantRestock", label = "Merchant restocking", help = "Review carried shortages and their cost when you open a merchant.\nOnly targets marked Automatic Purchase can buy without confirmation." },
     }, note = "Buyback retains only the last 12 sold stacks. Later sales can displace them. Instant sales aren't recoverable.\nShop opening pauses for confirmations and menus with more than one shop." },
     quests = { title = "Keep your journey moving.", description = "Style your tracker and choose how conversations and looting are handled.", rows = {
         { key = "autoQuestPickup", label = "Automatically pick up quests", help = "Open and accept available quests, including low-level quests.\nIgnored quests and PvP confirmations stay manual." },
@@ -242,6 +248,9 @@ function GUI:Action(action, anchor)
     local news = { newsTraining = "training", newsSupplies = "supplies", newsMail = "mail", newsTalents = "talents", newsContacts = "mail", newsMacros = "macros", newsShortcuts = "shortcuts" }
     if news[action] then self:OpenPage(news[action])
     elseif action == "suppliesOpen" then Suite.SupplyChecklist:Open(self.frame)
+    elseif action == "shoppingOpen" then Suite.ShoppingList:Open(self.frame)
+    elseif action == "restockOpen" then Suite.MerchantRestock:Open(self.frame)
+    elseif action == "keepRulesOpen" then Suite.ItemRules:Open(self.frame)
     elseif action == "mailDeadlines" then Suite.MailExpiry:Open(self.frame)
     elseif action == "combatPreview" then Suite.CombatIndicator:Preview()
     elseif action == "combatReset" then Suite.CombatIndicator:ResetPosition()
@@ -271,17 +280,9 @@ function GUI:Action(action, anchor)
             self.frame:Hide()
             Settings.OpenToCategory(Settings.KEYBINDINGS_CATEGORY_ID, BINDING_HEADER_WOWFOREVERSUITE)
         else Suite.Print("Open Options → Keybindings → Forever Suite to assign Open bank view.") end
-    elseif action == "upgradePreference" then
-        self:Choose(anchor, {{value="stats",label="Stats"},{value="ilevel",label="Item level"}},Suite.Scoring.Preference(Suite.db),
-            function(value) Suite.Scoring:SetPreference(value);self:Select(self.page) end)
     elseif action == "supportOpen" then Suite.Diagnostics:Open(self.frame)
-    elseif action == "preset" then
-        local options={}
-        for _,profile in ipairs(Suite.Scoring:List()) do options[#options+1]={value=profile.id,label=profile.label} end
-        self:Choose(anchor,options,Suite.Scoring:ActiveID(),function(value) Suite.GearSettings:Choose(value) end)
-    elseif action == "weights" then
-        if Suite.GearSettings.mode == "editor" and not Suite.GearSettings.draft then Suite.GearSettings:Dismiss();self:Select("items")
-        else Suite.GearSettings:Open("editor") end
+    elseif action == "enabledFeatures" then Suite.FeatureReview:Open("enabled", self.frame)
+    elseif action == "addonOverlap" then Suite.FeatureReview:Open("overlaps", self.frame)
     elseif action == "campingPose" then
         local poses, current = Suite.Camping.poses, Suite.Camping:GetPose()
         local options={};for _,pose in ipairs(poses) do options[#options+1]={value=pose.key,label=pose.label} end
@@ -356,7 +357,6 @@ function GUI:Select(key)
     end
     if self.page == "setup" and key ~= "setup" then Suite.Setup:Dismiss() end
     if key ~= "buffs" then Suite.BuffSettings:Dismiss() end
-    if key ~= "items" then Suite.GearSettings:Dismiss() end
     if key ~= "profiles" then Suite.ProfileSettings:Dismiss() end
     self.page = key
     self:ClearSettingHighlight()
@@ -375,8 +375,6 @@ function GUI:Select(key)
     if self.profilePanel then self.profilePanel:SetShown(key == "profiles") end
     if key == "profiles" then Suite.ProfileSettings:Build(); Suite.ProfileSettings:Refresh() end
     if self.macroPanel then self.macroPanel:SetShown(key == "macros") end
-    if self.gearPanel then self.gearPanel:SetShown(key == "items" and Suite.GearSettings.mode ~= nil) end
-    if key == "items" then Suite.GearSettings:Refresh() end
     if key == "buffs" then
         Suite.BuffSettings.mode = Suite.BuffSettings.mode or "choices"
         Suite.BuffSettings:Build(); Suite.BuffSettings:Refresh()
@@ -491,11 +489,8 @@ function GUI:Select(key)
                 row.switch.knob:SetPoint(active and "RIGHT" or "LEFT", active and -3 or 3, 0)
                 row:SetScript("OnClick", function() Suite.Set(data.key, not Suite.db[data.key]); self:Select(key) end)
             else
-                row.value:SetText(data.action == "preset" and (Suite.Scoring:ActiveID() == "automatic" and "Automatic" or Suite.Scoring:Profile().label)
-                    or data.action == "weights" and (Suite.GearSettings.mode == "editor" and "Hide" or "Show")
-                    or data.action == "buffWarning" and (Suite.db.missingBuffWarning .. "s")
+                row.value:SetText(data.action == "buffWarning" and (Suite.db.missingBuffWarning .. "s")
                     or data.action == "disenchantModifier" and Suite.ProfessionHelper:Modifier():upper()
-                    or data.action == "upgradePreference" and (Suite.Scoring.Preference(Suite.db) == "ilevel" and "Item level" or "Stats")
                     or data.action == "campingPose" and Suite.Camping:GetPose().label
                     or data.action == "repairSource" and (Suite.db.repairSource == "guild" and "Guild gold" or "Personal gold")
                     or data.action == "junkMode" and (Suite.db.junkMode == "instant" and "Instant" or "Slow")
@@ -726,6 +721,7 @@ function GUI:BuildLevelingLog()
         local row = CreateFrame("Button", nil, panel, "BackdropTemplate")
         Suite.Theme:ButtonFeedback(row)
         row:SetSize(width, 54); Fill(row, palette.row); row.cells = {}
+        row.icon = Suite.Items:CreateListIcon(row, 22, 10, -5); row.icon:Hide()
         for cell = 1, 4 do row.cells[cell] = Label(row, 12, palette.text, 12, -8, 100, 18); row.cells[cell]:SetWordWrap(false) end
         row.detail = Label(row, 10, palette.muted, 12, -31, width - 24, 16); row.detail:SetWordWrap(false)
         row.hideTooltip = function() ItemTooltip(row, false) end
@@ -749,7 +745,7 @@ function GUI:BuildLevelingLog()
         self.levelingLogPage = (self.levelingLogPage or 1) + 1; self:RefreshLevelingLog()
     end)
     self.levelingLogCount = Label(panel, 11, palette.muted, 120, -634, width - 240, 22)
-    self.levelingWheelArea = Suite.Theme:PageWheel(panel, self.levelingLogRows, self.levelingLogBack, self.levelingLogNext, self.levelingLogNext)
+    Suite.Theme:PageWheel(panel, self.levelingLogRows, self.levelingLogBack, self.levelingLogNext, self.levelingLogNext)
     self.levelingLogCount:SetJustifyH("CENTER")
     self.levelingJournalNote = Label(panel, 10, palette.muted, 0, -670, width, 48)
 end
@@ -830,6 +826,8 @@ function GUI:RefreshLevelingLog()
         local itemID = data and data.id or nil
         if row.itemID ~= itemID then row.hideTooltip() end
         row.itemID = itemID
+        row.icon:SetShown(itemID ~= nil)
+        if itemID then Suite.Items:SetListIcon(row.icon, itemID) end
         row:SetShown(data ~= nil); row.number = data and data.number or nil
         row.detail:SetText(data and data.detail or "")
         Fill(row, palette.row)
@@ -847,12 +845,13 @@ function GUI:RefreshLevelingLog()
                 local columnWidth = width * fraction
                 local header = self.levelingColumnHeaders[cell]
                 header:ClearAllPoints(); header:SetPoint("TOPLEFT", x, -230); header:SetWidth(columnWidth - 4)
-                header.label:ClearAllPoints(); header.label:SetPoint("LEFT", 12, 0); header.label:SetWidth(columnWidth - 28)
+                header.label:ClearAllPoints(); header.label:SetPoint("LEFT", cell == 1 and view == "Loot" and 40 or 12, 0); header.label:SetWidth(columnWidth - (cell == 1 and view == "Loot" and 56 or 28))
                 header.label:SetJustifyH(cell == 1 and "LEFT" or "RIGHT")
                 for index, row in ipairs(self.levelingLogRows) do
                     row:ClearAllPoints(); row:SetPoint("TOPLEFT", 0, -270 - (index - 1) * 62)
                     local text = row.cells[cell]
-                    text:ClearAllPoints(); text:SetPoint("TOPLEFT", x + 12, -8); text:SetWidth(columnWidth - 24)
+                    text:ClearAllPoints(); text:SetPoint("TOPLEFT", x + (cell == 1 and view == "Loot" and 40 or 12), -8)
+                    text:SetWidth(columnWidth - (cell == 1 and view == "Loot" and 52 or 24))
                     text:SetJustifyH(cell == 1 and "LEFT" or "RIGHT")
                 end
                 x = x + columnWidth
@@ -1053,6 +1052,9 @@ function GUI:BuildSetup()
     self.setupTip:SetJustifyV("TOP")
     self.setupBack = Button(0, -512, 88, "Back", function() Suite.Setup:Move(Suite.Setup.page - 1) end)
     self.setupLater = Button(94, -512, 110, "Later", function() self:Select("overview") end)
+    self.setupOverlap = Button(214, -512, 152, "Review overlaps", function()
+        Suite.FeatureReview:Open("overlaps", self.frame, Suite.Setup.draft)
+    end)
     self.setupNext = Button(width - 174, -512, 174, "Next", function()
         if Suite.Setup.page == #Suite.Setup.pages then Suite.Setup:Finish()
         else Suite.Setup:Move(Suite.Setup.page + 1) end
@@ -1111,6 +1113,7 @@ function GUI:RefreshSetup()
         end
     end
     if review then
+        summary[#summary + 1] = Suite.FeatureReview:SetupSummary(setup.draft)
         self.setupReviewText:SetText(table.concat(summary, "\n\n"))
         self.setupReviewText:SetHeight(0)
         local height = self.setupReviewText:GetStringHeight()
@@ -1126,6 +1129,7 @@ function GUI:RefreshSetup()
     self.setupTip:SetText(setup.message or (review and InCombatLockdown()
         and "Apply setup after combat ends. Your choices are still staged." or page.tip))
     self.setupTip:SetTextColor(unpack(setup.message and palette.gold or palette.muted))
+    if Suite.FeatureReview.preview == setup.draft then Suite.FeatureReview:Apply() end
     self.setupBack:SetEnabled(setup.page > 1)
     self.setupNext:SetEnabled(not review or not InCombatLockdown())
     self.setupNext.label:SetText(review and "Apply setup" or "Next")
@@ -1819,7 +1823,7 @@ function GUI:LayoutNavigation(key)
 end
 
 function GUI:LayoutPage(key)
-    local panels = { leveling = self.levelingLogPanel, appearance = self.appearancePanel, buffs = Suite.BuffSettings.mode and self.buffPanel or nil, profiles = self.profilePanel, overview = self.homePanel, items = Suite.GearSettings.mode and self.gearPanel or nil, macros = self.macroPanel, meters = self.meterPanel, chat = self.chatPanel,
+    local panels = { leveling = self.levelingLogPanel, appearance = self.appearancePanel, buffs = Suite.BuffSettings.mode and self.buffPanel or nil, profiles = self.profilePanel, overview = self.homePanel, macros = self.macroPanel, meters = self.meterPanel, chat = self.chatPanel,
         actionbars = self.procPanel,
         bars = self.progressPanel, worldmap = self.mapPanel, characters = self.characterPanel, castbars = self.castbarPanel }
     if pages[key].directory then panels[key] = self.homePanel end
@@ -2132,7 +2136,6 @@ function GUI:Initialize()
         self:StopScrollDrags()
         Suite.pending.dashboardBuild, Suite.pending.dashboardView = nil, nil
         self:ClearSearch(); self:ClearSettingHighlight(); Suite.pending.settingsReveal = nil
-        Suite.GearSettings:Dismiss()
         Suite.CharacterBrowser:SetVisible(false)
         Suite.pending.setupOpen = nil
         if self.page == "setup" then Suite.Setup:Dismiss() end
@@ -2522,7 +2525,7 @@ function GUI:ChooseMacroItem()
         if entry.recipe ~= "item" and not recipe.foodChoice then root:CreateButton("Select automatically", function() Choose(nil) end) end
         for _, item in ipairs(choices) do
             local id = item.id
-            root:CreateButton(item.name .. " (" .. item.count .. " carried)", function() Choose(id) end)
+            root:CreateButton(Suite.Items:IconText(id, item.name .. " (" .. item.count .. " carried)"), function() Choose(id) end)
         end
         if #choices == 0 and not choiceNote then root:CreateTitle("No suitable carried items. Check your bags.") end
     end)

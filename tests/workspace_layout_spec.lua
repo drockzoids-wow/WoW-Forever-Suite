@@ -73,18 +73,6 @@ gui.groupTabs.suite.OnClick(gui.groupTabs.suite)
 equal(gui.page,"browse_suite","Suite Settings lists all its utility pages")
 equal(gui.groupTabs.suite.point[2],12,"Suite Settings aligns with other sections")
 equal(routes, 33, "all existing routes plus Support remain accessible")
-local gear = Suite.GearSettings
-gear:Open("picker")
-for _, card in ipairs(gear.profileButtons) do
-    equal(card.point[2] + card:GetWidth() <= gear.panel:GetWidth(), true, "three-column profiles fit their wider panel")
-end
-gear:Open("editor")
-for _, field in ipairs(gear.fields) do
-    equal(field.input.point[2] + field.input:GetWidth() <= gear.panel:GetWidth(), true, "three-column weight fields stay within panel")
-    equal(-field.input.point[3] + field.input:GetHeight() < -gear.detailsButton.point[3], true, "weight fields clear the relocated footer")
-end
-equal(gear.panel:GetHeight() >= -gear.status.point[3] + gear.status:GetHeight(), true, "expanded weights keep the status inside the scrollable panel")
-gear:Dismiss()
 equal(gui.macroCombat.point[2] >= 280, true, "macro checkbox aligns with the wider detail pane")
 equal(gui.setupReviewChild:GetWidth(), 750, "setup review text fills its wider viewport")
 gui:Select("overview")
@@ -140,7 +128,7 @@ for _, route in ipairs({ "bags", "items", "actionbars" }) do
     end
     for _, button in ipairs(gui.viewButtons or {}) do equal(button:IsShown(), false, "no extra feature navigation is shown") end
     gui:ScrollTo(0);gui.rows[1]:OnMouseWheel(-1)
-    equal(gui.scrollOffset,40,"wheel over settings scrolls the unified page")
+    equal(gui.scrollOffset,route == "items" and 0 or 40,"settings wheel scrolls long pages while Item Levels fits without scrolling")
 end
 gui:Select("actionbars")
 equal(gui.procPanel:IsShown(),true,"proc sizing stays on the action bar page")

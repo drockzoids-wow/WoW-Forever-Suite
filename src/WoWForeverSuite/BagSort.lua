@@ -98,6 +98,9 @@ function BagSort:Queue()
         -- Leave an item being moved alone; reopen the bags to request another pass.
         visit.requested = true
         if not Suite.IsReadable(held) or held ~= false then return end
+        if not Suite.ItemRules:MaySort() then
+            Suite.Print("Automatic bag sorting paused by keep rules or unavailable inventory."); return
+        end
         C_Container.SortBags()
     end)
 end

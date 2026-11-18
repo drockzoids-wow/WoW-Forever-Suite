@@ -157,21 +157,22 @@ function Quests:Gossip()
             end
         end
     end
+    -- Quest entries are choices too. Never hide unhandled quests behind a shop
+    -- or conversation shortcut, even when automatic vendor opening is enabled.
+    if #active > 0 or #available > 0 then return end
     if not Yes(Suite.db.autoVendor) and not Yes(Suite.db.autoGossip) then return end
     local options = List(Read(api.GetOptions))
     if not options then return end
     local service, kind = ServiceOption(options)
     local option
-    if service and (kind == "vendor" and Yes(Suite.db.autoVendor)
-        or Yes(Suite.db.autoGossip) and #active == 0 and #available == 0) then
+    if service and (kind == "vendor" and Yes(Suite.db.autoVendor) or Yes(Suite.db.autoGossip)) then
         -- A sole vendor/binder service may coexist with informational chat.
         -- Selecting the binder opens its native prompt; never confirm it here.
         option = service
     end
     if not option then
         -- General conversation still preserves quest entries and deliberate menus.
-        if not Yes(Suite.db.autoGossip) or #active > 0 or #available > 0
-            or #options ~= 1 or not No(Read(api.ForceGossip)) then return end
+        if not Yes(Suite.db.autoGossip) or #options ~= 1 or not No(Read(api.ForceGossip)) then return end
         option = options[1]
     end
     local status = Enum and Enum.GossipOptionStatus and Enum.GossipOptionStatus.Available

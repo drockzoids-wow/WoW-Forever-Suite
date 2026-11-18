@@ -382,12 +382,11 @@ local function Shop()
     forced = true
     options = { { gossipOptionID = 800, orderIndex = 7, status = 0, icon = 132060, name = Secret() },
         { gossipOptionID = 801, status = 0, icon = 136243 } }
-    active = { { questID = 200, isComplete = false, isIgnored = false } }
-    available = { { questID = 201, isIgnored = false } }
+    active, available = {}, {}
     quests:Apply()
 end
 Shop(); Show("gossip"); equal(#calls, 0, "shop opening waits for the native show handler"); Flush()
-equal(calls[1] and calls[1].action, "option", "vendor-only setting selects a shop beside informational chat and quests")
+equal(calls[1] and calls[1].action, "option", "vendor-only setting selects a shop beside informational chat without quests")
 equal(calls[1].value, 800, "vendor opening uses option ID, independent of localized text and row index")
 Fire("GOSSIP_SHOW"); Fire("GOSSIP_OPTIONS_REFRESHED"); Flush()
 equal(#calls, 1, "duplicate vendor events cannot repeat the shop request")
@@ -399,7 +398,25 @@ equal(quests.visit, nil, "closing the shop ends a continuing gossip visit withou
 Show("gossip"); Flush()
 equal(#calls, 2, "the same vendor opens again after closing its shop")
 Shop(); options = { options[1] }; Show("gossip"); Flush()
-equal(#calls, 1, "a single forced shop choice opens even with quests listed")
+equal(#calls, 1, "a single forced shop choice opens without quest entries")
+for _, gossipEnabled in ipairs({ false, true }) do
+    for _, singleOption in ipairs({ false, true }) do
+        for _, questKind in ipairs({ "available", "ignored", "unfinished", "complete" }) do
+            Shop(); Suite.db.autoGossip = gossipEnabled
+            if singleOption then options = { options[1] } end
+            if questKind == "available" or questKind == "ignored" then
+                available = { { questID = 201, isIgnored = questKind == "ignored" } }
+            else
+                active = { { questID = 200, isComplete = questKind == "complete", isIgnored = false } }
+            end
+            Show("gossip"); Flush()
+            equal(#calls, 0, "unhandled " .. questKind .. " quest prevents vendor selection with gossip="
+                .. tostring(gossipEnabled) .. " singleOption=" .. tostring(singleOption))
+        end
+    end
+end
+Shop(); Show("gossip"); available = { { questID = 201, isIgnored = false } }; Flush()
+equal(#calls, 0, "quest appearing before deferred work prevents vendor selection")
 Shop(); Suite.db.autoVendor = false; quests:Apply(); Show("gossip"); Flush()
 equal(#calls, 0, "vendor opening does not follow repair or other quest preferences")
 equal(next(quests.events.registered), nil, "vendor-only disable unregisters the shared events")
@@ -452,9 +469,11 @@ Shop(); GetFileIDFromPath = nil; Show("gossip"); Flush()
 equal(#calls, 0, "missing native icon lookup stays manual")
 Shop(); GetFileIDFromPath = function() error("unavailable") end; Show("gossip"); Flush()
 equal(#calls, 0, "rejected native icon lookup stays manual")
-Shop(); Suite.db.autoQuestTurnIn = true; active[1].isComplete = true; Show("gossip"); Flush()
+Shop(); Suite.db.autoQuestTurnIn = true
+active = { { questID = 200, isComplete = true, isIgnored = false } }; Show("gossip"); Flush()
 equal(calls[1].action, "active", "enabled ready turn-ins precede vendor opening")
-Shop(); Suite.db.autoQuestPickup = true; Show("gossip"); Flush()
+Shop(); Suite.db.autoQuestPickup = true
+available = { { questID = 201, isIgnored = false } }; Show("gossip"); Flush()
 equal(calls[1].action, "available", "enabled quest pickup precedes vendor opening")
 -- Service choices at innkeepers must not be hidden by the vendor shortcut.
 Shop(); options[3] = { gossipOptionID = 802, status = 0, icon = 135982 }
@@ -488,6 +507,7 @@ Shop(); options[1].icon = 135982; Suite.db.autoGossip = true
 options[1].status = 1; active, available = {}, {}; Show("gossip"); Flush()
 equal(#calls, 0, "unavailable home-binding stays manual")
 Shop(); options[1].icon = 135982; Suite.db.autoGossip = true
+available = { { questID = 201, isIgnored = false } }
 Show("gossip"); Flush()
 equal(#calls, 0, "general service shortcut retains unhandled quest entries")
 -- Physical Shift and a brief press between opening and deferred work must both pause.

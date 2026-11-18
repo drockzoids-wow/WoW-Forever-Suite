@@ -264,7 +264,6 @@ function Theme:IconButton(parent, caption, callback, destructive)
     button:SetScript("OnDisable", function() hovered, pressed = false, false; Paint(); HideTooltip() end)
     button:SetScript("OnEnable", Paint)
     button:SetScript("OnClick", callback)
-    button.RefreshIcon = Paint
     Paint()
     return button
 end

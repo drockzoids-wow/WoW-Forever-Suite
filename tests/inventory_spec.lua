@@ -154,18 +154,16 @@ RAID_CLASS_COLORS.MAGE = { r = { secret = true }, g = 0.8, b = 1 }
 colored.OnTooltipCleared(colored); colored.lines = {}; Hover({ id = 100 }, colored)
 equal(HasLine(colored, "First")[3], 1, "restricted class color falls back to native gold")
 RAID_CLASS_COLORS.MAGE = classColor
-local getInfo, upgradeDelta = Suite.Items.GetInfo, Suite.Items.UpgradeDelta
+local getInfo = Suite.Items.GetInfo
 Suite.Items.GetInfo = function() return { equipLoc = "INVTYPE_HEAD", level = 20, classID = 4, subclassID = 1 } end
-Suite.Items.UpgradeDelta = function() return 2, { preference = "stats" } end
-Suite.db.itemTooltipLevels, Suite.db.upgradeHints = true, true
+Suite.db.itemTooltipLevels = true
 local gear = Hover({ id = 100 })
 equal(gear.lines[1][1], "Item Level 20", "equipment annotations precede inventory footer")
-equal(gear.lines[2][1]:find("Possible stat upgrade", 1, true) ~= nil, true, "inventory preserves independent upgrade hints")
 local inventoryIndex
 for index, line in ipairs(gear.lines) do if line[1] == "Inventory" then inventoryIndex = index end end
-equal(inventoryIndex ~= nil and inventoryIndex > 2, true, "inventory footer follows the complete comparison explanation")
-Suite.Items.GetInfo, Suite.Items.UpgradeDelta = getInfo, upgradeDelta
-Suite.db.itemTooltipLevels, Suite.db.upgradeHints = false, false
+equal(inventoryIndex ~= nil and inventoryIndex > 1, true, "inventory footer follows item-level details")
+Suite.Items.GetInfo = getInfo
+Suite.db.itemTooltipLevels = false
 local initialized = tips.initialized
 tips.initialized = nil
 SetCombat(true); tips:Apply()

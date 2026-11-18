@@ -1,5 +1,14 @@
 # Forever Suite
 
+## 1.0.21 — November 17, 2026
+
+- Add merchant restocking for saved carried targets. Drag items from a vendor or your bags, edit quantities in the Saved list, and confirm shortages at vendors or opt into Automatic Purchase per item.
+- Add shared item keep rules and per-character carried reserves for Suite junk sales, trash suggestions and reagent deposits. Wait for each bank transfer to settle and prevent duplicate restock requests across merchant visits.
+- Add profession shopping plans, recipe routes and intermediate recipe navigation. Show material usage in optional tooltips and distinguish carried stock from recorded bags and banks.
+- Add inventory filters and saved categories, character-owned native window layouts, and an enabled-features and addon-overlap review.
+- Add all-spec leveling and endgame talent presets. Keep quest choices accessible when opening vendor shops.
+- Remove Suite gear scores, upgrade suggestions and stat-weight settings. Item levels and native equipment comparisons remain available.
+
 ## 1.0.20 — November 16, 2026
 
 - Preserve the last recorded in-world gold balance at logout in both account money and the character dashboard. Cancel pending captures so client teardown cannot overwrite balances with zero; genuine zero balances still record normally. Previously overwritten balances require a fresh login with recording enabled.

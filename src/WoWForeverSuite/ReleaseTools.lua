@@ -45,6 +45,7 @@ local function Window(owner, name, title)
     frame.rows = {}
     for index = 1, 8 do
         local row = Button(frame, "", 14, -104 - (index - 1) * 44, 592, function()
+            if owner == Supplies and Suite.Items:ModifiedClick(frame.rows[index].supplyID, "LeftButton") then return end
             if owner.Select then owner:Select(index + (owner.page - 1) * 8) end
         end)
         row:SetHeight(40); row.label:SetJustifyH("LEFT"); row.label:SetWidth(578)
@@ -91,11 +92,13 @@ function Supplies:InitializeCharacter(saved)
             local entry = saved.entries[index]
             if Read(entry, "table") and Integer(entry.id, 1, 2147483647) and Integer(entry.wanted, 1, 100000)
                 and not seen[entry.id] then
-                result.entries[#result.entries + 1] = { id = entry.id, wanted = entry.wanted }
+                result.entries[#result.entries + 1] = { id = entry.id, wanted = entry.wanted,
+                    automatic = Read(entry.automatic, "boolean") and entry.automatic or nil }
                 seen[entry.id] = true
             end
         end
     end
+    result.professionPlans = Suite.ShoppingList:Normalize(Read(saved, "table") and saved.professionPlans or nil)
     self.db = result; return result
 end
 function Supplies:Enabled() return Suite.db and Suite.IsReadable(Suite.db.supplyChecklist) and Suite.db.supplyChecklist == true end
@@ -108,6 +111,13 @@ function Supplies:Save(id, wanted)
     end
     if #self.db.entries >= 32 then return false, "The checklist holds up to 32 items." end
     self.db.entries[#self.db.entries + 1] = { id = id, wanted = wanted }; return true
+end
+function Supplies:Remove(id)
+    if InCombatLockdown() or not Integer(id, 1, 2147483647) or not self.db then return false end
+    for index, entry in ipairs(self.db.entries) do
+        if entry.id == id then table.remove(self.db.entries, index); return true end
+    end
+    return false
 end
 function Supplies:Counts()
     if not self:Enabled() or InCombatLockdown() then return end
@@ -131,10 +141,17 @@ function Supplies:Rows(counts)
             if not self.requested[entry.id] then self.requested[entry.id] = true; Call(C_Item and C_Item.RequestLoadItemDataByID, entry.id) end
         end
     end
+    if Suite.ShoppingList then
+        for _, row in ipairs(Suite.ShoppingList:Rows()) do row.profession = true; rows[#rows + 1] = row end
+    end
     return rows
 end
 function Supplies:Select(index)
-    local row = self.db.entries[index]; if not row then return end
+    local row = self.db.entries[index]
+    if not row then
+        self.frame.item:SetText(""); self.frame.quantity:SetText("")
+        Suite.ShoppingList:Open(self.frame); return
+    end
     self.confirmRemove = nil; self.frame.item:SetText(tostring(row.id)); self.frame.quantity:SetText(tostring(row.wanted))
     self.frame.remove.label:SetText("Remove item")
 end
@@ -178,9 +195,10 @@ function Supplies:Refresh()
     for index, widget in ipairs(self.frame.rows) do
         local row = self.rows[index + (self.page - 1) * 8]
         widget.supplyID = row and row.id or nil
+        if row then Suite.Items:SetListIcon(widget.icon, row.id) end
     end
     if not InCombatLockdown() and hovered and Call(MouseIsOver, hovered) == true then self:ItemTooltip(hovered) end
-    self.frame.context:SetText("Drop an item below, or click a row to edit. Hover a row for item details.\nCounts use carried bags only. Targets belong to this character.")
+    self.frame.context:SetText("Manual targets count carried bags. Profession plans count all recorded characters and banks.\nClick a profession row to open its shopping list. Targets belong to this character.")
     self.frame.status:SetText(InCombatLockdown() and "Paused in combat. Retry after combat."
         or not self:Enabled() and "Tracking is off. Enable it in Supply Checklist settings to count carried items."
         or #self.rows == 0 and "Your checklist is empty. Add an item below." or "Select an item to change its target or remove it. No items are bought or used.")
@@ -191,24 +209,35 @@ local function ItemInput(value)
     local id = value:match("^%s*(%d+)%s*$") or value:match("|Hitem:(%d+):") or value:match("^item:(%d+)")
     id = id and tonumber(id); return Integer(id, 1, 2147483647) and id or nil
 end
-function Supplies:ReceiveItem()
-    if InCombatLockdown() or not self.frame or not self.frame:IsShown() then return false end
+function Supplies:TakeCursorItem(merchantItemID)
+    if InCombatLockdown() then return end
     if not Read(GetCursorInfo, "function") or not Read(ClearCursor, "function") then
-        self.frame.status:SetText("Item drops are unavailable. Paste an item ID or link instead."); return false
+        return nil, "Item drops are unavailable."
     end
-    local ok, kind, id = pcall(GetCursorInfo)
+    local ok, kind, value = pcall(GetCursorInfo)
     if not ok or not Suite.IsReadable(kind) then
-        self.frame.status:SetText("The cursor item is unavailable. Paste an item ID or link instead."); return false
+        return nil, "The cursor item is unavailable."
     end
-    if kind == nil then return false end -- Preserve ordinary editing clicks.
-    if kind ~= "item" or not Integer(id, 1, 2147483647) then
-        self.frame.status:SetText("Drop an available item here, or paste its item ID or link."); return false
+    if kind == nil then return end
+    local id
+    if kind == "item" then id = value
+    elseif kind == "merchant" and merchantItemID then id = merchantItemID(value) end
+    if not Integer(id, 1, 2147483647) then
+        return nil, "Drop an available item here."
     end
     local cleared, result = pcall(ClearCursor)
     if not cleared or not Suite.IsReadable(result) or (result ~= nil and result ~= true) then
-        self.frame.status:SetText("The item drop could not finish. Paste an item ID or link instead."); return false
+        return nil, "The item drop could not finish."
     end
-    if InCombatLockdown() then return false end
+    if not InCombatLockdown() then return id end
+end
+function Supplies:ReceiveItem()
+    if InCombatLockdown() or not self.frame or not self.frame:IsShown() then return false end
+    local id, message = self:TakeCursorItem()
+    if not id then
+        if message then self.frame.status:SetText(message .. " Paste an item ID or link instead.") end
+        return false
+    end
     self.frame.item:SetText(tostring(id))
     self.confirmRemove = nil; self.frame.remove.label:SetText("Remove item")
     self.frame.item:ClearFocus(); self.frame.quantity:SetFocus()
@@ -238,6 +267,9 @@ function Supplies:Open(owner)
         frame.item:SetScript("OnReceiveDrag", function() self:ReceiveItem() end)
         frame.item:HookScript("OnMouseDown", function(_, button) if button == "LeftButton" then self:ReceiveItem() end end)
         for _, row in ipairs(frame.rows) do
+            row.icon = Suite.Items:CreateListIcon(row, 30, 5, -5)
+            row.label:ClearAllPoints(); row.label:SetPoint("TOPLEFT", 44, -4); row.label:SetWidth(540)
+            row.detail:ClearAllPoints(); row.detail:SetPoint("TOPLEFT", 44, -23); row.detail:SetWidth(540)
             row:SetScript("OnEnter", function(owner) self:ItemTooltip(owner) end)
             row:SetScript("OnLeave", function(owner) if self.hovered == owner then self:HideTooltip() end end)
             row:HookScript("OnHide", function(owner) if self.hovered == owner then self:HideTooltip() end; owner.supplyID = nil end)
@@ -253,10 +285,11 @@ function Supplies:Open(owner)
             local id = ItemInput(frame.item:GetText())
             if not id then frame.status:SetText("Select a saved item first."); return end
             if self.confirmRemove ~= id then self.confirmRemove = id; frame.remove.label:SetText("Confirm remove"); return end
-            for index, row in ipairs(self.db.entries) do if row.id == id then table.remove(self.db.entries, index); break end end
+            self:Remove(id)
             self.confirmRemove = nil; frame.remove.label:SetText("Remove item"); self:Refresh()
         end)
         frame.settings = Button(frame, "Settings", 498, -544, 108, function() Suite.GUI:OpenPage("supplies", nil, self.frame) end)
+        frame.shopping = Button(frame, "Shopping list", 330, -544, 158, function() Suite.ShoppingList:Open(self.frame) end)
     end
     Suite.PlaceWindow(self.frame, owner)
     self.requested = {}; self.frame:Show(); self:Apply()

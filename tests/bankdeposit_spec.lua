@@ -1,7 +1,7 @@
 local Suite, equal, Frame, SetCombat = ...
 local deposit = Suite.BankDeposit
 local names = { "CreateFrame", "BankFrame", "C_Container", "C_Item", "C_Bank", "C_Timer", "Enum",
-    "NUM_TOTAL_EQUIPPED_BAG_SLOTS", "CursorHasItem", "GetCursorInfo", "SpellIsTargeting" }
+    "NUM_TOTAL_EQUIPPED_BAG_SLOTS", "CursorHasItem", "GetCursorInfo", "SpellIsTargeting", "EventRegistry" }
 local old, state = {}, {}
 for _, name in ipairs(names) do old[name] = _G[name] end
 for key, value in pairs(deposit) do state[key] = value end
@@ -30,7 +30,23 @@ CreateFrame = function(_, _, parent)
 end
 BankFrame = Widget(); BankFrame:Show()
 BankFrame.GetActiveBankType = function() return kind end
-BankFrame.SetTab = function(_, nextKind) kind = nextKind end
+local layoutCallback, layoutOwner
+EventRegistry = {
+    RegisterCallback = function(_, event, callback, owner)
+        equal(event, "BankPanelMixin.ShowOrHideBagCost", "deposit observes native layout event")
+        layoutCallback, layoutOwner = callback, owner
+    end,
+    UnregisterCallback = function(_, event, owner)
+        equal(event, "BankPanelMixin.ShowOrHideBagCost", "disable removes native layout observer")
+        equal(owner, layoutOwner, "disable removes only its own observer")
+        layoutCallback, layoutOwner = nil, nil
+    end,
+}
+local function NativeSetTab(_, nextKind)
+    kind = nextKind
+    if layoutCallback then layoutCallback(layoutOwner) end
+end
+BankFrame.SetTab = NativeSetTab
 BankFrame.BankPanel = Widget(); BankFrame.BankPanel.PurchaseButton = Widget()
 BankFrame.BankPanel.PurchaseButton:Show()
 Enum = { BankType = { Character = 0, Account = 2 } }
@@ -46,6 +62,10 @@ end, RequestLoadItemDataByID = function(id) loads[id] = (loads[id] or 0) + 1 end
 C_Container = {
     GetContainerNumSlots = function(bag) return bag == 0 and 3 or 1 end,
     GetContainerItemInfo = function(bag, slot) return items[bag] and items[bag][slot] end,
+    GetContainerItemID = function(bag, slot)
+        local item = items[bag] and items[bag][slot]
+        return item and item.itemID
+    end,
     UseContainerItem = function(bag, slot, unit, bankType, reagentBank)
         assert(not InCombatLockdown(), "deposit never transfers in combat")
         assert(BankFrame:IsShown() and deposit.bankOpen and allowed == true, "deposit requires live bank")
@@ -75,7 +95,8 @@ local function Flush(delay)
     end
 end
 local function Finish()
-    for _ = 1, 8 do Flush() end
+    for _ = 1, 8 do Flush(0); Flush(0.2) end
+    Flush(4)
 end
 ResetItems()
 equal(Suite.db.bankDepositReagents, false, "deposit button starts independently off")
@@ -94,6 +115,14 @@ equal(deposit.button.point[4], 8, "button leaves a gap beside Purchase")
 equal(deposit.button:IsShown(), true, "enabling at live personal bank shows button")
 equal(Suite.db.offlineBank, false, "deposit does not require bank recording")
 equal(#calls, 0, "enabling never deposits automatically")
+equal(BankFrame.SetTab, NativeSetTab, "first-open purchase method remains untouched")
+BankFrame:SetTab(0)
+local firstLayout = deposit.layoutTimer
+BankFrame:SetTab(0)
+equal(deposit.layoutTimer, firstLayout, "native layout notifications coalesce")
+equal(#calls, 0, "first-open tab selection cannot transfer items")
+Flush(0)
+equal(deposit.layoutTimer, nil, "first-open layout work finishes without idle polling")
 deposit.button.OnClick(); deposit.button.OnClick()
 equal(#calls, 1, "click starts one finite batch and repeat click cannot duplicate it")
 equal(deposit.button.enabled, false, "button is disabled while batch runs")
@@ -127,11 +156,16 @@ equal(#calls, count + 3, "bank-type switch cancels the batch")
 equal(deposit.button:IsShown(), false, "button is hidden on account bank")
 BankFrame:SetTab(0)
 ResetItems(); full = true; deposit:Start(); Finish(); full = false
-equal(#calls, count + 6, "full bank attempts each reagent once without infinite retries")
+equal(#calls, count + 4, "a full bank stops after one unconfirmed request")
+equal(deposit.job, nil, "an unconfirmed transfer times out")
+equal(messages[#messages]:find("last transfer was unconfirmed", 1, true) ~= nil, true, "timeout explains why the batch stopped")
 count = #calls
-ResetItems(); items[0][1].isLocked = true; items[0][3].itemID = { secret = true }
+ResetItems(); items[0][3].itemID = { secret = true }
 deposit:Start(); Finish()
-equal(#calls, count + 1, "locked and restricted items never transfer")
+equal(#calls, count, "unreadable carried counts cannot authorize transfer")
+ResetItems(); items[0][1].isLocked = true; items[0][3] = nil
+deposit:Start(); Finish()
+equal(#calls, count + 1, "locked slots are skipped")
 ResetItems(); reagents[300] = nil; deposit:Start()
 equal(#calls, count + 1, "batch waits for missing item metadata")
 equal(loads[300], 1, "missing reagent metadata requests native loading")
@@ -139,23 +173,26 @@ reagents[300] = true; deposit:OnEvent("ITEM_DATA_LOAD_RESULT"); Flush(0.2); Fini
 equal(#calls, count + 4, "native metadata completion resumes clicked batch")
 ResetItems(); reagents[300] = nil; deposit:Start(); Flush(5); Finish()
 equal(#calls, count + 6, "metadata timeout skips unknown items while depositing known reagents")
-equal(#messages, 1, "metadata timeout explains how to retry unavailable data")
+equal(messages[#messages]:find("Some item data was unavailable", 1, true) ~= nil, true, "metadata timeout explains how to retry unavailable data")
 reagents[300] = true
 ResetItems(); throw = true; deposit:Start(); Finish(); throw = false
 equal(deposit.job, nil, "native transfer rejection cancels whole batch")
-equal(#messages, 2, "native transfer rejection is disclosed")
+equal(messages[#messages]:find("the game rejected a transfer", 1, true) ~= nil, true, "native transfer rejection is disclosed")
 ResetItems(); deposit:Start(); Suite.db.bankDepositReagents = false; deposit:Apply(); Finish()
 equal(deposit.job, nil, "disable cancels batch and timers")
 equal(deposit.button:IsShown(), false, "disable hides button")
+equal(layoutCallback, nil, "disabled deposit leaves no layout listener")
+equal(BankFrame.SetTab, NativeSetTab, "disable requires no secure-method restoration")
 Suite.db.bankDepositReagents = true; deposit:Apply()
 BankFrame.BankPanel.PurchaseButton:Hide(); deposit:Discover()
 equal(deposit.button.point[1], "BOTTOMRIGHT", "all-bank-slots-owned layout retains the deposit button")
 equal(deposit.button.point[2], BankFrame, "hidden Purchase fallback anchors to live bank")
-ResetItems(); capacity = { [100] = 23, [300] = 0 }
+ResetItems(); items[0][3], items[1][1] = items[1][1], items[0][3]
+capacity = { [100] = 23, [300] = 0 }
 deposit:Start(); Finish()
 equal(items[0][1], nil, "native capacity can accept a whole stack")
-equal(items[1][1].stackCount, 4, "native capacity can merge part of a remaining stack")
-equal(items[0][3].itemID, 300, "reagent with no compatible capacity remains carried")
+equal(items[0][3].stackCount, 4, "native capacity can merge part of a remaining stack")
+equal(items[1][1].itemID, 300, "reagent with no compatible capacity remains carried")
 equal(items[0][2].itemID, 200, "capacity-limited batch still leaves nonreagents alone")
 capacity = nil
 count = #calls
@@ -163,12 +200,22 @@ ResetItems(); deposit:Start(); cursor = "item"; Finish(); cursor = nil
 equal(#calls, count + 1, "picking up an item during the batch stops subsequent requests")
 ResetItems(); deposit:Start(); items[0][3].stackCount = 99; Finish()
 equal(#calls, count + 3, "stack-count changes invalidate the original slot snapshot")
+count = #calls
+ResetItems(); full = true; deposit:Start()
+deposit:OnEvent("BANKFRAME_CLOSED"); deposit:OnEvent("BANKFRAME_OPENED"); deposit:Start()
+equal(#calls, count + 1, "reopening the bank cannot resend a still-unconfirmed transfer")
+items[0][1] = nil; full = false
+deposit:OnEvent("BAG_UPDATE_DELAYED"); Flush(0.2)
+equal(#calls, count + 1, "late settlement after closing cannot revive old batch")
+deposit:Start(); Finish()
+equal(#calls, count + 3, "fresh click after late settlement can deposit remaining stacks")
 ResetItems(); reagents[300] = { secret = true }; deposit:Start()
 equal(deposit.job.loading, true, "restricted reagent classification waits rather than authorizing a transfer")
 deposit:OnEvent("BANKFRAME_CLOSED"); reagents[300] = true
 deposit:OnEvent("ITEM_DATA_LOAD_RESULT"); Finish()
 equal(deposit.job, nil, "metadata completion after bank closure cannot revive the batch")
 deposit:Cancel()
+Suite.db.bankDepositReagents = false; deposit:Apply(); Finish()
 for key in pairs(deposit) do deposit[key] = nil end
 for key, value in pairs(state) do deposit[key] = value end
 for _, name in ipairs(names) do _G[name] = old[name] end

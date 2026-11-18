@@ -44,7 +44,6 @@ Add("characterDashboard", "Character records", "CharacterDashboard", {}, "dashbo
 Add("itemLevels", "Item levels on icons", "Items", { "C_Item.GetItemInfo" }, "itemScan")
 Add("itemTooltipLevels", "Item levels in tooltips", "Tooltips", tooltip, "tooltipInitialize")
 Add("characterItemLevel", "Character item level", "Character", { "C_Item.GetItemInfo", "GetInventoryItemLink" }, "characterItemLevel")
-Add("upgradeHints", "Gear upgrade advice", "Items", { "C_Item.GetItemInfo", "GetInventoryItemLink" }, "itemScan")
 Add("equipmentSetToggle", "Equipment-set slot controls", "EquipmentSets", {}, "equipmentSetToggle", true)
 Add("playerItemLevel", "Player item-level inspection", "Tooltips", { "NotifyInspect", "C_PaperDollInfo.GetInspectItemLevel" }, "tooltipInitialize", true)
 Add("classNames", "Class-colored tooltip names", "Tooltips", tooltip, "tooltipInitialize")
@@ -88,6 +87,9 @@ Add("mailHelper", "Mailbox contacts", "Mail", {}, "mail")
 Add("mailRememberRecipient", "Remember mail recipients", "Mail", {}, "mail")
 Add("mailExpiry", "Mail deadline recording", "MailExpiry", { "GetInboxNumItems", "GetInboxHeaderInfo", "GetServerTime" }, "mailExpiryApply", true)
 Add("supplyChecklist", "Carried supply counts", "SupplyChecklist", bags, "", true)
+Add("professionShopping", "Profession shopping stock", "ShoppingList", bags, "shopping inventory", true)
+Add("itemKeepRulesEnabled", "Shared keep rules and reserves", "ItemRules", bags, "", true)
+Add("professionUsage", "Profession material tooltip uses", "Tooltips", tooltip, "tooltipInitialize")
 Add("chatStyle", "Chat styling", "Chat", {}, "chat")
 Add("chatHistory", "Saved chat history", "ChatHistory", {}, "chatHistory")
 Add("audioSync", "Audio output sync", "Audio", { "C_CVar.GetCVarInfo", "C_CVar.SetCVar", "Sound_GameSystem_RestartSoundSystem" }, "audioEnable")
@@ -133,35 +135,6 @@ local function Visible(name)
     if Read(shown, "boolean") then return shown end
 end
 local function Flag(module, key) return Field(module, key) == true end
-local function GearContext()
-    local scorer = Field(Suite, "Scoring")
-    local db = Field(Suite, "db")
-    if not Read(db, "table") then return nil, nil, nil, scorer end
-    local state = Field(scorer, "owner") == db and Field(scorer, "character") or nil
-    local mode = Field(state, "preference") or Field(Suite.db, "upgradePreference")
-    local active = Field(state, "active") or Field(db, "scorePreset")
-    local profile
-    if Read(active, "string") and #active <= 32 then
-        if active == "automatic" then profile = Field(scorer, "automaticProfile")
-        else profile = Field(Field(scorer, "presets"), active) end
-        if not profile then
-            local specs, class = Field(scorer, "specs"), Field(scorer, "class")
-            for index = 1, 29 do
-                local entry = Field(specs, index)
-                if Field(entry, "id") == active and Field(entry, "class") == class then profile = entry; break end
-            end
-        end
-        if not profile then
-            local profiles = Field(state, "profiles")
-            for index = 1, 8 do
-                local entry = Field(profiles, index)
-                if Field(entry, "id") == active then profile = entry; break end
-            end
-        end
-    end
-    return mode, active, profile, scorer
-end
-
 function Support:State(entry, combat)
     local enabled = Enabled(entry)
     if enabled == false then return "Off", "Disabled in settings." end
@@ -175,25 +148,6 @@ function Support:State(entry, combat)
     if not Read(module, "table") or not Read(Field(module, "Apply"), "function") then return "Unavailable", "Suite component is not loaded: " .. entry.module end
     local missing = {}
     for _, path in ipairs(entry.requires) do if not Present(path) then missing[#missing + 1] = path end end
-    if entry.key == "upgradeHints" then
-        local mode, _, profile = GearContext()
-        if mode ~= "stats" and mode ~= "ilevel" then return "Unknown", "Comparison preference is unavailable." end
-        if mode ~= "ilevel" and not Present("C_Item.GetItemStats") then missing[#missing + 1] = "C_Item.GetItemStats" end
-        if mode ~= "ilevel" then
-            if not Read(profile, "table") then return "Unknown", "Selected scoring profile is not initialized or available." end
-            local weights = Field(profile, "weights")
-            for _, school in ipairs({ "HOLY", "FIRE", "NATURE", "FROST", "SHADOW", "ARCANE" }) do
-                local weight, readable = Field(weights, school .. "_DAMAGE")
-                if not readable then return "Unknown", "Selected profile's school requirement is unreadable." end
-                if Read(weight, "number") and weight > 0 then
-                    if not Present("C_TooltipInfo.GetHyperlink") then missing[#missing + 1] = "C_TooltipInfo.GetHyperlink"; break end
-                    local locale = Call(GetLocale)
-                    if not Read(locale, "string") then return "Unknown", "School-parser locale is unavailable." end
-                    if locale ~= "enUS" and locale ~= "enGB" then return "Unavailable", "Selected profile needs school bonuses; only English static tooltips are supported." end
-                end
-            end
-        end
-    end
     if #missing > 0 then return "Unavailable", "Missing or unreadable function: " .. table.concat(missing, ", ") end
     if entry.key == "damageMeters" then
         if not Read(Path(_G, "Enum.DamageMeterType"), "table") or not Read(Path(_G, "Enum.DamageMeterSessionType"), "table")
@@ -279,20 +233,13 @@ function Support:Snapshot()
         rows[#rows + 1] = { key = entry.key, label = entry.label, state = state, reason = reason }
         counts[state] = (counts[state] or 0) + 1
     end
-    local mode, active, selected = GearContext()
-    local profile = "unavailable"
-    if Read(active, "string") then
-        if active:match("^custom%d+$") then profile = "custom (name and weights omitted)"
-        elseif active == "automatic" or Read(selected, "table") then profile = Code(active, "^[%w_]+$") end
-    end
     local lines = { "Forever Suite support report v1", "Suite: " .. Code(Suite.version, "^%d+%.%d+%.%d+$"),
         "Client: " .. Code(version, "^%d+%.%d+%.%d+$") .. " | build " .. Code(build, "^%d+$") .. " | Interface " .. (Read(interface, "string") and Code(interface, "^%d+$") or SafeNumber(interface)),
         "Locale: " .. locale .. " | snapshot server time: " .. SafeNumber(now),
         "Combat: " .. (combat == true and "yes" or combat == false and "no" or "unknown"),
         "Saved settings loaded at startup: " .. (Flag(Suite, "loadedSavedVariables") and "yes" or "no/unknown"),
-        "Gear comparison: " .. (mode == "stats" and "weighted stats" or mode == "ilevel" and "item level" or "unavailable") .. " | profile: " .. profile,
         "Snapshot only. Ready checks capabilities, not gameplay success or taint safety.",
-        "No contacts, chat, inventory contents, macro text, player/realm names or custom names/weights are included.", "", "Features:" }
+        "No contacts, chat, inventory contents, macro text, player/realm names or custom names are included.", "", "Features:" }
     for _, row in ipairs(rows) do lines[#lines + 1] = row.label .. " [" .. row.key .. "]: " .. row.state .. " - " .. row.reason end
     lines[#lines + 1] = ""
     lines[#lines + 1] = "Created item macros check supplies on login/use independently of the class macro-maintenance switch."

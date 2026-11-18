@@ -89,7 +89,7 @@ function View:Build()
     end
     self.sourcePrev=Button(popup,"Previous",12,-242,140,function() self.sourcePage=self.sourcePage-1;self:RefreshSources() end)
     self.sourceNext=Button(popup,"Next",164,-242,140,function() self.sourcePage=self.sourcePage+1;self:RefreshSources() end)
-    self.sourceWheelArea=Suite.Theme:PageWheel(popup,self.sourceRows,self.sourcePrev,self.sourceNext,self.sourceRows[#self.sourceRows])
+    Suite.Theme:PageWheel(popup,self.sourceRows,self.sourcePrev,self.sourceNext,self.sourceRows[#self.sourceRows])
     Button(popup,"Close",316,-242,188,function() popup:Hide() end)
     popup:Hide()
     self.copy=Button(panel,"Save as new profile",264,-404,228,function()

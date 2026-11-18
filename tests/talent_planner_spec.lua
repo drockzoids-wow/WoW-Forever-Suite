@@ -740,7 +740,7 @@ for token, data in pairs(planner.starters) do
         model.nodes[id]={max=count,order={entry},entries={[entry]={spell=spell,max=count,name="Talent "..spell,icon=134400}}}
         model.rules[id]={incoming={},conditions={},[entry]={},groups={1},costs={[1]=1},y=id}
     end
-    planner.model,planner.starterCache,planner.starter,planner.guiding=model,nil,false,false
+    planner.model,planner.starterCache,planner.starter,planner.guiding,planner.presetID=model,nil,false,false,nil
     local full,why=planner:ResolveStarter()
     equal(full~=nil,true,token.." starter resolves all client spell identities: "..tostring(why))
     equal(#full.sequence,51,token.." source path covers all 51 reference levels")
@@ -909,6 +909,107 @@ before=made;SetCombat(true);planner:OpenStarterPanel();planner:ChooseStarterLeve
 equal(made,before,"starter UI and copying defer in combat")
 SetCombat(false)
 equal(writes,0,"starter previews and learning never spend real talents")
+
+-- All sourced presets resolve by live spell identity; selection survives guide
+-- and passive-reference persistence without turning PvE ranks into leveling advice.
+do
+    local savedPlanner = {}; for key,value in pairs(planner) do savedPlanner[key]=value end
+    local savedClass, savedFull = class, Suite.db.talentPlannerFullBuild
+    local count, levelingCount, worldCount, ids = 0, 0, 0, {}
+    for token, list in pairs(planner.presets) do
+        class = token
+        local model = {host=host,config=config,tree=tree,class=token,hash=string.rep("b",32),
+            nodes={},order={},native={},rules={},edges={},groups={},groupInfo={},staged=false}
+        local maxima = {}
+        for _, data in ipairs(list) do
+            local ranks = {}
+            for key in data.order:gmatch(".") do
+                local spell = data.spells[key]
+                ranks[spell] = (ranks[spell] or 0) + 1
+            end
+            for spell, rank in pairs(ranks) do maxima[spell] = math.max(maxima[spell] or 0, rank) end
+        end
+        local nodeID = 8000
+        for spell, rank in pairs(maxima) do
+            nodeID = nodeID + 1; local entryID = nodeID + 1000
+            model.order[#model.order + 1] = nodeID
+            model.nodes[nodeID] = {max=rank,order={entryID},entries={[entryID]={spell=spell,max=rank,name="Talent "..spell,icon=134400}}}
+            model.rules[nodeID] = {incoming={},conditions={},[entryID]={},groups={1},costs={[1]=1},y=nodeID}
+        end
+        planner.model, planner.presetID, planner.starterCache = model, nil, nil
+        planner.starter, planner.preview, planner.expanded = false, false, true
+        planner:InitializeGuide(nil)
+        local categorized = 0
+        for _, category in ipairs({"Leveling", "Endgame"}) do
+            local launcher = category == "Leveling" and planner.presetButton or planner.endgameButton
+            launcher:GetScript("OnClick")(launcher)
+            local choices = planner:PresetChoices()
+            equal(planner.presetPicker:IsShown(),true,token.." category chooser opens without needing a draft")
+            equal(planner.presetTitle:GetText(),category.." Builds",token.." chooser title names the category")
+            equal(planner.presetRows[1].caption:GetText(),choices[1].name,token.." picker shows the first matching spec")
+            for _, data in ipairs(choices) do
+                equal(data.kind=="Leveling",category=="Leveling",token.." category excludes the other purpose")
+                categorized = categorized + 1
+            end
+            planner.presetNext:GetScript("OnClick")(planner.presetNext)
+            equal(planner.presetPage,math.min(2,math.ceil(#choices/8)),token.." category paging uses only matching variants")
+            local rowData = choices[(planner.presetPage - 1) * 8 + 1]
+            planner.presetRows[1]:GetScript("OnClick")(planner.presetRows[1])
+            equal(planner:Current().data,rowData,token.." actual category row previews the matching paged preset")
+            equal(planner.presetButton.caption:GetText(),"Leveling Builds",token.." selection preserves generic leveling launcher")
+            equal(planner.endgameButton.caption:GetText(),"Endgame Builds",token.." selection preserves generic endgame launcher")
+        end
+        equal(categorized,#list,token.." categories retain every class preset exactly once")
+        local selectedID, frameCount = planner.presetID, made
+        SetCombat(true); planner:OpenPresetPicker(); planner:ChoosePreset(list[1].id)
+        equal(planner.presetID,selectedID,token.." combat cannot change preset identity")
+        equal(made,frameCount,token.." combat cannot create chooser widgets")
+        SetCombat(false)
+        for _, data in ipairs(list) do
+            count = count + 1; if data.kind == "Leveling" then levelingCount = levelingCount + 1 end
+            if data.kind == "World" then worldCount = worldCount + 1 end
+            equal(ids[data.id],nil,"preset IDs are unique"); ids[data.id]=true
+            equal(#data.order,51,data.name.." has a full point allocation")
+            planner:ChoosePreset(data.id)
+            local full = planner:StarterBuild(60)
+            equal(full.data,data,data.name.." resolves the chosen preset, never the cached previous spec")
+            equal(full.name,data.name,data.name.." retains concise name")
+            equal(full.verified,true,data.name.." validates against the substitute live requirements")
+            equal(planner.starterSource:GetText(),data.source,data.name.." displays its specific source")
+            equal(planner.presetPicker:IsShown(),false,data.name.." selection closes the chooser")
+            equal(planner.starterLevelInput:IsShown(),data.kind=="Leveling",data.name.." level controls match its purpose")
+            equal(#planner:StarterBuild(10).sequence,data.kind=="Leveling" and 1 or 51,data.name.." PvE is always a full allocation")
+            equal(planner:StarterBuild(60),full,data.name.." full view cache survives level preview")
+            planner:StartGuide()
+            local saved = Suite.Copy(planner.guideDB)
+            equal(saved.presetID,data.id,data.name.." learning stores stable preset identity")
+            planner:StopGuide(); planner.presetID=nil; planner.starter=false
+            planner:InitializeGuide(saved); planner:RestoreGuide()
+            equal(planner.presetID,data.id,data.name.." learning restores the exact spec and variant")
+            Suite.db.talentPlannerFullBuild=true
+            planner:RememberFullBuild()
+            saved=Suite.Copy(planner.guideDB)
+            planner.presetID=nil; planner:InitializeGuide(saved)
+            equal(planner:FullBuild().data,data,data.name.." passive reference restores exact preset")
+            planner:StopGuide(); Suite.db.talentPlannerFullBuild=false
+        end
+        Suite.db.talentPlannerFullBuild=true
+        planner:InitializeGuide({fullBuild={class=token,starter=true,presetID="removed-preset:1"}})
+        equal(planner:FullBuild(),nil,token.." missing saved preset never silently selects another spec")
+        planner:InitializeGuide({fullBuild={class=token,starter=true}})
+        equal(planner:FullBuild().data,planner.starters[token],token.." legacy reference migrates to original default spec")
+        planner:InitializeGuide({class=token,starter=true,presetID={secret=true}})
+        equal(planner.guideDB.starter,nil,token.." restricted preset identity rejects saved guide")
+        Suite.db.talentPlannerFullBuild=false
+    end
+    equal(count,71,"all 71 sourced leveling and PvE variants are covered")
+    equal(levelingCount,27,"all 27 Forever talent specs have leveling paths")
+    equal(worldCount,3,"three world/PvP variants are not mislabeled as PvE")
+    planner:CloseStarterPanel(); planner:StopGuide()
+    for key in pairs(planner) do planner[key]=nil end
+    for key,value in pairs(savedPlanner) do planner[key]=value end
+    class, Suite.db.talentPlannerFullBuild = savedClass, savedFull
+end
 
 -- User's build 70790 report: Furious Precision has a zero-spending
 -- availability condition and belongs to five groups, not one.

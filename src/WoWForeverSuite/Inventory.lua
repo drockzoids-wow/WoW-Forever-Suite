@@ -73,7 +73,7 @@ function Inventory:Character()
 end
 
 function Inventory:Enabled()
-    return Suite.db and (Suite.db.itemInventory or Suite.db.inventorySearch or Suite.db.characterDashboard)
+    return Suite.db and (Suite.db.itemInventory or Suite.db.inventorySearch or Suite.db.characterDashboard or Suite.db.professionShopping)
 end
 
 -- Purchased bank bag positions can be unequipped. A zero-slot container alone
@@ -196,6 +196,7 @@ function Inventory:Refresh()
     end
     if Suite.InventorySearch then Suite.InventorySearch:InventoryChanged() end
     if Suite.ProfessionLeveling then Suite.ProfessionLeveling:InventoryChanged() end
+    if Suite.ShoppingList then Suite.ShoppingList:Changed() end
     if Suite.CharacterDashboard then Suite.CharacterDashboard:RefreshView() end
 end
 
@@ -253,15 +254,29 @@ local function Count(snapshot, id)
     if Integer(value, 0, 1000000000) then return value end
 end
 
-function Inventory:Summary(id, includeEmpty)
+function Inventory:Summary(id, includeEmpty, carriedSnapshot)
     if not Integer(id, 1, 2147483647) then return end
     local region = Region()
     if not region then return end
     local db, rows, total, incomplete, observed = self:Database(), {}, 0, false, false
+    local current, found, oldestAt, undated
+    if carriedSnapshot ~= nil and type(UnitGUID) == "function" then
+        local ok, guid = pcall(UnitGUID, "player")
+        if ok and Text(guid) then current = guid end
+    end
+    local function Age(snapshot, count)
+        if count == nil then return end
+        local at = Suite.IsReadable(snapshot) and type(snapshot) == "table" and snapshot.at
+        if Integer(at, 1, 10000000000) then oldestAt = oldestAt and math.min(oldestAt, at) or at
+        else undated = true end
+    end
     for guid, character in pairs(db.characters) do
         if Text(guid) and type(character) == "table" and Text(character.name) and Text(character.realm)
             and RegionID(character.region) and character.region == region then
-            local bags, bank = Count(character.bags, id), Count(character.bank, id)
+            local bagSnapshot = guid == current and carriedSnapshot or character.bags
+            if guid == current then found = true end
+            local bags, bank = Count(bagSnapshot, id), Count(character.bank, id)
+            Age(bagSnapshot, bags); Age(character.bank, bank)
             if bags ~= nil or bank ~= nil then observed = true end
             if bags == nil or bank == nil then incomplete = true end
             local amount = (bags or 0) + (bank or 0)
@@ -272,6 +287,12 @@ function Inventory:Summary(id, includeEmpty)
             end
         end
     end
+    if current and not found then
+        local count = Count(carriedSnapshot, id)
+        if count ~= nil then total, observed = total + count, true end
+        incomplete = true -- This character's bank has not been recorded.
+        Age(carriedSnapshot, count)
+    end
     table.sort(rows, function(a, b)
         if a.current ~= b.current then return a.current end
         if a.name ~= b.name then return a.name < b.name end
@@ -279,11 +300,13 @@ function Inventory:Summary(id, includeEmpty)
         return a.guid < b.guid
     end)
     local account = Count(db.accountBanks[region], id)
+    Age(db.accountBanks[region], account)
     if account ~= nil then observed = true end
     if account == nil then incomplete = true end
     total = total + (account or 0)
     if total == 0 and not includeEmpty then return end
-    return { rows = rows, total = total, account = account, incomplete = incomplete, observed = observed }
+    return { rows = rows, total = total, account = account, incomplete = incomplete, observed = observed,
+        oldestAt = oldestAt, undated = undated == true }
 end
 
 local function Component(value)

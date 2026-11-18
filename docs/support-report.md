@@ -19,11 +19,11 @@ The report covers the main feature switches, three castbar switches and explicit
 
 ## What is captured
 
-The allowlist includes Suite/client versions, build and Interface, locale, numeric server timestamp, public combat state, whether settings loaded at startup, comparison mode and a built-in profile ID or the generic label `custom`. Feature rows contain fixed labels/keys, their status and a fixed diagnostic reason. Missing function names come from the static capability catalog. No arbitrary settings/deferred-work/error dump is generated.
+The allowlist includes Suite/client versions, build and Interface, locale, numeric server timestamp, public combat state, whether settings loaded at startup. Feature rows contain fixed labels/keys, their status and a fixed diagnostic reason. Missing function names come from the static capability catalog. No arbitrary settings/deferred-work/error dump is generated.
 
 Function-level requirements are checked without invoking their actions. The few native read-only probes are build/locale/time/combat metadata, existing window visibility, `C_DamageMeter.IsDamageMeterAvailable` and `C_CVar.GetCVarInfo` for audio output permission flags. The device value and native failure strings are discarded. School-parser availability reflects the selected profile and locale, without requesting any item/tooltip data.
 
-Snapshots never inspect another player, enumerate inventory, query an inbox, read chat messages, retrieve macro bodies, scan auras/mounts, re-run module Apply, execute pending callbacks, register gameplay events, or retry protected actions. They do not initialize scoring caches, change switches, upload anything or write SavedVariables. No polling or idle timer is added.
+Snapshots never inspect another player, enumerate inventory, query an inbox, read chat messages, retrieve macro bodies, scan auras/mounts, re-run module Apply, execute pending callbacks, register gameplay events, or retry protected actions. They do not change switches, upload anything or write SavedVariables. No polling or idle timer is added.
 
 ## Privacy and lifetime
 

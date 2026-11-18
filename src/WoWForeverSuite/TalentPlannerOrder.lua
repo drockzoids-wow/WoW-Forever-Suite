@@ -111,20 +111,30 @@ function Planner:SaveOrder(order)
     return self:Store(self:Current().ranks, true, clean)
 end
 
+local function ValidPresetID(value)
+    return Suite.IsReadable(value) and (value == nil or type(value) == "string"
+        and #value > 0 and #value <= 160 and value:match("^[a-z0-9%-]+:%d+$") ~= nil)
+end
 function Planner:InitializeGuide(saved)
     local result = {}
     if Table(saved) and Suite.IsReadable(saved.class) and type(saved.class) == "string" and saved.class:match("^[A-Z]+$")
         and #saved.class <= 24 and (Int(saved.buildID, 1, 1000000000) or Suite.IsReadable(saved.starter) and saved.starter == true) then
         result.class, result.buildID = saved.class, saved.buildID
         result.starter = Suite.IsReadable(saved.starter) and saved.starter == true or nil
-        if result.starter then result.buildID = nil end
+        if result.starter then
+            if ValidPresetID(saved.presetID) then result.buildID, result.presetID = nil, saved.presetID
+            else result = {} end
+        end
     end
     local reference = Table(saved) and saved.fullBuild
     if Table(reference) and Suite.IsReadable(reference.class) and type(reference.class) == "string"
         and #reference.class <= 24 and reference.class:match("^[A-Z]+$")
         and (Int(reference.buildID, 1, 1000000000) or Suite.IsReadable(reference.starter) and reference.starter == true) then
         result.fullBuild = { class=reference.class }
-        if Suite.IsReadable(reference.starter) and reference.starter == true then result.fullBuild.starter = true
+        if Suite.IsReadable(reference.starter) and reference.starter == true then
+            if ValidPresetID(reference.presetID) then
+                result.fullBuild.starter, result.fullBuild.presetID = true, reference.presetID
+            else result.fullBuild = nil end
         else result.fullBuild.buildID = reference.buildID end
     end
     self.guideDB = result
@@ -133,7 +143,7 @@ end
 function Planner:StopGuide()
     if InCombatLockdown() then return end
     self.guiding = false
-    if self.guideDB then self.guideDB.class, self.guideDB.buildID, self.guideDB.starter = nil, nil, nil end
+    if self.guideDB then self.guideDB.class, self.guideDB.buildID, self.guideDB.starter, self.guideDB.presetID = nil, nil, nil, nil end
     if self.guideHighlight then self.guideHighlight:Hide() end
     self:HideGuideMarks()
 end
@@ -162,8 +172,11 @@ function Planner:RestoreGuide()
     if not self.model or not Table(saved) or not Suite.IsReadable(saved.class) or saved.class ~= self.model.class
         then return end
     if Suite.IsReadable(saved.starter) and saved.starter == true then
-        local full = self:StarterBuild(60)
+        local data = self:PresetData(saved.presetID)
+        if not data then return end
+        local full = self:StarterBuild(60, data.id)
         if full and full.verified then
+            self.presetID = data.id
             self.starter, self.starterLevel, self.guiding, self.preview, self.expanded = true, 60, true, false, true
         end
         return
@@ -188,6 +201,7 @@ function Planner:StartGuide()
     if not self.guideDB then self:InitializeGuide(nil) end
     self.guideDB.class, self.guideDB.buildID = self.model.class, self:Current().id
     self.guideDB.starter = self.starter == true or nil
+    self.guideDB.presetID = self.starter and self:Current().data.id or nil
     self.guiding, self.preview, self.notice = true, false, nil
     self:CloseNotes(); self:CloseOrder(); self:Render()
     self:CloseStarterPanel()

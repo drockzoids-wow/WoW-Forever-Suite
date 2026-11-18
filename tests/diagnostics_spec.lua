@@ -1,7 +1,6 @@
 local Suite, equal, Frame, Combat = ...
-local support, scoring = Suite.Diagnostics, Suite.Scoring
+local support = Suite.Diagnostics
 local saved = { db = Suite.db, pending = Suite.pending, print = Suite.Print, loaded = Suite.loadedSavedVariables,
-    character = scoring.character, owner = scoring.owner, automatic = scoring.automaticProfile, class = scoring.class,
     failure = Suite.CombatBuffs.failure,
     page = Suite.GUI.page, shown = Suite.GUI.frame:IsShown() }
 local originals = {}
@@ -34,7 +33,6 @@ Global("Enum", enums)
 C_DamageMeter.IsDamageMeterAvailable = function() return true, "Never copy raw native reason" end
 C_CVar.GetCVarInfo = function() return "private-device-identifier", nil, nil, nil, false, false, false end
 Combat(false); Suite.db, Suite.pending = Suite.InitializeDB(nil), {}
-scoring.owner, scoring.character, scoring.automaticProfile = Suite.db, { active = "automatic", preference = "stats", profiles = {} }, nil
 local messages = {}; Suite.Print = function(message) messages[#messages + 1] = message end
 local function Entry(key)
     for _, entry in ipairs(support.features) do if entry.key == key then return entry end end
@@ -108,18 +106,6 @@ C_CVar.GetCVarInfo = function() return secret end
 equal(State("audioSync"), "Unknown", "restricted output preference cannot be recovered")
 C_CVar.GetCVarInfo = function() return "omitted-device", nil, nil, nil, false, false, false end
 Suite.Audio.movie, Suite.Audio.cinematic = oldMovie, oldCinematic
-Suite.db.upgradeHints = true
-scoring.character.active = "custom1"
-scoring.character.profiles = { { id = "custom1", label = "PrivateCustomProfile", weights = { FIRE_DAMAGE = 633.7 } } }
-Global("C_TooltipInfo", { GetHyperlink = Trap })
-Global("GetLocale", function() return "deDE" end)
-equal(State("upgradeHints"), "Unavailable", "selected school profile explains its locale limitation")
-scoring.character.preference = "ilevel"
-equal(State("upgradeHints"), "Ready", "item-level preference does not falsely require school parsing")
-scoring.character.preference = "stats"; Global("GetLocale", function() return "enUS" end)
-C_TooltipInfo.GetHyperlink = nil
-equal(State("upgradeHints"), "Unavailable", "school profile requires the real tooltip reader function")
-C_TooltipInfo.GetHyperlink = Trap
 -- Deliberately include private data and malicious formatting in unrelated roots.
 Suite.db.mailContacts.entries = { { name = "PrivateContact", notes = "PrivateNote" } }
 Suite.db.inventory.characters.secret = { name = "PrivateAlt", realm = "PrivateRealm", bags = { items = { [123] = 99 } } }
@@ -130,13 +116,11 @@ Suite.db.missingBuffs, Suite.db.missingBuffCombat = true, true
 Global("CreateFrame", Trap)
 local body, rows, counts = support:Snapshot()
 equal(body:find("Client: 1.60.1 | build 70862 | Interface 16001", 1, true) ~= nil, true, "report includes guarded client/build/Interface")
-equal(body:find("custom (name and weights omitted)", 1, true) ~= nil, true, "custom profile is identified without its label or coefficients")
 for _, private in ipairs({ "PrivateCustomProfile", "633.7", "PrivateContact", "PrivateNote", "PrivateAlt", "PrivateRealm", "PrivateFutureData", "PrivateDeferredKey", "PrivateFailureStack", "omitted-device" }) do
     equal(body:find(private, 1, true), nil, "support export omits private data and arbitrary error/deferred payloads")
 end
 equal(#rows, #support.features, "every registered feature has one diagnostic row")
 equal(counts.Off > 0, true, "report distinguishes disabled preferences")
-equal(scoring.automaticProfile, nil, "diagnostics never initialize automatic scoring caches")
 equal(Suite.pending.PrivateDeferredKey, Trap, "snapshot never executes or clears pending callbacks")
 Suite.CombatBuffs.failure = nil
 local readableDB = Suite.db; Suite.db = secret
@@ -155,7 +139,6 @@ Global("GetBuildInfo", function() error("private build error") end)
 body = support:Snapshot(); equal(body:find("private build error", 1, true), nil, "native errors are never embedded in support text")
 Global("GetBuildInfo", function() return "1.60.1", "70862", "ignored", "16001" end)
 Global("GetLocale", function() return "enUS" end)
-Suite.db.upgradeHints = false
 Combat(true); support:PrintStatus()
 equal(#messages > 0, true, "chat status works without creating frames during combat")
 equal(support.captured:find("Combat: yes", 1, true) ~= nil, true, "combat status preserves an explicitly requested copy snapshot")
@@ -222,5 +205,4 @@ support.frame, support.edit, support.scroll, support.select, support.refresh, su
 for name, original in pairs(originals) do _G[name] = original.value end
 Suite.db, Suite.pending, Suite.Print, Suite.loadedSavedVariables = saved.db, saved.pending, saved.print, saved.loaded
 Suite.CombatBuffs.failure = saved.failure
-scoring.character, scoring.owner, scoring.automaticProfile, scoring.class = saved.character, saved.owner, saved.automatic, saved.class
 Combat(false); Suite.GUI:Select(saved.page or "overview"); Suite.GUI.frame:SetShown(saved.shown)

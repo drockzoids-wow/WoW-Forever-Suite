@@ -9,7 +9,7 @@ Choose the features you want and leave the rest off. New optional features start
 - **Talent Builds:** create, save and share complete plans with names, point order and notes. Browse leveling builds and optionally keep a full-build comparison visible on the native talent page. Spending points stays manual.
 - **Training Planner:** browse bundled class and pet training references through level 60, pin skills, build a wishlist and estimate costs. Optional trainer recording adds observed offerings and prices.
 - **Profession leveling guides:** review skill ranges, required materials and recipe learning-source hints beside your profession window. Collapse materials and steps separately, and browse other guides using your character's last recorded skill.
-- **Gear comparisons:** show item levels and possible upgrades using selectable comparison profiles or your own stat weights. Explanations show what changed; scores reflect the chosen model and are not definitive best-in-slot recommendations.
+- **Item levels:** optional equipment icon levels, tooltip levels and a character-frame equipped average.
 
 ## Keep track of your supplies
 

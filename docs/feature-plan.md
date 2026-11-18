@@ -1,5 +1,77 @@
 # Forever Suite feature plan
 
+## Restock list layout — November 17, 2026
+
+Provide a compact Saved list with item icons, inline target quantities, Automatic Purchase checkboxes and confirmed removal. Open it away from vendors through /wfs restock or settings. Keep current deficits, costs and purchase actions in the Vendor offers view.
+
+## Vendor-open restocking — November 17, 2026
+
+Show a confirmation with the missing quantities and exact gold cost when visiting a merchant with relevant shortages. Save Automatic Purchase per item and character, off for existing and newly dropped targets. Checked items buy on a future visit without a separate spending-limit field. In mixed visits unchecked shortages wait for confirmation. Use the current targets, available gold, bundle sizes, stock and bag space to bound purchases.
+
+## Drag items into merchant restocking — November 17, 2026
+
+Restock accepts item cursor drops and native Buy-tab offer drops even with zero carried stock. A new drop saves one item or one known vendor bundle. Existing quantities load for editing, and Save quantity updates the character's Supply Checklist target.
+
+## Deposit and restock transaction sequencing — November 17, 2026
+
+Wait for the latest reagent deposit to reduce the carried item count before requesting another stack. A four-second timeout stops the batch, and closing the bank cancels further transfers. Preserve unresolved merchant purchases across visits until bag and gold feedback arrive or the player explicitly confirms clearing the receipt. A new purchase requires a fresh selection and a separate Buy selected click.
+
+## Talent presets for every spec and readable controls — November 16, 2026
+
+Follow-up: split the preset entry points into fixed Leveling Builds and Endgame Builds buttons, with matching chooser titles. Leveling contains only the 27 level-by-level paths; Endgame contains the 44 full level-60 PvE/World allocations. Filter before paging and retain the matching category when choosing another build from a preview. Selection never relabels either all-spec launcher. Individual rows retain their spec and purpose.
+
+Replace the single generic starter entry with a paged built-in chooser containing 71 Icy Veins Forever presets: 27 leveling schedules, 41 PvE and three world/PvP variants across nine classes and all 27 talent-tree specs. Feral includes separately named hybrid, tank and cat PvE allocations. Use concise names such as Fury Leveling Build and Arms PvE Build, with descriptive variant labels instead of numbers; shorten cramped New / Copy live / Order / Copy / Edit copy controls. Keep the compact native companion width and personal drafts separate from bundled references.
+
+Leveling retains level previews; PvE always previews the full allocation and explicitly discloses that its point order is not a leveling recommendation. Preserve unique live-spell mapping, rank/requirement validation, read-only fallback, manual native purchases and current-level copy policy. Persist source/variant IDs in character guide/passive-reference state; old records without IDs retain their original class defaults, while missing IDs never silently choose another spec. [Source inventory](talent-preset-sources.md). Native layout, class-tree and taint checks remain pending. No release, deployment, junction or direct SavedVariables edit.
+
+## Development-only automatic taint logging November 16 2026
+
+Enable taintLog 2 at Suite load and login for all development/test sessions, with guarded readback and one test-build notice. Keep this out of user settings/profiles. Remove the temporary TestDiagnostics.lua and both TOC entries before production; local packaging and the CurseForge/GitHub release workflow must fail while any instrumentation remains. Retain the release guard and restore instrumentation for subsequent testing cycles. Native CVar acceptance/log output pending. No publication or game deployment.
+
+## Bank purchase remains intermittent in test build November 16 2026
+
+Additional paid-slot confirmation still produced PurchaseBankTab forbidden-action errors with all queried Suite features enabled; the second attempt succeeded. The pending SetTab-hook removal is insufficient evidence of resolution. Keep this issue open, separate paid confirmation from the free-first-slot path, and obtain a fresh native taint trace on recurrence before selecting another runtime fix. Do not infer universal failure or native verification from either retry success or offline checks. No additional feature changes or release/deployment.
+
+## First bank visit purchase isolation November 16 2026
+
+Remove BankDeposit's native SetTab hook in response to the new-character PurchaseBankTab forbidden-action report from the CurseForge release. Observe the existing native bank-cost layout notification and defer owned-button layout until native processing finishes. Preserve explicit-click reagent deposits, immediate cancellation on leaving the personal bank and independent opt-out cleanup. This is a targeted mitigation of the suspected hook interaction; native first-slot purchase/taint confirmation remains pending. No release or deployment.
+
+## Enabled features and addon overlap November 16 2026
+
+Add a read-only review at /wfs enabled (/wfs features) and /wfs overlaps, with Support-page entry points. Enabled features lists on switches/options whose main feature is on; Saved On options also includes waiting preferences. Include castbar sizing and per-window meter booleans, readable settings destinations and shared/personal/account scope. Exclude internal layout markers and always-available manual tools from enabled-toggle counts. Keep filtering, paging, full hover details and normal settings links; viewing never enables/disables features or touches another addon's settings.
+
+Possible overlap uses curated exact addon IDs and only the relevant enabled Suite domains. Distinguish loaded, enabled-not-loaded, disabled and unknown metadata; disabled/unloaded providers do not create guidance. Missing APIs and limited coverage must not imply a clean compatibility result. Add setup review guidance and a read-only staged preview, preserving drafts until normal Apply setup. No SavedVariables fields, automatic ownership actions, addon loads, external requests or background polling. No gear comparison functionality returns. Native confirmation pending; no release/deployment.
+
+## Remove gear comparison November 16 2026
+
+The user declines roadmap item 3 and requests removal of the gear-comparison feature, especially tooltip information. Remove runtime scoring/stat/spec/editor modules, upgrade icon markers, comparison/profile/weight controls, setup/search entries and diagnostics. Retire legacy account enable/preset/preference fields so old settings cannot restore the feature; stop initializing character scoring. Keep equipment/icon/tooltip/player item levels, equipment-set tools, native side-by-side comparisons, inventory, profession uses and keep/reserve information. /wfs gear remains an alias for the simplified Item Levels page. Retire tests specific to removed behavior and add a removal regression with stale enabled settings and a trap on stat reads. Historical research/release documents remain reference records. Offline checks pass 92 Lua 5.1 files, identical TOCs, 49,251 assertions and the full profession audit; native smoke remains pending. No release/deployment.
+
+## Shared keep rules and carried reserves November 16 2026
+
+Implement an account-owned rule editor at /wfs keep and Bags & Bank/Supply Checklist settings. Never sell, Never suggest deleting and Pause auto sort are shared per item; carried reserves bind to character.itemReserves. Safety records and the default-off account enable switch stay outside settings profiles; Save & enable explicitly opts in. Preserve and expose the old trash blacklist, clearing its selected entry only on explicit edits/removal. Check fresh carried totals before Suite sales, trash suggestions and reagent deposits. Bulk native junk selling cannot express per-item rules, so affected Instant sales fall back to guarded Slow mode. Retain whole stacks that would cross a reserve and explain manual splitting. Pause Suite automatic cleanup while a marked item is carried; do not promise native slot pinning or intercept manual/third-party actions.
+
+Add independent default-off profession material tooltip annotations from the eight modeled guides: Used for <profession> · guide skill <ranges>. Merge overlapping/adjacent recipe bands while preserving real gaps and listing every mapped profession. This describes known primary guide recipes, not all crafting uses or skill-up probabilities. Tooltip and rules processing uses supplied item data without comparison tooltip compatibility methods. Offline validation passes 96 Lua 5.1 files, identical TOCs, 51,232 behavior assertions and the profession material audit. Native checks remain pending; no release/deployment.
+
+## Profession shopping workflow November 16 2026
+
+Connect modeled profession guides to character-owned supply plans through Track section / Track remaining, preview and explicit Save & track. Keep manual carried targets separate, update a profession's existing plan rather than duplicating it, and combine material requirements before subtracting regional recorded bags/personal banks and the shared bank once. Reuse MaterialPlan and its intermediate/unfinished-step math, recalculate from remembered skill, and support plans exceeding the manual checklist's 32-item limit. Shopping tracking is independently default off; Save & track explicitly opts in to the existing inventory recorder on each character. Existing records remain usable with recording off. Add plain-text shortage export, /wfs shopping, checklist/settings access and a small auction-house title-bar launcher while enabled. Unknown/partial data and stock ages are disclosed; no automatic searches, purchases or transfers. Native validation pending; no release/deployment.
+
+## Quest choices before vendor shortcuts — November 16, 2026
+
+After enabled quest pickup/turn-in actions, leave any menu with remaining active or available quests open, including ignored and unfinished quests. This supersedes the earlier autoVendor exception for listed quests. A sole shop with informational chat still opens when no quest entries remain. Vendor help explains this rule; preferences remain independent and default off. Native confirmation pending.
+
+## Whole addon improvement roadmap November 16 2026
+
+[Review and ranked proposals](addon-review-2026-11-16.md) assess the current 94-file runtime and popular-addon/community demand. Prioritize native verification and current documentation, then profession material targets/checklist/shopping export, shared item protections, explained gear comparisons, addon overlap guidance and richer inventory filters. Profession stock already includes recorded alt and shared-bank counts; improve scope/freshness and actionable handoffs rather than duplicating the counter. Eighteen proposals include effort, dependencies and bounded acceptance criteria. These are recommendations, not implemented or authorized feature changes. Preserve the removal of Suite quest-location guidance and the original optional slate-and-teal GUI. Pending trainer and character-owned window work remains intact; no release or deployment.
+
+## Character-owned window layouts — November 16, 2026
+
+Save positions and sizes for window tools separately on each character, including bags and the bank viewer. Keep these records outside settings profiles, with current-character reset only. Preserve existing character records and migrate the first upgraded character's applicable legacy shared/personal layout; other characters without personal legacy positions start at native defaults. Shared profiles continue controlling the feature toggle. Implemented with character binding, guarded normalization, independent copies and updated settings help. Native relog/reload, profile-switch, bag/bank alignment and combat/taint testing pending. No release or game deployment.
+
+## Nearby profession trainers and step icons — November 16, 2026
+
+Replace each trainer recipe's fixed destination with the closest documented suitable trainer from the character's current position. Cover all seven professions with modeled trainer hints using explicit tier/faction pools; keep Cooking vendors and other vendor/manual/quest/specialist requirements. Compare shared world coordinates only on the same continent, with readable same-map fallback and the existing reference when position is unavailable. Geographic distance does not model travel routes or access. Include town trainers, so an eligible local teacher may beat a capital. Keep visible name, tooltip and click-time waypoint consistent; refresh an open guide on zone changes/movement stop without polling. Add compact output icons left of all modeled step recipe names, preserving wrapping and manual recipe selection. Reference-only prose steps do not invent item outputs. Implemented; native appearance, geographic results, actual teaching and taint confirmation pending. No release/deployment/junction change.
+
 ## Authorized 1.0.20 release — November 16, 2026
 
 The user authorizes verification and publication to CurseForge, superseding earlier no-release notes for the included money logout, incoming buff proximity and EasyFishing drawer fixes. Published v1.0.20 from 7043a43181ae0877566257efb1b71c75404f2585. Main and release CI pass; CurseForge accepts the upload and both GitHub release assets are verified. Offline checks pass 94 Lua 5.1 files, 47,801 behavior assertions, 1,240,360 profession audit invariants and all 11 gear-baseline tests. The 103-file local addon-only ZIP matches source hashes. [Publication receipts](release-1.0.20.md#publication). CurseForge public moderation/availability remains unverified. Native persistence, range/rendering/input and taint checks remain pending; the existing bag-use investigation remains open. No game deployment, junction or real SavedVariables changes.
@@ -2562,3 +2634,37 @@ Version 0.1.36 adds the requested total-and-DPS presentation: **972.6k (38.9k)**
 
 Research only: [findings](foreverwow-scoring-research.md) recommend expanded supported stat keys and explicit spec profiles as the first upgrade-scoring improvement, followed by validated effects and actual equipped-set breakpoints. Current five presets and Automatic class starter miss important spec distinctions and secondary stats. Preserve custom profiles, independent switches and legal hand comparisons. Implementation is not part of this research request; no weights or runtime behavior changed.
 
+
+## Inventory filters and saved categories — November 16, 2026
+
+Implement review recommendation #5 within Characters → Inventory. Add explicit owner/location menus, equipment/reagent/consumable/quest type filters, exact quality (including unavailable), and recent/stale/unavailable record-age filters. Apply age per source before aggregating an owner row; 24h is the stale boundary, future or missing timestamps are unknown. Account-bank contents remain single-counted.
+
+Extend the existing eight shared saved views into named categories preserving search, owner, location and independent copied filter rules. Old views migrate with unrestricted filters; malformed filter rules are rejected rather than broadened. Save/load/rename/remove and Clear filters remain manual. No new recording switches, live bag organizer, automatic sales, polling or external addon integration. Native UI/taint validation pending.
+
+## Item-list readability — November 16, 2026
+
+User requests item icons wherever the Suite lists actual items, and clearer quantities using columns/color. Treat visual scanning as a standing UI requirement: icons beside names, labelled aligned quantities, spacing and hierarchy, with color reinforcing words. Shopping list now separates Item / Required / Recorded stock / Buy; gold requirements, muted blue stock, orange purchases and teal stocked status. Unknown stock reads Unknown / Check stock; incomplete stock shows + and purchases Up to. Plain-text exports retain their original format.
+
+Add missing icons to manual/profession checklist entries, keep-rule rows, both profession-material presentations, loot journal rows and macro item menus. Inventory search/browser, bank/bag slots, recipe outputs and bag-space suggestions already provide icons. Use guarded native icon IDs and question-mark placeholders; missing textures refresh from finite metadata requests while visible.
+
+Shopping-list tooltip follow-up (November 16): hovering anywhere on an item row opens the native item tooltip, including its icon/name. Clear owned tooltips on leave, row reuse, hide and combat; preserve another UI owner’s tooltip.
+
+Standalone window opening fix (November 16): user reports `/wfs keep` appears to do nothing. The command reaches the editor, but its new frame lacks an initial anchor when no launcher is supplied. Give Keep Rules, Shopping List and Feature Review a centered initial UIParent anchor; retain relative launcher placement and existing positions on subsequent standalone opens.
+
+Keep-rule tooltip follow-up (November 16): add native item tooltips to keep-rule rows using ANCHOR_CURSOR so the tooltip remains beside the hovered item, instead of beyond the full-width row. Shopping-list tooltip placement remains as requested.
+
+## Profession item linking replaces shopping export — November 16, 2026
+
+User requests native Shift-click auction search across profession leveling items instead of the shopping export text box. Materials in step estimates and the Materials view, shopping-list rows, checklist rows and recipe outputs now delegate the native CHATLINK modifier to HandleModifiedItemClick using validated cached item hyperlinks. Ordinary recipe selection/checklist editing remains. Remove the export field/copy button and shorten the shopping window. This supersedes earlier shopping-export UI requirements; no automatic auction search execution or purchasing.
+
+## Merchant restocking from carried supply targets — November 16, 2026
+
+Implement review recommendation #6 as independently optional merchantRestock, off by default. Reuse character supply entries; no second target store, automatic purchases on opening or new inventory recording. First scope is carried food/drink/reagent targets, excluding all-character profession-plan requirements. Settings under Supply Checklist and Vendor, native merchant Restock launcher and `/wfs restock` open a centered review with item icons/tooltips, Carried / Target / Buy / Cost columns, selection, spending limit, Buy selected and Stop.
+
+Only known gold costs purchase. Respect sold bundles, native per-call maximum, actual item stack size, limited stock, fresh complete bags and user-approved total; floor to complete bundles without exceeding targets. General empty slots and unlocked matching partial stacks count as safe space. Currency/special costs, unavailable metadata and duplicate offers remain manual. User review captures identity/price/target/quantity; revalidate before each request. Advance only after both inventory and gold observations; four-second unconfirmed deadline, at most 100 requests per explicit batch, no blind retry. Close, combat, feature disable, Stop, money/space/stock changes and native errors cancel remaining work. Native compatibility remains pending.
+
+## Review recommendation 8: route recipes and intermediate navigation — November 16, 2026
+
+User explicitly skips recommendation 7; leave the character attention list unimplemented. Implement #8 within the existing independently optional profession guide. Add a session-collapsed Route recipes section with distinct missing/unknown counts, remaining route recipes and recursive dependencies on earlier intermediates, source kind/text, actual guide-use ranges and guarded native requirements. Unknown data must not become unlearned, trainer or a made-up minimum skill. Reuse current recipe-specific trainer tiers, acquisition references and explicit waypoint action; no new external recipe database.
+
+Ordinary material clicks open a learned producer from the selected route in the current own profession; multiple producers use a chooser. Unlearned/unknown recipes expand their source guidance. Preserve Shift-click item linking. Capture actual native selected recipe and scroll in a bounded eight-entry Back history, suppress automatic route selection during intermediate navigation and restore through the same guarded recipe-selection path. Refuse casting/manual batch interruption, linked/guild/NPC books, unknown origin and combat. Context/guide changes, Current and close discard navigation state without selecting/crafting/buying. Native UI/recipe-selection testing remains pending.

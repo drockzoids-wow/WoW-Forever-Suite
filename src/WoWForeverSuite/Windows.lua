@@ -1,5 +1,5 @@
 local _, Suite = ...
-local Windows = { tracked = {}, watched = {}, bagRecords = {} }
+local Windows = { tracked = {}, watched = {}, bagRecords = {}, positions = {} }
 Suite.Windows = Windows
 table.insert(Suite.modules, Windows)
 
@@ -30,6 +30,51 @@ end
 
 local function ReadableNumber(value)
     return Suite.IsReadable(value) and type(value) == "number" and value == value and math.abs(value) < math.huge
+end
+
+local function ReadableTable(value) return Suite.IsReadable(value) and type(value) == "table" end
+function Windows:InitializeCharacter(saved, account, profile)
+    local legacy
+    if ReadableTable(account) then legacy = account.windowPositions end
+    local absent = Suite.IsReadable(saved) and saved == nil
+    -- Resolve the outgoing profile before Profiles removes window layouts from
+    -- shared settings. Existing character records always take precedence.
+    if absent and ReadableTable(profile) then
+        local id = profile.id
+        local store = ReadableTable(account) and account.settingsProfiles
+        if Suite.IsReadable(id) and type(id) == "string" then
+            if ReadableTable(store) and ReadableTable(store.entries) then
+                for _, entry in ipairs(store.entries) do
+                    if ReadableTable(entry) and Suite.IsReadable(entry.id) and entry.id == id
+                        and ReadableTable(entry.values) and ReadableTable(entry.values.windowPositions) then
+                        legacy = entry.values.windowPositions; break
+                    end
+                end
+            end
+            if Suite.IsReadable(profile.personal) and profile.personal == true and ReadableTable(profile.overrides)
+                and ReadableTable(profile.overrides[id]) and ReadableTable(profile.overrides[id].windowPositions) then
+                legacy = profile.overrides[id].windowPositions
+            end
+        end
+    end
+    local source = saved
+    if absent then source = legacy end
+    local positions, count = {}, 0
+    if ReadableTable(source) then
+        for name, point in pairs(source) do
+            if count >= 512 then break end
+            if Suite.IsReadable(name) and type(name) == "string" and #name > 0 and #name <= 128
+                and not name:find("[%c|]") and ReadableTable(point)
+                and ReadableNumber(point.x) and ReadableNumber(point.y)
+                and ReadableNumber(point.scale) and point.scale > 0 then
+                positions[name] = { x = point.x, y = point.y, scale = point.scale }
+                count = count + 1
+            end
+        end
+    end
+    self.positions = positions
+    if ReadableTable(account) then account.windowPositions = nil end
+    return positions
 end
 
 local function CursorInside(frame)
@@ -274,7 +319,7 @@ end
 function Windows:Save(record)
     local position = self:CapturePosition(record.frame)
     if position then
-        Suite.db.windowPositions[record.name] = position
+        Suite.Windows.positions[record.name] = position
         if Suite.InventorySearch then Suite.InventorySearch:WindowChanged(record.frame) end
     end
 end
@@ -351,7 +396,7 @@ function Windows:PlaceWindow(name, frame)
         for _, known in ipairs(self.names) do if known == name and _G[name] == frame then supported = true; break end end
     end
     if not supported then return end
-    local saved = Suite.db.windowPositions[name]
+    local saved = Suite.Windows.positions[name]
     if not Suite.IsReadable(saved) or type(saved) ~= "table" or not ReadableNumber(saved.x)
         or not ReadableNumber(saved.y) or not ReadableNumber(saved.scale) then return end
     local record = self.tracked[name]
@@ -379,7 +424,7 @@ function Windows:HoldBagPositions()
     if not Suite.db.windowTools or self.holdingBags then return end
     self.holdingBags = true
     for _, name in ipairs(bagNames) do
-        local frame, saved = _G[name], Suite.db.windowPositions[name]
+        local frame, saved = _G[name], Suite.Windows.positions[name]
         if Suite.IsReadable(frame) and frame and Suite.IsReadable(saved) and type(saved) == "table" then
             local forbidden = false
             if frame.IsForbidden then forbidden = frame:IsForbidden() end
@@ -416,7 +461,7 @@ function Windows:ApplyRecord(record)
         return
     end
     if record.dragging then return end
-    local saved = Suite.db.windowTools and Suite.db.windowPositions[record.name]
+    local saved = Suite.db.windowTools and Suite.Windows.positions[record.name]
     if Suite.IsReadable(saved) and type(saved) == "table" and ReadableNumber(saved.x)
         and ReadableNumber(saved.y) and ReadableNumber(saved.scale) then
         if not self:ApplySavedPosition(record, saved) then return end
@@ -445,7 +490,7 @@ function Windows:Resize(record, delta)
     local scale = record.frame:GetScale()
     if not ReadableNumber(scale) then return end
     self:Save(record)
-    local position = Suite.db.windowPositions[record.name]
+    local position = Suite.Windows.positions[record.name]
     if not position then return end
     position.scale = math.max(0.55, math.min(1.8, scale + delta * 0.05))
     self:ApplyRecord(record)
@@ -562,7 +607,7 @@ end
 
 function Windows:Reset(record)
     Suite.AfterCombat("windowReset:" .. record.name, function()
-        Suite.db.windowPositions[record.name] = nil
+        Suite.Windows.positions[record.name] = nil
         self:Restore(record)
         record.wasApplied = false
         if record.name == "WoWForeverSuiteBankView" and Suite.OfflineBank then Suite.OfflineBank:PlaceView() end
@@ -672,11 +717,12 @@ end
 
 function Windows:ResetAll()
     Suite.AfterCombat("windowReset", function()
-        Suite.db.windowPositions = {}
+        -- Keep the character SavedVariables table bound during a global reset.
+        for name in pairs(self.positions) do self.positions[name] = nil end
         for _, record in pairs(self.tracked) do self:Restore(record); record.wasApplied = false end
         if Suite.OfflineBank then Suite.OfflineBank:PlaceView() end
         if UpdateContainerFrameAnchors then UpdateContainerFrameAnchors() end
-        Suite.Print("Saved window positions and sizes reset.")
+        Suite.Print("This character's saved window positions and sizes reset.")
     end)
 end
 

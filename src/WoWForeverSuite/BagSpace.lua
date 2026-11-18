@@ -176,6 +176,8 @@ function BagSpace:ReadSlot(bag, slot, request)
     local blocked = blacklist[info.itemID]
     if not Suite.IsReadable(blocked) then return nil, "unavailable" end
     if blocked == true then return nil end
+    local removable, reason = Suite.ItemRules:CanRemove(info.itemID, "delete", info.stackCount)
+    if not removable then return nil, reason == "unavailable" and "unavailable" or nil end
     local quest = api.GetContainerItemQuestInfo(bag, slot)
     if not Suite.IsReadable(quest) or type(quest) ~= "table" or not Suite.IsReadable(quest.isQuestItem)
         or not Suite.IsReadable(quest.questID) or not Suite.IsReadable(quest.isActive) then return nil, "unavailable" end

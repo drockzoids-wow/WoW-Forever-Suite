@@ -109,6 +109,7 @@ function Vendor:JunkInfo(bag, slot)
         or not Suite.IsReadable(info.quality) or info.quality ~= 0
         or not Suite.IsReadable(info.isLocked) or info.isLocked ~= false
         or not Suite.IsReadable(info.hasNoValue) or info.hasNoValue ~= false then return nil end
+    if not Suite.ItemRules:CanRemove(info.itemID, "sell", info.stackCount) then return nil end
     return info
 end
 
@@ -197,6 +198,7 @@ end
 function Vendor:SellInstant(callback)
     if not Suite.db or not Suite.db.autoSellJunk or Suite.db.junkMode ~= "instant"
         or InCombatLockdown() or not self:MerchantOpen() or not self:InstantAvailable() then return false end
+    if not Suite.ItemRules:MayBulkSell() then return false end
     if self.visit then self.visit.fastSold = true end
     local journal = Suite.Journey:BeginVendor("sale", self:SnapshotJunk())
     if callback then callback() else C_MerchantFrame.SellAllJunkItems() end
@@ -225,10 +227,15 @@ end
 
 function Vendor:Work()
     if not Enabled() or not self.visit or InCombatLockdown() or not self:MerchantOpen() then return end
+    if Suite.MerchantRestock and Suite.MerchantRestock.job then return self.interval end
     Suite.Journey:ReconcileVendor(Suite.Leveling)
     self:Repair()
     if not self.visit or not Suite.db.autoSellJunk then return end
     if Suite.db.junkMode == "instant" then
+        if not Suite.ItemRules:MayBulkSell() then
+            self:Notice("keepNotice", "Using slow junk selling to honor keep rules and carried reserves.")
+            return self:SlowSale()
+        end
         self:InstallPopupHook()
         if not self.visit.fastSold then self:SellInstant() end
     else return self:SlowSale() end

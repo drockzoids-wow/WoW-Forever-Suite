@@ -1,6 +1,8 @@
 -- Combat movement and event-burst regressions. Native combat legality still
 -- requires the client smoke test; these substitutes reject addon mutations.
 local Suite, equal, Frame, SetCombat = ...
+local priorWindowPositions = Suite.Windows.positions
+Suite.Windows.positions = {}
 local windows = Suite.Windows
 local oldDB, oldPending, oldCreate, oldTimers = Suite.db, Suite.pending, CreateFrame, C_Timer
 local oldParent, oldPanels = UIParent, UIPanelWindows
@@ -100,8 +102,8 @@ UpdateContainerFrameAnchors = function()
     end
     native = wasNative
 end
-Suite.db.windowPositions.CharacterFrame = { x = 0.1, y = 0.1, scale = 1.2 }
-Suite.db.windowPositions.ContainerFrameCombinedBags = { x = -0.1, y = 0.05, scale = 1 }
+Suite.Windows.positions.CharacterFrame = { x = 0.1, y = 0.1, scale = 1.2 }
+Suite.Windows.positions.ContainerFrameCombinedBags = { x = -0.1, y = 0.05, scale = 1 }
 windows:Apply(); Flush()
 local record = windows.tracked.CharacterFrame
 equal(windows.events.registered.PLAYER_REGEN_DISABLED, true, "mover observes combat entry")
@@ -152,7 +154,7 @@ equal(scheduled, beforeScheduled, "combat bursts create no timers")
 equal(headerScans, beforeScans, "combat bursts perform no header scans")
 equal(constructed, beforeCombatConstruction, "opening a previously hidden window creates no combat handles")
 equal(windows.tracked.ContainerFrame2, nil, "first-show discovery waits for combat exit")
-equal(Suite.db.windowPositions.CharacterFrame.x, 0.1, "native combat reflow cannot overwrite saved placement")
+equal(Suite.Windows.positions.CharacterFrame.x, 0.1, "native combat reflow cannot overwrite saved placement")
 LeaveCombat()
 equal(CharacterFrame.point[1], "CENTER", "native combat reflow is corrected after combat")
 equal(CharacterFrame.point[4], 100 / 1.2, "combat recovery uses the last saved horizontal position")
@@ -165,8 +167,8 @@ equal(ActiveTimers(), 0, "combat recovery leaves no timer")
 -- readably unprotected native bags can repair their geometry before rendering.
 do
     ContainerFrameCombinedBags.protected, ContainerFrame2.protected = false, false
-    Suite.db.windowPositions.ContainerFrameCombinedBags = { x = -0.1, y = 0.05, scale = 1.2 }
-    Suite.db.windowPositions.ContainerFrame2 = { x = 0.1, y = 0.1, scale = 1.1 }
+    Suite.Windows.positions.ContainerFrameCombinedBags = { x = -0.1, y = 0.05, scale = 1.2 }
+    Suite.Windows.positions.ContainerFrame2 = { x = 0.1, y = 0.1, scale = 1.1 }
     windows:ApplyRecord(windows.tracked.ContainerFrameCombinedBags)
     windows:ApplyRecord(windows.tracked.ContainerFrame2)
     Flush()
@@ -179,14 +181,14 @@ do
     equal(ContainerFrameCombinedBags.scale, 1.2, "combat bag reflow retains the saved scale immediately")
     equal(ContainerFrame2.point[4], 100 / 1.1, "individual bags independently retain their saved combat positions")
     equal(ContainerFrame2.scale, 1.1, "individual bag retains its independent combat scale")
-    equal(Suite.db.windowPositions.ContainerFrameCombinedBags.x, -0.1, "combat repair does not rewrite saved positions")
+    equal(Suite.Windows.positions.ContainerFrameCombinedBags.x, -0.1, "combat repair does not rewrite saved positions")
     equal(constructed, beforeCreates, "combat bag repair constructs no frames")
     equal(scheduled, beforeTimers, "500 combat bag passes create no timers")
     equal(headerScans, beforeHeaders, "combat bag repair never scans headers")
     equal(bagPasses - beforePasses, 500, "post-hook repair never recursively runs the native manager")
     equal(windows.tracked.ContainerFrameCombinedBags.handle.mutations, inputWrites, "combat repair leaves header layout and input untouched")
     CharacterFrame.protected = false
-    equal(windows:ApplySavedPosition(record, Suite.db.windowPositions.CharacterFrame), false,
+    equal(windows:ApplySavedPosition(record, Suite.Windows.positions.CharacterFrame), false,
         "unprotected non-bag windows still defer combat positioning")
     CharacterFrame.protected = true
     LeaveCombat()
@@ -196,7 +198,7 @@ do
     ContainerFrame1 = Window("ContainerFrame1", false)
     ContainerFrame1.protected = false
     windows.names[#windows.names + 1] = "ContainerFrame1"
-    Suite.db.windowPositions.ContainerFrame1 = { x = 0.22, y = -0.1, scale = 1.15 }
+    Suite.Windows.positions.ContainerFrame1 = { x = 0.22, y = -0.1, scale = 1.15 }
     Combat(true); windows.events.OnEvent(windows.events, "PLAYER_REGEN_DISABLED")
     ContainerFrame1.shown = true
     beforeCreates, beforeHeaders = constructed, headerScans
@@ -209,7 +211,7 @@ do
     equal(headerScans, beforeHeaders, "first combat open performs no header scan")
     LeaveCombat()
     equal(windows.tracked.ContainerFrame1 ~= nil, true, "first combat bag gains normal controls after lockdown")
-    Suite.db.windowPositions.ContainerFrame1 = nil
+    Suite.Windows.positions.ContainerFrame1 = nil
     Combat(true); windows.events.OnEvent(windows.events, "PLAYER_REGEN_DISABLED")
     UpdateContainerFrameAnchors()
     equal(ContainerFrame1.point[1], "BOTTOMRIGHT", "unsaved bags keep native combat layout")
@@ -251,7 +253,7 @@ do
 
     -- Disabling cannot use the narrow combat restore. The native manager owns
     -- the final default arrangement once protected cleanup is possible.
-    Suite.db.windowPositions.ContainerFrame1 = { x = 0.22, y = -0.1, scale = 1.15 }
+    Suite.Windows.positions.ContainerFrame1 = { x = 0.22, y = -0.1, scale = 1.15 }
     Combat(true); windows.events.OnEvent(windows.events, "PLAYER_REGEN_DISABLED")
     UpdateContainerFrameAnchors()
     Suite.db.windowTools = false; windows:Apply()
@@ -274,26 +276,26 @@ Combat(true); windows.events.OnEvent(windows.events, "PLAYER_REGEN_DISABLED")
 record.dragStop()
 equal(record.cancelDrag, true, "combat marks a protected drag for cancellation")
 equal(CharacterFrame.moving, true, "protected movement cleanup waits for combat exit")
-equal(Suite.db.windowPositions.CharacterFrame.x, 0.1, "combat interruption never commits an unfinished drag")
+equal(Suite.Windows.positions.CharacterFrame.x, 0.1, "combat interruption never commits an unfinished drag")
 LeaveCombat()
 equal(CharacterFrame.moving, false, "protected drag stops after combat")
 equal(CharacterFrame:IsMovable(), false, "interrupted drag restores the native movable flag")
 equal(CharacterFrame.point[4], 100 / 1.2, "interrupted drag restores the committed anchor")
 equal(record.cancelDrag, nil, "completed cancellation clears its gesture state")
-local committed = Suite.db.windowPositions.CharacterFrame
-Suite.db.windowPositions.CharacterFrame = nil
+local committed = Suite.Windows.positions.CharacterFrame
+Suite.Windows.positions.CharacterFrame = nil
 record.dragStart()
 Combat(true); windows.events.OnEvent(windows.events, "PLAYER_REGEN_DISABLED")
 LeaveCombat()
-equal(Suite.db.windowPositions.CharacterFrame, nil, "an interrupted first drag creates no saved layout")
+equal(Suite.Windows.positions.CharacterFrame, nil, "an interrupted first drag creates no saved layout")
 equal(CharacterFrame.point[1], "BOTTOMRIGHT", "an interrupted first drag restores its original anchors")
-Suite.db.windowPositions.CharacterFrame = committed; windows:ApplyRecord(record)
+Suite.Windows.positions.CharacterFrame = committed; windows:ApplyRecord(record)
 
 CharacterFrame.protected = false
 record.dragStart()
 Combat(true); windows.events.OnEvent(windows.events, "PLAYER_REGEN_DISABLED")
 equal(CharacterFrame.moving, false, "unprotected windows stop following the cursor on combat entry")
-equal(Suite.db.windowPositions.CharacterFrame.x, 0.1, "unprotected combat cancellation also preserves saved placement")
+equal(Suite.Windows.positions.CharacterFrame.x, 0.1, "unprotected combat cancellation also preserves saved placement")
 LeaveCombat()
 CharacterFrame.protected = true
 local oldProtection = CharacterFrame.IsProtected
@@ -309,7 +311,7 @@ CharacterFrame.IsProtected = oldProtection
 record.dragStart(); CharacterFrame.shown = false; CharacterFrame.OnHide(CharacterFrame)
 Flush()
 equal(CharacterFrame.moving, false, "hiding an actively dragged window stops its movement")
-equal(Suite.db.windowPositions.CharacterFrame.x, 0.1, "hide interruption preserves the previous saved layout")
+equal(Suite.Windows.positions.CharacterFrame.x, 0.1, "hide interruption preserves the previous saved layout")
 CharacterFrame.shown = true; CharacterFrame.OnShow(CharacterFrame); Flush()
 CharacterFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, 0)
 cancelled = windows.timer
@@ -345,11 +347,11 @@ do
     windows:CancelTimer()
     local priorNames, priorTracked, priorWatched = windows.names, windows.tracked, windows.watched
     local priorCombined, priorIndividual = ContainerFrameCombinedBags, ContainerFrame1
-    local priorHidden, priorPositions = ContainerFrame2.shown, Suite.db.windowPositions
+    local priorHidden, priorPositions = ContainerFrame2.shown, Suite.Windows.positions
     windows.names, windows.tracked, windows.watched = { "ContainerFrameCombinedBags", "ContainerFrame1" }, {}, {}
     ContainerFrameCombinedBags, ContainerFrame1 = Window("ContainerFrameCombinedBags", false), nil
     ContainerFrame2.shown = false
-    Suite.db.windowPositions = {
+    Suite.Windows.positions = {
         ContainerFrameCombinedBags = { x = -0.12, y = 0.05, scale = 1.2 },
         ContainerFrame1 = { x = 0.18, y = 0.1, scale = 1.1 },
     }
@@ -386,7 +388,7 @@ do
     windows:CancelTimer()
     windows.names, windows.tracked, windows.watched = priorNames, priorTracked, priorWatched
     ContainerFrameCombinedBags, ContainerFrame1, ContainerFrame2.shown = priorCombined, priorIndividual, priorHidden
-    Suite.db.windowPositions, Suite.db.windowTools = priorPositions, true
+    Suite.Windows.positions, Suite.db.windowTools = priorPositions, true
 end
 
 -- Simulate a render opportunity immediately after native bank opening, before timers.
@@ -398,8 +400,8 @@ BankFrame = Window("BankFrame", false)
 BankFrame:SetSize(480, 460)
 WoWForeverSuiteBankView = Window("WoWForeverSuiteBankView", false)
 Suite.OfflineBank.frame = WoWForeverSuiteBankView
-Suite.db.windowPositions.BankFrame = { x = 0.18, y = -0.12, scale = 1.2 }
-Suite.db.windowPositions.WoWForeverSuiteBankView = { x = -0.1, y = 0.05, scale = 1 }
+Suite.Windows.positions.BankFrame = { x = 0.18, y = -0.12, scale = 1.2 }
+Suite.Windows.positions.WoWForeverSuiteBankView = { x = -0.1, y = 0.05, scale = 1 }
 ShowUIPanel = function(frame)
     frame:ClearAllPoints()
     frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 16, -116)
@@ -442,11 +444,11 @@ BankFrame.forbidden = true
 BankFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 60, -60)
 equal(BankFrame.point[4], 60, "immediate bank positioning skips forbidden frames")
 BankFrame.forbidden = false
-local bankSaved = Suite.db.windowPositions.BankFrame
-Suite.db.windowPositions.BankFrame = { x = { secret = true }, y = 0, scale = 1 }
+local bankSaved = Suite.Windows.positions.BankFrame
+Suite.Windows.positions.BankFrame = { x = { secret = true }, y = 0, scale = 1 }
 BankFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 70, -70)
 equal(BankFrame.point[4], 70, "immediate bank positioning rejects restricted saved coordinates")
-Suite.db.windowPositions.BankFrame = bankSaved
+Suite.Windows.positions.BankFrame = bankSaved
 Flush()
 Combat(true)
 native = true
@@ -458,12 +460,12 @@ equal(BankFrame.point[4], 80, "combat leaves native positioning untouched until 
 LeaveCombat()
 equal(BankFrame.point[1], "CENTER", "saved bank placement resumes after combat")
 windows:Reset(bankRecord)
-equal(Suite.db.windowPositions.BankFrame, nil, "bank reset removes saved placement before synchronous hooks run")
+equal(Suite.Windows.positions.BankFrame, nil, "bank reset removes saved placement before synchronous hooks run")
 equal(BankFrame.point[1], "TOPLEFT", "bank reset restores original native anchor")
 equal(BankFrame.point[4], 16, "bank reset restores original native offset")
 ShowUIPanel(BankFrame)
 equal(BankFrame.point[1], "TOPLEFT", "unsaved native bank keeps its default position")
-Suite.db.windowPositions.BankFrame = bankSaved
+Suite.Windows.positions.BankFrame = bankSaved
 
 -- A load-on-demand BankFrame might not exist during discovery at startup.
 windows.tracked.BankFrame = nil
@@ -485,11 +487,11 @@ windows:CancelTimer()
 windows.names, windows.tracked, windows.watched, windows.events = { "CharacterFrame" }, {}, {}, nil
 Suite.db.windowTools = true
 CharacterFrame = Window("CharacterFrame", false)
-Suite.db.windowPositions.CharacterFrame = { x = 0.1, y = 0.1, scale = 1.2 }
+Suite.Windows.positions.CharacterFrame = { x = 0.1, y = 0.1, scale = 1.2 }
 local latePanel = Window("ForeverAuditNativePanel", false)
 _G.ForeverAuditNativePanel = nil -- Load-on-demand frame is absent during startup discovery.
 UIPanelWindows = { ForeverAuditNativePanel = {} }
-Suite.db.windowPositions.ForeverAuditNativePanel = { x = -0.15, y = 0.1, scale = 1 }
+Suite.Windows.positions.ForeverAuditNativePanel = { x = -0.15, y = 0.1, scale = 1 }
 local nativeScale
 FramePositionDelegate = { UpdateUIPanelPositions = function(self, frame)
     self.updatingPanels = true
@@ -527,11 +529,11 @@ equal(latePanel.point[1], "CENTER", "registered native panels also settle on the
 equal(latePanel.point[4], -150, "registered panel uses its own saved position")
 equal(windows.tracked.ForeverAuditNativePanel.originalScale, 0.8, "late panel preserves native reset scale")
 local unsupported = Window("ForeverAuditUnsupported", false)
-Suite.db.windowPositions.ForeverAuditUnsupported = { x = 0.2, y = 0.2, scale = 1.2 }
+Suite.Windows.positions.ForeverAuditUnsupported = { x = 0.2, y = 0.2, scale = 1.2 }
 ShowUIPanel(unsupported)
 equal(unsupported.point[1], "TOPLEFT", "unregistered unsupported windows keep native placement")
 equal(windows.tracked.ForeverAuditUnsupported, nil, "synchronous opening does not expand window support")
-Suite.db.windowPositions.ForeverAuditUnsupported = nil
+Suite.Windows.positions.ForeverAuditUnsupported = nil
 auditRecord.dragging = true
 CharacterFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 50, -50)
 equal(CharacterFrame.point[4], 50, "synchronous panel placement preserves active drags")
@@ -551,7 +553,7 @@ equal(latePanel.point[1], "TOPLEFT", "disabled panel hooks retain native placeme
 equal(ActiveTimers(), 0, "disabled panel hooks leave no idle worker")
 CharacterFrame, UIPanelWindows, FramePositionDelegate, ShowUIPanel = auditCharacter, auditPanels, oldDelegate, oldShow
 _G.ForeverAuditNativePanel = nil
-Suite.db.windowPositions.ForeverAuditNativePanel = nil
+Suite.Windows.positions.ForeverAuditNativePanel = nil
 
 -- Clock settings and the compact stopwatch are separate load-on-demand frames.
 local listed = {}; for _, name in ipairs(oldNames) do listed[name] = true end
@@ -585,8 +587,8 @@ local reset = StopwatchChild("Button", StopwatchFrame, 106, -41, 24, 24)
 local play = StopwatchChild("Button", StopwatchFrame, 87, -41, 24, 24)
 local nativeClick = function() clicks = clicks + 1 end
 close:SetScript("OnClick", nativeClick); reset:SetScript("OnClick", nativeClick); play:SetScript("OnClick", nativeClick)
-Suite.db.windowPositions.StopwatchFrame = { x = -0.1, y = 0.1, scale = 1 }
-Suite.db.windowPositions.TimeManagerFrame = { x = 0.1, y = -0.1, scale = 1.1 }
+Suite.Windows.positions.StopwatchFrame = { x = -0.1, y = 0.1, scale = 1 }
+Suite.Windows.positions.TimeManagerFrame = { x = 0.1, y = -0.1, scale = 1.1 }
 windows.events.OnEvent(windows.events, "ADDON_LOADED", "Blizzard_TimeManager")
 equal(windows.watched[StopwatchFrame], true, "late-loaded hidden stopwatch is watched before discovery timers")
 equal(windows.watched[TimeManagerFrame], true, "late-loaded clock panel is watched before discovery timers")
@@ -617,7 +619,7 @@ equal(clicks, 3, "all native stopwatch controls still receive input")
 watchRecord.handle.OnDragStart(watchRecord.handle)
 StopwatchFrame.centerX, StopwatchFrame.centerY = 700, 500
 watchRecord.handle.OnDragStop(watchRecord.handle); Flush()
-equal(Suite.db.windowPositions.StopwatchFrame.x, 0.2, "header drag saves stopwatch position")
+equal(Suite.Windows.positions.StopwatchFrame.x, 0.2, "header drag saves stopwatch position")
 equal(StopwatchFrame:IsMovable(), true, "header drag retains native movable state")
 StopwatchFrame.shown = false; StopwatchFrame.OnHide(StopwatchFrame); Flush()
 StopwatchFrame.shown = true; StopwatchFrame.OnShow(StopwatchFrame)
@@ -630,28 +632,28 @@ StopwatchFrame.centerX, StopwatchFrame.centerY = 650, 450
 StopwatchFrame.OnDragStop(StopwatchFrame); Flush()
 equal(starts, 1, "native stopwatch drag-start script still runs")
 equal(stops, 1, "native stopwatch drag-stop script still runs")
-equal(Suite.db.windowPositions.StopwatchFrame.x, 0.15, "native stopwatch drag saves its new position")
-local persisted = Suite.InitializeDB(Suite.Copy(Suite.db))
-equal(persisted.windowPositions.StopwatchFrame.x, 0.15, "stopwatch position survives database initialization")
-local watchSaved = Suite.db.windowPositions.StopwatchFrame
+equal(Suite.Windows.positions.StopwatchFrame.x, 0.15, "native stopwatch drag saves its new position")
+local persisted = Suite.Windows:InitializeCharacter(Suite.Copy(Suite.Windows.positions))
+equal(persisted.StopwatchFrame.x, 0.15, "stopwatch position survives database initialization")
+local watchSaved = Suite.Windows.positions.StopwatchFrame
 watchRecord.handle.OnMouseUp(watchRecord.handle, "RightButton")
-equal(Suite.db.windowPositions.StopwatchFrame, watchSaved, "plain right-click preserves stopwatch placement")
+equal(Suite.Windows.positions.StopwatchFrame, watchSaved, "plain right-click preserves stopwatch placement")
 watchRecord.handle.OnMouseWheel(watchRecord.handle, 1)
 equal(StopwatchFrame.scale, 1, "plain stopwatch wheel input cannot resize")
 control = true; watchRecord.handle.OnMouseWheel(watchRecord.handle, 1)
 equal(StopwatchFrame.scale, 1.05, "Ctrl-wheel scales the compact stopwatch proportionally")
 watchRecord.handle.OnMouseUp(watchRecord.handle, "RightButton"); control = false; Flush()
-equal(Suite.db.windowPositions.StopwatchFrame, nil, "Ctrl-right-click resets only stopwatch placement")
+equal(Suite.Windows.positions.StopwatchFrame, nil, "Ctrl-right-click resets only stopwatch placement")
 equal(StopwatchFrame.point[1], "TOPRIGHT", "stopwatch reset restores its original native anchor")
 equal(StopwatchFrame.scale, 1, "stopwatch reset restores its original scale")
-equal(Suite.db.windowPositions.TimeManagerFrame.scale, 1.1, "stopwatch reset preserves clock panel placement")
-Suite.db.windowPositions.StopwatchFrame = { x = 0.15, y = 0.0625, scale = 1 }
+equal(Suite.Windows.positions.TimeManagerFrame.scale, 1.1, "stopwatch reset preserves clock panel placement")
+Suite.Windows.positions.StopwatchFrame = { x = 0.15, y = 0.0625, scale = 1 }
 windows:ApplyRecord(watchRecord)
 watchRecord.handle.OnDragStart(watchRecord.handle)
 StopwatchFrame.centerX, StopwatchFrame.centerY = 800, 600
 Combat(true); windows.events.OnEvent(windows.events, "PLAYER_REGEN_DISABLED")
 equal(StopwatchFrame.moving, false, "combat stops an unprotected stopwatch drag")
-equal(Suite.db.windowPositions.StopwatchFrame.x, 0.15, "combat does not save unfinished stopwatch movement")
+equal(Suite.Windows.positions.StopwatchFrame.x, 0.15, "combat does not save unfinished stopwatch movement")
 LeaveCombat()
 equal(StopwatchFrame.point[4], 150, "combat exit restores the committed stopwatch position")
 Suite.db.windowTools = false; windows:Apply(); Flush()
@@ -669,3 +671,5 @@ UIParent, UIPanelWindows = oldParent, oldPanels
 CharacterFrame, ContainerFrameCombinedBags, ContainerFrame2 = oldCharacter, oldBag, oldHidden
 ContainerFrame1, UpdateContainerFrameAnchors = oldFirst, oldAnchors
 Combat(false)
+
+Suite.Windows.positions = priorWindowPositions

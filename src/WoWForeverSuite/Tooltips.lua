@@ -99,74 +99,24 @@ function Tips:PrepareItem(tooltip, data)
     self:Record(tooltip).itemLevelPrepared = true
 end
 
-function Tips:ComparisonDetails(tooltip, comparison)
-    if comparison.emptySlot then return end
-    local scoring = Suite.Scoring
-    local function Pair(label, value, positive)
-        local color = positive == false and { 1, 0.48, 0.38 } or { 0.41, 0.84, 0.75 }
-        if type(tooltip.AddDoubleLine) == "function" then tooltip:AddDoubleLine(label, value, 0.7, 0.77, 0.8, unpack(color))
-        else tooltip:AddLine(label .. ": " .. value, unpack(color)) end
-    end
-    Pair(comparison.preference == "ilevel" and "Item level · equipped -> candidate" or "Score · equipped -> candidate",
-        scoring.Format(comparison.baselineScore) .. " -> " .. scoring.Format(comparison.candidateScore))
-    local state = scoring:State()
-    local full = state and state.details
-    if comparison.replacementLink and full then Pair("Replaces", comparison.replacementLink) end
-    local rows = comparison.breakdown or {}
-    local limit = full and #rows or math.min(3, #rows)
-    for index = 1, limit do
-        local row = rows[index]
-        local label = row.label .. " " .. scoring.Format(row.value, true)
-        if full then label = label .. " x " .. tostring(row.weight) end
-        Pair(label, scoring.Format(row.points, true) .. " pts", row.points > 0)
-    end
-    if #rows > limit then tooltip:AddLine((#rows - limit) .. " more weighted changes · full breakdown in Item Levels & Upgrades", 0.55, 0.65, 0.7) end
-    if comparison.weapon and comparison.preference == "stats" then
-        tooltip:AddLine("Compares the complete hand set; off-hand weapon DPS counts at 50%.", 0.55, 0.65, 0.7, true)
-    end
-    tooltip:AddLine(comparison.preference == "stats"
-        and "Weighted score gain, not damage/healing. Unweighted stats, effects and set bonuses need your judgment."
-        or "Item-level comparison. Stats, effects and set bonuses need your judgment.", 0.55, 0.65, 0.7, true)
-end
-
 function Tips:Item(tooltip, data)
-    if not Suite.db or (not Suite.db.itemTooltipLevels and not Suite.db.upgradeHints and not Suite.db.itemInventory) then return end
+    if not Suite.db or (not Suite.db.itemTooltipLevels and not Suite.db.itemInventory
+        and not Suite.db.professionUsage and not Suite.db.itemKeepRulesEnabled) then return end
     if tooltip.IsForbidden and tooltip:IsForbidden() then return end
     local item = GetItem(tooltip, data)
     if not item then return end
     local record = self:Record(tooltip)
-    if not record.itemDone and (Suite.db.itemTooltipLevels or Suite.db.upgradeHints) then
+    if not record.itemDone and Suite.db.itemTooltipLevels then
         local info = Suite.Items:GetInfo(item)
         if Suite.Items:IsEquipment(info) then
             record.itemDone = true
             if Suite.db.itemTooltipLevels and not record.itemLevelPrepared and Suite.IsReadable(info.level) and type(info.level) == "number" and info.level > 0 then
                 tooltip:AddLine(string.format("Item Level %d", info.level), 1, 0.82, 0)
             end
-            if Suite.db.upgradeHints then
-                local delta, comparison = Suite.Items:UpgradeDelta(item, true)
-                if delta then
-                    local preset = Suite.Scoring:Profile()
-                    local text
-                    if comparison.emptySlot then
-                        text = comparison.weapon and ("Fills an empty equipment slot · " .. comparison.slot) or "Fills an empty equipment slot"
-                    elseif comparison.preference == "ilevel" then
-                        if comparison.paired then text = string.format("Higher weapon-set item level · +%.1f (%s)", delta, comparison.slot)
-                        elseif comparison.weapon then text = string.format("Higher item level · +%.1f (%s)", delta, comparison.slot)
-                        else text = string.format("Higher item level · +%.1f", delta) end
-                    elseif comparison.weapon then
-                        text = "Possible weapon upgrade · " .. Suite.Scoring.FormatUpgrade(delta, comparison.baselineScore) .. " (" .. preset.label .. "; " .. comparison.slot .. ")"
-                    else text = "Possible stat upgrade · " .. Suite.Scoring.FormatUpgrade(delta, comparison.baselineScore) .. " (" .. preset.label .. ")" end
-                    local red, green, blue, armorNote = Suite.Items:UpgradeColor(info)
-                    if red then
-                        tooltip:AddLine(text, red, green, blue)
-                        if armorNote then tooltip:AddLine(armorNote, red, green, blue) end
-                    end
-                    self:ComparisonDetails(tooltip, comparison)
-                end
-            end
         end
     end
     Suite.Inventory:AddTooltip(tooltip, item, record)
+    Suite.ItemRules:AddTooltip(tooltip, item, record)
 end
 
 function Tips:EquippedLevel()
@@ -462,7 +412,8 @@ end
 function Tips:Apply()
     self:ApplyLevelOutlines()
     Suite.pending.tooltipInitialize = nil
-    if Suite.db.itemTooltipLevels or Suite.db.upgradeHints or Suite.db.playerItemLevel or Suite.db.classNames or Suite.db.itemInventory or Suite.db.unitLevelColors then
+    if Suite.db.itemTooltipLevels or Suite.db.playerItemLevel or Suite.db.classNames or Suite.db.itemInventory or Suite.db.unitLevelColors
+        or Suite.db.professionUsage or Suite.db.itemKeepRulesEnabled then
         if not self.initialized and InCombatLockdown() then
             Suite.AfterCombat("tooltipInitialize", function() self:Apply() end)
         else self:Initialize() end

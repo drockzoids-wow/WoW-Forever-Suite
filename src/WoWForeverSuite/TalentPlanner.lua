@@ -326,6 +326,7 @@ function Planner:Refresh()
     local changed = not self.model or self.model.class ~= model.class or self.model.tree ~= model.tree
         or self.model.hash ~= model.hash or self.model.config ~= model.config
     if changed then
+        if not self.model or self.model.class ~= model.class then self.presetID = nil end
         self.starter = false
         self.selected, self.preview, self.undo, self.redo = nil, false, {}, {}
         self.notice, self.guiding = nil, false

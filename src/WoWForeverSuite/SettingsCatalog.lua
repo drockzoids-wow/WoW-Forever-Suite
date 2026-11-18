@@ -1,7 +1,7 @@
 local _, Suite = ...
 local Catalog = { groups = {
     { key = "overview", label = "Home", description = "Browse a section or open a tool. Each feature remains optional.", pages = { { "overview", "Home" } } },
-    { key = "inventory", label = "Bags & Gear", description = "Bags, bank, item levels, upgrades and tooltip information.", pages = { { "bags", "Bags & Bank" }, { "items", "Item Levels & Upgrades" }, { "tooltips", "Tooltips" }, { "professions", "Professions" } } },
+    { key = "inventory", label = "Bags & Gear", description = "Bags, bank, item levels and tooltip information.", pages = { { "bags", "Bags & Bank" }, { "items", "Item Levels" }, { "tooltips", "Tooltips" }, { "professions", "Professions" } } },
     { key = "combat", label = "Combat", description = "Buff reminders, damage meters, action buttons and unit frames.", pages = { { "buffs", "Buff Reminders" }, { "meters", "Damage Meters" }, { "actionbars", "Action Bars" }, { "castbars", "Castbars" }, { "unitframes", "Unit Frames" }, { "combat", "Combat Indicator" } } },
     { key = "layout", label = "Maps & Interface", description = "Maps, window movement, progress bars, chat and sound.", pages = { { "minimap", "Minimap" }, { "worldmap", "World Map" }, { "windows", "Window Movement" }, { "bars", "Progress Bars & UI Buttons" }, { "chat", "Chat" }, { "audio", "Audio" } } },
     { key = "journey", label = "Quests & Leveling", description = "Quests, looting, the leveling tracker and camping.", pages = { { "quests", "Quests, Loot & Tracker" }, { "leveling", "Leveling Tracker" }, { "camping", "Camping" } } },
@@ -16,11 +16,11 @@ Catalog.sections = {
     minimap = { [1] = "Launcher & Addon Buttons", [3] = "Map Appearance", [4] = "Stats & Information" },
     windows = { [1] = "Window Layout" },
     bags = { [1] = "Bag Tools", [3] = "Recorded Inventory", [4] = "Bank Snapshots", [7] = "Low Bag Space", [9] = "Container Opening", [10] = "Bag Order", [12] = "Bank Deposits" },
-    items = { [1] = "Item Levels", [4] = "Upgrade Comparisons", [8] = "Equipment Manager" },
+    items = { [1] = "Item Levels", [4] = "Equipment Manager" },
     tooltips = { [1] = "Item Information", [3] = "Player Information", [5] = "Unit Information" },
     camping = { [1] = "Camping Bar", [3] = "Position & Reset" },
     buffs = { [1] = "Missing Buff Bar", [2] = "Reminder Filters", [6] = "Position & Choices" },
-    vendor = { [1] = "Repairs", [3] = "Junk Selling", [6] = "Vendor Conversation", [7] = "Known Items" },
+    vendor = { [1] = "Repairs", [3] = "Junk Selling", [6] = "Vendor Conversation", [7] = "Known Items", [8] = "Restocking" },
     quests = { [1] = "Quests & Conversation", [4] = "Loot & Tracker" },
     actionbars = { [1] = "Appearance & Feedback", [3] = "Ability Proc Popups" }, bars = { [1] = "Bar Appearance" },
     unitframes = { [1] = "Health Bars", [2] = "Target Threat" }, mail = { [1] = "Recipients", [4] = "Mail Deadlines" }, meters = { [1] = "Damage Meters" },
@@ -99,7 +99,6 @@ local synonyms = { characterDashboard = "recorded characters dashboard alts mone
     levelingBar = "xp experience gold per hour net leveling session time next level eta estimate movable vertical tracker top left",
     levelingLock = "lock unlock click through hover tracker", levelingMinimize = "minimize collapse expand header tracker",
     questItemButton = "smart nearby quest objective special item use button keybind",
-    upgradePreference = "upgrade comparison prefer higher ilevel item level stats weapon dps hands",
     audioSync = "audio sound windows default playback output device speakers headset headphones sync",
     audioRefresh = "sync audio sound windows playback device refresh",
     trainingPlanner = "class weapon trainer skills spells learn cost budget savings future level snapshot",
@@ -111,7 +110,7 @@ local synonyms = { characterDashboard = "recorded characters dashboard alts mone
     buffAppearance = "scale icon size header movement preview position", missingBuffExpiry = "expiry expiring duration refresh timer",
     missingBuffCombat = "combat shout thorns lightning shield righteous fury reminders",
     missingBuffWeapons = "weapon coating oil stone poison mainhand offhand",
-    bagSpaceReset = "blacklist protect trash items", preset = "weights upgrades role spec specialization feral cat bear fury frost automatic class character profile custom", weights = "editable custom stat weights score breakdown tooltip details hit crit haste expertise dodge parry block school spell resistance", scorePreset = "weights upgrades role spec", missingBuffClass = "poison imbue aspect upkeep tracking find minerals herbs treasure permanent" }
+    bagSpaceReset = "blacklist protect trash items", missingBuffClass = "poison imbue aspect upkeep tracking find minerals herbs treasure permanent" }
 
 function Catalog:Configure(pages)
     self.pages, self.pageGroup, self.labels, self.entries = pages, {}, {}, {}
@@ -139,7 +138,7 @@ function Catalog:Configure(pages)
     -- Retain original setting keys and row identities; no saved choice is migrated.
     -- Feature pages use inline sections rather than another layer of tabs.
     self.sections.bags = { [1] = "Bag tools", [2] = "Recorded inventory", [4] = "Bank snapshots", [7] = "Bag space & organization", [12] = "Bank deposits", [13] = "Account money" }
-    self.sections.items = { [1] = "Item levels", [4] = "Upgrade comparisons", [8] = "Equipment sets" }
+    self.sections.items = { [1] = "Item levels", [4] = "Equipment sets" }
     self.sections.actionbars = { [1] = "Action buttons", [3] = "Proc popups" }
     pages.buffs.rows[#pages.buffs.rows + 1] = { key = "missingBuffSmart", label = "Class-aware buff targets",
         help = "Match mana buffs to eligible classes, including Hunters and Druids in any form." }

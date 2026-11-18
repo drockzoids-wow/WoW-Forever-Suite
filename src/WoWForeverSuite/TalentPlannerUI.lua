@@ -120,10 +120,11 @@ function Planner:Attach()
     self.guideButton = Button(panel, 110, -100, 152, "Learn this build", function()
         if self.guiding then self:StopGuide(); self:Render() else self:StartGuide() end
     end)
-    Button(panel, 14, -134, 76, "New empty", function() self:New() end)
-    Button(panel, 98, -134, 76, "Copy native", function() if self:Ready() then self:New("Native copy", self.model.native) end end)
-    self.orderButton = Button(panel, 182, -134, 80, "Point order", function() self:OpenOrder() end)
-    Button(panel, 14, -168, 248, "Starter leveling build", function() self:OpenStarterPanel() end)
+    Button(panel, 14, -134, 76, "New", function() self:New() end)
+    Button(panel, 98, -134, 76, "Copy live", function() if self:Ready() then self:New("Native copy", self.model.native) end end)
+    self.orderButton = Button(panel, 182, -134, 80, "Order", function() self:OpenOrder() end)
+    self.presetButton = Button(panel, 14, -168, 120, "Leveling Builds", function() self:OpenPresetPicker("Leveling") end)
+    self.endgameButton = Button(panel, 142, -168, 120, "Endgame Builds", function() self:OpenPresetPicker("Endgame") end)
     self.rows, self.page = {}, 1
     for index = 1, 5 do
         local row = Button(panel, 14, -208 - (index - 1) * 29, 248, "", function()
@@ -144,7 +145,7 @@ function Planner:Attach()
     self.name:SetScript("OnEditFocusLost", function(box)
         if not InCombatLockdown() and self:Current() then self:Rename(box:GetText()) end
     end)
-    self.duplicate = Button(panel, 14, -428, 76, "Duplicate", function()
+    self.duplicate = Button(panel, 14, -428, 76, "Copy", function()
         if self.starter then self:CustomizeStarter(); return end
         local b = self:Current(); if b then self:New(b.name:sub(1, 41) .. " (copy)", b.ranks, b.notes, b.sequence) end
     end)
@@ -267,7 +268,8 @@ function Planner:Render()
         or not self:Ready() or self.importContext ~= self.model.config
         or self.importTree ~= self.model.tree or self.importHash ~= self.model.hash
         or self.importClass ~= self.model.class) then self:CloseImport() end
-    if self.starterPanel and (not self.expanded or not self.starter or not self.model) then self:CloseStarterPanel() end
+    if self.starterPanel and self.starterPanel:IsShown() and (not self.expanded or not self.starter or not self.model) then self:CloseStarterPanel() end
+    if self.presetPicker and (not self.expanded or not self.model) then self.presetPicker:Hide() end
     if self.tooltipOwner and GameTooltip then GameTooltip:Hide(); self.tooltipOwner = nil end
     for _, button in pairs(self.buttons) do button:Hide() end
     for _, header in pairs(self.headers) do header:Hide() end
@@ -311,12 +313,14 @@ function Planner:Render()
     end
     self.name:SetText(build and build.name or "")
     self.name:SetEnabled(build ~= nil); self.duplicate:SetEnabled(build ~= nil); self.delete:SetEnabled(build ~= nil)
-    self.favorite:SetEnabled(build ~= nil); self.favorite.caption:SetText(build and build.favorite and "Unfavorite" or "Favorite")
+    self.favorite:SetEnabled(build ~= nil); self.favorite.caption:SetText(build and build.favorite and "Unstar" or "Star")
     self.notesButton:SetEnabled(build ~= nil)
     self.orderButton:SetEnabled(build ~= nil); self.guideButton:SetEnabled(build ~= nil and (not self.starter or build.verified))
     self.live:SetEnabled(build ~= nil)
-    self.live.caption:SetText(self.starter and "Levels" or "Edit draft")
-    self.duplicate.caption:SetText(self.starter and "Customize" or "Duplicate")
+    self.live.caption:SetText(self.starter and "Preview" or "Edit draft")
+    self.duplicate.caption:SetText(self.starter and "Edit copy" or "Copy")
+    self.presetButton.caption:SetText("Leveling Builds")
+    if self.presetPicker and self.presetPicker:IsShown() then self:RenderPresetPicker() end
     if self.starter then
         self.name:SetEnabled(false); self.favorite:SetEnabled(false); self.delete:SetEnabled(false); self.notesButton:SetEnabled(false)
         self.orderButton:SetEnabled(false)
@@ -344,7 +348,8 @@ function Planner:Render()
         self:RenderConnections(build)
         self.buildLevelText:SetText(self:BaselineLevelText(points))
         if self.starter then
-            self.budgetText:SetText("Level " .. (self.starterLevel or 60) .. " preview • " .. points .. " planned points • Starter build (read-only)")
+            self.budgetText:SetText((build.data.kind == "Leveling" and "Level " .. (self.starterLevel or 60) .. " preview" or "Full build preview")
+                .. " • " .. points .. " planned points • Read-only")
         elseif budget then
             local remaining = budget - points
             local color = remaining > 0 and "|cff66dd77" or remaining == 0 and "|cffffd24d" or "|cffff5555"
@@ -357,18 +362,18 @@ function Planner:Render()
         local comparison = added .. (added == 1 and " rank added" or " ranks added") .. " · "
             .. removed .. (removed == 1 and " rank removed" or " ranks removed")
         self.status:SetText(points .. " points planned · Saved\n" .. comparison)
-        if self.starter then self.status:SetText("Starter preview • Level " .. (self.starterLevel or 60) .. "\nCustomize to make your own editable copy.") end
+        if self.starter then self.status:SetText(build.name .. "\nEdit copy creates an editable draft.") end
         if self.analysis.unplaced > 0 then
             self.status:SetText(self.analysis.unplaced .. " ranks need review • see tooltip\n" .. comparison)
         end
     elseif build then self.status:SetText("Selected: " .. build.name .. "\nClick Learn this build to spend real points.")
     else self.status:SetText("Choose a saved build above.\nThen click Learn this build.") end
     if build and not self.guiding then
-        self.ruleHint:SetText(self.starter and "Levels previews the starter plan.\nCustomize creates your own editable copy."
+        self.ruleHint:SetText(self.starter and "Preview compares the built-in plan.\nEdit copy creates your own editable draft."
             or "Edit draft changes your saved plan.\nLearn this build guides real talent selection.")
         if active then self.ruleHint:SetText("Orange outline: next rank available.\nColored icon: points in this draft.") end
     end
-    self.banner:SetText(self.starter and "STARTER PREVIEW • Use Levels to browse • Customize to edit • Learn this build to follow"
+    self.banner:SetText(self.starter and "BUILT-IN PREVIEW • Preview to compare • Edit copy to edit • Learn this build to follow"
         or "DRAFT • Left-click adds • Right-click removes • Shift-click changes choice")
     self.rulesButton:SetShown(not self.starter)
     if self.notice then self.status:SetText(self.notice) end
@@ -391,11 +396,72 @@ function Planner:HideGuideMarks()
     if self.guideInstruction then self.guideInstruction:Hide() end
 end
 
+function Planner:PresetChoices()
+    local list = {}
+    local leveling = self.presetKind ~= "Endgame"
+    for _, data in ipairs(self.model and self.presets[self.model.class] or {}) do
+        if (data.kind == "Leveling") == leveling then list[#list + 1] = data end
+    end
+    return list
+end
+
+function Planner:RenderPresetPicker()
+    if not self:Ready() or not self.presetPicker then return end
+    local list = self:PresetChoices()
+    local leveling = self.presetKind ~= "Endgame"
+    self.presetTitle:SetText(leveling and "Leveling Builds" or "Endgame Builds")
+    self.presetDetails:SetText((leveling and "Level-by-level paths from 10 to 60.\nBonus points may change your timing."
+        or "Full level-60 allocations.\nPvE: dungeon and raid builds.\nWorld: open-world / PvP builds.")
+        .. "\n\nReference: Icy Veins • Forever.\nSource links are shown in each preview.")
+    local pages = math.max(1, math.ceil(#list / 8))
+    self.presetPage = math.max(1, math.min(self.presetPage or 1, pages))
+    for i, row in ipairs(self.presetRows) do
+        local data = list[(self.presetPage - 1) * 8 + i]
+        row.presetID = data and data.id
+        row:SetShown(data ~= nil)
+        if data then row.caption:SetText(data.name) end
+    end
+    self.presetPageText:SetText(self.presetPage .. " / " .. pages)
+    self.presetPrevious:SetEnabled(self.presetPage > 1); self.presetNext:SetEnabled(self.presetPage < pages)
+end
+
+function Planner:OpenPresetPicker(kind)
+    if not self:Ready() then return end
+    if not Suite.IsReadable(kind) or kind ~= nil and kind ~= "Leveling" and kind ~= "Endgame" then return end
+    self.presetKind = kind or self.presetKind or "Leveling"
+    self:StopGuide(); self:CloseImport(); self:CloseNotes(); self:CloseOrder(); self:CloseStarterPanel()
+    self.preview = false
+    if not self.presetPicker then
+        local frame = CreateFrame("Frame", nil, self.panel, "BackdropTemplate"); self.presetPicker = frame
+        frame:SetAllPoints(self.panel); frame:SetFrameLevel(self.panel:GetFrameLevel() + 30)
+        frame:EnableMouse(true); Surface(frame); frame:SetBackdropColor(0.035, 0.05, 0.065, 1)
+        self.presetTitle = Label(frame, 17, 14, -16, "")
+        Label(frame, 11, 14, -48, "Choose a spec and purpose.\nPreview freely, then learn or edit a copy.")
+        self.presetRows = {}
+        for i = 1, 8 do
+            local row
+            row = Button(frame, 14, -100 - (i - 1) * 42, 248, "", function() self:ChoosePreset(row.presetID) end)
+            self.presetRows[i] = row
+        end
+        self.presetPrevious = Button(frame, 14, -446, 56, "<", function() self.presetPage = self.presetPage - 1; self:RenderPresetPicker() end)
+        self.presetPageText = Label(frame, 11, 82, -454, "", 98); self.presetPageText:SetJustifyH("CENTER")
+        self.presetNext = Button(frame, 206, -446, 56, ">", function() self.presetPage = self.presetPage + 1; self:RenderPresetPicker() end)
+        Suite.Theme:PageWheel(frame, self.presetRows, self.presetPrevious, self.presetNext, self.presetNext)
+        self.presetDetails = Label(frame, 11, 14, -500, "")
+        Button(frame, 14, -614, 248, "Back to my builds", function() frame:Hide(); self:Render() end)
+    end
+    self.presetPage = 1; self.expanded = true
+    self:Render(); self.presetPicker:Show(); self:RenderPresetPicker()
+end
+
 function Planner:RenderStarterPanel()
     if not self:Ready() or not self.starterPanel or not self.starter then return end
     local full, reason = self:StarterBuild(60)
-    local data = self.starters[self.model.class]
-    self.starterTitle:SetText(data and data.spec .. " Leveling" or "Starter leveling build")
+    local data = self:PresetData(self.presetID)
+    local leveling = data and data.kind == "Leveling"
+    self.starterTitle:SetText(data and data.name or "Built-in build")
+    self.starterTiming:SetText(leveling and "Reference schedule; bonus points may differ." or "Full allocation; not a leveling path.")
+    for _, control in ipairs(self.starterLevelControls) do control:SetShown(leveling == true) end
     self.starterLevelInput:SetText(tostring(self.starterLevel or 60))
     self.starterLearn:SetEnabled(full ~= nil and full.verified); self.starterCustomize:SetEnabled(full ~= nil and full.verified)
     self.starterDetails:SetText(data and ("Reference: Icy Veins • Forever\n" .. data.tip) or "No starter available for this class.")
@@ -408,7 +474,7 @@ function Planner:RenderStarterPanel()
     local lines = {}
     for index = first, math.min(first + 5, #full.sequence) do
         local step = full.sequence[index]
-        lines[#lines + 1] = (index + 9 == level and "> " or "") .. "Level " .. (index + 9) .. ": "
+        lines[#lines + 1] = (index + 9 == level and "> " or "") .. (leveling and "Level " .. (index + 9) or "Point " .. index) .. ": "
             .. self.model.nodes[step.node].entries[step.entry].name .. " (" .. step.rank .. ")"
     end
     self.starterSchedule:SetText(table.concat(lines, "\n"))
@@ -419,7 +485,7 @@ function Planner:RenderStarterPanel()
             milestone = "Next milestone: level " .. (index + 9) .. "\n" .. entry.name; break
         end
     end
-    self.starterMilestone:SetText(milestone)
+    self.starterMilestone:SetText(leveling and milestone or "Full " .. (data and data.kind or "reference") .. " build • " .. #full.sequence .. " points\nEdit a copy to change its point order.")
 end
 
 function Planner:CloseStarterPanel()
@@ -427,6 +493,7 @@ function Planner:CloseStarterPanel()
     if self.starterLevelInput then self.starterLevelInput:ClearFocus() end
     if self.starterSource then self.starterSource:ClearFocus() end
     if self.starterPanel then self.starterPanel:Hide() end
+    if self.presetPicker then self.presetPicker:Hide() end
 end
 
 function Planner:OpenStarterPanel()
@@ -436,25 +503,31 @@ function Planner:OpenStarterPanel()
         local frame = CreateFrame("Frame", nil, self.panel, "BackdropTemplate"); self.starterPanel = frame
         frame:SetAllPoints(self.panel); frame:SetFrameLevel(self.panel:GetFrameLevel() + 25)
         frame:EnableMouse(true); Surface(frame); frame:SetBackdropColor(0.035, 0.05, 0.065, 1)
-        self.starterTitle = Label(frame, 17, 14, -16, "")
-        Label(frame, 11, 14, -48, "Compare your talents as you browse levels.")
+        self.starterTitle = Label(frame, 14, 14, -16, ""); self.starterTitle:SetHeight(28)
+        Label(frame, 11, 14, -48, "Compare the plan with your talents.")
         local timing = Label(frame, 10, 14, -65, "Reference schedule; bonus points may differ.")
+        self.starterTiming = timing
         timing:SetWordWrap(false)
-        Button(frame, 14, -82, 52, "<", function() self:ChooseStarterLevel(math.max(1, (self.starterLevel or 60) - 1)) end)
+        local previousLevel = Button(frame, 14, -82, 52, "<", function() self:ChooseStarterLevel(math.max(1, (self.starterLevel or 60) - 1)) end)
         self.starterLevelInput = Input(frame, 114, -82, 48, 2)
-        Label(frame, 11, 72, -89, "Level", 40)
+        local levelLabel = Label(frame, 11, 72, -89, "Level", 40)
         self.starterLevelInput:SetScript("OnEnterPressed", function(box)
             self:ChooseStarterLevel(tonumber(box:GetText())); box:ClearFocus()
         end)
-        Button(frame, 210, -82, 52, ">", function() self:ChooseStarterLevel(math.min(60, (self.starterLevel or 1) + 1)) end)
-        Button(frame, 14, -118, 120, "My level", function()
+        local nextLevel = Button(frame, 210, -82, 52, ">", function() self:ChooseStarterLevel(math.min(60, (self.starterLevel or 1) + 1)) end)
+        local myLevel = Button(frame, 14, -118, 120, "My level", function()
             local level = self:Budget()
             if Suite.IsReadable(level) and type(level) == "number" then self:ChooseStarterLevel(math.max(1, math.min(60, level))) end
         end)
-        Button(frame, 142, -118, 120, "Full build", function() self:ChooseStarterLevel(60) end)
+        local fullBuild = Button(frame, 142, -118, 120, "Full build", function() self:ChooseStarterLevel(60) end)
+        self.starterLevelControls = {previousLevel, self.starterLevelInput, levelLabel, nextLevel, myLevel, fullBuild}
         self.starterSchedule = Label(frame, 12, 14, -166, "", 248); self.starterSchedule:SetHeight(146)
         self.starterMilestone = Label(frame, 11, 14, -320, "", 248); self.starterMilestone:SetHeight(46)
-        self.starterDetails = Label(frame, 11, 14, -378, "", 248); self.starterDetails:SetHeight(90)
+        self.starterDetails = Label(frame, 11, 14, -378, "", 248); self.starterDetails:SetHeight(62)
+        Button(frame, 14, -446, 248, "Choose another build", function()
+            local data = self:PresetData(self.presetID)
+            self:OpenPresetPicker(data and data.kind == "Leveling" and "Leveling" or "Endgame")
+        end)
         Label(frame, 10, 14, -482, "Source guide (select and copy URL)")
         self.starterSource = Input(frame, 14, -500, 248, 256)
         self.starterLearn = Button(frame, 14, -542, 248, "Learn this build", function() self:StartGuide() end)
@@ -619,7 +692,7 @@ function Planner:OpenOrder()
         self.orderPrevious = Button(frame, 14, -404, 56, "<", function() self.orderPage = math.max(1, self.orderPage - 1); self:RenderOrder() end)
         self.orderPageText = Label(frame, 11, 82, -412, "", 98); self.orderPageText:SetJustifyH("CENTER")
         self.orderNext = Button(frame, 206, -404, 56, ">", function() self.orderPage = self.orderPage + 1; self:RenderOrder() end)
-        self.orderWheelArea = Suite.Theme:PageWheel(frame, self.orderRows, self.orderPrevious, self.orderNext, self.orderNext)
+        Suite.Theme:PageWheel(frame, self.orderRows, self.orderPrevious, self.orderNext, self.orderNext)
         self.orderUp = Button(frame, 14, -442, 120, "Move earlier", function() self:MoveOrder(-1) end)
         self.orderDown = Button(frame, 142, -442, 120, "Move later", function() self:MoveOrder(1) end)
         Button(frame, 14, -480, 248, "Generate order", function()
