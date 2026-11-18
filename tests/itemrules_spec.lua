@@ -174,6 +174,7 @@ end
 Suite.db.itemKeepRulesEnabled = false
 SlashCmdList.WOWFOREVERSUITE("  KEEP  ")
 equal(rules.frame:IsShown(),true,"keep slash command opens editor with keep rules disabled")
+assert(loadfile("tests/window_drag_fixture.lua"))(rules.frame, equal, "Keep Rules")
 equal(Suite.db.itemKeepRulesEnabled,false,"opening keep editor never enables keep rules")
 equal(rules.frame:GetNumPoints(),1,"first standalone keep open has a screen anchor")
 equal(rules.frame.point[1],"CENTER","first keep command centers the editor without a launcher")

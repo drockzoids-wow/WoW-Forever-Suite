@@ -215,12 +215,13 @@ equal(shopping:Plans()[guideB.name] ~= nil, true, "removing one profession prese
 equal(supplies.db.entries[1].wanted, 3, "removing a profession preserves manual supplies")
 Suite.Menus.CreateContextMenu = oldMenu
 shopping.frame.header.OnDragStart()
-equal(shopping.moving, true, "owned shopping header supports outside-combat movement")
+equal(shopping.frame.suiteDragging, true, "owned shopping header supports outside-combat movement")
 shopping:Queue(); local timer = shopping.timer
 Combat(true); before = made
+shopping.frame.header:OnEvent("PLAYER_REGEN_DISABLED")
 shopping.events.OnEvent(shopping.events, "PLAYER_REGEN_DISABLED"); Flush()
 equal(timer.cancelled, true, "combat cancels queued shopping refresh")
-equal(shopping.moving, nil, "combat ends shopping header movement")
+equal(shopping.frame.suiteDragging, nil, "combat ends shopping header movement")
 equal(shopping:Review(guideA.name, 0), false, "combat cannot stage a plan")
 equal(shopping:SavePlan(), false, "combat cannot commit plans")
 shopping:AuctionButton(); equal(made, before, "combat never creates an auction child")

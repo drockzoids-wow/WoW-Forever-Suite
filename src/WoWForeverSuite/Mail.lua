@@ -5,6 +5,7 @@ table.insert(Suite.modules, Mail)
 
 local CONTACT_ROWS, GROUP_ROWS = 8, 8
 local BOOK_WIDTH, BOOK_HEIGHT = 740, 650
+local defaultSubjects = { alts = "Alt mail", guild = "Guild mail" }
 local colors = {
     background = { 0.035, 0.05, 0.065 }, row = { 0.07, 0.095, 0.11 },
     accent = { 0.41, 0.84, 0.75 }, text = { 0.88, 0.91, 0.93 }, muted = { 0.55, 0.65, 0.7 },
@@ -715,17 +716,33 @@ function Mail:Choose(key)
     local chosen
     for _, entry in ipairs(self:ContactList("all", "")) do if entry.key == key then chosen = entry; break end end
     if not chosen or chosen.current then return end
+    local tab = self.contactTab
+    local defaultSubject = not chosen.incomplete and (tab == "all" or defaultSubjects[tab]) and defaultSubjects[chosen.group]
     self.choosingRecipient = true
     MailFrameTab_OnClick(nil, 2)
     self.choosingRecipient = nil
     local field = Field()
     if not field or not Shown(SendMailFrame) then return end
     field:SetText(chosen.address or (chosen.name .. " "))
+    local subject = SendMailSubjectEditBox
+    local subjectEnabled
+    if Accessible(subject) then
+        local enabled = subject.IsEnabled and subject:IsEnabled()
+        subjectEnabled = Suite.IsReadable(enabled) and enabled ~= false
+    end
+    if subjectEnabled and subject == self.boundSubject and subject.GetText and subject.SetText then
+        local text = subject:GetText()
+        local replacement = defaultSubject or ""
+        if Suite.IsReadable(text) and type(text) == "string" and (text == "" or text == self.autoSubject) and text ~= replacement then
+            subject:SetText(replacement)
+            self.autoSubject = defaultSubject or nil
+        end
+    end
     if chosen.incomplete then
         if field.SetFocus then field:SetFocus() end
     else
         if field.ClearFocus then field:ClearFocus() end
-        if Accessible(SendMailSubjectEditBox) and SendMailSubjectEditBox.SetFocus then SendMailSubjectEditBox:SetFocus() end
+        if subjectEnabled and subject.SetFocus then subject:SetFocus() end
     end
     self.selected = key
     self:Refresh()
@@ -1012,7 +1029,7 @@ end
 
 function Mail:EndVisit()
     self.visit, self.sendPending, self.pendingRecipient, self.lastRecipient = nil, nil, nil, nil
-    self.selected = nil
+    self.selected, self.autoSubject = nil, nil
     self.nameAttempts, self.guildEntries, self.guildLoaded, self.guildRequested = nil, nil, nil, nil
     self:Cancel()
     Suite.pending.mailRecipient = nil
@@ -1066,6 +1083,20 @@ end
 
 function Mail:Bind()
     if InCombatLockdown() or not self.active or not Accessible(MailFrame) then return end
+    local subject = SendMailSubjectEditBox
+    if Suite.db.mailHelper and Accessible(subject) and subject.HookScript and self.boundSubject ~= subject then
+        self.boundSubject, self.autoSubject = subject, nil
+        subject:HookScript("OnTextChanged", function(box, userInput)
+            if self.boundSubject ~= box or not self.autoSubject then return end
+            if Suite.IsReadable(userInput) and userInput == true then
+                self.autoSubject = nil
+            elseif Accessible(box) and box.GetText then
+                -- A programmatic notification can arrive with the default still in place.
+                local text = box:GetText()
+                if Suite.IsReadable(text) and text ~= self.autoSubject then self.autoSubject = nil end
+            end
+        end)
+    end
     if self.bound ~= MailFrame then
         self.bound = MailFrame
         MailFrame:HookScript("OnShow", function() if self.active then self:BeginVisit() end end)
@@ -1490,7 +1521,7 @@ end
 
 function Mail:PlaceBook(anchor)
     if InCombatLockdown() or not self.book then return end
-    if anchor == self.book.frame then return end
+    if anchor == self.book.frame or self.book.frame.suiteManualPosition or self.book.frame.suiteDragging then return end
     if not Suite.PlaceWindow(self.book.frame, anchor) then
         self.book.frame:ClearAllPoints(); self.book.frame:SetPoint("CENTER")
     end
@@ -1505,13 +1536,12 @@ function Mail:OpenBook(anchor, tab)
         local book = { frame = window, content = frame, rows = {}, page = 1, tab = "all" }; self.book = book
         window:SetSize(BOOK_WIDTH, BOOK_HEIGHT); window:SetPoint("CENTER"); window:SetFrameStrata("DIALOG")
         window:SetToplevel(true); window:SetClampedToScreen(true); window:EnableMouse(true); Fill(window, colors.background)
-        window:SetMovable(true); window:RegisterForDrag("LeftButton")
-        window:SetScript("OnDragStart", function() if not InCombatLockdown() then window:StartMoving() end end)
-        window:SetScript("OnDragStop", function() window:StopMovingOrSizing() end)
+        local header = Suite.WindowDragHeader(window, 64, 48)
+        Suite.BindWindowDrag(window, header)
         frame:SetSize(BOOK_WIDTH, 546); frame:SetPoint("TOPLEFT", 0, -104)
         if UISpecialFrames then table.insert(UISpecialFrames, "WoWForeverSuiteContactBook") end
-        local title = Text(window, 18); title:SetPoint("TOPLEFT", 18, -18); title:SetText("Contacts")
-        local subtitle = Text(window, 11, colors.muted); book.subtitle = subtitle; subtitle:SetPoint("TOPLEFT", 18, -44)
+        local title = Text(header, 18); title:SetPoint("TOPLEFT", 18, -18); title:SetText("Contacts")
+        local subtitle = Text(header, 11, colors.muted); book.subtitle = subtitle; subtitle:SetPoint("TOPLEFT", 18, -44)
         subtitle:SetText("Your contacts and groups · " .. (Ruleset() or "Waiting for server type"))
         book.close = Button(window, 26, "X", function() self.dismissed = self.visit; window:Hide() end); book.close:SetPoint("TOPRIGHT", -12, -12)
         book.editorTabs = {}

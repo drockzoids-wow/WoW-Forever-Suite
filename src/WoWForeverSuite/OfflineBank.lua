@@ -280,8 +280,10 @@ function Bank:DefaultLayout()
     end
 end
 
-function Bank:PlaceView()
+function Bank:PlaceView(reset)
     if not self.frame or InCombatLockdown() then return end
+    if reset then self.frame.suiteManualPosition = nil end
+    if self.frame.suiteDragging or not Suite.db.windowTools and self.frame.suiteManualPosition then return end
     local layout = self:DefaultLayout()
     local width, height = UIParent:GetWidth(), UIParent:GetHeight()
     local scale, x, y = 1, 16, -116
@@ -393,6 +395,13 @@ function Bank:CreateView()
     -- Compose native visual templates only. BankFrameTemplate/BankPanelTemplate contain live bank actions.
     local frame = CreateFrame("Frame", FRAME_NAME, UIParent, "PortraitFrameTemplate")
     self.frame = frame
+    frame:SetClampedToScreen(true)
+    local header = Suite.WindowDragHeader(frame, 22, 40, 54)
+    header:SetFrameLevel((frame.TitleContainer or frame):GetFrameLevel() + 1)
+    Suite.BindWindowDrag(frame, header, function()
+        if Suite.InventorySearch then Suite.InventorySearch:WindowChanged(frame) end
+    end, function() return not Suite.db.windowTools end)
+    header:SetShown(not Suite.db.windowTools)
     frame:Hide(); frame:SetSize(480, 460)
     self:PlaceView()
     frame:SetFrameStrata("MEDIUM"); frame:EnableMouse(true)
@@ -691,6 +700,12 @@ function Bank:OnEvent(event)
 end
 
 function Bank:Apply()
+    local header = self.frame and self.frame.suiteDragHeader
+    if header then
+        Suite.AfterCombat("bankWindowHeader", function()
+            header:SetShown(not Suite.db.windowTools)
+        end)
+    end
     -- This named, non-secure click target is required by Blizzard's CLICK keybinding dispatcher.
     Suite.AfterCombat("bankBinding", function()
         if not self.bindingButton then

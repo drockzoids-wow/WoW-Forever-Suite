@@ -1,5 +1,11 @@
 # Forever Suite
 
+## 1.0.22 — November 18, 2026
+
+- Drag independent Suite windows by their titles. Custom placement stays in effect when you reopen them during the session.
+- See class-colored names, short server labels, mail counts and each character's last mailbox check in a compact Mail Deadlines window.
+- Select an alt or guild member in Send Mail to fill a blank subject. Suite updates its own defaults as you switch recipients and preserves subjects you enter.
+
 ## 1.0.21 — November 17, 2026
 
 - Add merchant restocking for saved carried targets. Drag items from a vendor or your bags, edit quantities in the Saved list, and confirm shortages at vendors or opt into Automatic Purchase per item.

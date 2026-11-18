@@ -24,7 +24,7 @@ Shopping subtracts recorded bags and personal banks across characters in the cur
 
 **Support diagnostics:** open **Suite Settings → Support** or type `/wfs support` (`/wfs diagnostics` also works). Select/copy the report with Ctrl+A/Ctrl+C or Select all, and use Refresh for current state. `/wfs status` prints capability problems and paused reasons in chat. Either command can capture combat context; open `/wfs support` afterward to copy it. Reports omit player/realm names, contacts, chat, inventory contents, macro text and custom names/weights. See [support reports](docs/support-report.md) for the status meanings and coverage.
 
-**Current source: 1.0.21.** See the [release notes](docs/release-1.0.21.md).
+**Current source: 1.0.22.** See the [release notes](docs/release-1.0.22.md).
 
 **Training Planner** has per-character pins and a wishlist cost estimate (`/wfs wishlist`). **Tools → Supply Checklist** (`/wfs checklist`) accepts item drops into its editor, IDs or pasted links; choose a quantity and explicitly **Save target**. Hover rows for native item details. Optional carried-stock tracking starts off; tooltips and targets work independently. **Mail → Mail Deadlines** optionally records mailbox deadlines and reminds at login (`/wfs maildeadlines`). Both tracking switches start off. **Suite Settings → What's New** links to recent additions (`/wfs whatsnew`).
 
@@ -42,7 +42,7 @@ Drag the settings window past screen edges to get it out of the way of previews.
 
 **Known vendor items:** enable `/wfs vendor` → **Known Items → Highlight already-known vendor items** for green highlights/checkmarks on learned recipes and collected items. Ordinary items in your bags do not count as learned. Missing data remains unmarked. This feature starts off and does not enable vendor automation. See the [smoke test](docs/testing.md#known-vendor-items---02102).
 
-The official source is **C:\Games\Development\GitHub Repos\WoW Forever Suite** (user-selected October 25, 2026). After restarting with this source, the footer should show **1.0.21**.
+The official source is **C:\Games\Development\GitHub Repos\WoW Forever Suite** (user-selected October 25, 2026). After restarting with this source, the footer should show **1.0.22**.
 
 Open /wfs leveling > **Session journal** for six labeled cards and **Summary, Loot, Reputation, Levels and History**. New tracking adds deaths, loot estimates, ordinary reputation, level milestones and confirmed Suite sales/repairs. Old XP/gold/time remains; details not collected earlier show **Not recorded**. No EverCore history is imported. See the [smoke checklist](docs/testing.md#readable-journal-and-default-training-catalog---02103-october-22-2026).
 

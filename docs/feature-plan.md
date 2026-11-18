@@ -1,5 +1,13 @@
 # Forever Suite feature plan
 
+## Contact mail subjects — November 18, 2026
+
+Use **Alt mail** for a known alt and **Guild mail** for a guild member. Subject defaults follow the recipient in All contacts. Other and custom groups leave the subject blank when switching from a Suite default. Preserve player-entered subjects.
+
+## Independent window movement — November 17, 2026
+
+Drag independent Suite windows from their title areas. Restock, Keep Rules, saved inventory, damage details and the coordinate recipient dialog get dedicated drag handles. Reopening a manually moved window keeps its position for the session. Training Planner uses its standalone move behavior, and the profession and talent companions follow their hosts. Saved inventory uses Window Tools for its full movement and resize controls when enabled. Damage details honor the damage meter lock.
+
 ## Restock list layout — November 17, 2026
 
 Provide a compact Saved list with item icons, inline target quantities, Automatic Purchase checkboxes and confirmed removal. Open it away from vendors through /wfs restock or settings. Keep current deficits, costs and purchase actions in the Vendor offers view.

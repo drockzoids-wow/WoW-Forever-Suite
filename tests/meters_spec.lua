@@ -1245,6 +1245,17 @@ do
     meters.rects[1] = rect; meters:PositionDetails(1)
 end
 equal(first.rows[1].objectType, "Button", "player bars accept click input")
+do
+    local wasLocked = Suite.db.meterLocked
+    details.frame:Show()
+    Suite.db.meterLocked = true
+    details.frame.suiteDragHeader:OnDragStart()
+    equal(details.frame.suiteDragging, nil, "meter lock also prevents moving its details window")
+    Suite.db.meterLocked = false
+    assert(loadfile("tests/window_drag_fixture.lua"))(details.frame, equal, "damage details")
+    Suite.db.meterLocked = wasLocked
+    details.frame:Hide()
+end
 first.rows[1]:OnEnter(); equal(first.rows[1].highlight:IsShown(), true, "bar hover indicates click interaction")
 first.rows[1]:OnLeave(); equal(first.rows[1].highlight:IsShown(), false, "bar hover clears on leave")
 local beforeCombatDetails = created

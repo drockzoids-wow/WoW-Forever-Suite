@@ -77,6 +77,7 @@ end
 pinResult = true
 menu["Tell..."]()
 equal(map.tell:IsShown(), true, "Tell opens a recipient field")
+assert(loadfile("tests/window_drag_fixture.lua"))(map.tell, equal, "coordinate recipient")
 equal(map.tell.input:GetText(), "", "first Tell opens with a blank recipient")
 equal(map.tell.recent:IsEnabled(), false, "empty history disables Recent")
 map.tell.input:SetText("bad|name")

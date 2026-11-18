@@ -306,7 +306,6 @@ function Review:Refresh()
     self:Cancel()
     self:HideTooltip()
     local frame, combat = self.frame, InCombatLockdown()
-    if combat and self.moving then frame:StopMovingOrSizing(); self.moving = nil end
     for key, button in pairs(frame.tabs) do
         button:SetEnabled(not combat)
         if key == self.view then button.label:SetTextColor(0.41, 0.84, 0.75, combat and 0.4 or 1)
@@ -357,12 +356,10 @@ function Review:Open(view, owner, draft)
         frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
         frame:SetBackdropColor(0.035, 0.05, 0.065, 1); Suite.Theme:Backdrop(frame, 0.85)
         if UISpecialFrames then table.insert(UISpecialFrames, "WoWForeverSuiteFeatureReview") end
-        frame:SetMovable(true)
         local header = CreateFrame("Frame", nil, frame); frame.header = header
-        header:SetPoint("TOPLEFT"); header:SetSize(710, 34); header:EnableMouse(true); header:RegisterForDrag("LeftButton")
+        header:SetPoint("TOPLEFT"); header:SetSize(710, 34)
         Label(header, "Enabled Features & Addon Overlap", 14, -14, 690, 17)
-        header:SetScript("OnDragStart", function() if not InCombatLockdown() then self.moving = true; frame:StartMoving() end end)
-        header:SetScript("OnDragStop", function() if self.moving then frame:StopMovingOrSizing(); self.moving = nil end end)
+        Suite.BindWindowDrag(frame, header)
         local close = Suite.Theme:IconButton(frame, "Close feature review", function() frame:Hide() end)
         close:SetSize(24, 24); close:SetPoint("TOPRIGHT", -8, -8)
         local function Button(text, x, y, width, callback)
@@ -407,7 +404,6 @@ function Review:Open(view, owner, draft)
         frame:SetScript("OnEvent", function(_, event) if event == "PLAYER_REGEN_DISABLED" then self:Cancel(); self:Refresh() else self:Queue() end end)
         frame:Hide()
         frame:SetScript("OnHide", function()
-            if self.moving then frame:StopMovingOrSizing(); self.moving = nil end
             self:Cancel(); self:HideTooltip(); frame:UnregisterAllEvents(); frame.search:ClearFocus(); self.preview = nil
         end)
     end

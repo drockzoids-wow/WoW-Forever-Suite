@@ -15,7 +15,7 @@ local frames = {}
 local function Frame(name)
     local frame = {
         name = name, width = 0, height = 0, scale = 1, lines = {}, children = {},
-        RegisterEvent = function() end, UnregisterAllEvents = function() end,
+        RegisterEvent = function() end, UnregisterEvent = function() end, UnregisterAllEvents = function() end,
         SetScript = function(self, event, callback) self[event] = callback end,
         HookScript = function(self, event, callback)
             local original = self[event]
@@ -642,6 +642,11 @@ Suite.GUI:Select("overview")
 equal(#frames, frameCount, "navigation reuses its controls")
 Suite.GUI:Toggle()
 equal(Suite.GUI.frame:IsShown(), true, "open the custom control panel")
+do
+    local savedPosition = Suite.db.guiPosition
+    assert(loadfile("tests/window_drag_fixture.lua"))(Suite.GUI.frame, equal, "settings")
+    Suite.db.guiPosition = savedPosition
+end
 Suite.GUI:Toggle()
 equal(Suite.GUI.frame:IsShown(), false, "close the custom control panel")
 local closeButton = Suite.GUI.closeButton

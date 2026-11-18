@@ -168,7 +168,6 @@ function Shopping:Refresh()
     if not self.frame or not self.frame:IsShown() then return end
     local frame = self.frame
     if InCombatLockdown() then
-        if self.moving then frame:StopMovingOrSizing(); self.moving = nil end
         frame.status:SetText("Paused in combat. Reopen after combat.")
         for _, button in ipairs({ frame.save, frame.manage, frame.previous, frame.next, frame.checklist }) do button:SetEnabled(false) end
         return
@@ -236,13 +235,11 @@ function Shopping:Open(owner)
         frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
         frame:SetBackdropColor(0.035, 0.05, 0.065, 1); Suite.Theme:Backdrop(frame, 0.85)
         if UISpecialFrames then table.insert(UISpecialFrames, "WoWForeverSuiteShopping") end
-        frame:SetMovable(true)
         local header = CreateFrame("Frame", nil, frame)
         frame.header = header
-        header:SetPoint("TOPLEFT"); header:SetSize(610, 34); header:EnableMouse(true); header:RegisterForDrag("LeftButton")
+        header:SetPoint("TOPLEFT"); header:SetSize(610, 34)
         Label(header, 14, -12, 590, 17):SetText("Profession Shopping List")
-        header:SetScript("OnDragStart", function() if not InCombatLockdown() then self.moving = true; frame:StartMoving() end end)
-        header:SetScript("OnDragStop", function() if self.moving then frame:StopMovingOrSizing(); self.moving = nil end end)
+        Suite.BindWindowDrag(frame, header)
         local close = Suite.Theme:IconButton(frame, "Close shopping list", function() frame:Hide() end)
         close:SetSize(24, 24); close:SetPoint("TOPRIGHT", -8, -8)
         frame.context = Label(frame, 14, -43, 630, 11); frame.context:SetHeight(42)
@@ -278,7 +275,6 @@ function Shopping:Open(owner)
         frame:Hide()
         frame:SetScript("OnHide", function()
             self:HideTooltip()
-            if self.moving then frame:StopMovingOrSizing(); self.moving = nil end
             self:Cancel(); self.pending, self.confirmRemove = nil, nil; self:Apply()
         end)
     end

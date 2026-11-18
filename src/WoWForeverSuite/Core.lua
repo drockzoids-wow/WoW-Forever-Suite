@@ -1,6 +1,6 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "1.0.21"
+Suite.version = "1.0.22"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {

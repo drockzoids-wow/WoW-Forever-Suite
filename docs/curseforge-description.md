@@ -1,42 +1,26 @@
 # Forever Suite
 
-**Make WoW Forever feel like your own.** Forever Suite brings optional quality-of-life tools, character planning and interface customization together in one original slate-and-teal settings panel.
+Optional quality-of-life tools for **WoW Forever**. Open **`/wfs`** or click the Suite minimap button to search settings, run guided setup and enable the features you want.
 
-Choose the features you want and leave the rest off. New optional features start disabled, existing preferences are preserved, and a minimap button gives you quick access to settings.
+## Supplies, bags and mail
 
-## Plan your character
+- <strong><span style="color: #f59e42;">Restocking</span></strong> — Drag items from vendors or bags, set carried targets, and approve purchases or enable automatic buying per item.
+- <strong><span style="color: #f59e42;">Inventory and bank</span></strong> — Browse and search saved bags and banks across characters, save filters, and check recorded gold and profession levels. Sort bags, auto-open containers, and apply keep rules and carried reserves to junk sales, low-space suggestions and reagent deposits.
+- <strong><span style="color: #f59e42;">Mail and vendors</span></strong> — Manage contacts, remember recipients, and review recorded mail counts and deadlines with optional login reminders. Auto-open shops, mark known recipes and collected pets, repair gear and sell junk.
 
-- **Talent Builds:** create, save and share complete plans with names, point order and notes. Browse leveling builds and optionally keep a full-build comparison visible on the native talent page. Spending points stays manual.
-- **Training Planner:** browse bundled class and pet training references through level 60, pin skills, build a wishlist and estimate costs. Optional trainer recording adds observed offerings and prices.
-- **Profession leveling guides:** review skill ranges, required materials and recipe learning-source hints beside your profession window. Collapse materials and steps separately, and browse other guides using your character's last recorded skill.
-- **Item levels:** optional equipment icon levels, tooltip levels and a character-frame equipped average.
+## Planning and leveling
 
-## Keep track of your supplies
+- <strong><span style="color: #f59e42;">Professions</span></strong> — Follow leveling guides, find recipe sources and trainers, and build shopping lists from recorded stock and material needs. Set Supply Checklist targets, use modifier-click Disenchant, or automatically confirm enchant replacements.
+- <strong><span style="color: #f59e42;">Talents and training</span></strong> — Browse leveling and endgame presets, compare builds in the talent window, and save or share point order and notes. Preview class, pet and weapon training, pin skills and estimate wishlist costs.
+- <strong><span style="color: #f59e42;">Questing</span></strong> — Track XP rates, net gold, session history and zone reputation. Style the quest tracker and enable nearby quest items, automatic quest pickup and turn-in, gossip shortcuts, quick loot or the camping bar.
 
-- **Bag and bank records:** browse saved contents and search recorded inventory across characters. Offline views show what was last recorded; they cannot move items.
-- **Account money:** hover over bag coins for character balances and a recorded total within the same region and server type. Log into alts with the option enabled to update their balances.
-- **Supply Checklist:** set item targets and optionally track carried stock.
-- **Mail tools:** manage contacts and groups, choose recipients and optionally record mailbox deadlines. Sending mail remains manual.
-- **Food and item macros:** deliberately create managed macros for supplies and supported class actions, with optional updates as usable supplies change. Custom edits and the native macro editor pause managed writes.
+## Combat and interface
 
-## Shape your interface
+- <strong><span style="color: #f59e42;">Combat and gear</span></strong> — Customize damage and healing meters, castbars, action bars and unit frames. Add buff and tracking reminders, proc popups, and combat, range and threat indicators. Display item levels, add inventory counts and profession uses to tooltips, and choose which slots equipment sets include.
+- <strong><span style="color: #f59e42;">Layout and shortcuts</span></strong> — Move and resize supported windows. Style progress bars, keybind labels and chat, with chat history and copying. Use a square minimap with stats and an addon drawer, reveal unexplored terrain, and share coordinates. Follow the default Windows audio device, bind a random mount, use slash shortcuts, or build item and class macros.
 
-- Customize supported windows, minimap presentation, chat, castbars and other interface elements.
-- Choose Suite border colors, save settings profiles and adjust supported layouts.
-- Enable buff reminders, ability proc popups and a combat indicator independently.
-- Track leveling sessions with XP rates, net gold changes and a readable session journal.
-- Add focused tools such as modifier-click Disenchant, vendor helpers and a nearby-camp utility bar.
+Save settings profiles, customize Suite borders, review possible addon overlap and opt into update notices. Saved records reflect their last update. Automatic food and drink detection requires English tooltips.
 
-## Getting started
-
-1. Install the **WoW Forever** version of Forever Suite.
-2. Open settings with **`/wfs`** or the Suite minimap button.
-3. Enable a few features at a time and adjust them to your setup.
-
-Existing preferences survive updates. Some interface changes wait until combat ends. Saved inventory, bank, money and profession information reflects your last observations and may be stale. Automatic food/drink tooltip classification currently requires English tooltips.
-
-## Feedback and support
-
-Found a problem? Open **Suite Settings → Support** or type **`/wfs support`** to copy a diagnostic report. Include your addon version, running client build, steps to reproduce and any Lua error when reporting an issue.
+Use **`/wfs support`** to copy a diagnostic report. Include your addon version, client build and steps to reproduce.
 
 [Report an issue](https://github.com/drockzoids-wow/WoW-Forever-Suite/issues) · [Source and documentation](https://github.com/drockzoids-wow/WoW-Forever-Suite) · [Changelog](https://github.com/drockzoids-wow/WoW-Forever-Suite/blob/main/CHANGELOG.md)

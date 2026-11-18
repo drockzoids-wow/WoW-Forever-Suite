@@ -169,9 +169,10 @@ equal(review.preview, nil, "stale draft cannot remain the displayed source after
 review:Queue(); local timer = review.timer
 review.frame.header.OnDragStart()
 Combat(true); before = made
+review.frame.header:OnEvent("PLAYER_REGEN_DISABLED")
 review.frame.OnEvent(review.frame, "PLAYER_REGEN_DISABLED")
 equal(timer.cancelled, true, "combat transition cancels pending review work")
-equal(review.moving, nil, "combat ends review dragging")
+equal(review.frame.suiteDragging, nil, "combat ends review dragging")
 review:Open("enabled"); equal(made, before, "combat open builds nothing")
 equal(review.frame.tabs.enabled:IsEnabled(), false, "combat pauses navigation controls")
 Combat(false); review.frame.OnEvent(review.frame, "PLAYER_REGEN_ENABLED"); Flush()

@@ -21,6 +21,7 @@ end
 
 function Meters:PositionDetails(index)
     if InCombatLockdown() or not self.details then return end
+    if self.details.frame.suiteManualPosition or self.details.frame.suiteDragging then return end
     local rect = self.rects and self.rects[index]
     local width, height = UIParent:GetWidth(), UIParent:GetHeight()
     if not Read(rect, "table") or not Number(width) or not Number(height)
@@ -47,6 +48,8 @@ function Meters:CreateDetails()
     details.title = ui.text(frame, 14, ui.palette.gold)
     ui.rowFont(details.title, 14); details.title:SetTextColor(unpack(ui.palette.gold))
     details.title:SetPoint("TOPLEFT", 20, -10); details.title:SetWidth(WIDTH - 64); details.title:SetWordWrap(false)
+    local header = Suite.WindowDragHeader(frame, 30, 44)
+    Suite.BindWindowDrag(frame, header, nil, function() return Suite.db.meterLocked == false end)
     local close = Suite.Theme:IconButton(frame, "Close damage details", function() self:CloseDetails() end)
     details.close = close; close:SetSize(22, 22); close:SetPoint("TOPRIGHT", -12, -6); close:RegisterForClicks("LeftButtonUp")
     details.context = ui.text(frame, 11, ui.palette.muted)

@@ -54,6 +54,35 @@ child:Show(); Suite.PlaceWindow(child, owner)
 Suite.PlaceWindow(owner, child)
 equal(owner.point[2], UIParent, "opening launcher back from child cannot produce cyclic anchors")
 
+local drag = Suite.WindowDragHeader(child, 30, 40)
+local registrations, saves = 0, 0
+drag.RegisterEvent = function(_, event)
+    equal(event, "PLAYER_REGEN_DISABLED", "drags monitor combat entry")
+    registrations = registrations + 1
+end
+drag.UnregisterEvent = function() registrations = registrations - 1 end
+Suite.BindWindowDrag(child, drag, function() saves = saves + 1 end)
+equal(drag:GetHeight(), 30, "drag surface stays within the title area")
+equal(drag.point[2], -40, "drag surface leaves room for title buttons")
+drag:OnDragStart()
+equal(registrations, 1, "only active drags listen for combat")
+Combat(true); drag:OnEvent("PLAYER_REGEN_DISABLED")
+equal(child.moving, false, "combat entry stops an existing drag")
+equal(registrations, 0, "combat entry releases the drag listener")
+drag:OnDragStart()
+equal(child.suiteDragging, nil, "combat blocks a new drag")
+Combat(false)
+drag:OnDragStart(); child:OnHide()
+equal(child.moving, false, "hiding the window stops a drag")
+equal(registrations, 0, "hiding the window releases the drag listener")
+equal(saves, 0, "interrupted gestures do not save position")
+drag:OnDragStart()
+child:SetPoint("CENTER", UIParent, "CENTER", 42, 24)
+drag:OnDragStop()
+equal(saves, 1, "completed drags are saved once")
+equal(Suite.PlaceWindow(child, owner), false, "manual placement takes precedence over docking")
+equal(child.point[4], 42, "opening from another launcher keeps the manual position")
+
 -- GUI routes pass their top-level window, not a nested content panel or button.
 local gui, training, supplies, expiry, mail = Suite.GUI, Suite.Training, Suite.SupplyChecklist, Suite.MailExpiry, Suite.Mail
 local openTraining, openSupplies, openExpiry, openBook = training.Open, supplies.Open, expiry.Open, mail.OpenBook

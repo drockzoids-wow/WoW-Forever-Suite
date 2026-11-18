@@ -58,6 +58,7 @@ end
 restock:Apply();equal(made,0,"restocking starts off without frames or merchant hooks")
 equal(Suite.db.merchantRestock,false,"merchant restocking default is independently off")
 Suite.db.merchantRestock=true;restock:Apply();Review()
+assert(loadfile("tests/window_drag_fixture.lua"))(restock.frame,equal,"Restock")
 equal(#requests,0,"opening a merchant/restock window never purchases")
 equal(Suite.db.supplyChecklist,false,"restocking does not enable checklist recording")
 equal(Suite.db.professionShopping,false,"restocking does not enable profession inventory recording")

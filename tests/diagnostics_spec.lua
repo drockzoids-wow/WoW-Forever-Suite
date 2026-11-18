@@ -169,6 +169,7 @@ Combat(true); support:Open(); equal(made, 0, "combat open creates no widgets and
 local combatReport = support.captured
 Combat(false); support:Open()
 equal(support.frame:IsShown(), true, "copyable report opens outside combat")
+assert(loadfile("tests/window_drag_fixture.lua"))(support.frame, equal, "support report")
 equal(support.body, combatReport, "post-combat open copies the exact captured combat reasons and timestamp")
 equal(support.captured, nil, "opening consumes the pending combat snapshot")
 equal(support.caption.text:find("Captured combat snapshot", 1, true) ~= nil, true, "captured snapshot is clearly distinguished from current state")

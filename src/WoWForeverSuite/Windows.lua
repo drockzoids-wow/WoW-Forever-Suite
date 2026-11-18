@@ -197,7 +197,8 @@ function Windows:HeaderRects(record)
     local function ExcludeChildren(parent, depth)
         if not parent.GetChildren then return true end
         for _, child in ipairs({ parent:GetChildren() }) do
-            if Suite.IsReadable(child) and not (record.owned and record.owned[child]) and not (child.IsForbidden and child:IsForbidden()) then
+            if Suite.IsReadable(child) and child ~= frame.suiteDragHeader and not (record.owned and record.owned[child])
+                and not (child.IsForbidden and child:IsForbidden()) then
                 local visible = child:IsVisible()
                 if not Suite.IsReadable(visible) then return false end
                 local left, bottom, childWidth, childHeight = child:GetRect()
@@ -610,7 +611,7 @@ function Windows:Reset(record)
         Suite.Windows.positions[record.name] = nil
         self:Restore(record)
         record.wasApplied = false
-        if record.name == "WoWForeverSuiteBankView" and Suite.OfflineBank then Suite.OfflineBank:PlaceView() end
+        if record.name == "WoWForeverSuiteBankView" and Suite.OfflineBank then Suite.OfflineBank:PlaceView(true) end
         if record.name:match("^ContainerFrame") and UpdateContainerFrameAnchors then UpdateContainerFrameAnchors() end
         self:ApplyRecord(record)
     end)
@@ -720,7 +721,7 @@ function Windows:ResetAll()
         -- Keep the character SavedVariables table bound during a global reset.
         for name in pairs(self.positions) do self.positions[name] = nil end
         for _, record in pairs(self.tracked) do self:Restore(record); record.wasApplied = false end
-        if Suite.OfflineBank then Suite.OfflineBank:PlaceView() end
+        if Suite.OfflineBank then Suite.OfflineBank:PlaceView(true) end
         if UpdateContainerFrameAnchors then UpdateContainerFrameAnchors() end
         Suite.Print("This character's saved window positions and sizes reset.")
     end)

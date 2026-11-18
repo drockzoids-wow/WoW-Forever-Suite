@@ -1,5 +1,13 @@
 # WoW Forever addon development reference
 
+## Contact mail subjects — November 18, 2026
+
+An explicit Send Mail contact selection can fill a blank native Subject with **Alt mail** or **Guild mail** based on the recipient's built-in group. Other and custom group selections clear a Suite-supplied default. The text-change hook drops ownership on user input or when the native subject changes. A programmatic notification with the same text keeps the default replaceable. The subject uses the existing compose and combat guards. Normal recipient focus, manual Send and recipient-only memory after a successful send still apply.
+
+## Independent window movement — November 17, 2026
+
+Shared title-drag handling covers Suite settings, Restock, Keep Rules, Contacts, the Supply Checklist, Mail Deadlines, Shopping List, feature review, Support, Copy Chat, the coordinate recipient dialog, saved bags and banks, and damage details. Completed moves take precedence over launcher docking for the session. The Suite settings window also uses its existing position storage. Drag listeners register only during a gesture and release on mouse-up, hide or combat. Damage meters, HUD previews and the standalone Training Planner keep their purpose-specific movement handlers. The saved-inventory title handle yields to Window Tools when that setting is enabled.
+
 ## Restock list layout — November 17, 2026
 
 The Restock window now has Saved list and Vendor offers views. Both edit the existing character-owned checklist targets. The saved list works without a merchant and displays every saved target, including items unavailable at the open shop. Inline quantity edits save on Enter. Vendor review continues to validate live offers and controls all purchase requests.

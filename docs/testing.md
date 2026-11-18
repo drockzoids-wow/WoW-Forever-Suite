@@ -1,5 +1,23 @@
 # Forever Suite in game testing
 
+## Contact mail subjects — November 18, 2026
+
+The user confirmed that selecting an alt fills a blank Subject and reported that **Alt mail** still persisted when selecting a guild member after the first follow-up. Retest after `/reload` with Contacts with Send Mail enabled. Start with a blank subject, select an alt, then a guild member, then someone in Other. Expect **Alt mail**, **Guild mail**, then a blank Subject. From a custom group containing an alt, select that alt and check that no default appears. Try All contacts for both an alt and a guild member. Retype **Alt mail** yourself and switch recipients to verify the typed subject stays. Check that Send remains manual and watch for blocked actions.
+
+## Mail Deadlines row readability — November 18, 2026 (in-game layout approved)
+
+The user approved the final layout in-game. Their screenshot shows two character rows with class-colored names, short rulesets, aligned mail counts and per-character check times. Character and Mail align with their data, and the pager, Refresh times and Settings share one footer row. The running client build and Interface were unreported.
+
+For the remaining in-game checks, use enough records to page and verify the pager and page counter. Check that partial inboxes show a loaded-to-total ratio and that a longer footer note wraps without overlapping the controls. Use Refresh times with an active deadline and verify that the countdown updates while the saved check time stays the same.
+
+## Independent window movement — November 17, 2026 (native pending)
+
+November 18 follow-up: the user confirmed Mail Deadlines can be moved in-game. Other native checks remain unreported.
+
+1. Drag Restock in Saved list and Vendor offers, Keep Rules, Contacts, Supply Checklist, Mail Deadlines, Shopping List, Enabled Features and Possible Overlap, Support, Copy chat, the coordinate Tell dialog, and the Suite settings window by their titles. Close and reopen from a launcher. The manually selected position should survive in the current session. Check close buttons, text editing, tabs, scroll, item drops and purchase controls independently.
+2. Open saved bags and saved bank with Window Tools disabled. The title should drag outside combat and retain placement on reopen. Enable Window Tools and verify that its title movement, Ctrl-wheel resize and Ctrl-right-click reset take over. Open damage details outside combat and drag its title with the meter unlocked, then confirm the lock blocks another drag. Check Training Planner both standalone and docked.
+3. Close a window or enter combat mid-drag, then check that it stops following the mouse. Compare level-2 taint output and record the running client build and Interface. The live AddOns directory inspected for this change was a separate installed copy, so the new movement code was exercised with API substitutes.
+
 ## Restock list layout — November 17, 2026 (native pending)
 
 Open /wfs restock away from a merchant. Drop an item from bags and check that it appears in the saved list. Change the inline target and press Enter, toggle Automatic Purchase and reopen to check both persisted. Cancel an edit with Escape, then verify Remove asks for confirmation. At a merchant, check both views at your UI scale, including an item the merchant does not sell. Only Vendor offers should show purchase quantities, costs and approval controls.

@@ -21,10 +21,54 @@ local function Accessible(frame, visible)
     return true
 end
 
+function Suite.WindowDragHeader(frame, height, rightInset, leftInset)
+    local header = CreateFrame("Frame", nil, frame)
+    header:SetPoint("TOPLEFT", leftInset or 0, 0)
+    header:SetPoint("TOPRIGHT", -rightInset, 0)
+    header:SetHeight(height)
+    return header
+end
+
+-- Only for Suite-owned, unprotected windows. Interactive controls occupy their
+-- own space above or outside the drag surface.
+function Suite.BindWindowDrag(frame, header, onMove, canStart)
+    frame:SetMovable(true)
+    frame.suiteDragHeader = header
+    header:EnableMouse(true)
+    header:RegisterForDrag("LeftButton")
+
+    local function Stop(save)
+        if not frame.suiteDragging then return end
+        frame.suiteDragging = nil
+        header:UnregisterEvent("PLAYER_REGEN_DISABLED")
+        if not Accessible(frame) then return end
+        frame:StopMovingOrSizing()
+        if save and not InCombatLockdown() then
+            frame.suiteManualPosition = true
+            if onMove then onMove(frame) end
+        end
+    end
+
+    header:SetScript("OnDragStart", function()
+        if InCombatLockdown() or frame.suiteDragging or not Accessible(frame)
+            or canStart and not canStart() then return end
+        local shown = frame:IsShown()
+        if not Suite.IsReadable(shown) or shown ~= true then return end
+        frame.suiteDragging = true
+        header:RegisterEvent("PLAYER_REGEN_DISABLED")
+        frame:StartMoving()
+    end)
+    header:SetScript("OnDragStop", function() Stop(true) end)
+    header:SetScript("OnEvent", function() Stop(false) end)
+    header:HookScript("OnHide", function() Stop(false) end)
+    frame:HookScript("OnHide", function() Stop(false) end)
+end
+
 -- Only callers owning the destination frame use this. Never move Blizzard panels.
 -- Resolve geometry now and anchor to UIParent: opening a parent from its child cannot form a cycle.
 function Suite.PlaceWindow(frame, owner)
     if InCombatLockdown() or not Accessible(frame) or not Accessible(owner, true) then return false end
+    if frame.suiteManualPosition or frame.suiteDragging then return false end
     if frame == owner then return false end
     if not owner.GetRect or not owner.GetEffectiveScale or not frame.GetWidth or not frame.GetHeight
         or not frame.GetEffectiveScale then return false end

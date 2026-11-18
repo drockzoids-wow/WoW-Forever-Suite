@@ -1,7 +1,7 @@
 local Suite, equal, Frame, Combat = ...
 local supplies, mail, training = Suite.SupplyChecklist, Suite.MailExpiry, Suite.Training
 local oldDB, oldPending = Suite.db, Suite.pending
-local globals = { "CreateFrame", "C_Timer", "C_Item", "GetInboxNumItems", "GetInboxHeaderInfo", "GetServerTime", "GetCurrentRegion", "NUM_TOTAL_EQUIPPED_BAG_SLOTS", "MailFrame" }
+local globals = { "CreateFrame", "C_Timer", "C_Item", "GetInboxNumItems", "GetInboxHeaderInfo", "GetServerTime", "GetCurrentRegion", "NUM_TOTAL_EQUIPPED_BAG_SLOTS", "MailFrame", "RAID_CLASS_COLORS" }
 local old = {}; for _, key in ipairs(globals) do old[key] = _G[key] end
 local oldCharacter, oldScan = Suite.Inventory.Character, Suite.Inventory.ScanContainers
 local oldDashboard = Suite.CharacterDashboard.RefreshView
@@ -13,6 +13,14 @@ CreateFrame = function(kind, name, parent)
     assert(not InCombatLockdown(), "release tools create no frames in combat")
     made = made + 1
     local frame = Frame(name); frame.parent, frame.registered = parent, {}
+    if parent and parent.children then parent.children[#parent.children + 1] = frame end
+    local createFontString = frame.CreateFontString
+    frame.fontStrings = {}
+    frame.CreateFontString = function(self, ...)
+        local label = createFontString(self, ...)
+        self.fontStrings[#self.fontStrings + 1] = label
+        return label
+    end
     frame.RegisterEvent = function(self, event) self.registered[event] = true end
     frame.UnregisterAllEvents = function(self) self.registered = {} end
     frame.Show = function(self) self.shown = true; if self.OnShow then self:OnShow() end end
@@ -34,7 +42,8 @@ GetServerTime = function() return now end
 GetCurrentRegion = function() return 110 end
 NUM_TOTAL_EQUIPPED_BAG_SLOTS = 4
 MailFrame = nil
-local character = { name = "Test", realm = "ForeverPvE", region = 110 }
+local character = { name = "Test", fullName = "Test Character", realm = "CAMWOWUS2Realm1PvE", region = 110, class = "MAGE" }
+RAID_CLASS_COLORS = { MAGE = { r = 0.25, g = 0.75, b = 1 } }
 Suite.db.inventory.characters.test = character
 Suite.Inventory.Character = function() return character, 110 end
 Suite.CharacterDashboard.RefreshView = function() end
@@ -49,6 +58,7 @@ supplies:InitializeCharacter({ entries = { { id = 100, wanted = 20 }, { id = 100
 equal(#supplies.db.entries, 1, "invalid and duplicate supply records are removed")
 local launcher = Frame(); launcher:SetSize(300, 300); launcher:Show()
 supplies:Open(launcher); equal(scans, 0, "opening disabled checklist does not scan bags")
+assert(loadfile("tests/window_drag_fixture.lua"))(supplies.frame, equal, "Supply Checklist")
 equal(supplies.frame.point[1], "BOTTOMLEFT", "checklist uses its launcher for placement")
 equal(supplies.rows[1].count, nil, "off is unknown rather than zero")
 Suite.db.supplyChecklist = true; supplies:Apply()
@@ -121,6 +131,8 @@ equal(character.mailExpiry.count, 2, "loaded letter count recorded")
 count, total, days = 1, 5, { 2 }; mail:OnEvent("MAIL_INBOX_UPDATE"); Flush()
 equal(character.mailExpiry.total, 5, "partial inbox retains reported total")
 equal(mail:Summary(character.mailExpiry, now):find("Partial inbox (1/5)", 1, true) ~= nil, true, "partial coverage is disclosed")
+equal(mail:Rows()[1].mailCount, "|cff68d6bf1 / 5|r", "the Mail column discloses partial volume")
+equal(mail:Rows()[1].detail:find("Partial inbox", 1, true) ~= nil, true, "partial row keeps its coverage warning")
 local previous = character.mailExpiry
 days[1] = secret; mail:OnEvent("MAIL_INBOX_UPDATE"); Flush()
 equal(character.mailExpiry, previous, "restricted expiry preserves prior observation")
@@ -140,28 +152,81 @@ now = previous.deadline + 1
 equal(mail:Summary(previous, now):find("Recorded deadline passed", 1, true) ~= nil, true, "past deadline is an observation, not a deletion claim")
 equal(mail:Validate({ at = 1, count = 1, total = 0, deadline = 5 }), nil, "invalid inbox totals rejected")
 mail:Open(launcher); equal(#mail:Rows(), 1, "saved mail remains readable when disabled")
+assert(loadfile("tests/window_drag_fixture.lua"))(mail.frame, equal, "Mail Deadlines")
 equal(mail.frame.point[1], "BOTTOMLEFT", "mail deadlines uses its launcher for placement")
+equal(mail.frame:GetWidth(), 440, "mail deadlines fits all footer controls on one row")
+equal(supplies.frame:GetWidth(), 620, "supply checklist retains its own width")
+local oneRowHeight = mail.frame:GetHeight()
+equal(oneRowHeight, 209, "one mail row leaves room for a wrapped note and a single control row")
+local settings
+for _, child in ipairs(mail.frame.children) do
+    if child:GetText() == "Settings" then settings = child; break end
+end
+equal(mail.frame.previous.point[1], "BOTTOMLEFT", "navigation starts at the left")
+equal(mail.frame.refresh.point[1], "BOTTOMRIGHT", "Refresh Times anchors to the right")
+equal(settings.point[1], "BOTTOMRIGHT", "Settings anchors to the right")
+for _, control in ipairs({ mail.frame.next, mail.frame.page, mail.frame.refresh, settings }) do
+    equal(control.point[3], mail.frame.previous.point[3], "all footer controls share one row")
+end
+local refreshRight = mail.frame:GetWidth() + mail.frame.refresh.point[2]
+equal(refreshRight - mail.frame.refresh:GetWidth() > mail.frame.page.point[2] + mail.frame.page:GetWidth(),
+    true, "the page counter and Refresh Times have separate space")
+equal(mail.frame:GetWidth() + settings.point[2] - settings:GetWidth() > refreshRight, true,
+    "Refresh Times and Settings have a gap")
+equal(mail.frame.status.wordWrap, true, "long status messages wrap")
+equal(mail.frame.status:GetHeight() >= 22, true, "footer reserves room for a second line")
+local headers = {}
+for _, label in ipairs(mail.frame.fontStrings) do headers[label:GetText()] = label end
+for _, name in ipairs({ "Character", "Mail" }) do
+    equal(headers[name].fontSize > mail.frame.rows[1].label.fontSize, true, name .. " heading is larger than row text")
+end
+equal(headers.Character.justifyH, "LEFT", "Character heading aligns with names")
+equal(headers.Mail.justifyH, "RIGHT", "Mail heading aligns with counts")
+equal(headers.Character.point[2], mail.frame.rows[1].point[2] + mail.frame.rows[1].label.point[2],
+    "Character heading and names share the same left edge")
+equal(headers.Mail.point[2], mail.frame.rows[1].point[2] + mail.frame.rows[1].mailCount.point[2],
+    "Mail heading and counts share the same column")
+for index = 1, 8 do
+    Suite.db.inventory.characters["extra" .. index] = {
+        name = "Extra " .. index, realm = character.realm, region = character.region, mailExpiry = previous,
+    }
+end
+mail:Refresh()
+equal(mail.frame:GetHeight(), oneRowHeight + 7 * 40, "a full first page shows eight rows")
+mail.frame.next:OnClick()
+equal(mail.frame:GetHeight(), oneRowHeight, "the last page contracts to one row")
+equal(mail.frame.page:GetText(), "2 / 2", "paging remains available on the compact window")
+for index = 1, 8 do Suite.db.inventory.characters["extra" .. index] = nil end
+mail:Refresh()
+local mailRow = mail.frame.rows[1]
+equal(mailRow.label:GetText(), "|cff40bfffTest Character|r · PvE", "the Character column displays the class-colored name and short ruleset")
+equal(mailRow.mailCount:GetText(), "|cff68d6bf1|r", "the Mail column shows a number without a unit label")
+equal(mailRow.detail:GetText():match("^Checked ") ~= nil, true, "check time starts the second line")
+equal(mailRow.label:GetText():find(character.realm, 1, true), nil, "mail never shows the internal realm name")
+character.class = secret
+equal(mail:Rows()[1].title:match("^Test Character · PvE") ~= nil, true, "unknown class uses readable default text")
+character.class = "MAGE"
 local oldMailboxRead, mailboxReads = GetInboxNumItems, 0
 local oldDate = date
 date = function(_, at) return "Time " .. tostring(at) end
 GetInboxNumItems = function() mailboxReads = mailboxReads + 1; return oldMailboxRead() end
 now = previous.deadline - 7200; mail:Refresh()
 equal(mail.frame.rows[1].detail.text:find("in 2h", 1, true) ~= nil, true, "mail countdown uses the current server time")
-equal(mail.frame.asOf.text:find("Saved inbox records only", 1, true) ~= nil, true, "refresh freshness never implies a new mailbox observation")
-local oldStamp = mail.frame.asOf.text
 now = now + 3600; mail.frame.refresh.OnClick()
 equal(mail.frame.rows[1].detail.text:find("in 1h", 1, true) ~= nil, true, "manual refresh updates an open deadline countdown")
-equal(mail.frame.asOf.text ~= oldStamp, true, "manual refresh advances the displayed calculation timestamp")
+equal(mail.frame.rows[1].detail.text:find("Checked Time " .. previous.at, 1, true) ~= nil, true,
+    "manual refresh displays the character's saved check time")
 equal(character.mailExpiry, previous, "refresh times preserves the saved observation and check time")
 equal(mailboxReads, 0, "refresh times never queries a mailbox away from the mailbox")
 Combat(true); mail.frame.OnEvent(mail.frame, "PLAYER_REGEN_DISABLED")
 equal(mail.frame.refresh.enabled, false, "refresh times is disabled in combat")
-now = now + 3600; local combatStamp = mail.frame.asOf.text; mail.frame.refresh.OnClick()
-equal(mail.frame.asOf.text, combatStamp, "manual refresh is inert in combat")
+now = now + 3600; local combatDetail = mail.frame.rows[1].detail.text; mail.frame.refresh.OnClick()
+equal(mail.frame.rows[1].detail.text, combatDetail, "manual refresh is inert in combat")
 Combat(false); mail.frame.OnEvent(mail.frame, "PLAYER_REGEN_ENABLED")
 local clock = GetServerTime
 GetServerTime = function() return secret end; mail:Refresh()
-equal(mail.frame.asOf.text:find("time unavailable", 1, true) ~= nil, true, "unreadable server time cannot produce a misleading freshness stamp")
+equal(mail.frame.rows[1].detail.text, "Checked Time " .. previous.at,
+    "unreadable server time still displays the saved check time")
 GetServerTime, date = clock, oldDate
 GetInboxNumItems = oldMailboxRead
 Suite.db.mailExpiry = true; mail:Apply(); mail.warned = nil
