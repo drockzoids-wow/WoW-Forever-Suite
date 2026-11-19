@@ -2,6 +2,7 @@ local _, Suite = ...
 local Restock = { page = 1, selected = {} }
 Suite.MerchantRestock = Restock
 table.insert(Suite.modules, Restock)
+local ITEM_WIDTH = 230
 local function Read(v, kind) return Suite.IsReadable(v) and type(v) == kind end
 local function Int(v, low, high) return Read(v, "number") and v >= low and v <= high and v % 1 == 0 end
 local function Text(v) return Read(v, "string") and #v > 0 and #v <= 240 and not v:find("[%c|]") end
@@ -197,17 +198,19 @@ function Restock:Rows()
         row.automatic = Read(target.automatic, "boolean") and target.automatic == true
         waiting = waiting or row.waiting
         row.carried = bags and (bags.counts[row.id] or 0) or nil
+        row.need = row.carried and math.max(0, row.target - row.carried) or nil
         row.quantity, row.cost = 0, 0
         if not bags then row.reason = "Carried bags unavailable / busy"
         elseif not row.reason then
-            row.need = math.max(0, row.target - row.carried)
             local capacity = (bags.partial[row.id] or 0) + bags.empty * row.stack
             local available = row.stock == -1 and row.need or row.stock
             row.quantity = math.floor(math.min(row.need, available, capacity) / row.bundle) * row.bundle
             row.cost = row.quantity / row.bundle * row.price
             if row.need == 0 then row.reason = "Stocked"
-            elseif row.quantity == 0 then row.reason = capacity < row.bundle and "No safe bag space" or "Bundle would exceed target / stock"
-            elseif row.quantity < row.need then row.note = "Limited by stock, bundle or bag space" end
+            elseif row.quantity == 0 then
+                row.reason = capacity < row.bundle and "No safe bag space"
+                    or (row.need < row.bundle and "Bundles of " .. row.bundle .. " · exceeds target" or "Not enough stock for a bundle")
+            end
         end
         row.key = Key(row)
     end
@@ -390,7 +393,8 @@ function Restock:Refresh(selection)
         button.automatic:SetEnabled(row ~= nil and editing)
         button.remove:SetShown(row ~= nil and not vendor)
         button.remove:SetEnabled(row ~= nil and editing)
-        button.carried:SetShown(vendor); button.buy:SetShown(vendor); button.cost:SetShown(vendor); button.note:SetShown(vendor)
+        button.carried:SetShown(vendor); button.need:SetShown(vendor)
+        button.buy:SetShown(vendor); button.cost:SetShown(vendor); button.note:SetShown(vendor)
         if row then
             button.automatic:SetChecked(row.automatic)
             Suite.Items:SetListIcon(button.icon, row.id)
@@ -401,8 +405,14 @@ function Restock:Refresh(selection)
         end
         if row and vendor then
             button.carried:SetText(row.carried or "?")
+            button.need:SetText(row.need or "?")
             button.buy:SetText(row.quantity); button.cost:SetText(row.reason and "—" or Money(row.cost))
-            button.note:SetText(row.reason or (row.bundle > 1 and "Sold in bundles of " .. row.bundle .. " · " or "") .. Money(row.price) .. " / " .. row.bundle .. (row.note and " · " .. row.note or ""))
+            local note = row.reason
+            if not note then
+                note = row.bundle > 1 and "Bundles of " .. row.bundle or Money(row.price) .. " each"
+                if row.quantity < row.need then note = note .. " · " .. (row.need - row.quantity) .. " still needed" end
+            end
+            button.note:SetText(note)
         end
     end
     local money = Call(GetMoney)
@@ -460,7 +470,8 @@ function Restock:Open(owner, selection)
         frame.dropTarget = Button("Drop an item to add it", 426, -47, 298, function() self:ReceiveTarget() end)
         frame.dropTarget:SetScript("OnReceiveDrag", function() self:ReceiveTarget() end)
         frame.vendorControls = {}
-        for _, column in ipairs({ { "ITEM", 54, 250 }, { "CARRIED", 320, 60 }, { "TARGET", 390, 60 }, { "BUY", 460, 60 }, { "COST", 530, 96 } }) do
+        for _, column in ipairs({ { "ITEM", 54, ITEM_WIDTH }, { "CARRIED", 292, 55 }, { "TARGET", 355, 60 },
+            { "NEED", 425, 50 }, { "BUY", 485, 50 }, { "COST", 545, 81 } }) do
             local label = Label(frame, column[1], column[2], -90, column[3], 10)
             if column[2] > 54 then label:SetJustifyH("RIGHT") end
             if column[1] ~= "ITEM" and column[1] ~= "TARGET" then table.insert(frame.vendorControls, label) end
@@ -479,11 +490,11 @@ function Restock:Open(owner, selection)
             button:SetHeight(34); button.label:Hide()
             if Read(button.SetMotionScriptsWhileDisabled, "function") then button:SetMotionScriptsWhileDisabled(true) end
             button.icon = Suite.Items:CreateListIcon(button, 26, 2, -4)
-            button.name = Label(button, "", 38, -3, 260, 12)
+            button.name = Label(button, "", 38, -3, ITEM_WIDTH, 12)
             button.name:SetWordWrap(false); button.name:SetHeight(16)
-            button.carried = Label(button, "", 304, -4, 60)
+            button.carried = Label(button, "", 276, -4, 55)
             local target = CreateFrame("EditBox", nil, button, "InputBoxTemplate")
-            target:SetPoint("TOPLEFT", 374, -5); target:SetSize(60, 22)
+            target:SetPoint("TOPLEFT", 339, -5); target:SetSize(60, 22)
             target:SetAutoFocus(false); target:SetMaxLetters(6); target:SetNumeric(true)
             target:SetScript("OnEnterPressed", function(box)
                 local row, value = button.entry, box:GetText()
@@ -496,10 +507,12 @@ function Restock:Open(owner, selection)
                 if button.entry then box:SetText(tostring(button.entry.target)) end
             end)
             button.target = target
-            button.buy = Label(button, "", 444, -4, 60); button.buy:SetTextColor(1, 0.64, 0.4)
-            button.cost = Label(button, "", 514, -4, 96)
-            for _, label in ipairs({ button.carried, button.target, button.buy, button.cost }) do label:SetJustifyH("RIGHT") end
-            button.note = Label(button, "", 38, -22, 580, 10); button.note:SetTextColor(0.6, 0.72, 0.76)
+            button.need = Label(button, "", 409, -4, 50)
+            button.buy = Label(button, "", 469, -4, 50); button.buy:SetTextColor(1, 0.64, 0.4)
+            button.cost = Label(button, "", 529, -4, 81)
+            for _, label in ipairs({ button.carried, button.target, button.need, button.buy, button.cost }) do label:SetJustifyH("RIGHT") end
+            button.note = Label(button, "", 38, -21, ITEM_WIDTH, 10)
+            button.note:SetHeight(12); button.note:SetWordWrap(false); button.note:SetTextColor(0.6, 0.72, 0.76)
             button.remove = Suite.Theme:ActionButton(button, "Remove", 86, 22, function()
                 if self.view == "list" and button.entry then self:RemoveTarget(button.entry.id) end
             end)
@@ -539,6 +552,7 @@ function Restock:Open(owner, selection)
         frame:SetScript("OnHide", function()
             self:HideTooltip(); self:Stop(); self.confirmRemove = nil
             for _, row in ipairs(frame.rows) do row.target:ClearFocus() end
+            if self.launcher and not InCombatLockdown() then self.launcher:SetText("Show Restock") end
         end)
         frame:Hide()
     end
@@ -546,19 +560,29 @@ function Restock:Open(owner, selection)
     self.confirmRemove = nil
     local ready = self:Ready()
     self.view = ready and "vendor" or "list"
-    if (not ready or not Suite.PlaceWindow(self.frame, MerchantFrame)) and owner and owner ~= MerchantFrame then
-        Suite.PlaceWindow(self.frame, owner)
+    local placed = ready and Suite.PlaceWindow(self.frame, MerchantFrame, true)
+    if not placed and owner and owner ~= MerchantFrame then placed = Suite.PlaceWindow(self.frame, owner) end
+    if not ready and not placed and self.openedAtVendor and not self.frame.suiteManualPosition and not self.frame.suiteDragging then
+        self.frame:ClearAllPoints()
+        self.frame:SetPoint("CENTER", UIParent, "CENTER")
     end
+    self.openedAtVendor = ready
     self.frame:Show(); self:Refresh(selection)
+    if ready then self:Launcher() end
     return true
 end
 function Restock:Launcher()
     if InCombatLockdown() then return end
     if not self:Ready() then if self.launcher then self.launcher:Hide() end; return end
     if not self.launcher then
-        self.launcher = Suite.Theme:ActionButton(MerchantFrame, "Restock", 86, 22, function() self:Open(MerchantFrame) end)
-        self.launcher:SetPoint("TOPRIGHT", -42, -5)
+        self.launcher = Suite.Theme:ActionButton(MerchantFrame, "Show Restock", 104, 22, function()
+            if InCombatLockdown() then return end
+            if self.frame and self.frame:IsShown() then self.frame:Hide()
+            elseif self:Ready() then self:Open(MerchantFrame) end
+        end)
+        self.launcher:SetPoint("TOPRIGHT", MerchantFrame, "BOTTOMRIGHT", -14, -4)
     end
+    self.launcher:SetText(self.frame and self.frame:IsShown() and "Hide Restock" or "Show Restock")
     self.launcher:Show()
 end
 function Restock:CancelVisit()
@@ -606,7 +630,7 @@ function Restock:OnEvent(event)
         local guid = Call(UnitGUID, "npc")
         if self.visitOpen and Text(guid) and self.merchant == guid then return end
         self:CancelVisit()
-        if self.frame and self.view == "vendor" then self.frame:Hide() end
+        if self.frame and self.openedAtVendor then self.frame:Hide() end
         self:Stop()
         self.visitOpen, self.merchant, self.requested = true, Text(guid) and guid or nil, {}
         self.visitAttempts = 1
@@ -615,7 +639,7 @@ function Restock:OnEvent(event)
     elseif event == "MERCHANT_CLOSED" then
         self:CancelVisit()
         self:Stop(); self.visitOpen, self.merchant, self.requested = nil, nil, {}; self:HideTooltip()
-        if self.frame and self.view == "vendor" then self.frame:Hide()
+        if self.frame and self.openedAtVendor then self.frame:Hide()
         elseif self.frame and self.frame:IsShown() then self:Refresh() end
         if self.launcher then self.launcher:Hide() end
     elseif event == "PLAYER_REGEN_DISABLED" then

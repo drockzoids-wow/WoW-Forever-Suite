@@ -119,7 +119,7 @@ end
 
 function Search:BuildIndex()
     self.index, self.ids, self.limited = {}, {}, false
-    self.coverage, self.owners = {}, {}
+    self.coverage = {}
     local region = Call(GetCurrentRegion)
     local guid = Call(UnitGUID, "player")
     self.currentGUID, self.region = Text(guid) and guid or nil, nil
@@ -127,7 +127,6 @@ function Search:BuildIndex()
     self.region = region
     local db, rowCount, itemCount = Suite.Inventory:Database(), 0, 0
     local function Add(snapshot, owner, location)
-        self.owners[owner.guid] = owner
         self.coverage[owner.guid] = self.coverage[owner.guid] or {}
         local status = { recorded = false }; self.coverage[owner.guid][location] = status
         if not Table(snapshot) or not Table(snapshot.items) then return end
@@ -188,15 +187,7 @@ function Search:Query(query, options)
         or query:find("[%c|]") then return {}, 0, false end
     query = query:match("^%s*(.-)%s*$"):lower()
     if query == "" and not browsing then return {}, 0, false end
-    local owner, location
-    if not Suite.IsReadable(options) then return {}, 0, false end
-    if options ~= nil then
-        if not Table(options) or not Suite.IsReadable(options.owner) or not Suite.IsReadable(options.location) then return {}, 0, false end
-        owner, location = options.owner, options.location
-        if owner ~= nil and not Text(owner) then return {}, 0, false end
-        if location ~= nil and (not Text(location) or not ({ all = true, bags = true, bank = true, account = true })[location]) then return {}, 0, false end
-    end
-    location = location or "all"
+    if not Suite.IsReadable(options) or options ~= nil and not Table(options) then return {}, 0, false end
     local filters = self:NormalizeFilters(options and options.filters)
     if not filters then return {}, 0, false end
     local now = Call(GetServerTime)
@@ -214,11 +205,9 @@ function Search:Query(query, options)
     local rows, pending, loads, more, tokens = {}, 0, 0, false, {}
     for token in query:gmatch("%S+") do tokens[#tokens + 1] = token end
     local function Counts(saved)
-        local shared = saved.owner.guid == "account"
-        if owner ~= nil and saved.owner.guid ~= owner and not (location == "account" and shared) then return end
-        return (location == "all" or location == "bags") and AgeMatches(saved.bagsAt) and saved.bags or nil,
-            (location == "all" or location == "bank") and AgeMatches(saved.bankAt) and saved.bank or nil,
-            (location == "all" or location == "account") and AgeMatches(saved.accountAt) and saved.account or nil
+        return AgeMatches(saved.bagsAt) and saved.bags or nil,
+            AgeMatches(saved.bankAt) and saved.bank or nil,
+            AgeMatches(saved.accountAt) and saved.account or nil
     end
     for _, id in ipairs(self.ids) do
         local eligible = false

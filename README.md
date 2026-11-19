@@ -130,11 +130,11 @@ The rectangular panel fits itself to your screen. Home offers category cards and
 
 ## Characters and inventory
 
-Open **/wfs inventory**, or choose **Tools → Characters & Inventory**. The default view shows all recorded items in your region; no search setup or manual editing is required. Select a character in the roster and choose **Browse inventory**, or click an item result to focus its owner. Cycle **All locations / Bags / Personal bank / Shared bank** to narrow the view. Shared contents count once.
+Open **/wfs inventory** or choose **Tools → Characters & Inventory → Inventory**. Search covers every character's recorded bags and banks in your region. Shared contents count once.
 
-Search by item name, type, subtype or exact item ID. **Save view** keeps the search, owner and location together; up to eight views save account-wide. Item rows show quantities and the age of their source records. Amber dates flag records at least a day old; unknown locations stay distinct from recorded empty ones. Modified item clicks use the client's normal link/dressing-room behavior.
+Search by item name, type, subtype or exact item ID. Save up to eight categories with the search and item filters. Item rows show quantities, locations and the age of their source records. Amber dates flag records at least a day old. Modified item clicks use the client's normal link and dressing room behavior.
 
-**Open this character's bank** opens that owner's recorded slot layout when available. This view cannot move items. Refresh records by enabling the existing character/bank recording options, logging into your alts and visiting their banks. Existing records remain readable when recording is off. Ordinary scrolling moves the page; Shift+wheel changes result pages. Native bank artwork may require visiting a bank once after login.
+In the **Characters** tab, select an alt and click **Open saved bank** to see that character's recorded bank slots. Refresh records by enabling character and bank recording, logging into your alts and visiting their banks. Existing records remain readable when recording is off.
 
 ## Item levels
 
@@ -503,9 +503,9 @@ Automatic main/off-hand recipes can **Create placeholder** with an empty hand or
 
 ### Inventory filters and saved categories
 
-Open **Characters → Inventory** to filter recorded bags and banks by character, location, item type, quality and record age. Type choices include equipment, crafting reagents, consumables and quest items. Recent means less than 24 hours; older records and unavailable dates have separate choices. Filters use each location’s own timestamp. Shared bank contents count once.
+Open the **Inventory** tab to filter recorded bags and banks by item type, quality and record age. Type choices include equipment, crafting reagents, consumables and quest items. Recent means less than 24 hours. Older records and unavailable dates have separate choices, based on each location's timestamp.
 
-Enter an optional category name beside **Saved categories**, choose filters and click **Save**. Up to eight categories remember the search, owner, location and filters across characters. Load a category to rename it or remove it. Existing saved searches are retained as categories. **Clear filters** returns to all recorded items. Missing metadata is disclosed; these categories browse saved records and do not rearrange live bags or enable recording.
+Enter an optional category name beside **Saved categories**, choose filters and click **Save**. Load a category to rename it or remove it. Older categories keep the query and item filters and search across the account. If two categories become identical, the first saved name is kept. **Clear filters** returns to all recorded items.
 
 Item lists use icons beside names. The profession shopping list separates **Required**, **Recorded stock**, and **Buy** into aligned columns: gold requirements, blue stock, orange purchases and teal stocked status. **Unknown / Check stock** and **+ / Up to** keep missing or incomplete records explicit. Icons load independently of the item-level overlay setting; Shift-click items to use native auction search or chat linking.
 

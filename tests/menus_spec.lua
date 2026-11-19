@@ -18,7 +18,11 @@ CreateFrame = function(kind, name, parent, template)
 end
 MenuUtil = { CreateContextMenu = function() error("Suite lists must not use native shared menu pools") end }
 assert(loadfile("src/WoWForeverSuite/Menus.lua"))("WoWForeverSuite", Suite)
-local menus, owner = Suite.Menus, CreateFrame("Button", nil, UIParent)
+local menus = Suite.Menus
+local window = CreateFrame("Frame", nil, UIParent)
+window:SetFrameStrata("DIALOG"); window:SetToplevel(true); window:SetFrameLevel(600)
+local owner = CreateFrame("Button", nil, window)
+window:Show()
 owner:Show()
 local selected, invoked = 2, 0
 local function Build(_, root)
@@ -31,6 +35,8 @@ local function Build(_, root)
 end
 menus.CreateContextMenu(owner, Build)
 equal(menus.frame:GetParent(), UIParent, "popup avoids clipping under scrolling settings")
+equal(menus.frame.strata, "FULLSCREEN_DIALOG", "popup strata stays above a raised Contacts or Settings window")
+equal(menus.list:GetParent(), menus.frame, "options share the dismissal surface's higher strata")
 equal(#menus.rows, 12, "long lists allocate only the visible row capacity")
 equal(menus.list.height, 296, "long list height stays bounded")
 equal(menus.rows[3].marker:IsShown(), true, "current radio choice has a visible marker")

@@ -1,10 +1,10 @@
 local _, Suite = ...
-local Browser = { query = "", location = "all", page = 1 }
+local Browser = { query = "", page = 1 }
 Suite.CharacterBrowser = Browser
 local ROWS, MAX_FAVORITES = 8, 8
+local FILTER_BUTTON_HEIGHT = 32
 local colors = { teal = { 0.41, 0.84, 0.75 }, text = { 0.88, 0.91, 0.93 }, muted = { 0.55, 0.65, 0.7 },
     stale = { 0.95, 0.72, 0.38 }, row = { 0.07, 0.095, 0.11 } }
-local locations = { all = "All locations", bags = "Bags", bank = "Personal bank", account = "Shared bank" }
 local function Table(value) return Suite.IsReadable(value) and type(value) == "table" end
 local function Text(value, limit)
     return Suite.IsReadable(value) and type(value) == "string" and #value > 0 and #value <= (limit or 128) and not value:find("[%c|]")
@@ -22,7 +22,7 @@ local function Query(value)
     return value:match("^%s*(.-)%s*$")
 end
 local function Key(view)
-    return view.query:lower() .. "\031" .. (view.owner or "") .. "\031" .. view.location .. "\031" .. (view.filters and view.filters.kind or "all")
+    return view.query:lower() .. "\031" .. (view.filters and view.filters.kind or "all")
         .. "\031" .. (view.filters and view.filters.quality or "all") .. "\031" .. (view.filters and view.filters.age or "all")
 end
 local function Label(parent, text, x, y, width, size, color)
@@ -32,8 +32,8 @@ local function Label(parent, text, x, y, width, size, color)
     label:SetTextColor(unpack(color or colors.text)); label:SetText(text)
     return label
 end
-local function Button(parent, text, x, y, width, callback)
-    local button = Suite.Theme:ActionButton(parent, text, width, 28, function() if not InCombatLockdown() then callback() end end)
+local function Button(parent, text, x, y, width, callback, height)
+    local button = Suite.Theme:ActionButton(parent, text, width, height or 28, function() if not InCombatLockdown() then callback() end end)
     button:SetPoint("TOPLEFT", x, y)
     return button
 end
@@ -45,11 +45,9 @@ function Browser:InitializeOptions(saved)
         local entry = saved.favorites[index]
         if Table(entry) then
             local query = Query(entry.query)
-            local location = Text(entry.location) and locations[entry.location] and entry.location
-            local owner = entry.owner
-            if query and location and Suite.IsReadable(entry.owner) and (owner == nil or Text(owner)) then
+            if query then
                 local filters = Suite.InventorySearch:NormalizeFilters(entry.filters)
-                local view = filters and { query = query, location = location, owner = owner, filters = filters, name = Text(entry.name, 40) and entry.name or nil }
+                local view = filters and { query = query, filters = filters, name = Text(entry.name, 40) and entry.name or nil }
                 if view and not seen[Key(view)] then options.favorites[#options.favorites + 1], seen[Key(view)] = view, true end
             end
         end
@@ -63,7 +61,7 @@ function Browser:Options()
     end
     return options
 end
-function Browser:View() return { query = Query(self.query) or "", owner = self.owner, location = self.location,
+function Browser:View() return { query = Query(self.query) or "",
     filters = Suite.InventorySearch:NormalizeFilters(self.filters) } end
 function Browser:SetFilter(key, value)
     if InCombatLockdown() or not Text(key) or not Suite.InventorySearch.filterChoices[key] then return false end
@@ -110,7 +108,7 @@ function Browser:LoadView(index)
     if InCombatLockdown() or not Integer(index, 1, MAX_FAVORITES) then return false end
     local view = self:Options().favorites[index]
     if not view then return false end
-    self.query, self.owner, self.location = view.query, view.owner, view.location
+    self.query = view.query
     self.filters = Suite.InventorySearch:NormalizeFilters(view.filters)
     if self.categoryName then self.categoryName:SetText(view.name or "") end
     self.page, self.expanded, self.message = 1, false, nil
@@ -127,34 +125,9 @@ function Browser:Age(at, recorded)
     if age < 86400 then return math.floor(age / 3600) .. "h ago", false end
     return math.floor(age / 86400) .. "d ago", true
 end
-function Browser:OwnerName(guid)
-    if not Text(guid) then return "Unrecorded character" end
-    local owner = Suite.InventorySearch.owners and Suite.InventorySearch.owners[guid]
-    if owner then return owner.name end
-    local region = Call(GetCurrentRegion)
-    local record = Text(guid) and Suite.Inventory:Database().characters[guid]
-    if Table(record) and Integer(region, 1, 1000000) and Suite.IsReadable(record.region) and record.region == region and Text(record.name) then
-        return Text(record.fullName) and record.fullName or record.name
-    end
-    return "Unrecorded character"
-end
 function Browser:Coverage()
     local search = Suite.InventorySearch
     if not search.region then return "Character region unavailable." end
-    if self.location == "account" then
-        local status = search.coverage and search.coverage.account and search.coverage.account.account
-        return "Shared bank · " .. self:Age(status and status.at, status and status.recorded == true or false)
-            .. (status and status.partial and " · Partial record" or "")
-    end
-    if self.owner then
-        local status = search.coverage and search.coverage[self.owner]
-        local function Stamp(key)
-            local source = status and status[key]
-            return self:Age(source and source.at, source and source.recorded == true or false)
-        end
-        return "Bags: " .. Stamp("bags") .. "  ·  Bank: " .. Stamp("bank")
-            .. (status and (status.bags and status.bags.partial or status.bank and status.bank.partial) and " · Partial record" or "")
-    end
     local count, bags, bank, partial = 0, 0, 0, false
     for guid, status in pairs(search.coverage or {}) do if guid ~= "account" then
         count = count + 1
@@ -165,34 +138,17 @@ function Browser:Coverage()
     return "Bags recorded: " .. bags .. "/" .. count .. "  ·  Banks: " .. bank .. "/" .. count
         .. (partial and "  ·  Some data incomplete" or "")
 end
-function Browser:BankTarget()
-    if self.location == "account" then return "account", 2 end
-    return self.owner, 0
-end
-function Browser:OpenBank()
-    local guid, bankType = self:BankTarget()
-    if guid then return Suite.OfflineBank:OpenFor(guid, bankType, Suite.GUI.frame) end
-    return false
-end
-function Browser:Open(guid)
-    if not Suite.IsReadable(guid) or guid ~= nil and not Text(guid) then return end
-    if InCombatLockdown() then Suite.AfterCombat("guiOpen", function() self:Open(guid) end); return end
-    self.owner, self.location, self.page = guid, "all", 1
+function Browser:Open()
+    if InCombatLockdown() then Suite.AfterCombat("guiOpen", function() self:Open() end); return end
+    self.page = 1
     Suite.CharacterDashboard.view = "inventory"
     Suite.GUI:OpenPage("characters")
 end
-function Browser:SetLocation(location)
-    if InCombatLockdown() or not Text(location) or not locations[location] then return false end
-    self.location, self.page, self.message = location, 1, nil; self:Update(); return true
-end
-function Browser:Select(row)
+function Browser:ModifiedClick(row)
     if InCombatLockdown() or not row then return end
     if row.link and (Call(IsModifiedClick, "CHATLINK") == true or Call(IsModifiedClick, "DRESSUP") == true) then
-        Call(HandleModifiedItemClick, row.link); return
+        Call(HandleModifiedItemClick, row.link)
     end
-    if row.owner.guid == "account" then self.location = "account"
-    else self.owner = row.owner.guid end
-    self.page, self.message = 1, nil; self:Update()
 end
 function Browser:HideTooltip()
     local tip = GameTooltip
@@ -214,7 +170,6 @@ function Browser:Tooltip(button)
         tip:AddLine((key == "bags" and "Bags recorded: " or "Bank recorded: ") .. (Text(stamp) and stamp or "Date unavailable"), unpack(colors.muted))
     end end
     tip:AddLine("Recorded counts; item variants are combined.", unpack(colors.muted))
-    tip:AddLine("Click to browse this owner. Modified item-link clicks stay native.", unpack(colors.muted))
     tip:Show()
     if row.link and type(GameTooltip_ShowCompareItem) == "function" and Call(IsModifiedClick, "COMPAREITEMS") == true then
         pcall(GameTooltip_ShowCompareItem, tip)
@@ -225,8 +180,6 @@ function Browser:FavoriteTooltip(button)
     if InCombatLockdown() or not view or not tip or tip.IsForbidden and Call(tip.IsForbidden, tip) ~= false then return end
     tip:SetOwner(button, "ANCHOR_RIGHT"); self.hovered = button
     tip:AddLine(view.query ~= "" and view.query or "All recorded items", unpack(colors.teal))
-    tip:AddLine(view.owner and self:OwnerName(view.owner) or "All characters", unpack(colors.text))
-    tip:AddLine(locations[view.location], unpack(colors.muted))
     local filters = Suite.InventorySearch:NormalizeFilters(view.filters)
     for _, key in ipairs({ "kind", "quality", "age" }) do
         tip:AddLine(Suite.InventorySearch:FilterLabel(key, filters[key]), unpack(colors.muted))
@@ -285,32 +238,8 @@ function Browser:Build(parent)
     panel:SetPoint("TOPLEFT", 0, -40)
     panel:SetScript("OnEvent", function(_, ...) self:OnEvent(...) end)
     panel:SetScript("OnHide", function() self:SetVisible(false) end)
-    self.ownerButton = Button(panel, "All characters", 0, 0, 384, function()
-        Suite.Menus.CreateContextMenu(self.ownerButton, function(_, root)
-            local function Select(guid) self.owner, self.page = guid, 1; self:Update() end
-            root:CreateButton("All characters", function() Select(nil) end)
-            local owners = {}
-            for guid, owner in pairs(Suite.InventorySearch.owners or {}) do
-                if guid ~= "account" then owners[#owners + 1] = owner end
-            end
-            table.sort(owners, function(a, b) if a.name ~= b.name then return a.name < b.name end; return a.guid < b.guid end)
-            for _, owner in ipairs(owners) do
-                local guid = owner.guid
-                root:CreateButton(owner.name .. " · " .. owner.context .. (owner.current and " (You)" or ""), function() Select(guid) end)
-            end
-        end)
-    end)
-    self.locationButton = Button(panel, "All locations", 396, 0, 384, function()
-        Suite.Menus.CreateContextMenu(self.locationButton, function(_, root)
-            for _, key in ipairs({ "all", "bags", "bank", "account" }) do
-                local location = key
-                root:CreateButton(locations[key], function() self:SetLocation(location) end)
-            end
-        end)
-    end)
-    self.scope = Label(panel, "", 0, -36, 780, 10, colors.muted)
     local search = CreateFrame("EditBox", nil, panel, "BackdropTemplate"); self.search = search
-    search:SetPoint("TOPLEFT", 0, -58); search:SetSize(686, 28); search:SetAutoFocus(false); search:SetMaxLetters(100)
+    search:SetPoint("TOPLEFT", 0, 0); search:SetSize(686, 28); search:SetAutoFocus(false); search:SetMaxLetters(100)
     search:SetFont("Fonts\\FRIZQT__.TTF", 12, ""); search:SetTextInsets(8, 8, 0, 0)
     search:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
     search:SetBackdropColor(unpack(colors.row)); Suite.Theme:Backdrop(search, 1)
@@ -322,41 +251,41 @@ function Browser:Build(parent)
     end)
     search:SetScript("OnEscapePressed", function(box) box:SetText(""); self.query, self.page = "", 1; box:ClearFocus(); self:Update() end)
     search:SetScript("OnEnterPressed", function(box) box:ClearFocus(); self:Cancel(); self:Update() end)
-    self.saveButton = Button(panel, "Save view", 692, -58, 88, function() self:SaveView() end)
-    self.favoriteButton = Button(panel, "Saved searches", 0, -98, 384, function() self.expanded = not self.expanded; self:Update() end)
-    self.favoriteHint = Label(panel, "", 0, -184, 780, 10, colors.muted)
+    self.saveButton = Button(panel, "Save view", 692, 0, 88, function() self:SaveView() end)
+    self.favoriteButton = Button(panel, "Saved searches", 0, -40, 384, function() self.expanded = not self.expanded; self:Update() end)
+    self.favoriteHint = Label(panel, "", 0, -126, 780, 10, colors.muted)
     local name = CreateFrame("EditBox", nil, panel, "BackdropTemplate"); self.categoryName = name
-    name:SetPoint("TOPLEFT", 396, -98); name:SetSize(278, 28); name:SetAutoFocus(false); name:SetMaxLetters(40)
+    name:SetPoint("TOPLEFT", 396, -40); name:SetSize(278, 28); name:SetAutoFocus(false); name:SetMaxLetters(40)
     name:SetFont("Fonts\\FRIZQT__.TTF", 11, ""); name:SetTextInsets(8, 8, 0, 0)
     name:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
     name:SetBackdropColor(unpack(colors.row)); Suite.Theme:Backdrop(name, 1)
     name:SetScript("OnEscapePressed", function(box) box:ClearFocus() end)
     name:SetScript("OnEnterPressed", function(box) box:ClearFocus(); self:RenameCategory() end)
-    self.renameButton = Button(panel, "Rename", 686, -98, 94, function() self:RenameCategory() end)
+    self.renameButton = Button(panel, "Rename", 686, -40, 94, function() self:RenameCategory() end)
     self.filterButtons = {}
     for index, key in ipairs({ "kind", "quality", "age" }) do
         local button
-        button = Button(panel, "", (index - 1) * 198, -136, 186, function() self:FilterMenu(button, key) end)
+        button = Button(panel, "", (index - 1) * 198, -78, 186, function() self:FilterMenu(button, key) end, FILTER_BUTTON_HEIGHT)
         self.filterButtons[key] = button
     end
-    self.clearButton = Button(panel, "Clear filters", 594, -136, 186, function()
-        self.filters, self.query, self.owner, self.location, self.page = nil, "", nil, "all", 1
+    self.clearButton = Button(panel, "Clear filters", 594, -78, 186, function()
+        self.filters, self.query, self.page = nil, "", 1
         self.categoryName:SetText(""); self:Update()
-    end)
+    end, FILTER_BUTTON_HEIGHT)
     self.favoriteRows = {}
     for index = 1, MAX_FAVORITES do
-        self.favoriteRows[index] = Button(panel, "", ((index - 1) % 2) * 396, -208 - math.floor((index - 1) / 2) * 34, 384,
+        self.favoriteRows[index] = Button(panel, "", ((index - 1) % 2) * 396, -150 - math.floor((index - 1) / 2) * 34, 384,
             function() self:LoadView(index) end)
         local button = self.favoriteRows[index]
         button:SetScript("OnEnter", function() self:FavoriteTooltip(button) end)
         button:SetScript("OnLeave", function() if self.hovered == button then self:HideTooltip() end end)
     end
-    self.coverage = Label(panel, "", 0, -140, 780, 10, colors.muted)
-    self.summary = Label(panel, "", 0, -160, 780, 11)
+    self.coverage = Label(panel, "", 0, 0, 780, 10, colors.muted)
+    self.summary = Label(panel, "", 0, 0, 780, 11)
     self.buttons = {}
     for index = 1, ROWS do
         local button
-        button = Button(panel, "", 0, 0, 780, function() self:Select(button.entry) end)
+        button = Button(panel, "", 0, 0, 780, function() self:ModifiedClick(button.entry) end)
         button:SetHeight(44); button.label:Hide()
         button.icon = button:CreateTexture(nil, "ARTWORK"); button.icon:SetSize(28, 28); button.icon:SetPoint("TOPLEFT", 8, -8)
         button.name = Label(button, "", 44, -7, 628, 12)
@@ -378,7 +307,6 @@ function Browser:Build(parent)
         if Call(IsShiftKeyDown) == true then self.page = math.max(1, self.page - delta); self:Update()
         else Suite.GUI:ScrollTo((Suite.GUI.scrollOffset or 0) - delta * 40) end
     end)
-    self.bankButton = Button(panel, "Open saved bank", 0, 0, 384, function() self:OpenBank() end)
     self.notice = Label(panel, "", 0, 0, 780, 10, colors.muted); self.notice:SetHeight(30); self.notice:SetWordWrap(true)
     return panel
 end
@@ -387,40 +315,34 @@ function Browser:Refresh()
     if not self.panel or InCombatLockdown() then return end
     self:HideTooltip()
     local more
-    self.rows, self.pendingItems, more = Suite.InventorySearch:Query(self.query, { browse = true, owner = self.owner, location = self.location, filters = self.filters })
+    self.rows, self.pendingItems, more = Suite.InventorySearch:Query(self.query, { browse = true, filters = self.filters })
     local favorites, selected = self:Options().favorites, self:FavoriteIndex()
     self.updating = true; self.search:SetText(self.query); self.updating = nil
     self.placeholder:SetShown(self.query == "")
-    self.ownerButton.label:SetText(self.location == "account" and "Shared bank · all characters" or self.owner and self:OwnerName(self.owner) or "All characters")
-    self.ownerButton:SetEnabled(self.location ~= "account")
-    self.locationButton.label:SetText(locations[self.location])
-    self.scope:SetText(self.location == "account" and "Shared contents are counted once for this region."
-        or self.owner and ("Inventory belonging to " .. self:OwnerName(self.owner)) or "All recorded characters in this region")
     self.saveButton.label:SetText(selected and "Remove" or "Save")
     local filters = Suite.InventorySearch:NormalizeFilters(self.filters)
     for key, button in pairs(self.filterButtons) do button.label:SetText(Suite.InventorySearch:FilterLabel(key, filters[key])) end
     self.renameButton:SetEnabled(selected ~= nil)
     self.favoriteButton.label:SetText((self.expanded and "Hide" or "Saved") .. " categories (" .. #favorites .. ")")
-    self.favoriteHint:SetText("Optional name beside categories; Save keeps search, filters, character and location. Load to rename or remove.")
+    self.favoriteHint:SetText("Save the search and filters as a category. Load a category to rename or remove it.")
     local extra = 72 + (self.expanded and math.ceil(#favorites / 2) * 34 + 8 or 0)
     for index, button in ipairs(self.favoriteRows) do
         local view = favorites[index]
         button:SetShown(self.expanded and view ~= nil)
         button.view = view
-        if view then button.label:SetText((view.name or (view.query ~= "" and view.query or "All items")) .. " · "
-            .. (view.owner and self:OwnerName(view.owner) or "Everyone") .. " · " .. locations[view.location]) end
+        if view then button.label:SetText(view.name or (view.query ~= "" and view.query or "All items")) end
     end
     local function Place(widget, x, y) widget:ClearAllPoints(); widget:SetPoint("TOPLEFT", x, -y) end
-    Place(self.coverage, 0, 140 + extra); self.coverage:SetText(self:Coverage())
+    Place(self.coverage, 0, 82 + extra); self.coverage:SetText(self:Coverage())
     local total = 0
     for _, row in ipairs(self.rows) do total = total + (row.bags or 0) + (row.bank or 0) + (row.account or 0) end
-    Place(self.summary, 0, 160 + extra)
+    Place(self.summary, 0, 102 + extra)
     self.summary:SetText(#self.rows == 0 and self.pendingItems > 0 and "Searching recorded items · names loading/unavailable"
         or (#self.rows .. " results · " .. total .. " items recorded"))
     local pages = math.max(1, math.ceil(#self.rows / ROWS)); self.page = math.max(1, math.min(pages, self.page))
     for index, button in ipairs(self.buttons) do
         local row = self.rows[(self.page - 1) * ROWS + index]; button.entry = row
-        Place(button, 0, 184 + extra + (index - 1) * 48); button:SetShown(row ~= nil)
+        Place(button, 0, 126 + extra + (index - 1) * 48); button:SetShown(row ~= nil)
         if row then
             button.icon:SetTexture(row.icon); button.name:SetText(row.name)
             button.count:SetText("×" .. ((row.bags or 0) + (row.bank or 0) + (row.account or 0)))
@@ -442,24 +364,18 @@ function Browser:Refresh()
             else button.name:SetTextColor(unpack(colors.text)) end
         end
     end
-    Place(self.empty, 0, 192 + extra); self.empty:SetShown(#self.rows == 0)
+    Place(self.empty, 0, 134 + extra); self.empty:SetShown(#self.rows == 0)
     self.empty:SetText(not Suite.InventorySearch.region and "Character region unavailable."
         or self.pendingItems > 0 and "Some item data is unavailable. Clear type/quality filters or search by item ID."
-        or self.owner and "No recorded items match this view. Unknown locations are not treated as empty."
         or "No recorded items match this view. Enable character recording, log into alts, and visit their banks.")
     local visibleRows = math.min(ROWS, #self.rows)
-    local bottom = 184 + extra + math.max(2, visibleRows) * 48 + 8
+    local bottom = 126 + extra + math.max(2, visibleRows) * 48 + 8
     Place(self.previous, 0, bottom); Place(self.next, 690, bottom); Place(self.pageLabel, 100, bottom + 8)
     self.previous:SetEnabled(self.page > 1); self.next:SetEnabled(self.page < pages)
     self.pageLabel:SetText(self.page .. " / " .. pages)
     self.previous:SetShown(pages > 1); self.next:SetShown(pages > 1); self.pageLabel:SetShown(pages > 1)
     if pages > 1 then bottom = bottom + 38 end
-    local guid, bankType = self:BankTarget()
-    local available = guid ~= nil and Suite.OfflineBank:GetSnapshot(bankType, guid) ~= nil
-    Place(self.bankButton, 0, bottom); self.bankButton:SetEnabled(available)
-    self.bankButton.label:SetText(guid == "account" and "Open shared bank snapshot" or guid and "Open this character's bank" or "Select an owner for bank view")
-    self.bankButton.label:SetTextColor(unpack(available and colors.teal or colors.muted))
-    bottom = bottom + 39; Place(self.notice, 0, bottom)
+    Place(self.notice, 0, bottom)
     self.notice:SetText(self.message or (Suite.InventorySearch.limited and "Some results omitted. " or "")
         .. (self.pendingItems > 0 and self.pendingItems .. " items with unavailable name/filter data. " or "")
         .. "Snapshots can be stale. Log into alts and visit banks to refresh; no items can be moved here.")

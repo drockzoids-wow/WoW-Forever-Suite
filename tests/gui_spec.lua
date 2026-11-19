@@ -35,6 +35,9 @@ local function Serialize(value)
     return "{" .. table.concat(parts, ";") .. "}"
 end
 local baseline = Serialize(Suite.db)
+equal(gui.sidebar.point[1], "BOTTOMLEFT", "the sidebar fills down to the inner edge of the window")
+equal(gui.sidebar.point[2], 1, "the sidebar leaves room for the left border")
+equal(gui.sidebar.point[3], 1, "the sidebar leaves room for the bottom border")
 equal(#catalog.groups, 8, "eight fixed sections retain all destinations")
 local leafCount, seen = 0, {}
 for _, group in ipairs(catalog.groups) do

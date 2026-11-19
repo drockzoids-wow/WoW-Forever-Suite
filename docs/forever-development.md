@@ -1,5 +1,17 @@
 # WoW Forever addon development reference
 
+## Account-wide inventory search
+
+Remove the character and location selectors and the corresponding query scopes. Existing categories keep their search, name and item filters. Categories distinguished only by the obsolete scopes collapse to the first saved entry.
+
+## Restock vendor docking
+
+Restock uses a native merchant anchor on the right or, when it fits better, the left. Shared screen placement handles layouts with neither side available. The launcher toggles the companion, and closing the merchant closes either view opened from that visit. The standalone Saved list detaches from the merchant.
+
+## Restock shortage and bundle layout
+
+Vendor offers display the exact deficit whenever carried stock is readable, including rows that cannot be purchased. Whole bundles, stock, and bag capacity still limit the purchase quantity. Short row notes show the bundle size and any deficit left after the proposed purchase.
+
 ## Contact mail subjects — November 18, 2026
 
 An explicit Send Mail contact selection can fill a blank native Subject with **Alt mail** or **Guild mail** based on the recipient's built-in group. Other and custom group selections clear a Suite-supplied default. The text-change hook drops ownership on user input or when the native subject changes. A programmatic notification with the same text keeps the default replaceable. The subject uses the existing compose and combat guards. Normal recipient focus, manual Send and recipient-only memory after a successful send still apply.

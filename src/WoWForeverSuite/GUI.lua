@@ -2040,9 +2040,9 @@ function GUI:Initialize()
     Suite.Theme:Texture(rule, 0.35)
 
     local sidebar = CreateFrame("Frame", nil, frame, "BackdropTemplate")
-    sidebar:SetPoint("TOPLEFT", 0, -77)
-    sidebar:SetPoint("BOTTOMLEFT", 0, 0)
-    sidebar:SetWidth(SIDEBAR_WIDTH)
+    sidebar:SetPoint("TOPLEFT", 1, -77)
+    sidebar:SetPoint("BOTTOMLEFT", 1, 1)
+    sidebar:SetWidth(SIDEBAR_WIDTH - 1)
     self.sidebar = sidebar
     Fill(sidebar, palette.sidebar)
     self.groupTabs = {}

@@ -59,7 +59,7 @@ chars.remote = { name = "Remote", realm = "Realm", region = 1, bags = { at = now
 chars.hidden = { secret = true }
 Suite.db.inventory.accountBanks[110] = { at = now - 86400, items = { [100] = 5, [400] = 4 } }
 search.index, search.metadata, search.requested, search.region, search.currentGUID = nil, {}, {}, nil, nil
-browser.panel, browser.visible, browser.timer, browser.owner, browser.query, browser.location, browser.page = nil, false, nil, nil, "", "all", 1
+browser.panel, browser.visible, browser.timer, browser.query, browser.page = nil, false, nil, "", 1
 dashboard.panel, dashboard.rosterPanel, dashboard.view = nil, nil, "characters"
 dashboard.query, dashboard.sort, dashboard.page, dashboard.selected = "", "name", 1, nil
 gui.characterPanel = nil
@@ -71,19 +71,12 @@ equal(Total(rows), 24, "known personal and shared contents add up once")
 equal(search.coverage.empty.bags.recorded, true, "a captured empty bag remains known empty")
 equal(search.coverage.empty.bank.recorded, false, "an unvisited bank remains unknown")
 equal(search.coverage.remote, nil, "other-region characters do not enter coverage totals")
-equal(Total(search:Query("", { browse = true, owner = "main" })), 6, "selected-owner browsing excludes other owners and shared-bank duplication")
-equal(Total(search:Query("", { browse = true, owner = "main", location = "bags" })), 3, "bag filter omits bank quantities from each result")
-equal(Total(search:Query("", { browse = true, owner = "main", location = "bank" })), 3, "bank filter omits bag quantities from each result")
-equal(Total(search:Query("", { browse = true, owner = "main", location = "account" })), 9, "explicit shared-bank filter is independent of a retained personal selection")
-equal(#search:Query("", { browse = true, owner = "alt", location = "bank" }), 0, "unknown bank cannot invent any items")
 equal(#search:Query("metal", { browse = true }), 6, "item-type search reuses native metadata words")
 equal(#search:Query("100", { browse = true }), 3, "numeric item search finds owners without combining them")
 equal(#search:Query("Copper Ore", { browse = true }), 3, "multiple words find matching items across owners")
 equal(#search:Query("Copper missing", { browse = true }), 0, "all search tokens must match")
 local hidden = setmetatable({ secret = true }, { __index = function() error("hidden browser data indexed") end })
 equal(#search:Query("", hidden), 0, "restricted query options cannot be inspected")
-equal(#search:Query("", { browse = true, owner = hidden }), 0, "restricted owner never becomes an index key")
-equal(#search:Query("", { browse = true, location = hidden }), 0, "restricted location never becomes a filter key")
 equal(#search:Query(hidden, { browse = true }), 0, "restricted search text cannot enter string matching")
 equal(#search:Query("\n", { browse = true }), 0, "control characters are rejected")
 equal(browser:Age(nil, false), "Not recorded", "missing capture is distinct from unknown capture time")
@@ -93,21 +86,24 @@ local age, stale = browser:Age(now - 86400)
 equal(age, "1d ago", "old snapshots have a visible relative age")
 equal(stale, true, "old snapshots receive a distinct muted amber state")
 
-gui.frame:Show(); browser:Open("alt")
+gui.frame:Show(); browser:Open()
 equal(gui.page, "characters", "inventory browser lives in the existing character hub")
 equal(dashboard.view, "inventory", "explicit browse navigation opens the Inventory tab")
-equal(browser.ownerButton.label:GetText(), "Alt Pine", "selected character scope is visible beside location")
-equal(browser.locationButton.label:GetText(), "All locations", "location filter starts explicitly unfiltered")
-equal(browser.coverage:GetText():find("Bank: Not recorded", 1, true) ~= nil, true, "unrecorded bank is disclosed in the browsing header")
-equal(browser.summary:GetText(), "2 results · 9 items recorded", "result summary follows the selected owner")
+equal(browser.search.point[3], 0, "account inventory starts with the search field")
+equal(browser.coverage:GetText(), "Bags recorded: 3/3  ·  Banks: 1/3", "coverage names the number of recorded bags and banks")
+equal(browser.summary:GetText(), "6 results · 24 items recorded", "inventory shows every recorded owner and location")
 equal(browser.panel:GetParent(), dashboard.panel, "inventory and roster share one owned hub")
+for _, button in ipairs({ browser.filterButtons.kind, browser.filterButtons.quality, browser.filterButtons.age, browser.clearButton }) do
+    equal(button:GetHeight(), 32, "inventory filter buttons have extra vertical room")
+    local bottom = -dashboard.panel.point[3] - browser.panel.point[3] - button.point[3] + button:GetHeight()
+    equal(bottom < gui.viewportHeight, true, "the entire filter button fits at the top of the settings viewport")
+end
 equal(dashboard.rosterPanel:IsShown(), false, "inventory tab hides roster input")
 equal(browser.panel.registered.ITEM_DATA_LOAD_RESULT, true, "visible inventory listens for item metadata completion")
 equal(Suite.db.characterDashboard, false, "browsing does not enable recording")
 equal(Suite.db.inventorySearch, false, "browsing does not enable native popup search")
 equal(Suite.db.itemInventory, false, "browsing does not enable tooltip counts")
 equal(Suite.db.offlineBank, false, "browsing does not enable bank recording")
-equal(browser.bankButton.enabled, false, "no slot snapshot produces a disabled bank action")
 local popupOwner, popupRows = search.owner, search.rows
 browser:Tooltip(browser.buttons[1])
 equal(GameTooltip.owner, browser.buttons[1], "item tooltip uses the owned browser row")
@@ -116,22 +112,17 @@ equal(search.owner, popupOwner, "browser tooltip does not seize a native search 
 equal(search.rows, popupRows, "browser does not replace a native popup result list")
 modified = true; browser.buttons[1].OnClick(); equal(#linked, 1, "modified item clicks delegate the native link behavior")
 modified = false
-browser:SetLocation("bags"); browser.query = "Ore"; browser:Update()
+browser.query = "Ore"; browser:Update()
 equal(browser:SaveView(), true, "current search and filters can be saved")
 equal(#browser:Options().favorites, 1, "saved search is stored once")
-equal(browser:Options().favorites[1].owner, "alt", "saved view preserves its owner scope")
-equal(browser:Options().favorites[1].location, "bags", "saved view preserves its location scope")
-browser.owner, browser.query, browser.location = nil, "Cloth", "all"
+browser.query = "Cloth"
 browser:LoadView(1)
-equal(browser.owner, "alt", "loading a favorite restores its character")
 equal(browser.query, "Ore", "loading a favorite restores its query")
-equal(browser.location, "bags", "loading a favorite restores its location")
+equal(browser.summary:GetText(), "4 results · 21 items recorded", "loading a category searches every location")
 local stored = browser:InitializeOptions(Suite.Copy(browser:Options()))
 equal(stored.favorites[1].query, "Ore", "favorites survive independent saved-table validation")
 equal(#browser:InitializeOptions(hidden).favorites, 0, "restricted saved favorite root resets safely")
-equal(#browser:InitializeOptions({ favorites = { { query = "Ore", owner = false, location = "all" } } }).favorites, 0, "invalid favorite owner cannot silently broaden its scope")
-equal(#browser:InitializeOptions({ favorites = { { query = "Ore", owner = hidden, location = "all" } } }).favorites, 0, "restricted favorite owners are rejected")
-equal(#browser:InitializeOptions({ favorites = { { query = "Bad|Text", location = "all" } } }).favorites, 0, "saved chat markup cannot enter search labels")
+equal(#browser:InitializeOptions({ favorites = { { query = "Bad|Text" } } }).favorites, 0, "saved chat markup cannot enter search labels")
 for index = 2, 8 do browser.query = "View " .. index; browser:SaveView() end
 equal(#browser:Options().favorites, 8, "saved searches have a bounded capacity")
 browser.query = "Ninth view"; equal(browser:SaveView(), false, "full saved-search list refuses another entry explicitly")
@@ -139,21 +130,15 @@ equal(#browser:Options().favorites, 8, "capacity cannot overwrite an existing fa
 browser:LoadView(1); browser:SaveView()
 equal(#browser:Options().favorites, 7, "explicit removal frees a favorite slot")
 
-browser.query, browser.owner, browser.location = "", nil, "all"; browser:Update()
-local allScope = browser.owner
+browser.query = ""; browser:Update()
+local allResults = browser.rows
 browser.buttons[1].OnClick()
-equal(browser.owner ~= allScope, true, "ordinary result click drills into its actual owner")
-browser.owner = nil; browser:SetLocation("account")
-equal(browser.ownerButton.enabled, false, "shared-bank scope cannot imply a character owns another copy")
-equal(browser.summary:GetText(), "2 results · 9 items recorded", "shared-only view counts shared items once")
-browser:SetLocation("all"); browser.owner = "empty"; browser:Update()
-equal(browser.coverage:GetText():find("Bags: 1m ago", 1, true) ~= nil, true, "known empty bag retains its capture date")
-equal(browser.empty:IsShown(), true, "empty recorded scope has a readable empty state")
+equal(browser.rows, allResults, "ordinary result clicks leave the account-wide results in place")
 chars.empty.bags.items[999] = hidden; search:InventoryChanged(); Flush()
-equal(browser.coverage:GetText():find("Partial record", 1, true) ~= nil, true, "invalid item rows are disclosed as partial rather than known complete")
+equal(browser.coverage:GetText():find("Some data incomplete", 1, true) ~= nil, true, "invalid item rows are disclosed as partial rather than known complete")
 
 -- Uncached metadata is requested in finite batches and never turns into idle polling.
-browser.owner, browser.location, browser.query = "alt", "bags", ""
+browser.query = ""
 for id = 500, 534 do chars.alt.bags.items[id] = 1 end
 search:InventoryChanged(); browser:Update(); Flush(); Flush()
 local requested = 0; for id = 500, 534 do requested = requested + (requests[id] or 0) end
@@ -172,7 +157,7 @@ equal(gui.contentHeight >= gui.controlsOffset + dashboard.panel:GetHeight() + 36
 for _, row in ipairs(browser.buttons) do
     local _, x, y = row:GetPoint()
     equal(x == 0 and row:GetWidth() == 780, true, "item row width matches the hub content")
-    equal(-y + row:GetHeight() < browser.panel:GetHeight(), true, "item rows remain above the bank action and notice")
+    equal(-y + row:GetHeight() < browser.panel:GetHeight(), true, "item rows remain above the footer notice")
 end
 gui:ScrollTo(0)
 IsShiftKeyDown = function() return false end
@@ -194,7 +179,7 @@ IsShiftKeyDown = function() return false end
 local oldHeight, oldCreated = browser.panel:GetHeight(), created
 browser:Schedule(); Combat(true); browser:OnEvent("PLAYER_REGEN_DISABLED")
 equal(Pending(), 0, "combat entry cancels pending metadata work")
-browser:Schedule(); browser:Refresh(); browser:SetLocation("bank"); browser:SaveView()
+browser:Schedule(); browser:Refresh(); browser:SetFilter("age", "stale"); browser:SaveView()
 equal(browser.panel:GetHeight(), oldHeight, "combat cannot resize the browser")
 equal(created, oldCreated, "combat cannot create browser widgets")
 equal(type(Suite.pending.inventoryBrowserView), "function", "combat refresh retains one guarded request")
@@ -205,9 +190,9 @@ Combat(false)
 dashboard:SetView("characters")
 equal(dashboard.rosterPanel:IsShown(), true, "returning to Characters restores the original roster")
 dashboard.search:SetText("Alt"); dashboard.search.OnTextChanged(dashboard.search)
-dashboard.browseButton.OnClick()
-equal(browser.owner, "alt", "selected-character action opens the matching inventory")
-equal(dashboard.view, "inventory", "selected-character action reaches the Inventory tab")
+equal(dashboard.bankBrowseButton ~= nil, true, "the character's saved bank action remains available on the roster")
+dashboard.viewTabs.inventory.OnClick()
+equal(dashboard.view, "inventory", "the Inventory tab remains available beside the roster")
 GetCurrentRegion = function() return hidden end; search.index = nil; browser:Update()
 equal(browser.coverage:GetText(), "Character region unavailable.", "restricted region cannot retain another scope's coverage")
 equal(#browser.rows, 0, "unknown region suppresses all saved item rows")

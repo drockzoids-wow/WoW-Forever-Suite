@@ -1,5 +1,25 @@
 # Forever Suite in game testing
 
+## Contacts group selector layering (in-game opening confirmed)
+
+The user confirmed that **Groups: Choose…** now opens in front of Contacts in-game. Group assignment, **All groups…**, Inventory filter menus, and dismissal with Escape or an outside click remain available for follow-up testing.
+
+## Account-wide inventory search (in-game test pending)
+
+Search for an item recorded in several characters' bags and banks and in the shared bank. All matches should appear, with shared stock counted once. Open a category originally saved for a single character or location and check that its item filters still apply to all records. Confirm that the Characters tab still opens a selected character's saved bank.
+
+## Inventory filters and settings border (in-game test pending)
+
+Open Characters & Inventory, select Inventory, and check the four filter buttons before scrolling. The buttons should have room for their full outlines, including the bottom edge. Check that the left and bottom window borders remain visible beside the sidebar. Repeat at a different UI scale.
+
+## Restock vendor docking (in-game test pending)
+
+Open a vendor and click **Show Restock** beside the bottom tabs. Check that Restock lines up with the vendor's top-right edge and follows it when the vendor moves. At the right edge of the screen, check that Restock opens on the left if it fits. Click **Hide Restock** and reopen it without leaving the vendor. Drag Restock independently and check that it keeps its chosen position when reopened. Close the vendor with both Restock views and verify that the companion closes. Open `/wfs restock` away from the vendor to check the standalone Saved list.
+
+## Restock shortage and bundle layout (in-game retest pending)
+
+With 33 Homemade Cherry Pie carried and a target of 40, open Innkeeper Allison's vendor offers. Expect **Need 7**, **Buy 5**, and a note reading **Bundles of 5 · 2 still needed** beneath the item name. Check that the note stays within the Item column. After buying, expect **Carried 38**, **Need 2**, **Buy 0**, and a note explaining that another bundle exceeds the target. The Saved list shows targets without the vendor columns.
+
 ## Contact mail subjects — November 18, 2026
 
 The user confirmed that selecting an alt fills a blank Subject and reported that **Alt mail** still persisted when selecting a guild member after the first follow-up. Retest after `/reload` with Contacts with Send Mail enabled. Start with a blank subject, select an alt, then a guild member, then someone in Other. Expect **Alt mail**, **Guild mail**, then a blank Subject. From a custom group containing an alt, select that alt and check that no default appears. Try All contacts for both an alt and a guild member. Retype **Alt mail** yourself and switch recipients to verify the typed subject stays. Check that Send remains manual and watch for blocked actions.

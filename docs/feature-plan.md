@@ -1,5 +1,17 @@
 # Forever Suite feature plan
 
+## Account-wide inventory search
+
+The Inventory tab searches all recorded bags and banks in the current region, with filters for item type, quality and record age. Open an individual saved bank from the Characters tab.
+
+## Restock vendor docking
+
+Attach Restock to the right of the merchant when space allows and use a button beside the vendor tabs to show or hide it. A manual drag overrides the default placement.
+
+## Restock shortage and bundle layout
+
+Show the exact carried shortage in **Need** and the purchasable quantity in **Buy**. Keep bundle notes within the Item column and retain the saved target as the purchase cap.
+
 ## Contact mail subjects — November 18, 2026
 
 Use **Alt mail** for a known alt and **Guild mail** for a guild member. Subject defaults follow the recipient in All contacts. Other and custom groups leave the subject blank when switching from a Suite default. Preserve player-entered subjects.

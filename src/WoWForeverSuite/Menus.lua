@@ -50,7 +50,8 @@ function Menus:Create()
     if self.frame or InCombatLockdown() then return end
     local frame = CreateFrame("Button", nil, UIParent)
     self.frame, self.rows = frame, {}
-    frame:Hide(); frame:SetAllPoints(UIParent); frame:SetFrameStrata("DIALOG")
+    -- A raised Suite window can cover a sibling popup on the same strata.
+    frame:Hide(); frame:SetAllPoints(UIParent); frame:SetFrameStrata("FULLSCREEN_DIALOG")
     frame:EnableMouse(true); frame:EnableKeyboard(true)
     frame:RegisterForClicks("AnyUp")
     frame:SetScript("OnClick", function() self:Close() end)
@@ -116,8 +117,6 @@ function Menus.CreateContextMenu(owner, generate)
         owner:HookScript("OnHide", Dismiss)
         if owner.HasScript and owner:HasScript("OnDisable") then owner:HookScript("OnDisable", Dismiss) end
     end
-    local level = math.max(540, owner:GetFrameLevel() + 20)
-    Menus.frame:SetFrameLevel(level); Menus.list:SetFrameLevel(level + 1)
     Menus.list:ClearAllPoints(); Menus.list:SetPoint("TOPLEFT", owner, "BOTTOMLEFT", 0, -3)
     Menus:Render(); Menus.frame:SetPropagateKeyboardInput(true); Menus.frame:Show()
 end

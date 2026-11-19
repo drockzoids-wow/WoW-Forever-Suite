@@ -24,6 +24,7 @@ local function Flush()
     for _,timer in ipairs(work)do if not timer.cancelled then if timer.delay<1 then timer.callback()else timers[#timers+1]=timer end end end
 end
 MerchantFrame=Frame();MerchantFrame:Show();MerchantFrame.selectedTab=1
+MerchantFrame.rect={40,200,200,420}
 Suite.Vendor.MerchantOpen=function()return visiting end
 UnitGUID=function(unit)equal(unit,"npc","restock uses current merchant identity");return guid end
 GetMoney=function()return money end
@@ -65,6 +66,8 @@ equal(Suite.db.professionShopping,false,"restocking does not enable profession i
 equal(restock.rows[1].quantity,22,"carried deficit determines quantity")
 equal(restock.rows[1].cost,220,"price is per merchant purchase bundle")
 equal(restock.frame:GetNumPoints()>0,true,"standalone restock review is anchored")
+equal(restock.frame.point[2],MerchantFrame,"vendor Restock keeps a live merchant anchor")
+equal(restock.frame.point[3],"TOPRIGHT","vendor Restock docks to the right by default")
 counts={};supplies.db.entries={}
 offers={Offer(100,1),Offer(777,5,100,-1,20)};offers[2].name="Homemade Cherry Pie"
 local cursorKind,cursorValue,clears="merchant",2,0
@@ -95,12 +98,16 @@ equal(#requests,0,"dropping an unsold item still sends no purchases")
 restock.selected[777]=true;restock:Refresh();equal(restock:Start(),true,"explicit purchase works for a dropped vendor target")
 Confirm()
 equal(counts[777],10,"restocking buys the saved quantity from zero stock")
+restock.frame.listTab.OnClick()
 visiting=false;restock:OnEvent("MERCHANT_CLOSED")
+equal(restock.frame:IsShown(),false,"closing the merchant closes its companion in the Saved list view")
 SlashCmdList.WOWFOREVERSUITE("restock")
 equal(restock.frame:IsShown(),true,"the saved list opens away from the vendor")
+equal(restock.frame.point[2],UIParent,"the standalone saved list detaches from the merchant")
 equal(restock.frame.buy:IsShown(),false,"standalone list hides purchase controls")
 equal(restock.frame.rows[2].entry.id,888,"standalone list includes targets from other vendors")
 local savedRow=restock.frame.rows[2]
+equal(savedRow.need:IsShown(),false,"the saved list hides the vendor shortage column")
 savedRow.target:SetText("12");savedRow.target.OnEnterPressed(savedRow.target)
 equal(supplies.db.entries[2].wanted,12,"standalone edits update the carried target")
 savedRow.automatic:SetChecked(true);savedRow.automatic.OnClick(savedRow.automatic)
@@ -126,6 +133,18 @@ equal(restock.rows[1].quantity,5,"bundle rounds down rather than exceeding targe
 equal(restock.rows[1].cost,100,"bundle pricing is not multiplied as a per-item price")
 Select();restock:Start();Confirm();equal(counts[100],8,"bundle remainder is left for manual choice")
 equal(restock.job,nil,"bundle-limited reviewed quantity completes without overbuying")
+Review(40,33);offers[1]=Offer(100,5,3600,-1,20);restock:Refresh()
+local bundleRow=restock.frame.rows[1]
+equal(tonumber(bundleRow.need:GetText()),7,"Need shows the exact shortage from 33 to 40")
+equal(tonumber(bundleRow.buy:GetText()),5,"Buy shows the whole bundle that fits under the target")
+equal(bundleRow.note:GetText(),"Bundles of 5 · 2 still needed","bundle note explains the remaining shortage")
+equal(bundleRow.note:GetWidth(),bundleRow.name:GetWidth(),"item details share the Item column width")
+equal(bundleRow.note.point[2]+bundleRow.note:GetWidth()<bundleRow.carried.point[2],true,"item details end before Carried")
+equal(bundleRow.note.wordWrap,false,"item details stay on one line")
+Select();restock:Start();Confirm()
+equal(tonumber(bundleRow.need:GetText()),2,"after purchase, Need shows the remaining shortage")
+equal(tonumber(bundleRow.buy:GetText()),0,"another bundle would exceed the target")
+equal(bundleRow.note:GetText(),"Bundles of 5 · exceeds target","the row explains why Buy is zero")
 Review();local nativeInfo=C_Item.GetItemInfo;local metadataRequests=0
 C_Item.GetItemInfo=function()return nil end;C_Item.RequestLoadItemDataByID=function()metadataRequests=metadataRequests+1 end
 restock:Refresh();restock:Refresh()
@@ -146,6 +165,7 @@ Review(25,20);bagSize=1;restock:Refresh();equal(restock.rows[1].quantity,0,"full
 Review(25,3);bagSize=1;restock:Refresh();equal(restock.rows[1].quantity,17,"partial stack space remains usable without empty slots")
 Review();family=32;restock:Refresh();equal(restock.rows[1].quantity,17,"specialty empty slots are excluded conservatively")
 Review();unreadable=true;restock:Refresh();equal(restock.rows[1].quantity,0,"unreadable bag contents never become zero carried stock")
+equal(restock.frame.rows[1].need:GetText(),"?","unreadable bag counts show an unknown shortage")
 Review();locked=true;restock:Refresh();equal(restock.rows[1].quantity,0,"locked bag contents pause purchasing")
 Review();offers[1].price=10000;restock:Refresh();Select();equal(restock:Start(),false,"reviewed total cannot exceed available gold")
 equal(#requests,0,"insufficient gold sends no purchases")
@@ -216,7 +236,15 @@ equal(restock.frame:IsShown(),true,"vendor visit opens the default shortage conf
 equal(restock.frame.buy:GetText(),"Buy 20 items","confirmation names the actual missing quantity")
 equal(restock.frame.total:GetText():find("1g 44s 0c",1,true)~=nil,true,"confirmation shows the exact total")
 equal(#requests,0,"an unchecked target never purchases on opening")
-restock.frame:Hide();restock:OnEvent("MERCHANT_UPDATE");Flush()
+equal(restock.launcher:GetText(),"Hide Restock","vendor toggle reflects the visible companion")
+equal(restock.launcher.point[3],"BOTTOMRIGHT","vendor toggle sits beside the native bottom tabs")
+restock.launcher.OnClick()
+equal(restock.frame:IsShown(),false,"vendor toggle hides the companion")
+equal(restock.launcher:GetText(),"Show Restock","vendor toggle reflects the hidden companion")
+restock.launcher.OnClick()
+equal(restock.frame:IsShown(),true,"vendor toggle reopens the companion")
+equal(restock.frame.point[2],MerchantFrame,"reopening from the vendor toggle restores the dock")
+restock.launcher.OnClick();restock:OnEvent("MERCHANT_UPDATE");Flush()
 equal(restock.frame:IsShown(),false,"a merchant update cannot reopen a skipped confirmation")
 equal(#requests,0,"skipping a confirmation never purchases")
 Visit()

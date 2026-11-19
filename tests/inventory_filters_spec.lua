@@ -18,20 +18,18 @@ C_Item = { GetItemInfo = function(id)
     return "Item " .. id,nil,id == 1 and 2 or 3,1,1,"Type","Subtype",20,id == 2 and "INVTYPE_HEAD" or "",123,0,id == 3 and 0 or 7,0,0,0,nil,id == 1
 end, RequestLoadItemDataByID = function() end }
 search.index, search.metadata, search.requested = nil, {}, {}
-local function Query(filters, owner, location) return search:Query("",{browse=true,filters=filters,owner=owner,location=location}) end
-local rows = Query({age="recent"},"main")
+local function Query(filters) return search:Query("",{browse=true,filters=filters}) end
+local rows = Query({age="recent"})
 equal(#rows,4,"recent source filter retains current bags")
 equal(rows[1].bank,nil,"old bank excluded independently from same owner's fresh bags")
-rows = Query({age="stale"},"main")
-equal(#rows,1,"stale source filter isolates personal bank")
+rows = Query({age="stale"})
+equal(#rows,2,"stale source filter includes personal and shared banks")
 equal(rows[1].bank,3,"stale filter uses only old source counts")
 equal(rows[1].bags,nil,"fresh bags not added to stale bank")
+equal(rows[2].account,5,"shared bank counts once and the exact 24h boundary is stale")
 rows = Query({age="unknown"})
 equal(#rows,1,"future timestamps are unknown rather than recent")
 equal(rows[1].owner.guid,"alt","unknown age points to actual source")
-rows = Query({age="stale"},"main","account")
-equal(#rows,1,"explicit shared scope counted once despite retained owner")
-equal(rows[1].account,5,"exact 24h boundary is stale")
 rows = Query({kind="reagents"})
 equal(#rows,3,"reagent filter uses native boolean and preserves owners")
 rows = Query({kind="equipment"})
@@ -50,8 +48,15 @@ equal(pending,1,"partial metadata reported while filtering")
 equal(search.requested[4],true,"partial metadata receives finite async request")
 equal(#Query({kind=false}),0,"malformed filter rejects rather than widens results")
 equal(search:NormalizeFilters({age="future"}),nil,"unknown enum is rejected")
-local migrated = browser:InitializeOptions({favorites={{query="Ore",location="all"}}})
+local migrated = browser:InitializeOptions({favorites={
+    {name="My Ore",query="Ore",owner="main",location="bags"},
+    {name="Alt Ore",query="Ore",owner="alt",location="bank"},
+}})
 equal(migrated.favorites[1].filters.kind,"all","old saved searches migrate to unrestricted categories")
+equal(migrated.favorites[1].name,"My Ore","the first saved name survives when two categories become equivalent")
+equal(#migrated.favorites,1,"obsolete scopes no longer distinguish identical categories")
+equal(migrated.favorites[1].owner,nil,"old saved owner is removed")
+equal(migrated.favorites[1].location,nil,"old saved location is removed")
 local normalized = browser:InitializeOptions({favorites={{name="Metals",query="",location="bank",filters={kind="reagents",quality="2",age="stale"}}}})
 equal(normalized.favorites[1].name,"Metals","custom category names retained")
 equal(normalized.favorites[1].filters.age,"stale","category source age retained")
@@ -62,7 +67,7 @@ browser:LoadView(1)
 equal(browser.filters.kind,"reagents","loading category restores item type")
 browser.filters.kind="equipment"
 equal(normalized.favorites[1].filters.kind,"reagents","active filters do not alias saved category rules")
-browser.query, browser.location, browser.owner = "", "bank", nil
+browser.query = ""
 browser:SaveView()
 equal(#normalized.favorites,2,"different filters distinguish saved categories with same query")
 Restore(search,savedSearch); Restore(browser,savedBrowser)

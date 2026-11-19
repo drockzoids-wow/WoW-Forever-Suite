@@ -65,8 +65,9 @@ function Suite.BindWindowDrag(frame, header, onMove, canStart)
 end
 
 -- Only callers owning the destination frame use this. Never move Blizzard panels.
--- Resolve geometry now and anchor to UIParent: opening a parent from its child cannot form a cycle.
-function Suite.PlaceWindow(frame, owner)
+-- Default to UIParent anchors so Suite launchers cannot form cycles. Only
+-- native host windows should be used as persistent companion anchors.
+function Suite.PlaceWindow(frame, owner, attachToOwner)
     if InCombatLockdown() or not Accessible(frame) or not Accessible(owner, true) then return false end
     if frame.suiteManualPosition or frame.suiteDragging then return false end
     if frame == owner then return false end
@@ -87,6 +88,17 @@ function Suite.PlaceWindow(frame, owner)
     left, bottom, width, height = left * sourceRatio, bottom * sourceRatio, width * sourceRatio, height * sourceRatio
     w, h = w * ratio, h * ratio
     local right, top, gap = left + width, bottom + height, 10
+    if attachToOwner then
+        if right + gap + w <= screenWidth then
+            frame:ClearAllPoints()
+            frame:SetPoint("TOPLEFT", owner, "TOPRIGHT", gap / ratio, 0)
+            return true
+        elseif left - gap - w >= 0 then
+            frame:ClearAllPoints()
+            frame:SetPoint("TOPRIGHT", owner, "TOPLEFT", -gap / ratio, 0)
+            return true
+        end
+    end
     local candidates = { { right + gap, top - h }, { left - gap - w, top - h },
         { left, bottom - gap - h }, { left, top + gap } }
     local best, overlap
