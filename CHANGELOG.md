@@ -1,5 +1,13 @@
 # Forever Suite
 
+## 1.0.23 — November 18, 2026
+
+- Restock docks beside the vendor window, on the right when there is room. Use **Show Restock** or **Hide Restock** beside the vendor tabs.
+- Restock shows the exact shortage in **Need** and the purchasable quantity in **Buy**. Short bundle notes stay in the Item column. Purchases still respect the saved target.
+- Inventory searches all recorded bags and banks in the current region. Saved categories keep their query and item filters. Shared bank contents count once.
+- Give Inventory filter buttons more vertical room and keep the settings border visible beside the sidebar.
+- Fix shared dropdowns opening behind Suite windows, including the group picker in Send Mail Contacts.
+
 ## 1.0.22 — November 18, 2026
 
 - Drag independent Suite windows by their titles. Custom placement stays in effect when you reopen them during the session.
