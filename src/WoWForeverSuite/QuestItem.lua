@@ -3,6 +3,12 @@ local QuestItem = {}
 Suite.QuestItem = QuestItem
 table.insert(Suite.modules, QuestItem)
 
+-- Some quest tools come from a container and have no special-item log button.
+-- A verified target supplies both the correct tool and the local objective.
+local corpseItems = {
+    [4512] = { [7086] = 11914, [7092] = 11948 },
+}
+
 local function Number(value)
     return Suite.IsReadable(value) and type(value) == "number" and value == value and math.abs(value) < 1000000000000
 end
@@ -43,20 +49,41 @@ function QuestItem:Find()
         if Suite.IsReadable(info) and type(info) == "table" and ID(info.questID, 1000000000)
             and Suite.IsReadable(info.isHeader) and info.isHeader ~= true
             and Suite.IsReadable(info.isHidden) and info.isHidden ~= true then
-            local link, icon = Read(GetQuestLogSpecialItemInfo, index)
-            local item = Text(link, 2048) and tonumber(link:match("item:(%d+)")) or nil
-            if ID(item) then
+            local link, icon, item, range, rank, distance
+            local targets = corpseItems[info.questID]
+            if targets then
+                local guid = Read(UnitGUID, "target")
+                local npcID = Text(guid, 128) and tonumber(guid:match("^Creature%-%d+%-%d+%-%d+%-%d+%-(%d+)%-[%x]+$"))
+                item = targets[npcID]
+            end
+            local corpse = item ~= nil
+            if corpse then
+                link = "item:" .. item
+                icon = Read(C_Item and C_Item.GetItemIconByID, item)
+                range = Read(C_Item and C_Item.IsItemInRange, item, "target")
+                rank, distance = 3, math.huge
+            else
+                link, icon = Read(GetQuestLogSpecialItemInfo, index)
+                item = Text(link, 2048) and tonumber(link:match("item:(%d+)")) or nil
+                if ID(item) then
+                    local inside = Read(C_Minimap and C_Minimap.IsInsideQuestBlob, info.questID) == true
+                    local sameContinent
+                    distance, sameContinent = Read(api.GetDistanceSqToQuest, info.questID)
+                    local nearby = sameContinent == true and Number(distance) and distance >= 0 and distance <= 62500
+                    if inside or nearby then
+                        range = Read(IsQuestLogSpecialItemInRange, index)
+                        rank, distance = inside and 2 or 1, nearby and distance or math.huge
+                    end
+                end
+            end
+            if rank then
                 local countCarried = Read(C_Item and C_Item.GetItemCount, item, false, false, false, false)
-                local inside = Read(C_Minimap and C_Minimap.IsInsideQuestBlob, info.questID) == true
-                local distance, sameContinent = Read(api.GetDistanceSqToQuest, info.questID)
-                local nearby = sameContinent == true and Number(distance) and distance >= 0 and distance <= 62500
-                if ID(countCarried, 1000000000) and (inside or nearby) then
-                    local range = Read(IsQuestLogSpecialItemInRange, index)
+                if ID(countCarried, 1000000000) then
                     local candidate = { questID = info.questID, index = index, id = item, link = link,
                         icon = ID(icon, 2147483647) and icon or 134400,
                         title = Text(info.title, 256) and info.title or "Quest item", count = countCarried,
-                        rank = inside and 2 or 1, tracked = info.questID == tracked,
-                        distance = nearby and distance or math.huge, range = range == false or range == 0 }
+                        rank = rank, tracked = info.questID == tracked, corpse = corpse,
+                        distance = distance, range = range == false or range == 0 }
                     if not best or candidate.rank > best.rank or candidate.rank == best.rank
                         and (candidate.tracked and not best.tracked or candidate.tracked == best.tracked
                             and (candidate.distance < best.distance or candidate.distance == best.distance and candidate.questID < best.questID)) then
@@ -150,7 +177,8 @@ function QuestItem:Build()
         end
         local fresh = self:Enabled() and not self.moving and not self.suppressClick and CursorEmpty() and self:Find()
         local old = self.candidate
-        if mouse ~= "LeftButton" or not fresh or not old or fresh.id ~= old.id or fresh.questID ~= old.questID then
+        if mouse ~= "LeftButton" or not fresh or not old or fresh.id ~= old.id
+            or fresh.questID ~= old.questID or fresh.corpse ~= old.corpse then
             button:SetAttribute("type1", nil)
         else
             -- A new deliberate click may precede the queued post-drag refresh.
@@ -186,9 +214,10 @@ function QuestItem:Refresh()
     if not self:Build() or self.moving then return end
     local candidate = self:Find(); self.candidate = candidate
     -- Native targeting and item restrictions apply to mouse and binding clicks.
-    -- Keep the prepared item stable throughout combat; block use while dead.
+    -- Keep the prepared item stable throughout combat. Corpse tools require a dead target.
     self.button:SetAttribute("type1", candidate and "macro" or nil)
-    self.button:SetAttribute("macrotext1", candidate and "/use [nodead] item:" .. candidate.id or nil)
+    self.button:SetAttribute("macrotext1", candidate and (candidate.corpse and "/use [@target,dead] item:"
+        or "/use [nodead] item:") .. candidate.id or nil)
     if candidate then
         self.button.icon:SetTexture(candidate.icon)
         self.button.icon:SetVertexColor(1, candidate.range and 0.25 or 1, candidate.range and 0.25 or 1)

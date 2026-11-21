@@ -1,7 +1,7 @@
 local Suite, equal, Frame, SetCombat = ...
 local module = Suite.QuestItem
 local names = { "CreateFrame", "RegisterStateDriver", "C_Timer", "C_QuestLog", "C_Item", "C_Minimap", "C_SuperTrack", "C_EventUtils",
-    "GetQuestLogSpecialItemInfo", "IsQuestLogSpecialItemInRange", "UnitIsDeadOrGhost", "GetUnitSpeed", "GetCursorInfo", "IsControlKeyDown", "UIParent", "GameTooltip" }
+    "GetQuestLogSpecialItemInfo", "IsQuestLogSpecialItemInRange", "UnitIsDeadOrGhost", "UnitGUID", "GetUnitSpeed", "GetCursorInfo", "IsControlKeyDown", "UIParent", "GameTooltip" }
 local old, saved = {}, {}
 for _, name in ipairs(names) do old[name] = _G[name] end
 for key, value in pairs(module) do saved[key] = value end
@@ -224,6 +224,45 @@ rows[1].link = "item:100"
 
 SetCombat(false); Suite.pending.questItemRefresh(); Suite.pending.questItemRefresh = nil
 equal(module.candidate.id, 100, "post-combat refresh uses fresh public quest data")
+
+-- Quest 4512 provides the jars inside a container, without a native shortcut.
+do
+    local originalRows, originalCarried = rows, carried
+    local target, targetRange
+    UnitGUID = function(unit)
+        assert(unit == "target", "corpse item detection reads only the selected target")
+        return target
+    end
+    C_Item.GetItemIconByID = function(item) return item + 100000 end
+    C_Item.IsItemInRange = function(_, unit)
+        assert(unit == "target", "corpse item range is checked against the selected target")
+        return targetRange
+    end
+    rows, carried = {{ id = 4512, distance = 9000000, same = false }}, { [11914] = 4, [11948] = 6 }
+    equal(module:Find(), nil, "carried jars alone do not select a quest item")
+    target = "Creature-0-1-2-3-7086-000000001A"
+    module:OnEvent("PLAYER_TARGET_CHANGED"); Drain()
+    equal(module.candidate.id, 11914, "Cursed Ooze selects the Cursed Ooze Jar without a native shortcut")
+    equal(module.candidate.icon, 111914, "fallback reads the carried jar's icon by item ID")
+    equal(module.candidate.count, 4, "fallback shows the carried jar quantity")
+    equal(module.button:GetAttribute("macrotext1"), "/use [@target,dead] item:11914", "jar uses the selected corpse")
+    target, targetRange = "Creature-0-1-2-3-7092-000000001B", false
+    module.button.PreClick(module.button, "LeftButton", false)
+    equal(module.button:GetAttribute("type1"), nil, "a target change before refresh cannot use the old jar")
+    module:OnEvent("PLAYER_TARGET_CHANGED"); Drain()
+    equal(module.candidate.id, 11948, "Tainted Ooze selects the Tainted Ooze Jar")
+    equal(module.button.icon.vertexColor[2], 0.25, "native false range tints the fallback item")
+    carried[11948] = 0; equal(module:Find(), nil, "the other carried jar cannot substitute for a missing jar")
+    carried[11948] = 6
+    rows[1].id = 4513; equal(module:Find(), nil, "a similarly named quest cannot authorize a jar")
+    rows[1].id = 4512
+    for _, guid in ipairs({ "Creature-0-1-2-3-9999-000000001B", "Player-0-1-2-3-7092-000000001B", { secret = true } }) do
+        target = guid
+        equal(module:Find(), nil, "unrelated or unreadable targets do not authorize the fallback")
+    end
+    rows, carried = originalRows, originalCarried
+    module:Refresh()
+end
 Suite.db.questItemButton = false; SetCombat(true); module:Apply()
 equal(next(module.events.registered), nil, "disable removes quest helper events immediately")
 SetCombat(false); Suite.pending.questItemDisable(); Suite.pending.questItemDisable = nil

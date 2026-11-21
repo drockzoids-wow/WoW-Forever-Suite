@@ -1,5 +1,19 @@
 # WoW Forever addon development reference
 
+## Profession waypoint arrow — November 21, 2026
+
+Reviewed the local Forever Guides Navigation.lua reference for its shared world coordinates, player-relative bearing and distance divided by speed. Suite uses its existing native waypoint and world-position helpers with an original faceted gold pointer texture. Recipe warnings and Route recipes share the same launch action. The HUD is independent of the crafting window. It samples position, pin, distance and ETA every 0.15 seconds. An animation handler runs only while there is a valid bearing. It applies live facing every frame and eases changes in the sampled world bearing along the shortest arc. Navigation stops on replacement, pin removal, arrival within five yards, or feature disable. Different world spaces and restricted positions suppress the arrow until usable data returns. ETA is straight-line distance divided by current movement speed, or run speed while stationary.
+
+The first native test found no visible arrow. The revised HUD opens while the new pin is being confirmed, accepts native coordinate vectors in multiple return shapes, and uses the player map projection if the direct world position is unavailable. Reviewed the installed Zygor pointer and its world-space conversion as a behavior reference. The gold arrow and two-line display follow the local Forever Guides visual reference.
+
+## Felwood ooze jars in the quest-item button — November 20, 2026
+
+A Little Slime Goes a Long Way (4512) provides a package containing two quest tools. The nearby button now pairs the carried Empty Cursed Ooze Jar (11914) with Cursed Ooze (7086), and the Empty Tainted Ooze Jar (11948) with Tainted Ooze (7092). The fallback requires an active visible quest and a readable matching target, so it works even when the quest log exposes no special item or nearby objective. The secure use action requires a dead target. Existing combat deferral applies to changing the selected jar. [Forever quest data](https://www.wowhead.com/forever/quest=4512/a-little-slime-goes-a-long-way)
+
+## Quick loot manual override — November 20, 2026
+
+The user reproduced the Shift bypass failure with Suite Quick loot enabled and confirmed the native bypass worked after disabling Quick loot. Quick loot still requires the native ready event to allow automatic looting. Before making slot or bulk requests, it also checks the configured AUTOLOOTTOGGLE modifier and the native autoLootDefault setting. With the modifier held, it leaves the source to WoW unless the setting clearly permits modifier-enabled auto-loot. A manual choice remains in effect until loot closes. No native setting or binding is changed.
+
 ## Contacts with missing realm labels — November 20, 2026
 
 The current SavedVariables still contained 10 PvE contact records when Contacts appeared empty. On build 71037, both realm-name APIs can return empty strings even when player GUID and region are available. Contacts now uses a known ruleset from the signed-in character's inventory or contact record only when both live labels are absent. Recovery requires the same GUID and region. A live ruleset still takes precedence, and unknown or restricted labels keep contacts scoped out. The recovered scope is shared by the standalone book, Send Mail helper, and live guild roster.

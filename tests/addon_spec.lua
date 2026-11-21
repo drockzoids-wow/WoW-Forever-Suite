@@ -129,7 +129,11 @@ local function Frame(name)
         text.drawLayer = layer
         return text
     end
-    frame.CreateTexture = function() return Frame() end
+    frame.CreateTexture = function()
+        local texture = Frame()
+        texture.SetRotation = function(self, radians) self.rotation = radians end
+        return texture
+    end
     frame.CreateLine = function() return Frame() end
     frame.CreateMaskTexture = function() return Frame() end
     frame.SetOrientation = function(self, orientation) self.orientation = orientation end

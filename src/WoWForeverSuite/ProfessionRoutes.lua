@@ -233,6 +233,7 @@ function Routes:Render(guide, rank, y)
         widget.detail:SetText("Guide skill " .. table.concat(entry.ranges, ", ") .. " · " .. entry.kind .. "\n" .. entry.source .. "\n" .. entry.requirements)
         local height = top + widget.detail:GetStringHeight() + 8
         widget.action.recipeID, widget.action.guideIndex, widget.action.recipeRow = entry.id, leveling.selected, widget
+        widget.action.recipeName = entry.name
         local location = entry.learned == false and leveling:RecipeLocation(entry.id, leveling:RecipeSource(entry.id))
         widget.action:SetShown(location ~= nil and location ~= false)
         if location then widget.action:ClearAllPoints(); widget.action:SetPoint("TOPLEFT", 0, -height); height = height + 29 end

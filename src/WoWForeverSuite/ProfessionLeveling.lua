@@ -202,8 +202,15 @@ function Leveling:RecipeTraining(id)
 end
 local function Coordinate(value) return Read(value, "number") and value == value and math.abs(value) < 10000000 end
 local function Vector(position, normalized)
-    local x = Call(Field(position, "GetX"), position)
-    local y = Call(Field(position, "GetY"), position)
+    local x = Call(Field(position, "GetX"), position) or Field(position, "x")
+    local y = Call(Field(position, "GetY"), position) or Field(position, "y")
+    if not Coordinate(x) or not Coordinate(y) then
+        local get = Field(position, "GetXY")
+        if not Read(get, "function") then return end
+        local ok
+        ok, x, y = pcall(get, position)
+        if not ok then return end
+    end
     if not Coordinate(x) or not Coordinate(y) then return end
     if normalized and (x < 0 or x > 1 or y < 0 or y > 1 or x == 0 and y == 0) then return end
     return x, y
@@ -283,6 +290,162 @@ function Leveling:RecipeLocation(id, source)
         return reference.neutral or faction and reference[faction] or nil
     end
 end
+local waypointVerbs = { Trainer = "Train", Vendor = "Buy recipe for", Quest = "Learn",
+    Manual = "Find manual for", Specialist = "Learn" }
+
+local function AngleDelta(angle)
+    return (angle + math.pi) % (2 * math.pi) - math.pi
+end
+
+local function RotateWaypointArrow(frame, elapsed)
+    local facing = Call(GetPlayerFacing)
+    if not Coordinate(facing) then frame.arrow:Hide(); return end
+
+    -- Smooth course changes from sampled positions, then apply live facing
+    -- directly so turning the character does not wait for the next sample.
+    local bearing = frame.renderedBearing or frame.bearing
+    local drift = AngleDelta(frame.bearing - bearing)
+    if math.abs(drift) <= 0.0005 then
+        bearing = frame.bearing
+    elseif elapsed > 0 then
+        bearing = bearing + drift * (1 - math.exp(-math.min(elapsed, 0.1) / 0.075))
+    end
+    frame.renderedBearing = bearing
+    local rotation = AngleDelta(bearing - facing)
+    if frame.rotation == nil or math.abs(AngleDelta(rotation - frame.rotation)) >= 0.0005 then
+        frame.arrow:SetRotation(rotation)
+        frame.rotation = rotation
+    end
+    if not frame.arrow:IsShown() then frame.arrow:Show() end
+end
+
+local function ClearWaypointBearing(frame)
+    if frame.bearing then frame:SetScript("OnUpdate", nil) end
+    frame.bearing, frame.renderedBearing, frame.rotation = nil, nil, nil
+    frame.arrow:Hide()
+end
+
+function Leveling:StopWaypointArrow()
+    self.waypoint = nil
+    if self.waypointTimer then self.waypointTimer:Cancel(); self.waypointTimer = nil end
+    if self.waypointFrame then
+        ClearWaypointBearing(self.waypointFrame)
+        self.waypointFrame:Hide()
+    end
+end
+
+function Leveling:CreateWaypointArrow()
+    local frame = CreateFrame("Frame", nil, UIParent)
+    frame:SetSize(340, 96); frame:SetPoint("TOP", UIParent, "TOP", 0, -116)
+    frame:SetFrameStrata("HIGH")
+    frame.title = Label(frame, 14, 0, -52, 340)
+    frame.title:SetJustifyH("CENTER"); frame.title:SetWordWrap(false)
+    frame.title:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
+    frame.title:SetTextColor(1, 0.79, 0.28)
+    frame.detail = Label(frame, 12, 0, -73, 340)
+    frame.detail:SetJustifyH("CENTER")
+    frame.detail:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+    frame.arrow = frame:CreateTexture(nil, "ARTWORK")
+    frame.arrow:SetSize(52, 52); frame.arrow:SetPoint("TOP")
+    frame.arrow:SetTexture("Interface\\AddOns\\WoWForeverSuite\\Media\\ProfessionWaypointArrow.tga")
+    self.waypointFrame = frame
+end
+
+local function WaypointOffset(waypoint)
+    if not waypoint.world then
+        waypoint.world, waypoint.north, waypoint.west = WorldPosition(waypoint.map, waypoint.position)
+    end
+    if waypoint.world and type(UnitPosition) == "function" then
+        local ok, north, west, _, world = pcall(UnitPosition, "player")
+        if ok and Coordinate(north) and Coordinate(west) and Number(world) and world == waypoint.world then
+            return waypoint.north - north, waypoint.west - west
+        end
+    end
+    if InCombatLockdown() then return end
+
+    -- A native map projection keeps player and pin in the same coordinate space.
+    local map = Call(Field(C_Map, "GetBestMapForUnit"), "player")
+    if not Number(map) then return end
+    local position = Call(Field(C_Map, "GetPlayerMapPosition"), map, "player")
+    local x, y = Vector(position, true)
+    if not x then return end
+    if waypoint.world then
+        local world, north, west = WorldPosition(map, position)
+        if world == waypoint.world then return waypoint.north - north, waypoint.west - west end
+    end
+    local mapSize = Field(C_Map, "GetMapWorldSize")
+    if not Read(mapSize, "function") then return end
+    local targetX, targetY = waypoint.x, waypoint.y
+    if map ~= waypoint.map then
+        targetX, targetY = Vector(Call(Field(C_Map, "GetUserWaypointPositionForMap"), map), true)
+        if not targetX then return end
+    end
+    local ok, width, height = pcall(mapSize, map)
+    if ok and Coordinate(width) and width > 0 and Coordinate(height) and height > 0 then
+        return (y - targetY) * height, (x - targetX) * width
+    end
+end
+
+function Leveling:UpdateWaypointArrow(pinChanged)
+    local waypoint, frame = self.waypoint, self.waypointFrame
+    if not waypoint then return end
+    if not self:Enabled() then self:StopWaypointArrow(); return end
+    local pin = Call(Field(C_Map, "GetUserWaypoint"))
+    local x, y = Vector(Field(pin, "position"))
+    local matches = Field(pin, "uiMapID") == waypoint.map and x
+        and math.abs(x - waypoint.x) <= 0.00015 and math.abs(y - waypoint.y) <= 0.00015
+    if not matches then
+        if waypoint.pending and waypoint.pending > 0 and not pinChanged then
+            -- The native waypoint can become readable after the setter returns.
+            waypoint.pending = waypoint.pending - 1
+            return
+        end
+        self:StopWaypointArrow(); return
+    end
+    waypoint.pending = nil
+
+    local north, west = WaypointOffset(waypoint)
+    if not north then
+        ClearWaypointBearing(frame)
+        frame.detail:SetText("Direction and ETA unavailable")
+        return
+    end
+    local yards = math.sqrt(north * north + west * west)
+    if yards <= 5 then self:StopWaypointArrow(); return end
+
+    local speed
+    if type(GetUnitSpeed) == "function" then
+        local read, current, run = pcall(GetUnitSpeed, "player")
+        if read then speed = Number(current) and current > 0 and current or Number(run) and run end
+    end
+    local seconds = speed and speed >= 0.01 and math.ceil(yards / speed)
+    local eta = seconds and string.format("~%d:%02d", math.floor(seconds / 60), seconds % 60) or "—"
+    local detail = string.format("%.0f yd  ·  ETA %s", yards, eta)
+    if frame.detail:GetText() ~= detail then frame.detail:SetText(detail) end
+
+    local bearing = math.acos(math.max(-1, math.min(1, north / yards)))
+    local wasTracking = frame.bearing ~= nil
+    frame.bearing = west < 0 and -bearing or bearing
+    if not wasTracking then frame:SetScript("OnUpdate", RotateWaypointArrow) end
+    RotateWaypointArrow(frame, 0)
+end
+
+function Leveling:StartWaypointArrow(location, point, label)
+    self:StopWaypointArrow()
+    if type(Field(C_Map, "GetUserWaypoint")) ~= "function" or type(Field(C_Timer, "NewTicker")) ~= "function" then return end
+    if not self.waypointFrame then self:CreateWaypointArrow() end
+    local frame = self.waypointFrame
+    self.waypoint = { map = location.map, x = location.x, y = location.y, pending = 7,
+        position = Field(point, "position") or Call(CreateVector2D, location.x, location.y) }
+    frame.title:SetText(label)
+    frame.detail:SetText("Locating waypoint…")
+    frame.arrow:Hide()
+    frame:Show()
+    self:UpdateWaypointArrow()
+    if not self.waypoint then return end
+    self.waypointTimer = C_Timer.NewTicker(0.15, function() self:UpdateWaypointArrow() end)
+end
+
 function Leveling:RecipeWaypoint(button)
     local row = Field(button, "recipeRow")
     if InCombatLockdown() or not self:Enabled() or not self.open or not Shown(self.owner) or not Shown(self.frame)
@@ -298,6 +461,10 @@ function Leveling:RecipeWaypoint(button)
     local ok, result = pcall(set, point)
     if not ok or not Suite.IsReadable(result) or result == false then return self:RecipeMessage("Could not set the recipe waypoint.") end
     Call(Field(C_SuperTrack, "SetSuperTrackedUserWaypoint"), true)
+    local reference = Suite.ProfessionRecipeSources[button.recipeID]
+    local verb = reference and waypointVerbs[reference.kind] or "Learn"
+    local name = Field(button, "recipeName")
+    self:StartWaypointArrow(location, point, Text(name) and verb .. " " .. name or location.name)
     self:RecipeMessage("Waypoint: " .. location.name)
 end
 function Leveling:SelectGuideRecipe(button)
@@ -500,6 +667,7 @@ function Leveling:StepMaterials(row, estimates, y, expanded)
                 row.trainingButtons[recipeIndex] = training
             end
             training.recipeID, training.guideIndex, training.recipeRow = estimate.recipeID, self.selected, row
+            training.recipeName = estimate.recipe
             training.source = self:RecipeSource(estimate.recipeID)
             training.location = self:RecipeLocation(estimate.recipeID, training.source)
             local reference = Suite.ProfessionRecipeSources[estimate.recipeID]
@@ -1148,7 +1316,7 @@ function Leveling:Discover()
 end
 function Leveling:Apply()
     if not self:Enabled() then
-        self:Cancel(); self.open = nil
+        self:Cancel(); self:StopWaypointArrow(); self.open = nil
         self.autoAttempt, self.autoTarget, self.autoBlocked, self.autoCrafting = nil, nil, nil, nil
         if self.events then self.events:UnregisterAllEvents() end
         self.active = nil
@@ -1161,6 +1329,7 @@ function Leveling:Apply()
         if not self.events then
             self.events = CreateFrame("Frame")
             self.events:SetScript("OnEvent", function(_, event, unit)
+                if event == "USER_WAYPOINT_UPDATED" then self:UpdateWaypointArrow(true); return end
                 if (event == "ZONE_CHANGED_NEW_AREA" or event == "ZONE_CHANGED" or event == "ZONE_CHANGED_INDOORS"
                     or event == "PLAYER_STOPPED_MOVING") and not self.open then return end
                 if event == "PLAYER_REGEN_DISABLED" then self:Cancel(); self:HideTooltip(); self:CloseGuideMenu(); self.open = nil; self.autoBlocked = true
@@ -1174,7 +1343,7 @@ function Leveling:Apply()
         if not self.active then
             for _, event in ipairs({ "ADDON_LOADED", "TRADE_SKILL_SHOW", "TRADE_SKILL_LIST_UPDATE",
                 "NEW_RECIPE_LEARNED", "TRADE_SKILL_DETAILS_UPDATE",
-                "ZONE_CHANGED_NEW_AREA", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "PLAYER_STOPPED_MOVING",
+                "ZONE_CHANGED_NEW_AREA", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "PLAYER_STOPPED_MOVING", "USER_WAYPOINT_UPDATED",
                 "TRADE_SKILL_DATA_SOURCE_CHANGED", "SKILL_LINES_CHANGED", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED",
                 "UPDATE_TRADESKILL_CAST_STOPPED", "UNIT_SPELLCAST_INTERRUPTED", "UNIT_SPELLCAST_FAILED" }) do
                 self.events:RegisterEvent(event)

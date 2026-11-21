@@ -12,13 +12,28 @@ local function Count(value)
         and value >= 0 and value <= 1000 and value == math.floor(value)
 end
 
+local function DeferToNativeLoot()
+    if type(IsModifiedClick) ~= "function" then return false end
+    local ok, modifier = pcall(IsModifiedClick, "AUTOLOOTTOGGLE")
+    if not ok or not Suite.IsReadable(modifier) then return true end
+    if modifier ~= true then return modifier ~= false and modifier ~= nil end
+
+    -- The same key requests auto-loot when the native default is off.
+    -- With the key held, only speed up loot when that direction is confirmed.
+    local getDefault = C_CVar and C_CVar.GetCVarBool
+    if type(getDefault) ~= "function" then return true end
+    local readable, default = pcall(getDefault, "autoLootDefault")
+    return not readable or not Suite.IsReadable(default) or default ~= false
+end
+
 function Loot:Ready(autoLoot)
     if not self.active or not Enabled() then return end
     local visit = self.visit
     if not visit then visit = {}; self.visit = visit end
-    -- The engine supplies the effective setting, including the player's auto-loot modifier.
+    -- Require the native auto-loot flag, then honor an explicit manual override.
     if not Suite.IsReadable(autoLoot) or autoLoot ~= true then visit.blocked = true end
     if visit.blocked or visit.requested then return end
+    if DeferToNativeLoot() then visit.blocked = true; return end
     if type(GetNumLootItems) ~= "function" or type(GetLootSlotType) ~= "function" or type(LootSlot) ~= "function" then
         local callback = C_LootFrame and C_LootFrame.TryAutoLoot
         if type(callback) == "function" then

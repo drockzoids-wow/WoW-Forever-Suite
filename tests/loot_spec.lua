@@ -1,12 +1,13 @@
 local Suite, equal, Frame, SetCombat = ...
 local loot = Suite.Loot
 local names = { "CreateFrame", "C_Timer", "Enum", "C_LootFrame", "GetNumLootItems", "GetLootSlotType", "LootSlot",
-    "SetCVar", "CloseLoot", "ConfirmLootSlot", "RollOnLoot", "GiveMasterLoot" }
+    "IsModifiedClick", "C_CVar", "SetCVar", "CloseLoot", "ConfirmLootSlot", "RollOnLoot", "GiveMasterLoot" }
 local saved = {}
 for _, name in ipairs(names) do saved[name] = _G[name] end
 local oldDB, oldPending, oldApply = Suite.db, Suite.pending, Suite.Apply
 local slots, sent, count, constructed, bulk = {}, {}, nil, 0, 0
 local queryEvent, actionEvent
+local lootModifier, autoLootDefault
 local function Secret() return { secret = true } end
 local function Fire(event, ...)
     if loot.events and loot.events.registered[event] then loot.events.OnEvent(loot.events, event, ...) end
@@ -14,6 +15,7 @@ end
 local function Fresh()
     loot.visit = nil; slots, sent, count, bulk = { 1, 2, 3, 0 }, {}, nil, 0
     queryEvent, actionEvent = nil, nil
+    lootModifier, autoLootDefault = false, true
     Suite.db.quickLoot = true; loot:Apply()
 end
 Suite.db, Suite.pending = Suite.InitializeDB(nil), {}
@@ -45,6 +47,14 @@ LootSlot = function(slot)
     if actionEvent then actionEvent(slot) end
 end
 C_LootFrame = { TryAutoLoot = function() bulk = bulk + 1 end }
+IsModifiedClick = function(action)
+    assert(action == "AUTOLOOTTOGGLE", "quick loot reads the configured loot modifier")
+    return lootModifier
+end
+C_CVar = { GetCVarBool = function(name)
+    assert(name == "autoLootDefault", "quick loot reads only the native Auto Loot setting")
+    return autoLootDefault
+end }
 loot:Apply(); equal(constructed, 0, "disabled loot module creates no frame")
 Fire("LOOT_READY", true); equal(#sent, 0, "disabled loot module takes no loot")
 SetCombat(true); Suite.db.quickLoot = true; loot:Apply()
@@ -68,6 +78,24 @@ Fire("LOOT_CLOSED"); Fire("LOOT_READY", true); equal(#sent, 6, "new loot session
 Fresh(); Fire("LOOT_READY", false); equal(#sent, 0, "manual loot and auto-loot bypass remain manual")
 Fire("LOOT_READY", true); equal(#sent, 0, "later ready event cannot defeat manual choice for this session")
 Fire("LOOT_CLOSED"); Fire("LOOT_READY", true); equal(#sent, 3, "effective auto-loot modifier can enable the next session")
+Fresh(); lootModifier = true; Fire("LOOT_READY", true)
+equal(#sent, 0, "held loot modifier overrides a true native ready flag when Auto Loot is enabled")
+lootModifier = false; Fire("LOOT_READY", true)
+equal(#sent, 0, "releasing the modifier does not restart automatic loot for the same window")
+Fire("LOOT_CLOSED"); Fire("LOOT_READY", true)
+equal(#sent, 3, "a fresh source still supports ordinary auto-loot")
+Fresh(); lootModifier, autoLootDefault = true, false; Fire("LOOT_READY", true)
+equal(#sent, 3, "the modifier enables quick loot when native Auto Loot is off")
+Fresh(); lootModifier, autoLootDefault = true, false; Fire("LOOT_READY", false)
+equal(#sent, 0, "the modifier cannot override a native manual-loot flag")
+for _, value in ipairs({ Secret(), 1, "true" }) do
+    Fresh(); lootModifier, autoLootDefault = true, value; Fire("LOOT_READY", true)
+    equal(#sent, 0, "an uncertain Auto Loot preference leaves held-modifier handling to WoW")
+end
+Fresh(); lootModifier, autoLootDefault = true, nil; Fire("LOOT_READY", true)
+equal(#sent, 0, "an unavailable Auto Loot preference leaves held-modifier handling to WoW")
+Fresh(); lootModifier = Secret(); Fire("LOOT_READY", true)
+equal(#sent, 0, "restricted modifier state leaves the source to WoW")
 for _, autoLoot in ipairs({ Secret(), 1, "true" }) do
     Fresh(); Fire("LOOT_READY", autoLoot); equal(#sent, 0, "unknown/restricted auto-loot state stays native")
 end
@@ -119,6 +147,8 @@ Fresh(); LootSlot = nil; Fire("LOOT_READY", true)
 equal(bulk, 1, "missing slot primitive uses the modern native loot-all service")
 Fire("LOOT_READY", true); equal(bulk, 1, "native bulk fallback also requests once per session")
 Fire("LOOT_CLOSED"); Fire("LOOT_READY", false); equal(bulk, 1, "bulk fallback respects manual loot")
+Fresh(); lootModifier = true; Fire("LOOT_READY", true)
+equal(bulk, 0, "the manual modifier also blocks the native bulk fallback")
 LootSlot = nativeLootSlot
 local nativeCount = GetNumLootItems
 Fresh(); GetNumLootItems = nil; Fire("LOOT_READY", true)

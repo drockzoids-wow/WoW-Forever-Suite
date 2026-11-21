@@ -331,6 +331,19 @@ GetCursorPosition = cursorBefore
 -- Choice menus show every option and reject callbacks from a stale UI context.
 local ChooseMenu=assert(loadfile("tests/menu_helper.lua"))(Suite)
 gui:OpenPage("professions")
+local recipeRow = gui.rows[5]
+equal(recipeRow.label.text, "Select current leveling recipe", "professions layout tests the recipe selection row")
+equal(recipeRow.help.width + recipeRow.help.point[2] < recipeRow.width - 14 - recipeRow.switch.width, true,
+    "recipe help wraps before the toggle column")
+local measureHelp = recipeRow.help.GetStringHeight
+recipeRow.help.GetStringHeight = function(self)
+    return self.height == 0 and 52 or self.height
+end
+recipeRow.help:SetHeight(13)
+gui:Select("professions")
+equal(recipeRow.help.height, 52, "a recycled settings row can grow to show all wrapped help")
+equal(recipeRow.height >= -recipeRow.help.point[3] + recipeRow.help.height, true, "help fits within the setting row")
+recipeRow.help.GetStringHeight = measureHelp
 local selected,selectedCount=nil,0
 local options={{value="alt",label="Alt"},{value="ctrl",label="Ctrl"},{value="shift",label="Shift"}}
 local callbacks=ChooseMenu(function()

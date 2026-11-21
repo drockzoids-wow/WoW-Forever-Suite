@@ -438,17 +438,18 @@ function GUI:Select(key)
             local paired = not page.singleColumn and (column > 0 or (i < #page.rows and not nextSection))
             local width = paired and (CONTENT_WIDTH - 16) / 2 or CONTENT_WIDTH
             row:SetWidth(width)
-            row.label:SetText(data.label); row.label:SetWidth(width - (data.key and 82 or 154))
+            local textWidth = width - (data.passive and 28 or data.key and 82 or 154)
+            row.label:SetText(data.label); row.label:SetWidth(textWidth)
             row.label:ClearAllPoints(); row.label:SetPoint("TOPLEFT", 14, -top)
             row.label:SetWordWrap(true)
-            local labelHeight = 16 * math.max(1, math.ceil(#data.label / math.max(1, math.floor((width - (data.key and 82 or 154)) / 7))))
+            local labelHeight = 16 * math.max(1, math.ceil(#data.label / math.max(1, math.floor(textWidth / 7))))
             if row.label.GetStringHeight then
                 local measured = row.label:GetStringHeight()
                 if Suite.IsReadable(measured) and type(measured) == "number" and measured > 0 and measured < 100 then labelHeight = math.max(labelHeight, math.ceil(measured)) end
             end
             row.label:SetHeight(labelHeight)
             row.help:ClearAllPoints(); row.help:SetPoint("TOPLEFT", 14, -top - labelHeight - gap)
-            row.help:SetWidth(width - 28)
+            row.help:SetWidth(textWidth)
             row.switch:ClearAllPoints(); row.switch:SetPoint("TOPRIGHT", -14, -15)
             row.value:ClearAllPoints(); row.value:SetPoint("TOPRIGHT", -14, -17)
             local help = data.help
@@ -457,6 +458,8 @@ function GUI:Select(key)
                     and "Warning: items sold instantly aren't recoverable through Buyback.\nWith automatic selling on, permanent sales need no confirmation."
                     or "Sold stacks are recoverable through the vendor's Buyback tab.\nStops at 12 stacks; later sales can replace them in Buyback."
             end
+            -- The reused row must measure wrapped text without its old height limit.
+            row.help:SetHeight(0)
             row.help:SetText(help)
             local lines = select(2, help:gsub("\n", "\n")) + 1
             local helpHeight = lines * 13

@@ -151,6 +151,86 @@ warning:OnClick("LeftButton")
 equal(pins[#pins].map, 1455, "waypoint rechecks current position even before the next render")
 leveling.events:OnEvent("PLAYER_STOPPED_MOVING"); Flush()
 equal(Warning(8776).location.map, 1455, "stopping movement refreshes the selected source")
+-- The actual trainer click starts the independent HUD with a verified native pin.
+local savedPoint, savedPosition, savedFacing, savedSpeed = UiMapPoint, UnitPosition, GetPlayerFacing, GetUnitSpeed
+local savedTicker = C_Timer.NewTicker
+local pin, ticker, north, west, world, facing = nil, nil, nil, nil, 1, 0
+UiMapPoint = { CreateFromCoordinates = function(map, x, y) return { uiMapID = map, position = Vector(x, y) } end }
+C_Map.GetUserWaypoint = function() return pin end
+C_Map.SetUserWaypoint = function(point) pin = point; return true end
+UnitPosition = function() return north, west, 0, world end
+GetPlayerFacing = function() return facing end
+GetUnitSpeed = function() return 0, 10 end
+C_Timer.NewTicker = function(_, tick)
+    ticker = { tick = tick, Cancel = function(self) self.cancelled = true end }
+    return ticker
+end
+C_Map.GetWorldPosFromMapPos = function(_, point) return 1, Vector(point:GetX() * 1000, point:GetY() * 1000) end
+local location = Warning(8776).location
+local _, worldPosition = C_Map.GetWorldPosFromMapPos(location.map, Vector(location.x, location.y))
+north, west = worldPosition:GetX() - 100, worldPosition:GetY()
+Warning(8776):OnClick("LeftButton")
+local hud = leveling.waypointFrame
+equal(hud.title.text, "Train Linen Belt", "trainer shortcut names the recipe")
+equal(hud.detail.text, "100 yd  ·  ETA ~0:10", "stationary ETA uses run speed in world yards")
+equal(hud.arrow.texture:match("ProfessionWaypointArrow%.tga$"), "ProfessionWaypointArrow.tga", "HUD uses the packaged gold pointer")
+equal(hud.arrow.rotation, 0, "a waypoint forward points up")
+local readPin = C_Map.GetUserWaypoint
+C_Map.GetUserWaypoint = function() error("rotation must not poll the native pin") end
+for _, nextFacing in ipairs({ math.pi / 4, math.pi / 2, 2 * math.pi - 0.1 }) do
+    facing = nextFacing
+    hud:OnUpdate(1 / 60)
+    equal(math.abs(math.sin(hud.arrow.rotation) + math.sin(facing)) < 0.00001, true,
+        "live facing rotates the arrow between position samples, including across north")
+end
+C_Map.GetUserWaypoint = readPin
+local mapPosition = C_Map.GetPlayerMapPosition
+world = 2; C_Map.GetPlayerMapPosition = function() end; ticker.tick()
+equal(hud.arrow:IsShown(), false, "different world space hides the direction")
+equal(hud:GetScript("OnUpdate"), nil, "unavailable direction leaves no animation handler")
+world = 1; C_Map.GetPlayerMapPosition = mapPosition; ticker.tick()
+equal(hud.arrow:IsShown(), true, "returning to the same world restores direction")
+leveling:Close()
+equal(hud:IsShown(), true, "navigation remains on screen after the guide closes")
+pin = { uiMapID = location.map, position = Vector(0.2, 0.2) }; ticker.tick()
+equal(ticker.cancelled, true, "replacing the native waypoint stops the HUD ticker")
+equal(hud:IsShown(), false, "replacement waypoint hides profession navigation")
+pin = UiMapPoint.CreateFromCoordinates(location.map, location.x, location.y)
+leveling:StartWaypointArrow(location, pin, "Train Linen Belt")
+equal(leveling.events.registered.USER_WAYPOINT_UPDATED, true, "profession navigation listens for native pin changes")
+pin = nil
+leveling.events:OnEvent("USER_WAYPOINT_UPDATED")
+equal(ticker.cancelled, true, "clearing the native pin stops navigation without waiting for a tick")
+equal(hud:IsShown(), false, "clearing the native pin hides the HUD")
+equal(hud:GetScript("OnUpdate"), nil, "clearing the pin stops per-frame rotation")
+pin = UiMapPoint.CreateFromCoordinates(location.map, location.x, location.y)
+leveling:StartWaypointArrow(location, pin, "Train Linen Belt")
+north = worldPosition:GetX() - 4; ticker.tick()
+equal(ticker.cancelled, true, "arriving within five yards stops navigation updates")
+equal(C_Map.GetUserWaypoint(), pin, "arrival preserves the native map pin")
+-- A real client can report the pin a tick later and return a plain coordinate pair.
+pin = nil
+leveling:StartWaypointArrow(location, UiMapPoint.CreateFromCoordinates(location.map, location.x, location.y), "Train Linen Belt")
+equal(hud:IsShown(), true, "an unconfirmed native pin does not hide the new HUD on the first tick")
+equal(hud.arrow:IsShown(), false, "pending confirmation does not show a stale bearing")
+pin = { uiMapID = location.map, position = {x = location.x + 0.00005, y = location.y} }
+UnitPosition = function() return secret, secret, nil, secret end
+C_Map.GetPlayerMapPosition = function() return { GetXY = function() return location.x, location.y + 0.1 end } end
+C_Map.GetWorldPosFromMapPos = function() return nil end
+C_Map.GetMapWorldSize = function() return 1000, 1000 end
+facing = 0
+ticker.tick()
+equal(hud.arrow:IsShown(), true, "native map coordinates provide a direction without readable world position")
+equal(hud.detail.text:find("100 yd", 1, true) == 1, true, "map dimensions convert normalized offsets to yards")
+equal(hud.arrow.rotation, 0, "the map fallback uses north-up orientation")
+pin = nil
+leveling.events:OnEvent("USER_WAYPOINT_UPDATED")
+equal(hud:IsShown(), false, "clearing a late-confirmed pin still dismisses the arrow")
+leveling:StartWaypointArrow(location, UiMapPoint.CreateFromCoordinates(location.map, location.x, location.y), "Train Linen Belt")
+for _ = 1, 8 do ticker.tick() end
+equal(ticker.cancelled, true, "a rejected or missing pin cannot leave an active timer")
+UiMapPoint, UnitPosition, GetPlayerFacing, GetUnitSpeed = savedPoint, savedPosition, savedFacing, savedSpeed
+C_Timer.NewTicker = savedTicker
 leveling:Close(); leveling:Cancel()
 leveling.events:OnEvent("PLAYER_STOPPED_MOVING")
 equal(leveling.timer, nil, "closed guides do no movement refresh work")

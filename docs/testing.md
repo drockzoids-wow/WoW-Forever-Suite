@@ -1,5 +1,25 @@
 # Forever Suite in game testing
 
+## Profession waypoint arrow — November 21, 2026
+
+The user approved the in-game waypoint display after the rotation update and the Learn label change. The full addon check passed 51,504 behavior assertions.
+
+The user reported that the gold pointer looked better and stepped during turns. Retest rapid turns in both directions and through north. Check that the arrow responds immediately, map-pin removal stops animation, and the Imperial Plate Belt waypoint reads Learn Imperial Plate Belt.
+
+The user confirmed the arrow appeared in-game. The thin shaft has since been replaced with a solid faceted gold pointer. Restart the client to check the added texture, then verify it points up when facing the pin and turns the correct way when turning in place.
+
+Set a waypoint for Dense Sharpening Stone from Route recipes, then set another from a step's recipe-source warning. Check the recipe action label, distance and ETA. Turn in place and walk toward the pin. Check that closing the profession window leaves navigation active. Replace or clear the pin, reach the trainer, and disable Profession Leveling while navigating. The HUD should hide in each case. Check a different continent and a restricted location for safe direction handling. Native appearance, movement behavior, and taint checks are pending.
+
+The user reported that the Professions settings help now wraps correctly and the first waypoint HUD did not appear. Retest with the revised build outdoors, first while standing still, then while turning in place. If the arrow is absent, record whether the map pin exists and what appears in the HUD.
+
+## Felwood ooze jars — November 20, 2026
+
+With the nearby quest-item button enabled and A Little Slime Goes a Long Way active, carry both empty jar types in bags. Target a Cursed Ooze and a Tainted Ooze in Felwood and confirm the icon, name, and carried count change to the matching jar. Keep the corpse selected after the fight and click the button. Confirm one fill and verify that revisiting the quest without the correct jar or targeting an unrelated creature produces no jar. Select the ooze before entering combat when testing retained secure use, and check the taint log for blocked actions after the test.
+
+## Quick loot manual override — November 20, 2026
+
+The user confirmed Shift worked when Suite Quick loot was disabled. With the fix loaded, enable Quick loot and native Auto Loot. Loot a fresh corpse normally, then another with Shift held before interacting and through loot opening. The first should collect automatically and the second should stay manual. With native Auto Loot off, verify that unmodified loot stays manual and holding the configured modifier enables automatic loot. Repeat with a different configured modifier if available. Record the client build and any blocked actions.
+
 ## Contacts with missing realm labels — November 20, 2026
 
 After reloading on the affected character, open /wfs contacts and the Contacts panel from a mailbox's Send Mail tab. Check that Contacts shows the current server type and the expected same-type entries in All contacts, Alts, and Guild. Select an alt or guild member and confirm the recipient and default subject. Repeat on a character in another server type if available to verify isolation.

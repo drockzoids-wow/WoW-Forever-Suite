@@ -1,5 +1,17 @@
 # Forever Suite feature plan
 
+## Profession waypoint arrow — November 21, 2026
+
+Show a compact arrow, recipe action, distance, and approximate arrival time when a Profession Leveling source waypoint is set. Follow the native map pin after the profession window closes.
+
+## Felwood quest items — November 20, 2026
+
+Offer the matching carried jar for A Little Slime Goes a Long Way when the player selects a Cursed or Tainted Ooze. Use the selected corpse only when the player clicks the button or its keybind.
+
+## Quick loot manual override — November 20, 2026
+
+Honor the configured Auto Loot modifier when Quick loot runs before the loot window opens. Keep normal automatic looting and modifier-enabled auto-loot when the native default is off.
+
 ## Profession guide data refresh — November 20, 2026
 
 Update the eight crafting routes and their shopping estimates together. Keep optional recipe branches in guide notes, preserve saved section plans when a skill boundary moves, and expose the combined Fishing and Cooking link from either guide. Refresh Lockpicking's final zones and add Camping blueprint sources by profession.

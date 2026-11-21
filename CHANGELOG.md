@@ -1,5 +1,12 @@
 # Forever Suite
 
+## 1.0.25 — November 21, 2026
+
+- Profession recipe waypoints now show a smooth gold navigation arrow, a recipe action such as **Learn Imperial Plate Belt**, distance, and an estimated arrival time. It stays visible after closing the profession window and disappears when the map pin is cleared or replaced, or when you arrive.
+- Quick loot honors the configured Auto Loot modifier, so holding Shift with WoW Auto Loot enabled leaves the loot available for manual pickup.
+- The nearby quest-item button offers the matching carried jar when targeting a Cursed Ooze or Tainted Ooze for **A Little Slime Goes a Long Way**.
+- Settings help text wraps clear of switches and controls, including **Select current leveling recipe** in Professions.
+
 ## 1.0.24 — November 20, 2026
 
 - Restore saved Mail Contacts, alts, and guild members when WoW returns blank realm labels. Contacts still follow the signed-in character’s region and server type.
