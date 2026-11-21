@@ -140,7 +140,7 @@ equal(linen:find("Used for Tailoring · guide skill 1–30", 1, true) ~= nil, tr
 equal(linen:find("Used for First Aid · guide skill 1–80", 1, true) ~= nil, true, "adjacent first aid bands merge without duplicate lines")
 local linenEngineering
 for _, line in ipairs(rules:Usage(2589)) do if line:find("Engineering", 1, true) then linenEngineering = line end end
-equal(linenEngineering:find("51–75, 90–100", 1, true) ~= nil, true, "noncontiguous engineering bands retain their gap")
+equal(linenEngineering:find("56–75, 90–100", 1, true) ~= nil, true, "noncontiguous engineering bands retain their gap")
 equal(#rules:Usage(2147483647), 0, "unmodeled item does not acquire an invented profession use")
 equal(#rules:Usage({secret=true}), 0, "tooltip lookup guards restricted item IDs")
 Suite.db.professionUsage = true

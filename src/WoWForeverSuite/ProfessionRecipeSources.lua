@@ -205,19 +205,20 @@ local function Add(profession, ids, kind, alliance, horde, note)
 end
 
 -- Blacksmithing
-Add("Blacksmithing", {2660, 3320, 3323}, "Trainer", "groum-stonebeard", "ugthok", nil)
-Add("Blacksmithing", {3326, 2666, 2672, 3337}, "Trainer", "rotgath-stonebeard", "snarl", nil)
-Add("Blacksmithing", {2742, 9985, 3501, 9920, 7223, 9928, 9993}, "Trainer", "bengus-deepforge", "saru-steelfury", nil)
-Add("Blacksmithing", {9959, 16641, 9968}, "Trainer", "brikk-keencraft", nil, "Train Artisan Blacksmithing if required.")
+Add("Blacksmithing", {2660, 3320}, "Trainer", "groum-stonebeard", "ugthok", nil)
+Add("Blacksmithing", {3326, 2672, 3337, 7818, 2668}, "Trainer", "rotgath-stonebeard", "snarl", nil)
+Add("Blacksmithing", {2742, 3501, 9920, 7223, 9993, 9931}, "Trainer", "bengus-deepforge", "saru-steelfury", nil)
+Add("Blacksmithing", {16641, 9968, 9961}, "Trainer", "brikk-keencraft", nil, "Train Artisan Blacksmithing if required.")
 Add("Blacksmithing", {16647, 16649, 16657, 16730}, "Quest", "derotain", nil, "Imperial Plate plan quests require Thorium Bars. Check native level and skill prerequisites.")
 
 -- Alchemy
-Add("Alchemy", {1245246, 7183, 2331}, "Trainer", "telathir", "whuut", nil)
+Add("Alchemy", {1245250, 7183, 2331}, "Trainer", "telathir", "whuut", nil)
 Add("Alchemy", {2334, 3171, 3173, 7837}, "Trainer", "lilyssia-nightbreeze", "yelmak", nil)
 Add("Alchemy", {7845, 3452}, "Trainer", "ainethil", "doctor-herbert-halsey", nil)
-Add("Alchemy", {11465}, "Trainer", "kylanna-windwhisper", "rogvar", "Train Artisan Alchemy if required.")
+Add("Alchemy", {11465, 17551}, "Trainer", "kylanna-windwhisper", "rogvar", "Train Artisan Alchemy if required.")
 Add("Alchemy", {7259}, "Vendor", "alchemist-pestlezugg", nil, "Buy Recipe: Nature Protection Potion on this alchemist; it binds on pickup.")
-Add("Alchemy", {17553}, "Vendor", "ulthir", "algernon", "Buy and learn Recipe: Superior Mana Potion.")
+
+Add("Alchemy", {17554}, "Vendor", nil, nil, "Buy Recipe: Elixir of Superior Defense from Soolie Berryfizz in Ironforge or Kor'geld in Orgrimmar.")
 
 -- Engineering
 Add("Engineering", {3918, 3922, 3923}, "Trainer", "jemma-quikswitch", "thund", nil)
@@ -228,34 +229,38 @@ Add("Engineering", {19791}, "Vendor", "gearcutter-cogspinner", "sovik", "Buy and
 Add("Engineering", {19795}, "Vendor", "xizzer-fizzbolt", nil, "Buy Schematic: Thorium Tube on this engineer; it binds on pickup.")
 
 -- Leatherworking
-Add("Leatherworking", {2881, 2152, 3756}, "Trainer", "randal-worth", "kamari", nil)
-Add("Leatherworking", {20648, 3817, 3763, 2168, 3766}, "Trainer", "simon-tanner", "karolek", nil)
-Add("Leatherworking", {20649, 3818, 3764, 7151, 7156, 10507}, "Trainer", "telonis", "una", nil)
-Add("Leatherworking", {10548, 10558}, "Trainer", "drakk-stonehand", "hahrana-ironhide", "Train Artisan Leatherworking if required.")
+Add("Leatherworking", {2881, 3756, 3816}, "Trainer", "randal-worth", "kamari", nil)
+Add("Leatherworking", {3817, 3763, 3766, 3759}, "Trainer", "simon-tanner", "karolek", nil)
+Add("Leatherworking", {20649, 3818, 3764, 7151, 7156, 10507, 6661}, "Trainer", "telonis", "una", nil)
+Add("Leatherworking", {10548}, "Trainer", "drakk-stonehand", "hahrana-ironhide", "Train Artisan Leatherworking if required.")
 Add("Leatherworking", {19049}, "Vendor", "leonard-porter", "werg-thickblade", "Buy and learn Pattern: Wicked Leather Gauntlets.")
 Add("Leatherworking", {19082}, "Vendor", "jase-farlane", nil, "Buy and learn Pattern: Runic Leather Headband.")
 
 -- Tailoring
 Add("Tailoring", {2963, 8776}, "Trainer", "lawrence-schneider", "snang", nil)
 Add("Tailoring", {2964, 2402, 3848, 3839, 3852}, "Trainer", "sellandus", "magar", nil)
-Add("Tailoring", {3865, 8791, 8799, 12074, 12065}, "Trainer", "georgio-bolero", "josef-gregorian", nil)
-Add("Tailoring", {18402}, "Trainer", "timothy-worthington", "daryl-stack", "Train Artisan Tailoring if required.")
+Add("Tailoring", {3865, 8791, 8799, 12074, 3813, 12049}, "Trainer", "georgio-bolero", "josef-gregorian", nil)
+Add("Tailoring", {18402, 18401, 12079}, "Trainer", "timothy-worthington", "daryl-stack", "Train Artisan Tailoring if required.")
 Add("Tailoring", {18417}, "Vendor", "qia", nil, "Buy and learn Pattern: Runecloth Gloves. Limited stock may need time to replenish.")
 
+Add("Tailoring", {1257487}, "Vendor", nil, nil, "Buy the bind-on-pickup pattern from Pexmit in Mount Hyjal. Horde can also earn it from Threading a Solution.")
+Add("Tailoring", {18449}, "Drop", nil, nil, "The Runecloth Shoulders pattern is a world drop. Check the Auction House.")
+
 -- Enchanting
-Add("Enchanting", {7421, 7418, 7420}, "Trainer", "betty-quin", "jhag", nil)
-Add("Enchanting", {7457, 7771, 7795}, "Trainer", "lucan-cordell", "godan", nil)
-Add("Enchanting", {7863, 13628, 13637, 13702, 13746, 13815}, "Trainer", "kitta-firewind", "hgarth", nil)
+Add("Enchanting", {7421, 7418, 7428}, "Trainer", "betty-quin", "jhag", nil)
+Add("Enchanting", {7795, 7426, 14807}, "Trainer", "lucan-cordell", "godan", nil)
+Add("Enchanting", {13628, 13637, 13702, 13746, 13815}, "Trainer", "kitta-firewind", "hgarth", nil)
 Add("Enchanting", {25125, 25126}, "Vendor", "tilli-thistlefuzz", "kithas", "Buy and learn the matching oil formula.")
-Add("Enchanting", {25127}, "Vendor", "kania", nil, "Buy and learn Formula: Lesser Mana Oil. Kania is upstairs in the inn.")
+Add("Enchanting", {25127, 25128}, "Vendor", "kania", nil, "Buy and learn the matching oil formula. Kania is upstairs in the inn.")
 Add("Enchanting", {20017}, "Vendor", "mythrindir", "daniel-bartlett", "Buy Formula: Enchant Shield - Greater Stamina on this enchanter; it binds on pickup.")
-Add("Enchanting", {20051, 20015}, "Vendor", "lorelae-wintersong", nil, "Buy and learn the matching formula; get both the rod and cloak formulas before leaving.")
+Add("Enchanting", {20051}, "Vendor", "lorelae-wintersong", nil, "Buy and learn the Runed Arcanite Rod formula.")
+
+Add("Enchanting", {7793}, "Vendor", "tilli-thistlefuzz", "kithas", "Buy Formula: Enchant 2H Weapon - Lesser Intellect.")
 
 -- First Aid
 Add("First Aid", {3275, 3276, 3277, 3278, 7928}, "Trainer", "nissa-firestone", "arnok", nil)
 Add("First Aid", {7929, 10840}, "Manual", "deneb-walker", "balai-lokwein", "Buy and use the matching Heavy Silk or Mageweave Bandage manual. Expert First Aid is learned from a book.")
-Add("First Aid", {10841, 18629}, "Trainer", "doctor-gustaf-vanhowzen", "doctor-gregory-victor", "Complete Triage first; return to the doctor at skill 240 for Heavy Mageweave or 260 for Runecloth Bandage.")
-Add("First Aid", {1244436}, "Manual", nil, nil, "Manual: Major Healing Potion has no known vendor in the reviewed source. Check drops or the Auction House; no fixed waypoint.")
+Add("First Aid", {10841, 18629, 18630}, "Trainer", "doctor-gustaf-vanhowzen", "doctor-gregory-victor", "Complete Triage first; return to the doctor at skill 240 for Heavy Mageweave, 260 for Runecloth or 290 for Heavy Runecloth.")
 
 -- Cooking
 Add("Cooking", {7751}, "Vendor", "catherine-leland", "lizbeth-cromwell", "Buy and learn Recipe: Brilliant Smallfish.")
@@ -263,7 +268,7 @@ Add("Cooking", {7753}, "Vendor", "tansy-puddlefizz", "lizbeth-cromwell", "Buy an
 Add("Cooking", {7755}, "Vendor", "catherine-leland", "naal-mistrunner", "Buy and learn Recipe: Bristle Whisker Catfish.")
 Add("Cooking", {3376}, "Vendor", "kendor-kabonka", "keena", "Buy and learn Recipe: Curiously Tasty Omelet.")
 Add("Cooking", {20916}, "Vendor", "kelsey-yance", nil, "Buy and learn Recipe: Mithril Head Trout.")
-Add("Cooking", {18238, 18244}, "Vendor", "gikkix", nil, "Buy and learn the matching fish recipe.")
+Add("Cooking", {18238, 18243}, "Vendor", "gikkix", nil, "Buy and learn the matching fish recipe.")
 
 -- Same-tier alternatives from the Forever trainer directories, reviewed November 16, 2026.
 -- These are recipe-tier pools, never a replacement for vendor/manual/quest sources.
@@ -273,19 +278,19 @@ local function Trainers(ids, alliance, horde)
     for _, key in ipairs(horde) do pool.Horde[#pool.Horde + 1] = points[key] end
     for _, id in ipairs(ids) do sources[id].trainers = pool end
 end
-Trainers({2660, 3320, 3323},
+Trainers({2660, 3320},
     { "aedi-thriceforged", "daeann-steelwind", "groum-stonebeard", "dane-lindgren", "alard-schmied", "delfrum-flintbeard", "tognus-flintfire", "smith-argus", "alphonse-dumas" },
     { "ugthok", "thrag-stonehoof", "basil-frye", "dwukk", "gurdok", "guillaume-sorouy", "angus-hammerhand", "aedi-thriceforged", "daeann-steelwind" })
-Trainers({3326, 2666, 2672, 3337},
+Trainers({3326, 2672, 3337, 7818, 2668},
     { "daeann-steelwind", "rotgath-stonebeard", "therum-deepforge", "alard-schmied", "clarise-gnarltree" },
     { "snarl", "karn-stonehoof", "james-van-brunt", "traugh", "angus-hammerhand", "daeann-steelwind" })
-Trainers({2742, 9985, 3501, 9920, 7223, 9928, 9993},
+Trainers({2742, 3501, 9920, 7223, 9993, 9931},
     { "bengus-deepforge", "alard-schmied" },
     { "saru-steelfury" })
-Trainers({9959, 16641, 9968},
+Trainers({16641, 9968, 9961},
     { "brikk-keencraft" },
     { "brikk-keencraft" })
-Trainers({1245246, 7183, 2331},
+Trainers({1245250, 7183, 2331},
     { "iaadaria-bitterwind", "nyassa-swiftdraught", "valiena-swiftgale", "milla-fairancora", "vosur-brakthel", "telathir", "linzy-blackbolt", "alchemist-mallory", "ghak-healtouch", "cyndra-kindwhisper" },
     { "whuut", "kray", "doctor-martin-felben", "miaozan", "carolai-anise", "iaadaria-bitterwind", "nyassa-swiftdraught", "valiena-swiftgale" })
 Trainers({2334, 3171, 3173, 7837},
@@ -294,7 +299,7 @@ Trainers({2334, 3171, 3173, 7837},
 Trainers({7845, 3452},
     { "ainethil", "linzy-blackbolt" },
     { "doctor-herbert-halsey" })
-Trainers({11465},
+Trainers({11465, 17551},
     { "kylanna-windwhisper" },
     { "rogvar" })
 Trainers({3918, 3922, 3923},
@@ -309,16 +314,16 @@ Trainers({3945, 3942, 3953, 3955, 12585, 12590, 12589},
 Trainers({12591, 12599, 12619, 19788},
     { "buzzek-bracketswing" },
     { "buzzek-bracketswing" })
-Trainers({2881, 2152, 3756},
+Trainers({2881, 3756, 3816},
     { "waldor", "emerii-tallgust", "indari-sunseam", "darianna", "gretta-finespindle", "randal-worth", "adele-fielder", "nadyia-maneweaver" },
     { "kamari", "mak", "dan-golthas", "chaw-stronghide", "waldor", "shelene-rhobart", "emerii-tallgust", "indari-sunseam" })
-Trainers({20648, 3817, 3763, 2168, 3766},
+Trainers({3817, 3763, 3766, 3759},
     { "emerii-tallgust", "faldron", "fimble-finespindle", "simon-tanner", "aayndia-floralwind" },
     { "karolek", "tarn", "arthur-moore", "brawn", "krulmoo-fullmoon", "emerii-tallgust" })
-Trainers({20649, 3818, 3764, 7151, 7156, 10507},
+Trainers({20649, 3818, 3764, 7151, 7156, 10507, 6661},
     { "telonis" },
     { "una" })
-Trainers({10548, 10558},
+Trainers({10548},
     { "drakk-stonehand" },
     { "hahrana-ironhide" })
 Trainers({2963, 8776},
@@ -327,24 +332,24 @@ Trainers({2963, 8776},
 Trainers({2964, 2402, 3848, 3839, 3852},
     { "grarnik-goodstitch", "othesia-evengale", "taleen-shimmerthread", "melynn", "jormund-stonebrow", "sellandus", "charles-worth" },
     { "magar", "tepa", "rhiannon-davis", "grarnik-goodstitch", "mahani", "othesia-evengale", "taleen-shimmerthread" })
-Trainers({3865, 8791, 8799, 12074, 12065},
+Trainers({3865, 8791, 8799, 12074, 3813, 12049},
     { "georgio-bolero", "charles-worth" },
     { "josef-gregorian" })
-Trainers({18402},
+Trainers({18402, 18401, 12079},
     { "timothy-worthington" },
     { "daryl-stack" })
-Trainers({7421, 7418, 7420},
+Trainers({7421, 7418, 7428},
     { "eaysaa-brightgust", "nasalanna-windsinger", "lalina-summermoon", "thonys-pillarstone", "betty-quin", "vanessa-sellers", "alanna-raveneye" },
     { "jhag", "mot-dawnstrider", "malcomb-wynn", "pazula", "vance-undergloom", "eaysaa-brightgust", "nasalanna-windsinger" })
-Trainers({7457, 7771, 7795},
+Trainers({7795, 7426, 14807},
     { "taladan", "gimble-thistlefuzz", "lucan-cordell", "vanessa-sellers", "xylinnia-starshine" },
     { "godan", "teg-dawnstrider", "lavinia-crowe" })
-Trainers({7863, 13628, 13637, 13702, 13746, 13815},
+Trainers({13628, 13637, 13702, 13746, 13815},
     { "vanessa-sellers", "kitta-firewind" },
     { "hgarth" })
 Trainers({3275, 3276, 3277, 3278, 7928},
     { "melasa-fairmend", "naleeia-tattermend", "dannelor", "nissa-firestone", "shaina-fuller", "angelique-butler", "thamner-pol", "michelle-belle", "byancie", "fremal-doohickey" },
     { "arnok", "pand-stonebinder", "mary-edras", "rawrk", "vira-younghoof", "nurse-neela", "melasa-fairmend", "naleeia-tattermend" })
-Trainers({10841, 18629},
+Trainers({10841, 18629, 18630},
     { "doctor-gustaf-vanhowzen" },
     { "doctor-gregory-victor" })

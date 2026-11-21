@@ -51,13 +51,19 @@ local modeled, referenceOnly, states = 0, 0, 0
 for _, guide in ipairs(guides) do
     if guide.estimates then
         modeled = modeled + 1
+        local covered = {}
         for _, recipe in ipairs(guide.estimates) do
+            for skill = recipe[1], recipe[2] - 1 do covered[skill] = true end
             local owners = 0
             for _, section in ipairs(guide.sections) do
-                if recipe[1] >= section[1] and recipe[1] < section[2] then owners = owners + 1 end
+                if recipe[1] >= section[1] and recipe[1] < section[2] then
+                    owners = owners + 1
+                    Expect(recipe[2] <= section[2], true, guide.name .. " recipe finishes within its section")
+                end
             end
             Expect(owners, 1, guide.name .. " recipe belongs to exactly one section")
         end
+        for skill = 1, 299 do Expect(covered[skill], true, guide.name .. " includes a recipe at skill " .. skill) end
         for skillIndex = -1, 300 do
             local skill = skillIndex >= 0 and skillIndex or nil
             local context = guide.name .. " at " .. tostring(skill)
@@ -118,8 +124,7 @@ equal(modeled, 8, "math audit covers all eight modeled professions")
 equal(referenceOnly, 6, "math audit covers six reference-only guides without invented totals")
 equal(states, 2416, "math audit sweeps unknown skill and every integer from zero through 300")
 
--- Verify the actual rendered allocation, including source-table fallback rows
--- that repeat a material inside the SAME section (Enchanting/Leatherworking).
+-- Verify the actual rendered stock allocation across unfinished sections.
 local function RenderAudit(guide, skill)
     rank = skill
     local done, totals, shopping = leveling:MaterialPlan(guide, skill)
@@ -136,27 +141,12 @@ local function RenderAudit(guide, skill)
                         expectedRows[#expectedRows + 1] = { item = item, need = need, total = total }
                     end
                 end
-                local before = {}; for key, count in pairs(available) do before[key] = count end
                 for _, item in ipairs(row) do
                     local key = Key(item)
                     local left = available[key]
                     if left == nil then left = holding end
                     local take = math.min(left, item[1]); available[key] = left - take
                     Append(item, item[1] - take, totals[key])
-                end
-                if row.alternative then
-                    -- Alternatives are separate replacement scenarios, not an extra purchase.
-                    local replacement = {}; for key, count in pairs(totals) do replacement[key] = count end
-                    for _, item in ipairs(row) do replacement[Key(item)] = replacement[Key(item)] - item[1] end
-                    for _, item in ipairs(row.alternative) do
-                        local key = Key(item); replacement[key] = (replacement[key] or 0) + item[1]
-                    end
-                    for _, item in ipairs(row.alternative) do
-                        local key = Key(item)
-                        local left = before[key]; if left == nil then left = holding end
-                        local take = math.min(left, item[1]); before[key] = left - take
-                        Append(item, item[1] - take, replacement[key])
-                    end
                 end
             end
         end
@@ -186,14 +176,6 @@ for _, guide in ipairs(guides) do
         for _, stock in ipairs({0, 21, 200, 100000}) do
             holding = stock; partial = stock == 21
             for _, skill in ipairs({0, 75, 150, 218, 225, 265, 300}) do RenderAudit(guide, skill) end
-        end
-        if guide.shopping then
-            local estimates = guide.estimates; guide.estimates = nil
-            for _, stock in ipairs({0, 21, 200, 100000}) do
-                holding, partial = stock, stock == 21
-                RenderAudit(guide, 0)
-            end
-            guide.estimates = estimates
         end
         holding, partial = 21, true
         Suite.db.professionLevelingHideDone = false; Suite.db.professionLevelingHideStocked = true

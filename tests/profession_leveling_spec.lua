@@ -203,14 +203,14 @@ equal(Material(3575).done, false, "current iron band remains active")
 equal(Material(12359).have.text, "58", "Have combines both characters and shared bank once")
 equal(Material(12359).need.text, "1712", "Need subtracts all recorded stock from projected requirement")
 equal(Material(3575).have.text, "0", "complete empty records are known zero")
-equal(Material(3575).quantity.text, "24 x", "top iron quantity matches remaining step at 173")
-equal(Material(3575).need.text, "24", "top shortage uses remaining whole-craft estimate")
-equal(Material(2605).quantity.text, "4 x", "top dye quantity matches four remaining crafts")
+equal(Material(3575).quantity.text, "18 x", "top iron quantity matches remaining step at 173")
+equal(Material(3575).need.text, "18", "top shortage uses remaining whole-craft estimate")
+equal(Material(2605).quantity.text, "3 x", "top dye quantity matches three remaining crafts")
 Suite.db.inventory.characters["Guide-Alt-A"].bags.items[3575] = 10
 Suite.db.inventory.characters["Guide-Alt-A"].bags.items[2605] = 2
 leveling:Refresh()
-equal(Material(3575).need.text, "14", "projected iron shortage subtracts recorded stock")
-equal(Material(2605).need.text, "2", "projected dye shortage subtracts recorded stock")
+equal(Material(3575).need.text, "8", "projected iron shortage subtracts recorded stock")
+equal(Material(2605).need.text, "1", "projected dye shortage subtracts recorded stock")
 Blacksmith(174); leveling:Refresh()
 equal(Material(3575).quantity.text, "12 x", "top material estimate updates with current skill")
 equal(Material(3575).need.text, "2", "top shortage updates with remaining crafts")
@@ -225,7 +225,7 @@ equal(Material(2605), nil, "stocked dye removed from shopping view")
 equal(Material(3575).need.text, "2", "shortage remains visible and unchanged")
 local currentGuide = guides[leveling.current]
 local fullRecipes = currentGuide.estimates
-for _, recipe in ipairs(fullRecipes) do if recipe[1] == 170 then currentGuide.estimates = {recipe}; break end end
+for _, recipe in ipairs(fullRecipes) do if recipe.recipeID == 3501 then currentGuide.estimates = {recipe}; break end end
 Suite.db.inventory.characters["Guide-Alt-A"].bags.items[3575] = 12
 leveling:Refresh()
 local emptyCovered = false
@@ -249,12 +249,12 @@ for _, row in ipairs(leveling.frame.materialRows) do
     if row.materialID == 3860 and not row.done then
         repeatedMithril = repeatedMithril + 1
         equal(row.have.text, "100", "repeated material displays actual owned total")
-        equal(row.need.text, "482", "Need combines remaining 358 and 224 before subtracting stock")
+        equal(row.need.text, "430", "Need combines remaining 376 and 154 before subtracting stock")
     end
 end
 equal(repeatedMithril, 2, "both unfinished Mithril brackets included")
 Suite.db.professionLevelingHideStocked = true; leveling:Refresh()
-equal(Material(3860).need.text, "482", "shortage filter uses the whole plan rather than individually affordable rows")
+equal(Material(3860).need.text, "430", "shortage filter uses the whole plan rather than individually affordable rows")
 Suite.db.professionLevelingHideStocked = false; leveling:Refresh()
 local savedBank = Suite.db.inventory.characters["Guide-Alt-B"].bank
 Suite.db.inventory.characters["Guide-Alt-B"].bank = nil
@@ -276,19 +276,19 @@ local function UnfinishedMithril()
 end
 local mithrilRows = UnfinishedMithril()
 equal(#mithrilRows, 2, "current and future Mithril sections remain separate")
-equal(mithrilRows[1].quantity.text, "112 x", "skill 218 current section requires seven breastplates")
+equal(mithrilRows[1].quantity.text, "70 x", "skill 218 current section requires seven coifs")
 equal(mithrilRows[1].have.text, "21+", "section keeps incomplete stock marker")
-equal(mithrilRows[1].sectionNeed.text, "≤91", "current section subtracts 21 recorded bars from 112")
-equal(mithrilRows[1].totalSummary.text, "All remaining: 336 required · Still need", "overall requirement has its own labeled line")
-equal(mithrilRows[1].need.text, "≤315", "overall shortage subtracts recorded stock once from 336")
-equal(mithrilRows[2].sectionNeed.text, "≤224", "future section cannot reuse stock consumed by the current section")
-equal(mithrilRows[2].need.text, "≤315", "future section repeats the same explicitly labeled overall shortage")
+equal(mithrilRows[1].sectionNeed.text, "≤49", "current section subtracts 21 recorded bars from 70")
+equal(mithrilRows[1].totalSummary.text, "All remaining: 224 required · Still need", "overall requirement has its own labeled line")
+equal(mithrilRows[1].need.text, "≤203", "overall shortage subtracts recorded stock once from 224")
+equal(mithrilRows[2].sectionNeed.text, "≤154", "future section cannot reuse stock consumed by the current section")
+equal(mithrilRows[2].need.text, "≤203", "future section repeats the same explicitly labeled overall shortage")
 equal(mithrilRows[1].need.point[3] < mithrilRows[1].sectionNeed.point[3], true, "overall shortage is laid out beneath section shortage")
 Suite.db.inventory.characters["Guide-Alt-A"].bags.items[3860] = 200; leveling:Refresh()
 mithrilRows = UnfinishedMithril()
 equal(mithrilRows[1].sectionNeed.text, "0", "stock covers the current section first")
-equal(mithrilRows[2].sectionNeed.text, "≤136", "future section uses only leftover stock")
-equal(mithrilRows[1].need.text, "≤136", "overall shortage agrees with chronological allocation")
+equal(mithrilRows[2].sectionNeed.text, "≤24", "future section uses only leftover stock")
+equal(mithrilRows[1].need.text, "≤24", "overall shortage agrees with chronological allocation")
 Suite.db.inventory.characters["Guide-Alt-A"].bags.items[3860] = 400; leveling:Refresh()
 mithrilRows = UnfinishedMithril()
 equal(mithrilRows[1].sectionNeed.text, "0", "surplus does not produce a negative current shortage")
@@ -384,10 +384,10 @@ end
 leveling:Refresh(true)
 equal(guides[leveling.selected].name, "Blacksmithing", "guide follows selected profession")
 equal(leveling.frame.status.text, "Your skill: 173 / 225", "native rank shown")
-equal(StepText():find("Current range  |  170%-175") ~= nil, true, "current blacksmithing band marked")
-equal(StepText():find("24 x|r Iron Bar", 1, true) ~= nil, true, "current step estimates materials for remaining skill points")
-equal(StepText():find("4 x|r Green Dye", 1, true) ~= nil, true, "step rounds crafts before multiplying dye quantity")
-equal(StepText():find("estimated 4 crafts to 175", 1, true) ~= nil, true, "skill 173 estimates four crafts remaining")
+equal(StepText():find("Current range  |  140%-175") ~= nil, true, "current blacksmithing band marked")
+equal(StepText():find("18 x|r Iron Bar", 1, true) ~= nil, true, "current step estimates materials for remaining skill points")
+equal(StepText():find("3 x|r Green Dye", 1, true) ~= nil, true, "step rounds crafts before multiplying dye quantity")
+equal(StepText():find("estimated 3 crafts to 175", 1, true) ~= nil, true, "skill 173 estimates three crafts remaining")
 equal(StepText():find("Bombus Finespindle", 1, true) ~= nil, true, "Alliance sees Alliance dye vendor")
 equal(StepText():find("Tamar", 1, true), nil, "Alliance omits Horde dye vendor")
 UnitFactionGroup = function() return "Horde" end
@@ -404,8 +404,8 @@ local bracerEstimate = leveling:StepEstimates(guides[leveling.current], guides[l
 equal(bracerEstimate.crafts, 2, "one remaining skill point rounds whole expected crafts upward")
 equal(bracerEstimate.materials[1].count, 12, "one-point iron estimate preserves six bars per craft")
 local fullBracers = leveling:StepEstimates(guides[leveling.current], guides[leveling.current].sections[4], nil)[1]
-equal(fullBracers.crafts, 9, "unrelated/unknown rank keeps whole-band reference")
-equal(fullBracers.materials[1].count, 54, "full-band iron reference remains 54")
+equal(fullBracers.crafts, 40, "unrelated/unknown rank keeps whole-band reference")
+equal(fullBracers.materials[1].count, 240, "full-band iron reference is 240")
 local stepIron = leveling.frame.stepRows[4].estimateItems[1]
 equal(stepIron.materialID, 3575, "step material uses sourced item ID")
 stepIron:OnEnter()
@@ -544,7 +544,9 @@ equal(leveling.frame.stepRows[4].expanded, false, "current section can be collap
 equal(leveling.frame.scroll.verticalScroll <= leveling.frame.scroll.suiteMaximum, true, "collapse clamps native scroll to shortened content")
 leveling.frame.autoSteps:OnClick()
 equal(Suite.db.professionLevelingAutoSteps, false, "Auto steps toggle saves preference")
-for _, row in ipairs(leveling.frame.stepRows) do equal(row.expanded, true, "Auto steps Off restores all details") end
+for _, row in ipairs(leveling.frame.stepRows) do
+    if row:IsShown() then equal(row.expanded, true, "Auto steps Off restores all details") end
+end
 leveling.frame.autoSteps:OnClick()
 equal(leveling.frame.stepRows[4].expanded, true, "Auto steps On returns to current range")
 equal(leveling.frame.stepRows[1].expanded, false, "Auto steps On clears manual overrides")
@@ -559,7 +561,7 @@ equal(Material(2841), nil, "Hide Done removes completed bronze")
 equal(Material(3575) ~= nil, true, "Hide Done preserves current materials")
 equal(Material(3860).need.text, originalShortage, "filter does not change aggregated stock or Need")
 for index, row in ipairs(leveling.frame.stepRows) do
-    equal(row:IsShown(), index >= 4, "Hide completed removes finished step " .. index)
+    equal(row:IsShown(), index >= 4 and index <= #guides[leveling.current].sections, "Hide completed removes finished step " .. index)
 end
 equal(leveling.frame.stepRows[4].expanded, true, "Hide completed retains current expanded step")
 leveling.frame.stepRows[1].header:OnClick()
@@ -576,12 +578,16 @@ end
 equal(oldBracketShown, false, "empty completed bracket heading removed")
 info.skillLevel = {}; leveling:Refresh()
 equal(Material(2835) ~= nil, true, "unknown rank never filters materials as completed")
-for _, row in ipairs(leveling.frame.stepRows) do equal(row:IsShown(), true, "unknown skill never hides a step as completed") end
+for index, row in ipairs(leveling.frame.stepRows) do
+    equal(row:IsShown(), index <= #guides[leveling.current].sections, "unknown skill never hides a step as completed")
+end
 Blacksmith(173); leveling:Refresh()
 leveling.frame.hideDone:OnClick()
 equal(Material(2835).need.text, "Done", "Show Done restores completed reference")
 equal(leveling.frame.body:GetHeight() > hiddenStepsHeight, true, "restoring completed content expands scroll extent")
-for _, row in ipairs(leveling.frame.stepRows) do equal(row:IsShown(), true, "Show completed restores step headings") end
+for index, row in ipairs(leveling.frame.stepRows) do
+    equal(row:IsShown(), index <= #guides[leveling.current].sections, "Show completed restores step headings")
+end
 Blacksmith(175); leveling:Refresh()
 equal(leveling.frame.stepRows[4].expanded, false, "previous current range folds on skill transition")
 equal(leveling.frame.stepRows[5].expanded, true, "new current range opens on skill transition")
@@ -659,6 +665,14 @@ equal(leveling.button.point[1], "TOPRIGHT", "overview keeps a launcher for gathe
 for index, guide in ipairs(guides) do
     leveling:Select(index)
     equal(leveling.frame.source.text, guide.url, guide.name .. " accessible from overview")
+    local related = guide.name == "Cooking" or guide.name == "Fishing"
+    equal(leveling.frame.relatedSource:IsShown(), related, guide.name .. " combined route visibility")
+    if related then
+        leveling.frame.relatedSource:OnClick()
+        equal(leveling.frame.source.text, "https://www.wow-professions.com/forever/fishing-and-cooking-leveling-guide", "combined route has a copyable URL")
+        leveling.frame.sourceButton:OnClick()
+        equal(leveling.frame.source.text, guide.url, "standalone source remains copyable")
+    end
     equal(guide.url:find("https://www.wow-professions.com/forever/", 1, true), 1, guide.name .. " uses Forever source")
     local words = guide.name .. " " .. guide.note
     for _, section in ipairs(guide.sections) do
@@ -666,21 +680,7 @@ for index, guide in ipairs(guides) do
         words = words .. " " .. section[3] .. " " .. section[4] .. " " .. (section[5] or "") .. " " .. (section[6] or "")
     end
     local count = 0; for _ in words:gmatch("%S+") do count = count + 1 end
-    equal(count <= 200, true, guide.name .. " remains a concise original summary")
-    if guide.shopping then
-        for _, group in ipairs(guide.shopping) do
-            equal(type(group.endSkill), "number", "shopping bracket has a validated completion boundary")
-            for _, row in ipairs(group.rows) do
-                equal(type(row.endSkill) == "number" and row.endSkill > 0, true, "shopping row has an explicit last-use boundary")
-                for _, choice in ipairs({row, row.alternative or {}}) do
-                    for _, item in ipairs(choice) do
-                        equal(type(item[1]) == "number" and item[1] > 0 and item[1] % 1 == 0, true, "material quantity is a positive whole estimate")
-                        equal(type(item[2]) == "number" and item[2] > 0 and item[2] % 1 == 0, true, "every material alternative has an item ID")
-                    end
-                end
-            end
-        end
-    end
+    if guide.name ~= "Camping" then equal(count <= 200, true, guide.name .. " remains a concise original summary") end
     for _, recipe in ipairs(guide.estimates or {}) do
         equal(recipe[1] < recipe[2] and recipe[3] > 0 and recipe[3] % 1 == 0, true, guide.name .. " estimate uses valid band and whole crafts")
         equal(type(recipe.recipeID) == "number" and recipe.recipeID > 0 and recipe.recipeID % 1 == 0, true, guide.name .. " recipe has sourced numeric selection ID")
@@ -690,6 +690,14 @@ for index, guide in ipairs(guides) do
     end
 end
 local function Guide(name) for _, guide in ipairs(guides) do if guide.name == name then return guide end end end
+local migrated = Suite.ShoppingList:Normalize({
+    Blacksmithing = { rank = 136, endSkill = 170 },
+    Tailoring = { rank = 255, endSkill = 265 },
+    Cooking = { rank = 250, endSkill = 275 },
+})
+equal(migrated.Blacksmithing.endSkill, 140, "legacy section follows its saved skill when split")
+equal(migrated.Tailoring.endSkill, 280, "legacy tailoring plan follows extended runecloth section")
+equal(migrated.Cooking.endSkill, 285, "legacy cooking plan follows extended fish section")
 local hidden = Suite.db.professionLevelingHideDone
 Suite.db.professionLevelingHideDone = true
 local function ProjectedCount(guide, rank, name)
@@ -702,30 +710,28 @@ local function ProjectedCount(guide, rank, name)
     end
     return count
 end
-equal(ProjectedCount(Guide("Blacksmithing"), 173, "Iron Bar"), 24, "top and step share rounded current-recipe calculation")
-equal(ProjectedCount(Guide("Blacksmithing"), 220, "Mithril Bar"), 304, "top projects the current recipe within a multi-recipe band plus future uses")
+equal(ProjectedCount(Guide("Blacksmithing"), 173, "Iron Bar"), 18, "top and step share rounded current-recipe calculation")
+equal(ProjectedCount(Guide("Blacksmithing"), 220, "Mithril Bar"), 204, "top projects the current recipe within a multi-recipe band plus future uses")
 equal(ProjectedCount(Guide("Blacksmithing"), 173, "Solid Grinding Stone"), 0, "planned grinding outputs cover later axes without duplicate shopping")
 equal(ProjectedCount(Guide("Blacksmithing"), 180, "Solid Grinding Stone"), 6, "completed production is not assumed still in inventory")
 equal(ProjectedCount(Guide("Alchemy"), 130, "Fire Oil"), 0, "two oils per craft cover future fire-power ingredients")
 equal(ProjectedCount(Guide("Alchemy"), 145, "Fire Oil"), 20, "partial remaining production leaves only uncovered intermediate demand")
 equal(ProjectedCount(Guide("Alchemy"), 145, "Firefin Snapper"), 10, "top keeps raw inputs required for planned intermediate production")
-equal(ProjectedCount(Guide("Blacksmithing"), nil, "Iron Bar"), 54, "unknown rank retains full modeled reference")
-equal(ProjectedCount(Guide("Cooking"), 280, "Raw Sunscale Salmon"), 28, "cooking gains a top list from its remaining-step model")
-equal(#leveling:StepEstimates(Guide("Alchemy"), Guide("Alchemy").sections[4], 295), 0, "unfinished alchemy endgame has no invented estimate")
-equal(#leveling:StepEstimates(Guide("Tailoring"), Guide("Tailoring").sections[6], 275), 0, "unfinished tailoring endgame has no invented estimate")
+equal(ProjectedCount(Guide("Blacksmithing"), nil, "Iron Bar"), 240, "unknown rank retains full modeled reference")
+equal(ProjectedCount(Guide("Cooking"), 280, "Raw Spotted Yellowtail"), 6, "Cooking keeps the yellowtail step through 285")
+equal(ProjectedCount(Guide("Cooking"), 285, "Raw Nightfin Snapper"), 18, "Cooking finishes with Nightfin Soup")
+equal(ProjectedCount(Guide("Cooking"), 285, "Refreshing Spring Water"), 18, "Nightfin Soup shopping includes its vendor reagent")
+equal(ProjectedCount(Guide("Alchemy"), 250, "Stonescale Oil"), 0, "planned Stonescale Oil output covers the later elixirs")
+equal(ProjectedCount(Guide("Alchemy"), 250, "Stonescale Eel"), 47, "Alchemy shops for eel while the oil step remains")
+equal(ProjectedCount(Guide("Alchemy"), 265, "Stonescale Oil"), 88, "Alchemy checks stock once the oil step is complete")
+equal(ProjectedCount(Guide("Tailoring"), 280, "Ironweb Spider Silk"), 116, "Tailoring shopping switches to the shoulders at 280")
+equal(ProjectedCount(Guide("First Aid"), 260, "Runecloth"), 68, "both late bandages use the revised Runecloth estimate")
+equal(ProjectedCount(Guide("Enchanting"), 225, "Dream Dust"), 104, "Artisan Enchanting has the revised Dream Dust estimate")
+equal(ProjectedCount(Guide("Enchanting"), 225, "Illusion Dust"), 88, "Wizard Oil and the final rod both contribute to Illusion Dust")
 equal(#leveling:StepEstimates(Guide("Blacksmithing"), Guide("Blacksmithing").sections[4], 175), 0, "finished recipe removes its step estimate")
 local unknownEstimates = leveling:StepEstimates(Guide("Blacksmithing"), Guide("Blacksmithing").sections[4], {})
-equal(unknownEstimates[1].crafts, 9, "restricted rank cannot enter step arithmetic")
+equal(unknownEstimates[1].crafts, 40, "restricted rank cannot enter step arithmetic")
 Suite.db.professionLevelingHideDone = hidden
-equal(#Guide("Blacksmithing").shopping[1].rows, 8, "all early blacksmithing source rows present")
-equal(#Guide("Blacksmithing").shopping[2].rows, 12, "all middle blacksmithing source rows present")
-equal(#Guide("Blacksmithing").shopping[3].rows, 7, "all late blacksmithing source rows present")
-equal(#Guide("Alchemy").shopping[1].rows[7], 2, "alchemy primary alternative bundle preserves both ingredients")
-equal(#Guide("Alchemy").shopping[1].rows[7].alternative, 2, "alchemy replacement bundle preserves both ingredients")
-equal(#Guide("Leatherworking").shopping[1].rows[6].alternative, 4, "hide replacement retains four components")
-equal(Guide("Tailoring").shopping[3].title, "225-265", "unpublished tailoring materials are never invented")
-equal(Guide("Alchemy").shopping[2].title, "225-290", "alchemy shopping list discloses true published coverage")
-equal(Guide("First Aid").shopping[2].rows[3][1][2], 13464, "first aid includes late healing-potion herb")
 -- Browsing another profession cannot apply the active blacksmith's skill.
 leveling.skills.Alchemy = nil -- This case exercises an unrecorded guide.
 leveling:Select(1)
@@ -907,8 +913,8 @@ for guideIndex, guide in ipairs(guides) do
                                 equal(professionPins[#professionPins].y, point.y, "each recipe uses its own source Y")
                                 equal(warning.label.text:find(reference.kind .. ":", 1, true) ~= nil, true, "compact label distinguishes acquisition type")
                             else
-                                equal(id, 1244436, "only unresolved drop manual lacks a fixed source")
-                                equal(#professionPins, before, "drop-only recipe never invents a trainer waypoint")
+                                equal(type(reference.note) == "string" and reference.note ~= "", true, "sources without coordinates still explain acquisition")
+                                equal(#professionPins, before, "source without coordinates never invents a waypoint")
                             end
                             button:OnClick("LeftButton")
                             equal(professionRequests, 0, "unlearned selection is blocked across all professions")

@@ -397,7 +397,7 @@ function Expiry:Rows()
     if not Integer(region, 1, 1000000) then return rows end
     for _, character in pairs(Suite.Inventory:Database().characters) do
         if Read(character, "table") and Integer(character.region, 1, 1000000) and character.region == region
-            and Text(character.name, 128) and Text(character.realm, 128) then
+            and Text(character.name, 128) then
             local saved = self:Validate(character.mailExpiry)
             if saved then
                 local stamp = Call(date, "%b %d, %H:%M", saved.at)

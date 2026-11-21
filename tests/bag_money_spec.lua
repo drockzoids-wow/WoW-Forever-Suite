@@ -6,7 +6,7 @@ local old = { GetMoney = GetMoney, GetServerTime = GetServerTime, UnitGUID = Uni
     GetNormalizedRealmName = GetNormalizedRealmName, GetRealmName = GetRealmName,
     C_GameRules = C_GameRules, GameTooltip = GameTooltip, GetCoinTextureString = GetCoinTextureString,
     ContainerFrameCombinedBags = ContainerFrameCombinedBags, ContainerFrameContainer = ContainerFrameContainer,
-    ContainerFrame1 = ContainerFrame1 }
+    ContainerFrame1 = ContainerFrame1, BankFrame = BankFrame }
 local oldEvents, oldHooked, oldOwner, oldShutdown = feature.events, feature.hooked, feature.owner, feature.shuttingDown
 Suite.db, Suite.pending = Suite.InitializeDB(nil), {}
 feature.events, feature.hooked, feature.owner = nil, {}, nil
@@ -39,6 +39,7 @@ for _, key in ipairs({ "GoldButton", "SilverButton", "CopperButton" }) do moneyF
 local clicks = 0
 moneyFrame.GoldButton:SetScript("OnClick", function() clicks = clicks + 1 end)
 ContainerFrame1, ContainerFrameContainer = nil, nil
+BankFrame = nil
 feature:Apply()
 equal(feature.events, nil, "disabled money feature creates no events")
 Suite.db.bagMoney = true
@@ -61,6 +62,13 @@ equal(summary.total, 143456, "total includes current and same-type alts only")
 equal(#summary.rows, 3, "zero balance included; foreign and unknown scopes excluded")
 equal(summary.missing, 3, "missing invalid and restricted balances disclosed")
 equal(summary.rows[1].guid, "Player-Money", "current character first")
+realm = ""
+equal(feature:Summary().total, 143456, "empty realm APIs use the current character's own saved server type")
+local current = characters["Player-Money"]
+current.region = 1
+equal(feature:Summary(), nil, "a saved server type from another region cannot select the total")
+current.region = 110
+realm = "ForeverPvE"
 local enter = moneyFrame.GoldButton.OnEnter
 feature:Discover()
 equal(moneyFrame.GoldButton.OnEnter, enter, "repeated discovery never duplicates hooks")
@@ -73,6 +81,18 @@ for _, key in ipairs({ "GoldButton", "SilverButton", "CopperButton" }) do
     moneyFrame[key]:OnLeave()
     equal(GameTooltip:IsShown(), false, "leaving money hides owned tooltip")
 end
+local bankPanel, bankFooter, bankMoney, tabCost = Usable(), Usable(), Usable(), Usable()
+BankFrame = Usable()
+BankFrame.BankPanel, bankPanel.MoneyFrame, bankPanel.MoneyDisplay = bankPanel, bankFooter, tabCost
+bankFooter.MoneyDisplay = bankMoney
+bankMoney.GoldButton, bankMoney.moneyType = Usable(), "PLAYER"
+feature:OnEvent("BANKFRAME_OPENED")
+bankMoney.GoldButton:OnEnter()
+equal(GameTooltip.lines[1][1], "Account money · PvE", "bank player coins use the same account money tooltip")
+bankMoney.moneyType = "ACCOUNT"
+feature:OnEvent("PLAYER_MONEY")
+equal(GameTooltip:IsShown(), false, "shared-bank currency does not get a character-money tooltip")
+equal(tabCost:GetScript("OnEnter"), nil, "the bank slot price is not hooked")
 moneyFrame.GoldButton:OnEnter()
 balance = 223456
 feature:OnEvent("PLAYER_MONEY")
@@ -131,4 +151,4 @@ Suite.db, Suite.pending = oldDB, oldPending
 -- Restore globals whose original value was nil as well.
 for _, key in ipairs({ "GetMoney", "GetServerTime", "UnitGUID", "UnitName", "UnitClass", "GetCurrentRegion",
     "GetNormalizedRealmName", "GetRealmName", "C_GameRules", "GameTooltip", "GetCoinTextureString",
-    "ContainerFrameCombinedBags", "ContainerFrameContainer", "ContainerFrame1" }) do _G[key] = old[key] end
+    "ContainerFrameCombinedBags", "ContainerFrameContainer", "ContainerFrame1", "BankFrame" }) do _G[key] = old[key] end

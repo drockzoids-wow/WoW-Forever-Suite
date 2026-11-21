@@ -1,5 +1,21 @@
 # WoW Forever addon development reference
 
+## Contacts with missing realm labels — November 20, 2026
+
+The current SavedVariables still contained 10 PvE contact records when Contacts appeared empty. On build 71037, both realm-name APIs can return empty strings even when player GUID and region are available. Contacts now uses a known ruleset from the signed-in character's inventory or contact record only when both live labels are absent. Recovery requires the same GUID and region. A live ruleset still takes precedence, and unknown or restricted labels keep contacts scoped out. The recovered scope is shared by the standalone book, Send Mail helper, and live guild roster.
+
+## Profession route refresh — November 20, 2026
+
+Refreshed the eight crafting guides against the current [WoW-Professions Forever index](https://www.wow-professions.com/forever). The same recipe estimates feed the step details, materials view, shopping plans and profession-use tooltips. The plan assumes each guide's primary route and credits intermediate output from unfinished earlier steps. Alternative recipes and one-time quest materials are listed in the guide text. Existing section-only shopping plans whose boundaries moved follow the revised section for their saved skill.
+
+Lockpicking now covers Angor Fortress through 225, then the Slag Pit or Lost Rigger Cove through 300. Camping lists the published blueprint sources and keeps unknown sources marked. Cooking and Fishing both expose the source for the combined route in the existing copyable link field. Live late-route skill gains, item availability and layout still require an in-game check.
+
+## Bank snapshots and coin hovers with missing realm labels — November 20, 2026
+
+On build 71037, WoW returned a readable character GUID, name and region while both realm-name APIs returned empty strings. Bank scans succeeded but 1.0.23 could neither update nor open the current character's snapshot. Record bank and inventory data with GUID, name and region, preserving a known realm for the same character and region. New records can omit the realm. Keep other characters out of the saved-bank selector when the active server type is unknown. Account money can use the current character's recorded server type when both live realm labels are absent, and the player coin display in the personal-bank footer uses the same hover tooltip as bags.
+
+Bank tab metadata can supply the question-mark icon even when an equipped bag has a valid item link. Capture the equipped bag texture from its mapped inventory slot. Resolve placeholder icons in existing snapshots from the saved link, and use a generic bag icon when texture data is unavailable.
+
 ## Account-wide inventory search
 
 Remove the character and location selectors and the corresponding query scopes. Existing categories keep their search, name and item filters. Categories distinguished only by the obsolete scopes collapse to the first saved entry.

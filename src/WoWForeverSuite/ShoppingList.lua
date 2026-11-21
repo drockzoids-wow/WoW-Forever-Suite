@@ -17,6 +17,14 @@ local function Safe(frame)
         and Call(frame.IsForbidden, frame) == false
 end
 function Shopping:Enabled() return Suite.db and Read(Suite.db.professionShopping, "boolean") and Suite.db.professionShopping == true end
+-- A saved section stores its old end skill. When the guide moves that
+-- boundary, keep tracking the revised section for the original skill.
+local previousSectionEnds = {
+    Blacksmithing = { [170] = true },
+    Leatherworking = { [75] = true, [195] = true, [225] = true },
+    Tailoring = { [190] = true, [265] = true },
+    Cooking = { [275] = true },
+}
 function Shopping:Normalize(saved)
     local plans = {}
     if Read(saved, "table") then
@@ -26,8 +34,13 @@ function Shopping:Normalize(saved)
                 local limit = plan.endSkill
                 if Suite.IsReadable(limit) and limit == nil then plans[guide.name] = { rank = plan.rank }
                 elseif Int(limit, 1, 300) then
+                    local previous = previousSectionEnds[guide.name]
+                    local moved = previous and previous[limit] and plan.rank < limit
                     for _, section in ipairs(guide.sections) do
-                        if section[2] == limit then plans[guide.name] = { rank = plan.rank, endSkill = limit }; break end
+                        if section[2] == limit or moved and plan.rank >= section[1] and plan.rank < section[2] then
+                            plans[guide.name] = { rank = plan.rank, endSkill = section[2] }
+                            break
+                        end
                     end
                 end
             end

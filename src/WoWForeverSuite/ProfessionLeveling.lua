@@ -505,8 +505,7 @@ function Leveling:StepMaterials(row, estimates, y, expanded)
             local reference = Suite.ProfessionRecipeSources[estimate.recipeID]
             local kind = reference and reference.kind .. ": " or ""
             training.label:SetText("Not trained · " .. (training.location and kind .. training.location.name .. " >"
-                or reference and reference.kind == "Manual" and not reference.Alliance and not reference.Horde
-                    and "Manual: drops / Auction House" or "Source details"))
+                or "Source details"))
             local height = math.max(16, training.label:GetStringHeight() + 2)
             training:SetSize(CONTENT_WIDTH, height); training:ClearAllPoints(); training:SetPoint("TOPLEFT", 0, -y); training:Show()
             y = y + height + 4
@@ -712,9 +711,8 @@ function Leveling:InventoryChanged()
 end
 local function MaterialKey(item) return item[2] or item[3] end
 function Leveling:RemainingShopping(guide, rank)
-    if not guide or not guide.estimates then return guide and guide.shopping end
+    if not guide or not guide.estimates then return end
     local shopping, produced = {}, {}
-    shopping.projected = true
     shopping.note = "Uses the primary recipes below and reuses intermediate items made by earlier remaining steps. Recipe quests and optional alternatives are not included. Click a craftable material to open its recipe; Shift-click for auction search or chat."
     for _, section in ipairs(guide.sections) do
         local group, merged, target = { rows = {}, endSkill = section[2] }, {}, section[1]
@@ -753,7 +751,6 @@ function Leveling:MaterialPlan(guide, rank)
     for _, group in ipairs(shopping) do
         for _, row in ipairs(group.rows) do
             local done = row.completed
-            if done == nil then done = Number(rank) and (rank >= group.endSkill or rank >= row.endSkill) end
             plan[row] = done
             if not done then
                 for _, item in ipairs(row) do
@@ -853,8 +850,7 @@ function Leveling:Materials(guide, offset)
     end
     if not shopping then Paragraph("No materials list for this guide."); return y end
     Paragraph("Saved character bags/banks + shared bank. + = incomplete; ≤ = upper estimate; ? = unknown.")
-    Paragraph(shopping.projected and "Required here estimates this section's remaining inputs. Need here uses stock left after earlier sections. All remaining combines every unfinished section, subtracting stock once. Actual crafts may vary."
-        or "Required here lists this section's full-band inputs. Need here uses stock left after earlier sections. All remaining combines unfinished main-route uses; alternatives replace one row. Done = completed range.")
+    Paragraph("Required here estimates this section's remaining inputs. Need here uses stock left after earlier sections. All remaining combines every unfinished section, subtracting stock once. Actual crafts may vary.")
     if shopping.note then Paragraph(shopping.note) end
     if #shopping == 0 then Paragraph("No unfinished recipe inputs in the available plan.") end
     local anyGroup = false
@@ -877,7 +873,6 @@ function Leveling:Materials(guide, offset)
         if visible then
             anyGroup = true
             Paragraph(group.title, {0.41, 0.84, 0.75})
-            if group.note then Paragraph(group.note, {1, 0.74, 0.44}) end
             local headerY = y
             Paragraph("Required here"); local headerEnd = y
             y = headerY; Paragraph("Have", nil, 264, 68)
@@ -889,22 +884,6 @@ function Leveling:Materials(guide, offset)
                     for _, item in ipairs(row) do
                         local key = MaterialKey(item)
                         Item(item, done, totals[key] or 0, item[1], (usedBefore[key] or 0) + (usedHere[key] or 0))
-                    end
-                    if row.alternative then
-                        Paragraph(#row > 1 and "OR replace the above " .. #row .. " items with:" or "OR replace the above item with:")
-                        local replacement, alternativeUsed = {}, {}
-                        for _, item in ipairs(row) do
-                            local key = MaterialKey(item); replacement[key] = (replacement[key] or totals[key] or 0) - item[1]
-                        end
-                        for _, item in ipairs(row.alternative) do
-                            local key = MaterialKey(item); replacement[key] = (replacement[key] or totals[key] or 0) + item[1]
-                        end
-                        for _, item in ipairs(row.alternative) do
-                            local key = MaterialKey(item)
-                            Item(item, done, replacement[key], item[1], (usedBefore[key] or 0) + (usedHere[key] or 0) + (alternativeUsed[key] or 0))
-                            alternativeUsed[key] = (alternativeUsed[key] or 0) + item[1]
-                        end
-                        y = y + 8
                     end
                 end
                 if not done then
@@ -1019,12 +998,18 @@ function Leveling:CreatePanel()
     frame.text = Label(frame.body, 13, 0, 0, CONTENT_WIDTH); frame.text:SetSpacing(4)
     frame.scroll:SetScrollChild(frame.body)
     frame.credit = Label(frame, 10, 14, -460, WIDTH - 28)
-    frame.credit:SetText("Original summary · WoW-Professions reference\nReviewed November 11, 2026 · English")
     frame.credit:SetWidth(286)
     frame.recipeBack = Button(frame, "Back to recipe", 134, function() Suite.ProfessionRoutes:Back() end)
     frame.recipeBack:SetPoint("TOPRIGHT", -14, -460); frame.recipeBack:Hide()
-    local sourceButton = Button(frame, "Copy source link", 132, function()
-        if self.url then frame.source:SetFocus(); frame.source:HighlightText() end
+    local function CopyLink(url)
+        if not url then return end
+        self.url = url
+        frame.source:SetText(url)
+        frame.source:SetFocus(); frame.source:HighlightText()
+    end
+    local sourceButton = Button(frame, "Source link · Ctrl+C", 132, function()
+        local guide = guides[self.selected]
+        CopyLink(guide and guide.url)
     end)
     sourceButton:SetPoint("TOPLEFT", 14, -493)
     frame.autoSteps = Button(frame, "Auto steps: On", 144, function() self:ToggleView("professionLevelingAutoSteps") end)
@@ -1033,6 +1018,11 @@ function Leveling:CreatePanel()
     frame.hideStocked:SetPoint("LEFT", frame.autoSteps, "RIGHT", 8, 0)
     frame.source = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
     frame.source:SetAutoFocus(false); frame.source:SetSize(WIDTH - 40, 20); frame.source:SetPoint("TOPLEFT", 20, -522)
+    frame.relatedSource = Button(frame, "Fishing + Cooking", 134, function()
+        local guide = guides[self.selected]
+        CopyLink(guide and guide.relatedURL)
+    end)
+    frame.relatedSource:SetPoint("TOPRIGHT", -14, -519)
     frame.source:SetFont("Fonts\\FRIZQT__.TTF", 10, ""); frame.source:SetMaxLetters(240)
     frame.source:SetScript("OnTextChanged", function(input)
         local expected = self.url or ""
@@ -1080,7 +1070,11 @@ function Leveling:Render(reset)
     self.url = guide and guide.url or nil
     frame.source:ClearFocus(); frame.source:SetText(self.url or "")
     frame.sourceButton:SetEnabled(self.url ~= nil)
-    frame.sourceButton:SetText("Source link · Ctrl+C")
+    local related = guide and guide.relatedURL ~= nil
+    frame.relatedSource:SetShown(related == true)
+    frame.source:SetWidth(related and WIDTH - 180 or WIDTH - 40)
+    frame.credit:SetText("Original summary · WoW-Professions reference"
+        .. (guide and "\nReviewed " .. guide.reviewed .. " · English" or ""))
 end
 function Leveling:Select(index)
     if not self:Enabled() or InCombatLockdown() or not self.open then return end

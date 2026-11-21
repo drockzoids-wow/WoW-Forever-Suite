@@ -1,5 +1,12 @@
 # Forever Suite
 
+## 1.0.24 — November 20, 2026
+
+- Restore saved Mail Contacts, alts, and guild members when WoW returns blank realm labels. Contacts still follow the signed-in character’s region and server type.
+- Save and reopen personal bank snapshots when realm labels are missing. Restore equipped bag icons in saved bank views.
+- Show recorded account balances when hovering over player coins in the backpack or personal bank.
+- Refresh eight crafting routes and their shopping estimates. Update Lockpicking and Camping blueprint sources, and add the combined Fishing and Cooking guide link.
+
 ## 1.0.23 — November 18, 2026
 
 - Restock docks beside the vendor window, on the right when there is room. Use **Show Restock** or **Hide Restock** beside the vendor tabs.

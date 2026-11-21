@@ -44,13 +44,17 @@ local function RulesetFromServer(value)
         rppvp = "RP-PvP", rppve = "RP-PvE", ["rp-pvp"] = "RP-PvP", ["rp-pve"] = "RP-PvE" })[value]
 end
 
-local function Ruleset()
+local function LiveRuleset()
     if C_GameRules and type(C_GameRules.IsHardcoreActive) == "function" then
         local active = C_GameRules.IsHardcoreActive()
         if Suite.IsReadable(active) and active == true then return "Hardcore" end
     end
-    return RulesetFromServer(GetNormalizedRealmName and GetNormalizedRealmName())
-        or RulesetFromServer(GetRealmName and GetRealmName())
+    local normalized = GetNormalizedRealmName and GetNormalizedRealmName()
+    local ruleset = RulesetFromServer(normalized)
+    if ruleset then return ruleset end
+    local realm = GetRealmName and GetRealmName()
+    return RulesetFromServer(realm), Suite.IsReadable(normalized) and (normalized == nil or normalized == "")
+        and Suite.IsReadable(realm) and (realm == nil or realm == "")
 end
 
 local function Name(value, allowIncomplete)
@@ -63,7 +67,10 @@ local function Name(value, allowIncomplete)
     return value, surname ~= nil
 end
 
-function Mail:CurrentRuleset() return Ruleset() end
+function Mail:CurrentRuleset()
+    local ruleset = LiveRuleset()
+    return ruleset
+end
 
 local function Parse(value)
     return Name(value)
@@ -83,6 +90,37 @@ end
 local function Key(region, name, ruleset, guid)
     if guid then return tostring(region) .. ":guid:" .. guid end
     return tostring(region) .. ":name:" .. (ruleset or "?"):lower() .. ":" .. name:lower()
+end
+
+local function Record(value)
+    return Suite.IsReadable(value) and type(value) == "table" and value or nil
+end
+
+local function Ruleset()
+    local ruleset, missing = LiveRuleset()
+    if ruleset or not missing then return ruleset end
+
+    -- Empty realm labels can occur with an otherwise readable player identity.
+    -- Recover scope only from that exact character in the current region.
+    local region, guid = Region(), UnitGUID and UnitGUID("player")
+    local db = Suite.db
+    if not region or not String(guid, 128) or not db then return end
+    local inventory = Record(db.inventory)
+    local characters = inventory and Record(inventory.characters)
+    local character = characters and Record(characters[guid])
+    if character and Suite.IsReadable(character.region) and character.region == region then
+        local profile = Record(character.profile)
+        ruleset = RulesetFromServer(character.realm) or RulesetFromServer(profile and profile.ruleset)
+        if ruleset then return ruleset end
+    end
+
+    local book = Record(db.mailContacts)
+    local entries = book and Record(book.entries)
+    local entry = entries and Record(entries[Key(region, nil, nil, guid)])
+    if entry and Suite.IsReadable(entry.region) and entry.region == region
+        and String(entry.guid, 128) and entry.guid == guid then
+        return RulesetFromServer(entry.ruleset)
+    end
 end
 
 local function ContactReference(entry)
@@ -274,7 +312,8 @@ function Mail:SeedRecordedCharacters()
         if String(guid, 128) and Suite.IsReadable(entry) and type(entry) == "table"
             and Suite.IsReadable(entry.region) and entry.region == region then
             local name = Name(entry.fullName) or Name(entry.name, true)
-            local ruleset = self:RecordedRuleset(entry)
+            local profile = Record(entry.profile)
+            local ruleset = self:RecordedRuleset(entry) or RulesetFromServer(profile and profile.ruleset)
             -- Seed once; removed contacts stay removed until that character is logged in again.
             local contacts = self:Database()
             local key = name and Key(region, name, ruleset, guid)

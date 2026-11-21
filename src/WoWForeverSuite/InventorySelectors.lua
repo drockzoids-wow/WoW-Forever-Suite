@@ -36,6 +36,7 @@ function Selectors:ScopedCharacter(guid)
     if not character or not Suite.Mail then return end
     local current, recorded = Suite.Mail:CurrentRuleset(), Suite.Mail:RecordedRuleset(character)
     if Text(current) and Text(recorded) and current == recorded then return character, recorded end
+    if not current and guid == self:CurrentGUID() then return character, recorded end
 end
 
 function Selectors:Choices(bags)
@@ -46,7 +47,7 @@ function Selectors:Choices(bags)
             if character then
                 local name = Text(character.fullName) and character.fullName or character.name
                 choices[#choices + 1] = { guid = guid, name = name,
-                    label = name .. " · " .. ruleset,
+                    label = ruleset and name .. " · " .. ruleset or name,
                     recorded = Suite.OfflineBank:GetSnapshot(0, guid, bags) ~= nil }
             end
         end

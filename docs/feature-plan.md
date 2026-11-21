@@ -1,5 +1,9 @@
 # Forever Suite feature plan
 
+## Profession guide data refresh — November 20, 2026
+
+Update the eight crafting routes and their shopping estimates together. Keep optional recipe branches in guide notes, preserve saved section plans when a skill boundary moves, and expose the combined Fishing and Cooking link from either guide. Refresh Lockpicking's final zones and add Camping blueprint sources by profession.
+
 ## Account-wide inventory search
 
 The Inventory tab searches all recorded bags and banks in the current region, with filters for item type, quality and record age. Open an individual saved bank from the Characters tab.

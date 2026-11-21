@@ -44,18 +44,29 @@ function Inventory:Database()
     return db
 end
 
+function Inventory:RealmName()
+    local normalized = GetNormalizedRealmName and GetNormalizedRealmName()
+    if Text(normalized) then return normalized end
+    local realm = GetRealmName and GetRealmName()
+    if Text(realm) then return realm end
+    return nil, Suite.IsReadable(normalized) and (normalized == nil or normalized == "")
+        and Suite.IsReadable(realm) and (realm == nil or realm == "")
+end
+
 function Inventory:Character()
     local guid = UnitGUID and UnitGUID("player")
     local name, surname
     if UnitName then name, surname = UnitName("player") end
-    local realm = GetNormalizedRealmName and GetNormalizedRealmName()
-    if not Text(realm) then realm = GetRealmName and GetRealmName() end
     local region = Region()
-    if not Text(guid) or not Text(name) or not Text(realm) or not region then return end
+    if not Text(guid) or not Text(name) or not region then return end
+    local realm = self:RealmName()
     local db = self:Database()
     local character = db.characters[guid]
     if not Suite.IsReadable(character) or type(character) ~= "table" then character = {}; db.characters[guid] = character end
     local previousName = character.name
+    if not realm and RegionID(character.region) and character.region == region and Text(character.realm) then
+        realm = character.realm
+    end
     character.name, character.realm, character.region = name, realm, region
     -- Forever's second UnitName return is a surname. Keep the old name field for existing consumers.
     if #name <= 77 and not name:find("[%c|]") then
@@ -271,7 +282,7 @@ function Inventory:Summary(id, includeEmpty, carriedSnapshot)
         else undated = true end
     end
     for guid, character in pairs(db.characters) do
-        if Text(guid) and type(character) == "table" and Text(character.name) and Text(character.realm)
+        if Text(guid) and Suite.IsReadable(character) and type(character) == "table" and Text(character.name)
             and RegionID(character.region) and character.region == region then
             local bagSnapshot = guid == current and carriedSnapshot or character.bags
             if guid == current then found = true end
@@ -281,7 +292,7 @@ function Inventory:Summary(id, includeEmpty, carriedSnapshot)
             if bags == nil or bank == nil then incomplete = true end
             local amount = (bags or 0) + (bank or 0)
             if amount > 0 then
-                rows[#rows + 1] = { name = character.name, realm = character.realm, guid = guid, class = character.class,
+                rows[#rows + 1] = { name = character.name, realm = Text(character.realm) and character.realm or nil, guid = guid, class = character.class,
                     bags = bags, bank = bank, current = guid == self.guid }
                 total = total + amount
             end
@@ -353,7 +364,7 @@ function Inventory:AddTooltip(tooltip, item, record)
     for _, row in ipairs(summary.rows) do names[row.name] = (names[row.name] or 0) + 1 end
     for _, row in ipairs(summary.rows) do
         local icon, r, g, b = CharacterStyle(row.class)
-        local label = names[row.name] > 1 and row.name .. "-" .. row.realm or row.name
+        local label = names[row.name] > 1 and row.realm and row.name .. "-" .. row.realm or row.name
         local counts = {}
         if row.bags and row.bags > 0 then counts[#counts + 1] = CountLabel("Bags", row.bags) end
         if row.bank and row.bank > 0 then counts[#counts + 1] = CountLabel("Bank", row.bank) end

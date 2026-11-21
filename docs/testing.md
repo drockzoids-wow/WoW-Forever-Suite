@@ -1,5 +1,28 @@
 # Forever Suite in game testing
 
+## Contacts with missing realm labels — November 20, 2026
+
+After reloading on the affected character, open /wfs contacts and the Contacts panel from a mailbox's Send Mail tab. Check that Contacts shows the current server type and the expected same-type entries in All contacts, Alts, and Guild. Select an alt or guild member and confirm the recipient and default subject. Repeat on a character in another server type if available to verify isolation.
+
+The user confirmed that after reloading, entries returned in All contacts, Alts, and Guild. The automated addon checks passed 51,450 behavior assertions. Recipient and subject behavior were outside this in-game confirmation.
+
+## Profession route refresh — November 20, 2026
+
+1. Open the profession guide at an early skill and again in a later range. Compare the active recipe, required materials and Track section / Track remaining previews. Check that completed or newly planned intermediates behave correctly, especially Stonescale Oil, Cured Light Hide and the cloth bolts.
+2. Check the late transitions at Cooking 285, First Aid 290 and Tailoring 280. Confirm the vendor or trainer hints and the native recipe IDs. Check a saved section plan after updating the addon. Its revised section should correspond to the skill at which it was saved.
+3. Open Cooking, then Fishing. Click Fishing + Cooking to select the combined URL for copying, then use Source link to return to the standalone guide. Browse another profession and verify the extra button disappears.
+4. Expand the Camping blueprint sections and confirm text wraps, including the longer two-location Skinning entry. Check Lockpicking at 225 and verify the Slag Pit and Lost Rigger Cove alternatives. Record the running client build and the observed results.
+
+Offline verification passed Lua 5.1 syntax for 96 files, 51,436 behavior checks, 1,296,045 profession material invariants across 2,416 skill states, identical TOCs and the test-only taint logging release guard. In-game verification is pending.
+
+## Saved bank persistence report — November 20, 2026
+
+The user reported that Drockhilda's bank view showed **Not recorded** after a bank visit. The active AddOns path was a junction to the canonical checkout. The bank capture and viewer files matched the clean 1.0.23 package source. The user's support report confirmed Suite 1.0.23 on WoW Forever build 71037, Interface 16001.
+
+The account's on-disk SavedVariables had Bank snapshots enabled and held a November 19 personal-bank snapshot for Drockhilda with 74 slots across four containers. The released 1.0.23 viewer accepted that record in a read-only harness. A newer November 20 SavedVariables write retained the same bank snapshot timestamp. With the native bank open, `/wfs bankstatus` reported enabled, active, open, and shown as true. The scan completed for 74 slots, but the current character record was unavailable. The live probe confirmed readable GUID, name and region with both realm-name APIs returning empty strings.
+
+After loading the fix, the user reported **Bank character record: available** and another complete 74-slot scan. The saved view opened away from the banker. The account save written at 7:11 p.m. Central held a fresh 74-slot snapshot captured at 7:08 p.m. The saved bag links had placeholder icon IDs, and the user confirmed the fallback restores the icons after reload. The current gold balance was also recorded at 7:07 p.m. The user confirmed the account-money tooltip appears over player coins in both the backpack and personal bank. Native behavior of the separate bag-slot purchase price was unreported.
+
 ## Contacts group selector layering (in-game opening confirmed)
 
 The user confirmed that **Groups: Choose…** now opens in front of Contacts in-game. Group assignment, **All groups…**, Inventory filter menus, and dismissal with Escape or an outside click remain available for follow-up testing.

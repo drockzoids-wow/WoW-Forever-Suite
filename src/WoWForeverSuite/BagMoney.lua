@@ -41,10 +41,20 @@ function Money:Capture()
 end
 function Money:Summary()
     local region, current = Call(GetCurrentRegion), Call(UnitGUID, "player")
+    if not Integer(region, 1000000) or region == 0 or not Text(current) then return end
+    local characters = Suite.Inventory:Database().characters
     local ruleset = Suite.Mail:CurrentRuleset()
-    if not Integer(region, 1000000) or region == 0 or not Text(current) or not Text(ruleset) then return end
+    if not Text(ruleset) then
+        local _, realmMissing = Suite.Inventory:RealmName()
+        local character = characters[current]
+        if not realmMissing or not Table(character) or not Integer(character.region, 1000000)
+            or character.region ~= region then return end
+        local profile = Table(character.profile) and character.profile or {}
+        ruleset = Suite.Mail:RecordedRuleset({ realm = character.realm, ruleset = profile.ruleset })
+        if not Text(ruleset) then return end
+    end
     local rows, total, missing = {}, 0, 0
-    for guid, character in pairs(Suite.Inventory:Database().characters) do
+    for guid, character in pairs(characters) do
         if Text(guid) and Table(character) and Text(character.name)
             and Integer(character.region, 1000000) and character.region == region then
             local profile = Table(character.profile) and character.profile or {}
@@ -80,6 +90,14 @@ function Money:Hide()
 end
 function Money:Tooltip(owner)
     if not self:Enabled() or InCombatLockdown() or not Accessible(owner) or not Accessible(GameTooltip) then return end
+    local bankDisplay = self.hooked[owner]
+    if bankDisplay and bankDisplay ~= true then
+        local moneyType = Accessible(bankDisplay) and bankDisplay.moneyType
+        if not Suite.IsReadable(moneyType) or moneyType ~= "PLAYER" then
+            if self.owner == owner then self:Hide() end
+            return
+        end
+    end
     self:Capture()
     local summary = self:Summary()
     if not summary then return end
@@ -95,21 +113,23 @@ function Money:Tooltip(owner)
     GameTooltip:AddLine("Log into each alt with this option enabled to update its balance.", 0.55, 0.65, 0.7)
     GameTooltip:Show()
 end
-function Money:Attach(frame)
+function Money:Attach(frame, bankDisplay)
     if InCombatLockdown() or not Accessible(frame) or self.hooked[frame] or not frame.HookScript then return end
-    self.hooked[frame] = true
+    self.hooked[frame] = bankDisplay or true
     frame:HookScript("OnEnter", function(owner) self:Tooltip(owner) end)
     frame:HookScript("OnLeave", function() self:Hide() end)
     frame:HookScript("OnHide", function() self:Hide() end)
 end
 function Money:Discover()
     if not self:Enabled() or InCombatLockdown() then return end
+    local function AttachCoins(frame, bankDisplay)
+        if not Accessible(frame) then return end
+        self:Attach(frame, bankDisplay)
+        for _, key in ipairs({ "GoldButton", "SilverButton", "CopperButton" }) do self:Attach(frame[key], bankDisplay) end
+    end
     local function AttachBag(bag)
         if not Accessible(bag) then return end
-        local frame = bag.MoneyFrame
-        if not Accessible(frame) then return end
-        self:Attach(frame)
-        for _, key in ipairs({ "GoldButton", "SilverButton", "CopperButton" }) do self:Attach(frame[key]) end
+        AttachCoins(bag.MoneyFrame)
     end
     AttachBag(ContainerFrameCombinedBags)
     -- The native container pool includes anonymous frames; avoid assuming numbered globals.
@@ -117,6 +137,12 @@ function Money:Discover()
         for _, bag in ipairs(ContainerFrameContainer.ContainerFrames) do AttachBag(bag) end
     end
     AttachBag(ContainerFrame1)
+    local panel = Accessible(BankFrame) and BankFrame.BankPanel
+    local footer = Accessible(panel) and panel.MoneyFrame
+    if Accessible(footer) then
+        local display = footer.MoneyDisplay
+        AttachCoins(display, display)
+    end
 end
 function Money:OnEvent(event)
     if not self:Enabled() or self.shuttingDown then return end
@@ -144,7 +170,7 @@ function Money:Apply()
             self.events = CreateFrame("Frame")
             self.events:SetScript("OnEvent", function(_, event) self:OnEvent(event) end)
         end
-        for _, event in ipairs({ "ADDON_LOADED", "PLAYER_ENTERING_WORLD", "PLAYER_MONEY", "PLAYER_LOGOUT", "PLAYER_REGEN_DISABLED" }) do
+        for _, event in ipairs({ "ADDON_LOADED", "PLAYER_ENTERING_WORLD", "BANKFRAME_OPENED", "PLAYER_MONEY", "PLAYER_LOGOUT", "PLAYER_REGEN_DISABLED" }) do
             self.events:RegisterEvent(event)
         end
         self:Capture(); self:Discover()

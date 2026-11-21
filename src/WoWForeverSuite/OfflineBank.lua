@@ -17,6 +17,15 @@ local function Text(value)
     return Suite.IsReadable(value) and type(value) == "string" and value ~= "" and #value <= 4096
 end
 
+local function BagItemID(link)
+    local id = Text(link) and tonumber(link:match("item:(%d+)"))
+    return Integer(id, 1, 2147483647) and id or nil
+end
+
+local function BagIcon(icon)
+    return Integer(icon, 1, 2147483647) and icon ~= 134400 and icon or nil
+end
+
 local function Number(value)
     return Suite.IsReadable(value) and type(value) == "number" and value == value
         and value > -math.huge and value < math.huge
@@ -134,12 +143,14 @@ function Bank:Scan(bankType)
         if size == 0 and not Suite.Inventory:IsEmptyBankBag(bankType, index) then return nil, "Bank bag capacity still loading" end
         local tab = { bag = bag, size = size, slots = {} }
         tab.name = Text(metadataTab.name) and metadataTab.name or (BANK_BAG or "Bank bag")
-        tab.icon = Integer(metadataTab.icon, 1, 2147483647) and metadataTab.icon or nil
-        if index > 1 and C_Bank.BankBagTypeAndIDToInvSlot and GetInventoryItemLink then
+        tab.icon = BagIcon(metadataTab.icon)
+        if index > 1 and C_Bank.BankBagTypeAndIDToInvSlot then
             local inventorySlot = C_Bank.BankBagTypeAndIDToInvSlot(bankType, index)
             if Integer(inventorySlot, 0, 1000) then
-                local link = GetInventoryItemLink("player", inventorySlot + 1)
-                if Text(link) and Integer(tonumber(link:match("item:(%d+)")), 1, 2147483647) then tab.link = link end
+                local link = GetInventoryItemLink and GetInventoryItemLink("player", inventorySlot + 1)
+                if BagItemID(link) then tab.link = link end
+                local texture = GetInventoryItemTexture and GetInventoryItemTexture("player", inventorySlot + 1)
+                tab.icon = BagIcon(texture) or tab.icon
             end
         end
         for slot = 1, size do
@@ -598,11 +609,17 @@ function Bank:RefreshBags(snapshot)
         end
         button.bankBagName = Text(tabs[index].name) and tabs[index].name or (BANK_BAG or "Bank bag")
         local bagLink = tabs[index].link
-        button.bankItem = Text(bagLink) and Integer(tonumber(bagLink:match("item:(%d+)")), 1, 2147483647) and { link = bagLink } or nil
+        local bagID = BagItemID(bagLink)
+        button.bankItem = bagID and { link = bagLink } or nil
         button:ClearAllPoints()
         if index == 2 then button:SetPoint("TOPLEFT", self.bagLabel, "TOPRIGHT", 20, 5)
         else button:SetPoint("TOPLEFT", self.bagButtons[index - 1], "TOPLEFT", 50, 0) end
-        SetItemButtonTexture(button, Integer(tabs[index].icon, 1, 2147483647) and tabs[index].icon or "Interface\\Icons\\INV_Misc_Bag_10")
+        local icon = BagIcon(tabs[index].icon)
+        if not icon and bagID and C_Item and type(C_Item.GetItemIconByID) == "function" then
+            local ok, itemIcon = pcall(C_Item.GetItemIconByID, bagID)
+            if ok then icon = BagIcon(itemIcon) end
+        end
+        SetItemButtonTexture(button, icon or "Interface\\Icons\\INV_Misc_Bag_10")
         button:Show()
     end
     for index, button in pairs(self.bagButtons) do if index > #tabs then button:Hide() end end

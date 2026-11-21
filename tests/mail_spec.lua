@@ -717,6 +717,62 @@ do
     Suite.db, player.realm = savedDB, savedRealm
     mail:Database()
 end
+-- Build 71037 can return blank realm names while GUID and region still work.
+do
+    local savedDB, savedRealm, nativeRealm = Suite.db, player.realm, GetRealmName
+    local savedGuild, guildEntries = C_Club, mail.guildEntries
+    local currentGUID, currentName, currentRuleset = mail.currentGUID, mail.currentName, mail.currentRuleset
+    Suite.db = Suite.InitializeDB(nil)
+    Suite.db.mailHelper = true
+    local own = mail:Store("Active Player", "PvE", 110, player.guid)
+    mail:Store("Saved Alt", "PvE", 110, "Other-PvE")
+    mail:Store("Same Realm", "PvE", 110)
+    mail:Store("Other Ruleset", "PvP", 110, "Other-PvP")
+    mail:Store("Wrong Region", "PvE", 1, "Other-Region")
+    player.realm = ""
+    GetRealmName = function() return "" end
+    mail:RecordPlayer()
+    equal(mail:Database()[own].ruleset, "PvE", "blank labels preserve the current contact's recorded type")
+    equal(#mail:ContactList("alts", ""), 1, "blank labels still list same-ruleset alts")
+    equal(#mail:ContactList("other", ""), 1, "blank labels still list manually saved contacts")
+    equal(Find("Other Ruleset"), nil, "blank labels cannot reveal a different ruleset")
+    equal(Find("Wrong Region"), nil, "blank labels cannot reveal a different region")
+    C_Club = {
+        GetGuildClubId = function() return 1 end,
+        GetClubMembers = function() return {1} end,
+        GetMemberInfo = function() return {name = "Guild Friend", isSelf = false} end,
+    }
+    mail:ReadGuild()
+    equal(#mail:ContactList("guild", ""), 1, "live roster still populates using the recovered contact scope")
+    equal(mail:CurrentRuleset(), nil, "public live ruleset stays separate from contact recovery")
+
+    mail:Database()[own].ruleset = nil
+    Suite.db.inventory.characters = {
+        [player.guid] = { region = 110, profile = { ruleset = "PvE" } },
+        ["Other-PvE"] = { region = 110, realm = "ForeverPvE" },
+        ["Profile-PvE"] = { region = 110, fullName = "Profile Alt", profile = { ruleset = "PvE" } },
+    }
+    mail:RecordPlayer()
+    equal(mail:Database()[own].ruleset, "PvE", "inventory scope repairs a contact previously recorded with blank labels")
+    mail:SeedRecordedCharacters()
+    equal(Find("Profile Alt").ruleset, "PvE", "a saved inventory profile can seed a scoped alt without a realm")
+    mail:Database()[own].ruleset = nil
+    Suite.db.inventory.characters[player.guid].region = 1
+    equal(#mail:List(true, ""), 0, "a different-region record and other characters cannot supply a scope")
+    Suite.db.inventory.characters[player.guid].region = 110
+    player.realm = "ForeverUnrecognized"
+    equal(#mail:List(true, ""), 0, "unknown live labels do not use the blank-label fallback")
+    player.realm = { secret = true }
+    equal(#mail:List(true, ""), 0, "restricted live labels do not use the blank-label fallback")
+    player.realm = "ForeverPvP"
+    equal(#mail:List(true, ""), 1, "a recognized live scope takes precedence over recorded PvE")
+    equal(Find("Other Ruleset").ruleset, "PvP", "only the live scope is visible")
+
+    Suite.db, player.realm, GetRealmName = savedDB, savedRealm, nativeRealm
+    C_Club, mail.guildEntries = savedGuild, guildEntries
+    mail.currentGUID, mail.currentName, mail.currentRuleset = currentGUID, currentName, currentRuleset
+    mail:Database()
+end
 MailFrame = nil; SendMailFrame:Hide()
 mail.query = "unrelated mailbox search"
 local bookWrites, bookSends, bookTabs = writes, sends, tabs

@@ -2,10 +2,11 @@ local Suite, equal, Frame, SetCombat = ...
 local savedMenus = Suite.Menus
 local bank = Suite.OfflineBank
 local names = { "CreateFrame", "C_Timer", "C_Container", "C_Bank", "C_Item", "Enum", "BankFrame", "UIParent",
-    "UnitGUID", "UnitName", "UnitClass", "GetNormalizedRealmName", "GetCurrentRegion", "GetServerTime", "date",
+    "UnitGUID", "UnitName", "UnitClass", "GetNormalizedRealmName", "GetRealmName", "GetCurrentRegion", "GetServerTime", "date",
     "SetItemButtonTexture", "SetItemButtonCount", "GameTooltip", "GameTooltip_ShowCompareItem", "IsModifiedClick",
     "HandleModifiedItemClick", "HideUIPanel", "UISpecialFrames", "WoWForeverSuiteBankView", "WoWForeverSuiteBankToggleButton",
-    "BagItemSearchBox", "BankItemSearchBox", "BagSearch_OnTextChanged", "GetInventoryItemID" }
+    "BagItemSearchBox", "BankItemSearchBox", "BagSearch_OnTextChanged", "GetInventoryItemID",
+    "GetInventoryItemLink", "GetInventoryItemTexture" }
 local old = {}
 for _, name in ipairs(names) do old[name] = _G[name] end
 local oldDB, oldPending, oldPrint = Suite.db, Suite.pending, Suite.Print
@@ -124,6 +125,7 @@ C_Container = {
     PickupContainerItem = Forbidden, UseContainerItem = Forbidden, SplitContainerItem = Forbidden,
 }
 C_Item = { RequestLoadItemDataByID = function(id) requests[id] = (requests[id] or 0) + 1 end }
+GetInventoryItemLink, GetInventoryItemTexture = nil, nil
 SetItemButtonTexture = function(button, icon) button.icon.texture = icon end
 SetItemButtonCount = function(button, count) button.Count.text = count end
 GameTooltip = Widget()
@@ -172,8 +174,23 @@ Suite.db.windowTools = true; bank:Apply()
 equal(bank.frame.suiteDragHeader:IsShown(), false, "saved inventory yields title input to Window Tools")
 Suite.db.windowTools = false; bank:Apply()
 bank.frame.CloseButton.OnClick(); equal(bank.frame:IsShown(), false, "native close control closes only viewer")
+local nativeRealm, fallbackRealm = GetNormalizedRealmName, GetRealmName
+GetNormalizedRealmName = function() return "" end
+GetRealmName = GetNormalizedRealmName
+Suite.db.inventory.characters[identity] = nil
+C_Bank.BankBagTypeAndIDToInvSlot = function() return 67 end
+GetInventoryItemLink = function(_, slot) return slot == 68 and "item:600" or nil end
+GetInventoryItemTexture = function(_, slot) return slot == 68 and 6100 or nil end
+metadata[0][2].icon = 134400
 BankFrame:Show(); Fire("BANKFRAME_OPENED"); Flush()
 local personal = bank:GetSnapshot(0)
+equal(personal.tabs[2].icon, 6100, "capture uses the equipped bank bag icon ahead of the tab placeholder")
+equal(personal.tabs[2].link, "item:600", "capture keeps the equipped bag link for offline tooltips")
+equal(Suite.db.inventory.characters[identity].realm, nil, "a fresh bank capture needs no realm label")
+Suite.db.inventory.characters[identity].realm = "Beta"
+equal(bank:GetSnapshot(0), personal, "current-character viewer reopens the snapshot with blank realm APIs")
+equal(Suite.db.inventory.characters[identity].realm, "Beta", "a missing live realm preserves the known character's realm")
+GetNormalizedRealmName, GetRealmName = nativeRealm, fallbackRealm
 local account = bank:GetSnapshot(2)
 equal(personal.totalSlots, 98, "records total slots including empties and all bags")
 equal(personal.tabs[1].slots[1].link, bags[6][1].hyperlink, "full enchanted instance link retained")
@@ -191,6 +208,18 @@ local oldCalls = calls
 accessible[0], accessible[2] = false, false
 bank.bindingButton:Click()
 equal(calls, oldCalls, "offline opening never reads bank containers")
+equal(bank.bagButtons[2].icon.texture, 6100, "saved bank renders the captured bag icon")
+local previousIcons = Suite.Copy(personal)
+previousIcons.tabs[2].icon = 134400
+C_Item.GetItemIconByID = function(id) return id == 600 and 6200 or nil end
+bank:RefreshBags(previousIcons)
+equal(bank.bagButtons[2].icon.texture, 6200, "older snapshots recover bag icons from their saved links")
+C_Item.GetItemIconByID = nil
+bank:RefreshBags(previousIcons)
+equal(bank.bagButtons[2].icon.texture, "Interface\\Icons\\INV_Misc_Bag_10", "missing icon data uses a generic bag")
+bank:RefreshBags(personal)
+GetInventoryItemLink, GetInventoryItemTexture, C_Bank.BankBagTypeAndIDToInvSlot = nil, nil, nil
+metadata[0][2].icon = 12
 equal(bank.buttons[1].bankItem.link, personal.tabs[1].slots[1].link, "offline button uses saved instance")
 equal(bank.buttons[2].bankItem, nil, "saved empty slot clears previous item")
 equal(bank.buttons[29].bankItem.count, 5, "page combines bank bags in native order")
@@ -589,7 +618,9 @@ equal(#pvpChoices, 1, "switching to PvP lists only matching inventory owners")
 equal(pvpChoices[1].guid, "Player-pvp", "PvP scope selects its own character record")
 equal(selectors:Select("Player-alt", true), false, "stale PvE menu callback is rejected after server-type change")
 GetNormalizedRealmName = function() return "Unrecognized" end
-equal(#selectors:Choices(true), 0, "unknown active server type does not reveal mixed inventories")
+local unknownChoices = selectors:Choices(true)
+equal(#unknownChoices, 1, "unknown active server type offers only the current character")
+equal(unknownChoices[1].guid, identity, "the current character remains available without a server type")
 GetNormalizedRealmName = pveRealm
 equal(selectors:Select("Player-alt", true), true, "bag dropdown opens saved alt inventory")
 equal(bank.viewBags, true, "bag dropdown selects bag rendering mode")

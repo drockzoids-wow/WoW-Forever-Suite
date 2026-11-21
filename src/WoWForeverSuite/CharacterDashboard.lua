@@ -116,16 +116,17 @@ function Dashboard:Rows(query, sort)
     local tokens = {}; for token in query:lower():gmatch("%S+") do tokens[#tokens + 1] = token end
     local rows, total, gold, known, limited = {}, 0, 0, 0, false
     for guid, character in pairs(Suite.Inventory:Database().characters) do
-        if Text(guid) and Table(character) and Text(character.name) and Text(character.realm)
+        if Text(guid) and Table(character) and Text(character.name)
             and Integer(character.region, 1, 1000000) and character.region == region then
             if total == LIMIT then limited = true; break end
             total = total + 1
             local profile = Table(character.profile) and character.profile or {}
             local owner = Suite.InventorySearch:Owner(character, guid)
-            local row = { guid = guid, name = Text(owner.name) and owner.name or character.name, realm = character.realm,
+            local realm = Text(character.realm) and character.realm or "Realm unavailable"
+            local row = { guid = guid, name = Text(owner.name) and owner.name or character.name, realm = realm,
                 class = Text(character.class, 32) and character.class or nil, current = guid == current,
                 ruleset = Text(profile.ruleset) and profile.ruleset
-                    or Text(owner.context) and owner.context ~= character.realm and owner.context or "Unknown ruleset",
+                    or Text(owner.context) and owner.context ~= realm and owner.context or "Unknown ruleset",
                 level = Integer(profile.level, 1, 1000) and profile.level or nil,
                 money = Integer(profile.money, 0, 1000000000000) and profile.money or nil,
                 professions = Professions(profile.professions), at = At(profile.at), levelAt = At(profile.levelAt),

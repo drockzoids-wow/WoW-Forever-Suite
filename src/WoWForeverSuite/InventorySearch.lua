@@ -96,7 +96,7 @@ end
 
 function Search:Owner(character, guid)
     local name = Text(character.fullName) and character.fullName or character.name
-    local context = character.realm
+    local context = Text(character.realm) and character.realm or "Realm unavailable"
     -- Reuse known mail identities for old snapshots, without autocomplete or roster requests.
     local contacts = Suite.db.mailContacts
     local entries = Table(contacts) and contacts.entries
@@ -149,7 +149,7 @@ function Search:BuildIndex()
     end
     if Table(db.characters) then
         for key, character in pairs(db.characters) do
-            if Text(key) and Table(character) and Text(character.name) and Text(character.realm)
+            if Text(key) and Table(character) and Text(character.name)
                 and Integer(character.region, 1, 1000000) and character.region == region then
                 local owner = self:Owner(character, key)
                 Add(character.bags, owner, "bags"); Add(character.bank, owner, "bank")

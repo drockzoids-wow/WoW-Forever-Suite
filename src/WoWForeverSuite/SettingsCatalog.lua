@@ -128,7 +128,7 @@ function Catalog:Configure(pages)
         { key = "reverseCombinedBags", label = "Reverse combined bag order", help = "Show equipped bags first and the backpack last in the combined bag.\nKeeps each bag's slot order. Changing this choice waits until combat ends." },
         { key = "reverseBagSlots", label = "Reverse slots within each bag", help = "Display each bag's first slot at its bottom-right end. Items stay in the same bag.\nCombine with reversed bag order to put the backpack's first slot at the bottom right." },
         { key = "bankDepositReagents", label = "Deposit Reagents button", help = "Add a button beside Purchase at your personal bank.\nClick to move carried crafting reagents that fit. Stops on combat or closing the bank." },
-        { key = "bagMoney", label = "Account money on bag hover", help = "Hover over bag gold, silver or copper for character balances and a total.\nOnly your current server type and region are included. Log into each alt with this enabled to record its balance." },
+        { key = "bagMoney", label = "Account money on coin hover", help = "Hover over player coins in bags or the bank for character balances and a total.\nOnly your current server type and region are included. Log into each alt with this enabled to record its balance." },
     }, note = "Log into alts and visit their banks to update records. Saved counts can be stale; saved views cannot move items." }
     pages.bags.rows[3].label = "Inventory in tooltips"
     pages.bags.rows[3].help = "Show recorded bag and bank counts in item tooltips.\nUnknown locations are omitted."
