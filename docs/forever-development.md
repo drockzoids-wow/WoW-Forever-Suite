@@ -1,5 +1,13 @@
 # WoW Forever addon development reference
 
+## Saved Contacts server type — November 21, 2026
+
+A player on Suite 1.0.25 and client build 71037 reported that GetRealmName and SelectedRealmName were blank and GetNativeRealmID was zero. When the live realm labels are blank and the exact character has no recorded server type, Contacts can use a player-selected type saved with the character GUID and region. Mailbox Contacts prompts at initial login only while that character has no saved or detected type. The standalone book offers the same choice in Preferences. Detected server types take priority.
+
+## Inventory item lookup — November 21, 2026
+
+Each account-wide Inventory result with a valid item ID can open a copy dialog for the corresponding Wowhead Forever URL. It also works while the game is loading the item's name or link. The first native test confirmed the copy dialog layering fix on Legends of the Tidesages (220346), a library quest turn-in. The search field's X clears the query and returns to page one while retaining active filters and saved categories.
+
 ## Profession waypoint arrow — November 21, 2026
 
 Reviewed the local Forever Guides Navigation.lua reference for its shared world coordinates, player-relative bearing and distance divided by speed. Suite uses its existing native waypoint and world-position helpers with an original faceted gold pointer texture. Recipe warnings and Route recipes share the same launch action. The HUD is independent of the crafting window. It samples position, pin, distance and ETA every 0.15 seconds. An animation handler runs only while there is a valid bearing. It applies live facing every frame and eases changes in the sampled world bearing along the shortest arc. Navigation stops on replacement, pin removal, arrival within five yards, or feature disable. Different world spaces and restricted positions suppress the arrow until usable data returns. ETA is straight-line distance divided by current movement speed, or run speed while stationary.

@@ -1,5 +1,10 @@
 # Forever Suite
 
+## 1.0.26 — November 21, 2026
+
+- When WoW leaves the server type blank, Mailbox Contacts prompts for it at login and saves the choice per character. You can also choose it under **Contacts → Preferences**. Updating in place keeps existing saved contacts.
+- Every Inventory result can copy a Wowhead Forever link. Use the **×** inside Inventory search to clear the text while keeping your filters.
+
 ## 1.0.25 — November 21, 2026
 
 - Profession recipe waypoints now show a smooth gold navigation arrow, a recipe action such as **Learn Imperial Plate Belt**, distance, and an estimated arrival time. It stays visible after closing the profession window and disappears when the map pin is cleared or replaced, or when you arrive.

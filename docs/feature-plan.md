@@ -1,5 +1,9 @@
 # Forever Suite feature plan
 
+## Saved Contacts server type — November 21, 2026
+
+When Mailbox Contacts is enabled and the server type cannot be recovered from blank realm labels, open Contacts Preferences on initial login. Save the chosen server type per character so subsequent logins use it automatically. Keep the same option available from the standalone contact book.
+
 ## Profession waypoint arrow — November 21, 2026
 
 Show a compact arrow, recipe action, distance, and approximate arrival time when a Profession Leveling source waypoint is set. Follow the native map pin after the profession window closes.

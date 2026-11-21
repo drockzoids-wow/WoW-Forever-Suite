@@ -10,6 +10,9 @@ local timers, requests, linked, now, created = {}, {}, {}, 1000000, 0
 local function Widget(name, parent)
     local widget = Frame(name); widget.parent = parent
     widget.IsForbidden, widget.IsProtected = function() return false end, function() return false end
+    widget.SetFocus = function(self) self.focused = true end
+    widget.HighlightText = function(self) self.highlighted = true end
+    widget.ClearFocus = function(self) self.focused = false end
     widget.SetText = function(self, text)
         local changed = self.text ~= text; self.text = text
         if changed and self.OnTextChanged then self.OnTextChanged(self, false) end
@@ -193,6 +196,59 @@ dashboard.search:SetText("Alt"); dashboard.search.OnTextChanged(dashboard.search
 equal(dashboard.bankBrowseButton ~= nil, true, "the character's saved bank action remains available on the roster")
 dashboard.viewTabs.inventory.OnClick()
 equal(dashboard.view, "inventory", "the Inventory tab remains available beside the roster")
+names[220346] = "Legends of the Tidesages"
+chars.main.bags.items[220346] = 1
+search.index = nil
+browser.query = "220346"; browser:Update()
+local lookupButton = browser.buttons[1].wowhead
+equal(lookupButton:IsShown(), true, "the book has a Wowhead action")
+lookupButton:OnClick()
+local linkFrame = browser.wowheadFrame
+equal(linkFrame.strata, "FULLSCREEN_DIALOG", "the Wowhead dialog draws above the settings window and inventory rows")
+equal(linkFrame.title:GetText(), names[220346], "the link dialog names the selected item")
+equal(linkFrame.edit:GetText(), "https://www.wowhead.com/forever/item=220346", "item action uses the Forever item page")
+equal(linkFrame.edit.focused and linkFrame.edit.highlighted, true, "item link is ready for Ctrl+C")
+linkFrame.edit:OnEscapePressed()
+equal(linkFrame:IsShown(), false, "Escape dismisses the link box")
+equal(linkFrame.edit.focused, false, "closing the link box releases focus")
+
+browser.query = "Copper"; browser:Update()
+equal(lookupButton:IsShown(), true, "a reused row offers lookup for another item")
+lookupButton:OnClick()
+equal(browser.wowheadFrame, linkFrame, "lookups reuse the link dialog")
+equal(linkFrame.title:GetText(), "Copper Ore", "a reused row updates the dialog title")
+equal(linkFrame.edit:GetText(), "https://www.wowhead.com/forever/item=100", "a reused row opens the new item's URL")
+linkFrame.edit:OnEscapePressed()
+
+browser.query = "534"; browser:Update()
+equal(lookupButton:IsShown(), true, "an uncached item can be looked up by ID")
+lookupButton:OnClick()
+equal(linkFrame.title:GetText(), "Item 534", "an uncached item is identified by its ID")
+equal(linkFrame.edit:GetText(), "https://www.wowhead.com/forever/item=534", "lookup does not depend on a native item link")
+linkFrame.edit:OnEscapePressed()
+browser.query = "no matches"; browser:Update()
+equal(lookupButton:IsShown(), false, "empty pooled rows hide the lookup action")
+lookupButton:OnClick()
+browser:ShowWowheadLink({ id = hidden })
+equal(linkFrame:IsShown(), false, "empty rows and restricted IDs cannot open the link dialog")
+
+browser:SetFilter("quality", "2")
+local savedCount = #browser:Options().favorites
+browser.search:SetText("Copper")
+local pendingSearch = browser.timer
+browser.page = 2
+browser.search:SetFocus()
+equal(browser.searchClear:GetParent(), browser.search, "the clear button belongs to the search field")
+browser.searchClear:OnClick()
+equal(browser.query, "", "the clear button resets the query")
+equal(browser.search:GetText(), "", "the clear button empties the edit box")
+equal(browser.placeholder:IsShown(), true, "the empty field shows its placeholder")
+equal(browser.search.focused, false, "clearing the search releases focus")
+equal(browser.page, 1, "clearing the search shows the first page")
+equal(browser.filters.quality, "2", "clearing the search keeps active filters")
+equal(#browser:Options().favorites, savedCount, "clearing the search keeps saved searches")
+equal(pendingSearch.cancelled, true, "clearing the search cancels the previous query's refresh")
+
 GetCurrentRegion = function() return hidden end; search.index = nil; browser:Update()
 equal(browser.coverage:GetText(), "Character region unavailable.", "restricted region cannot retain another scope's coverage")
 equal(#browser.rows, 0, "unknown region suppresses all saved item rows")

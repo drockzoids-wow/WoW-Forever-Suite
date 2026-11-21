@@ -144,6 +144,33 @@ function Browser:Open()
     Suite.CharacterDashboard.view = "inventory"
     Suite.GUI:OpenPage("characters")
 end
+function Browser:ShowWowheadLink(row)
+    if InCombatLockdown() or not self.visible or not Table(row) or not Integer(row.id, 1, 2147483647) then return end
+    self:HideTooltip()
+    if not self.wowheadFrame then
+        local frame = CreateFrame("Frame", nil, Suite.GUI.frame, "BackdropTemplate")
+        frame:SetSize(460, 104); frame:SetPoint("CENTER", UIParent, "CENTER")
+        -- The settings window and its scroll descendants already use DIALOG.
+        frame:SetFrameStrata("FULLSCREEN_DIALOG"); frame:EnableMouse(true)
+        frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+        frame:SetBackdropColor(0.035, 0.05, 0.065, 1); Suite.Theme:Backdrop(frame, 1)
+        frame.title = Label(frame, "", 14, -12, 392, 14)
+        Label(frame, "Press Ctrl+C to copy the Wowhead link.", 14, -38, 430, 11, colors.muted)
+        Button(frame, "X", 416, -9, 30, function() frame:Hide() end, 25)
+        local edit = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
+        edit:SetPoint("TOPLEFT", 20, -64); edit:SetSize(418, 24)
+        edit:SetFont("Fonts\\FRIZQT__.TTF", 12, ""); edit:SetAutoFocus(false)
+        edit:SetScript("OnEscapePressed", function() frame:Hide() end)
+        edit:SetScript("OnEnterPressed", function() frame:Hide() end)
+        frame:SetScript("OnHide", function() edit:ClearFocus() end)
+        frame.edit = edit
+        self.wowheadFrame = frame
+    end
+    local frame = self.wowheadFrame
+    frame.title:SetText(Text(row.name, 256) and row.name or ("Item " .. row.id))
+    frame.edit:SetText(string.format("https://www.wowhead.com/forever/item=%d", row.id))
+    frame:Show(); frame.edit:SetFocus(); frame.edit:HighlightText()
+end
 function Browser:ModifiedClick(row)
     if InCombatLockdown() or not row then return end
     if row.link and (Call(IsModifiedClick, "CHATLINK") == true or Call(IsModifiedClick, "DRESSUP") == true) then
@@ -203,6 +230,7 @@ function Browser:SetVisible(visible)
         end
     else
         self:HideTooltip(); self.search:ClearFocus(); self.rows, self.expanded = nil, false
+        if self.wowheadFrame then self.wowheadFrame:Hide() end
         for _, button in ipairs(self.buttons) do button.entry = nil end
     end
 end
@@ -222,13 +250,23 @@ end
 function Browser:Changed() if self.visible then self:Schedule() end end
 function Browser:OnEvent(event, id)
     if not self.visible then return end
-    if event == "PLAYER_REGEN_DISABLED" then self:Cancel(); self:HideTooltip()
+    if event == "PLAYER_REGEN_DISABLED" then
+        self:Cancel(); self:HideTooltip()
+        if self.wowheadFrame then self.wowheadFrame:Hide() end
     elseif event == "MODIFIER_STATE_CHANGED" then if self.hovered then self:Tooltip(self.hovered) end
     elseif event == "ITEM_DATA_LOAD_RESULT" then
         if Integer(id, 1, 2147483647) and Suite.InventorySearch.requested[id] then
             Suite.InventorySearch.metadata[id] = nil; self:Schedule()
         end
     else Suite.InventorySearch.index = nil; self:Schedule() end
+end
+
+function Browser:ClearSearch()
+    if InCombatLockdown() or not self.visible then return end
+    self.query, self.page, self.message = "", 1, nil
+    self.search:ClearFocus()
+    self:Cancel()
+    self:Update()
 end
 
 function Browser:Build(parent)
@@ -240,7 +278,7 @@ function Browser:Build(parent)
     panel:SetScript("OnHide", function() self:SetVisible(false) end)
     local search = CreateFrame("EditBox", nil, panel, "BackdropTemplate"); self.search = search
     search:SetPoint("TOPLEFT", 0, 0); search:SetSize(686, 28); search:SetAutoFocus(false); search:SetMaxLetters(100)
-    search:SetFont("Fonts\\FRIZQT__.TTF", 12, ""); search:SetTextInsets(8, 8, 0, 0)
+    search:SetFont("Fonts\\FRIZQT__.TTF", 12, ""); search:SetTextInsets(8, 30, 0, 0)
     search:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
     search:SetBackdropColor(unpack(colors.row)); Suite.Theme:Backdrop(search, 1)
     self.placeholder = Label(search, "Search item name, type, or item ID", 8, -8, 400, 11, colors.muted)
@@ -249,7 +287,9 @@ function Browser:Build(parent)
         self.query, self.page, self.message = Query(Call(box.GetText, box)) or "", 1, nil
         self.placeholder:SetShown(self.query == ""); self:Schedule()
     end)
-    search:SetScript("OnEscapePressed", function(box) box:SetText(""); self.query, self.page = "", 1; box:ClearFocus(); self:Update() end)
+    search:SetScript("OnEscapePressed", function() self:ClearSearch() end)
+    self.searchClear = Suite.Theme:IconButton(search, "Clear search", function() self:ClearSearch() end)
+    self.searchClear:SetSize(25, 24); self.searchClear:SetPoint("RIGHT", -2, 0)
     search:SetScript("OnEnterPressed", function(box) box:ClearFocus(); self:Cancel(); self:Update() end)
     self.saveButton = Button(panel, "Save view", 692, 0, 88, function() self:SaveView() end)
     self.favoriteButton = Button(panel, "Saved searches", 0, -40, 384, function() self.expanded = not self.expanded; self:Update() end)
@@ -288,10 +328,11 @@ function Browser:Build(parent)
         button = Button(panel, "", 0, 0, 780, function() self:ModifiedClick(button.entry) end)
         button:SetHeight(44); button.label:Hide()
         button.icon = button:CreateTexture(nil, "ARTWORK"); button.icon:SetSize(28, 28); button.icon:SetPoint("TOPLEFT", 8, -8)
-        button.name = Label(button, "", 44, -7, 628, 12)
+        button.name = Label(button, "", 44, -7, 454, 12)
         button.count = Label(button, "", 678, -7, 92, 12, colors.teal); button.count:SetJustifyH("RIGHT")
-        button.context = Label(button, "", 44, -26, 566, 10, colors.muted)
+        button.context = Label(button, "", 44, -26, 454, 10, colors.muted)
         button.age = Label(button, "", 616, -26, 154, 10, colors.muted); button.age:SetJustifyH("RIGHT")
+        button.wowhead = Button(button, "Wowhead", 510, -9, 98, function() self:ShowWowheadLink(button.entry) end, 26)
         button:SetScript("OnEnter", function() self:Tooltip(button) end)
         button:SetScript("OnLeave", function() if self.hovered == button then self:HideTooltip() end end)
         self.buttons[index] = button
@@ -343,6 +384,7 @@ function Browser:Refresh()
     for index, button in ipairs(self.buttons) do
         local row = self.rows[(self.page - 1) * ROWS + index]; button.entry = row
         Place(button, 0, 126 + extra + (index - 1) * 48); button:SetShown(row ~= nil)
+        button.wowhead:SetShown(row ~= nil and Integer(row.id, 1, 2147483647))
         if row then
             button.icon:SetTexture(row.icon); button.name:SetText(row.name)
             button.count:SetText("×" .. ((row.bags or 0) + (row.bank or 0) + (row.account or 0)))

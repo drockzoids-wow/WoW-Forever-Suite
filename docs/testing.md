@@ -1,5 +1,13 @@
 # Forever Suite in game testing
 
+## Saved Contacts server type — November 21, 2026
+
+Use the tester's client build with blank realm labels and no previously recorded server type for the current character. Enable Mailbox Contacts and log in to that character. Verify Contacts opens to Preferences and choosing the correct server type restores matching saved contacts and guild entries and allows a new contact to be saved. Relog and verify the same character keeps its choice without a prompt. Check another character to verify the choice is separate. Try Automatic in Preferences to clear the fallback. Confirm a detectable server type takes precedence, and try the same choice from the standalone book with Mailbox Contacts disabled.
+
+## Inventory item lookup — November 21, 2026
+
+The user confirmed the copy dialog draws above the Inventory results after the initial layering fix. Open `/wfs inventory` and use Wowhead on Legends of the Tidesages (220346) and a different item. Check that the dialog title and Forever URL match each clicked row, the dialog stays above the list, Ctrl+C copies the URL, and Escape returns to the list. Try a saved bank result as well. Apply a filter, type a search, then click the X inside the search field. Verify the query clears, the results return to page one, and the filter and saved categories remain.
+
 ## Profession waypoint arrow — November 21, 2026
 
 The user approved the in-game waypoint display after the rotation update and the Learn label change. The full addon check passed 51,504 behavior assertions.

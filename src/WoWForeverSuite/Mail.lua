@@ -5,6 +5,7 @@ table.insert(Suite.modules, Mail)
 
 local CONTACT_ROWS, GROUP_ROWS = 8, 8
 local BOOK_WIDTH, BOOK_HEIGHT = 740, 650
+local contactRulesets = { "PvE", "PvP", "Hardcore", "RP", "RP-PvE", "RP-PvP" }
 local defaultSubjects = { alts = "Alt mail", guild = "Guild mail" }
 local colors = {
     background = { 0.035, 0.05, 0.065 }, row = { 0.07, 0.095, 0.11 },
@@ -96,7 +97,14 @@ local function Record(value)
     return Suite.IsReadable(value) and type(value) == "table" and value or nil
 end
 
-local function Ruleset()
+local function SavedChoice(region, guid)
+    if not region or not String(guid, 128) then return end
+    local book = Suite.db and Record(Suite.db.mailContacts)
+    local choices = book and Record(book.characterRulesets)
+    return choices and RulesetFromServer(choices[Key(region, nil, nil, guid)])
+end
+
+local function AutomaticRuleset()
     local ruleset, missing = LiveRuleset()
     if ruleset or not missing then return ruleset end
 
@@ -104,7 +112,7 @@ local function Ruleset()
     -- Recover scope only from that exact character in the current region.
     local region, guid = Region(), UnitGUID and UnitGUID("player")
     local db = Suite.db
-    if not region or not String(guid, 128) or not db then return end
+    if not region or not String(guid, 128) or not db then return nil, true end
     local inventory = Record(db.inventory)
     local characters = inventory and Record(inventory.characters)
     local character = characters and Record(characters[guid])
@@ -119,8 +127,15 @@ local function Ruleset()
     local entry = entries and Record(entries[Key(region, nil, nil, guid)])
     if entry and Suite.IsReadable(entry.region) and entry.region == region
         and String(entry.guid, 128) and entry.guid == guid then
-        return RulesetFromServer(entry.ruleset)
+        return RulesetFromServer(entry.ruleset), true
     end
+    return nil, true
+end
+
+local function Ruleset()
+    local ruleset, missing = AutomaticRuleset()
+    if ruleset or not missing then return ruleset end
+    return SavedChoice(Region(), UnitGUID and UnitGUID("player"))
 end
 
 local function ContactReference(entry)
@@ -288,12 +303,12 @@ function Mail:RecordPlayer(level)
     self.currentGUID = guid
     self.currentName, self.currentRuleset = nil, nil
     if not Number(level, 1, 1000) or level ~= math.floor(level) then level = UnitLevel and UnitLevel("player") end
-    local key = self:Store(name, Ruleset(), Region(), guid, class, level,
+    local key = self:Store(name, AutomaticRuleset(), Region(), guid, class, level,
         UnitFactionGroup and UnitFactionGroup("player"), true)
     if key then
         self.removed[key] = nil
         local entry = self:Database()[key]
-        self.currentName, self.currentRuleset = entry.name, entry.ruleset
+        self.currentName, self.currentRuleset = entry.name, Ruleset()
     end
 end
 
@@ -424,7 +439,10 @@ function Mail:List(includeCurrent, search, category, unassigned)
             local normalized, expectedKey = Entry(entry.name, entry.ruleset, entry.region, entry.guid,
                 entry.class, entry.level, entry.faction, true)
             local address, complete
-            if normalized then address, complete = Name(normalized.name, true) end
+            if normalized then
+                address, complete = Name(normalized.name, true)
+                normalized.ruleset = normalized.ruleset or SavedChoice(region, normalized.guid)
+            end
             local current = normalized and self:IsCurrent(normalized)
             local inScope = normalized and (unassigned and normalized.ruleset == nil
                 or not unassigned and normalized.ruleset == ruleset)
@@ -1195,8 +1213,27 @@ function Mail:Schedule()
     end)
 end
 
+function Mail:PromptContactRuleset()
+    if not self.contactRulesetLogin or not Suite.db.mailHelper then return end
+    local ruleset, missing = AutomaticRuleset()
+    if ruleset or not missing then self.contactRulesetLogin = nil; return end
+    local region, guid = Region(), UnitGUID and UnitGUID("player")
+    if not region or not String(guid, 128) then return end
+    if SavedChoice(region, guid) then self.contactRulesetLogin = nil; return end
+    Suite.AfterCombat("mailRuleset", function()
+        if not self.contactRulesetLogin or not Suite.db.mailHelper then return end
+        self.contactRulesetLogin = nil
+        if Ruleset() or Region() ~= region then return end
+        local currentGUID = UnitGUID and UnitGUID("player")
+        if String(currentGUID, 128) and currentGUID == guid then self:OpenBook(nil, "preferences") end
+    end)
+end
+
 function Mail:Apply()
-    if not Suite.db.mailHelper then self.guildEntries, self.guildLoaded, self.guildRequested = nil, nil, nil end
+    if not Suite.db.mailHelper then
+        self.guildEntries, self.guildLoaded, self.guildRequested = nil, nil, nil
+        self.contactRulesetLogin, Suite.pending.mailRuleset = nil, nil
+    end
     if not Suite.db.mailHelper and not Suite.db.mailRememberRecipient then
         self.active = nil; self:EndVisit(); Suite.pending.mail = nil
         if self.events then self.events:UnregisterAllEvents() end
@@ -1228,6 +1265,12 @@ function Mail:Apply()
                         if event == "PLAYER_ENTERING_WORLD" or event == "MAIL_SHOW" or event == "UNIT_NAME_UPDATE"
                             or event == "GAME_RULES_CHANGED" then self:RecordPlayer()
                         elseif event == "PLAYER_LEVEL_UP" then self:RecordPlayer(level) end
+                        if event == "PLAYER_ENTERING_WORLD" and Suite.IsReadable(level) and level == true then
+                            self.contactRulesetLogin = true
+                        end
+                        if event == "PLAYER_ENTERING_WORLD" or event == "UNIT_NAME_UPDATE" or event == "GAME_RULES_CHANGED" then
+                            self:PromptContactRuleset()
+                        end
                         self:Schedule()
                     end
                 end)
@@ -1460,13 +1503,60 @@ function Mail:EditContact(entry)
     book.original.groups = Suite.Copy(book.groupChoices)
 end
 
+function Mail:SetContactRuleset(choice)
+    local automatic, missing = AutomaticRuleset()
+    local region, guid = Region(), UnitGUID and UnitGUID("player")
+    if InCombatLockdown() or automatic or not missing or not region or not String(guid, 128) then return false end
+    local chosen = RulesetFromServer(choice)
+    if not Suite.IsReadable(choice) or (choice ~= nil and not chosen) then return false end
+    self:Database()
+    local db = Suite.db.mailContacts
+    db.characterRulesets = Record(db.characterRulesets) or {}
+    db.characterRulesets[Key(region, nil, nil, guid)] = chosen
+    self:RecordPlayer()
+    self:ReadGuild()
+    return true
+end
+
+function Mail:ChooseContactRuleset()
+    local book = self.book
+    if InCombatLockdown() or not book or not Shown(book.preferences)
+        or not Suite.Menus or type(Suite.Menus.CreateContextMenu) ~= "function" then return end
+    if book.dirty then
+        book.rulesetHint:SetText("Save or cancel the contact draft before changing server type.")
+        return
+    end
+    local region, guid = Region(), UnitGUID and UnitGUID("player")
+    if not region or not String(guid, 128) then return end
+    local function Select(choice)
+        if not Shown(book.preferences) or book.dirty or Region() ~= region then return end
+        local currentGUID = UnitGUID and UnitGUID("player")
+        if not String(currentGUID, 128) or currentGUID ~= guid or not self:SetContactRuleset(choice) then return end
+        book.page, book.confirm = 1, nil
+        self:EditContact()
+        self:Refresh()
+    end
+    Suite.Menus.CreateContextMenu(book.rulesetButton, function(_, root)
+        root:CreateButton("Automatic", function() Select(nil) end)
+        for _, label in ipairs(contactRulesets) do
+            root:CreateButton(label, function() Select(label) end)
+        end
+    end)
+end
+
 function Mail:RefreshBook()
     if InCombatLockdown() or not self.book then return end
     local book = self.book
     local definitions = self:GroupDefinitions()
     local preferences = self:GroupSettings()
     local hideDetails = Suite.IsReadable(preferences.hideDetails) and preferences.hideDetails == true
-    book.subtitle:SetText("Your contacts and groups · " .. (Ruleset() or "Waiting for server type"))
+    local ruleset = Ruleset()
+    local automatic, missing = AutomaticRuleset()
+    local canChoose = missing and not automatic and Region() ~= nil and String(UnitGUID and UnitGUID("player"), 128)
+    book.subtitle:SetText("Your contacts and groups · " .. (ruleset or "Waiting for server type"))
+    book.rulesetButton:SetEnabled(canChoose == true)
+    book.rulesetButton.label:SetText("Server type: " .. (canChoose and ruleset or "Automatic"))
+    book.rulesetHint:SetText("Use the server type from character selection if WoW leaves it blank. This choice applies to Contacts for this character.")
     book.details.label:SetText(hideDetails and "Contact row details: hidden" or "Contact row details: shown")
     for key, button in pairs(self.sortButtons) do
         button.label:SetText((key == "name" and "Name" or "Level") .. (self.sort == key and (self.ascending and " ^" or " v") or ""))
@@ -1538,6 +1628,9 @@ function Mail:RefreshBook()
     book.saveRecipient:SetShown(Suite.db.mailHelper and self.visit and Shown(SendMailFrame) or false)
     book.saveRecipient:SetEnabled(Suite.db.mailHelper and self.visit and Shown(SendMailFrame) and not self.sendPending and not book.dirty or false)
     book.previous:SetEnabled(book.page > 1); book.next:SetEnabled(book.page < pages)
+    book.empty:SetText(not ruleset and canChoose and "Choose your server type in Preferences to see and save contacts."
+        or not ruleset and "Waiting for WoW to provide your server type."
+        or "No matching contacts. Clear the search, choose another group or add a contact.")
     book.empty:SetShown(#entries == 0)
 end
 
@@ -1649,7 +1742,6 @@ function Mail:OpenBook(anchor, tab)
         book.count = Text(frame, 10, colors.muted); book.count:SetPoint("TOPLEFT", 200, -491)
         book.wheelArea = Suite.Theme:PageWheel(frame, book.rows, book.previous, book.next, book.next)
         book.empty = Text(frame, 11, colors.muted); book.empty:SetPoint("TOPLEFT", 172, -148); book.empty:SetSize(240, 90); book.empty:SetWordWrap(true)
-        book.empty:SetText("No matching contacts. Clear the search, choose another group or add a contact.")
         book.editState = Text(frame, 12, colors.accent); book.editState:SetPoint("TOPLEFT", 444, -12); book.editState:SetWidth(278)
         book.name = Input(frame, "First and last name", 444, -46, 278, 77)
         book.groupsChoose = Add(frame, "Groups: Choose...", 444, -118, 278, function() self:ChooseContactGroups() end)
@@ -1759,6 +1851,9 @@ function Mail:OpenBook(anchor, tab)
         end)
         local recoveryHint = Text(preferences, 11, colors.muted); recoveryHint:SetPoint("TOPLEFT", 18, -198); recoveryHint:SetSize(704, 64); recoveryHint:SetWordWrap(true)
         recoveryHint:SetText("Older contacts with no server type stay separate. Review and Save each one to assign it to the current server type. Contacts on other known server types remain separate automatically.")
+        book.rulesetButton = Add(preferences, "", 18, -268, 300, function() self:ChooseContactRuleset() end)
+        book.rulesetHint = Text(preferences, 11, colors.muted)
+        book.rulesetHint:SetPoint("TOPLEFT", 18, -306); book.rulesetHint:SetSize(704, 60); book.rulesetHint:SetWordWrap(true)
         book.events = CreateFrame("Frame"); book.events:SetScript("OnEvent", function() self:RefreshBookRoster() end)
         window:SetScript("OnHide", function()
             if book.mailbox and Suite.db.mailHelper and self.visit and Shown(MailFrame) and Shown(SendMailFrame)

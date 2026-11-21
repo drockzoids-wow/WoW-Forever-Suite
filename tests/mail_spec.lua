@@ -760,6 +760,37 @@ do
     Suite.db.inventory.characters[player.guid].region = 1
     equal(#mail:List(true, ""), 0, "a different-region record and other characters cannot supply a scope")
     Suite.db.inventory.characters[player.guid].region = 110
+    Suite.db.inventory.characters[player.guid].region = 1
+    local savedOpenBook = mail.OpenBook
+    local prompts = 0
+    mail.OpenBook = function(_, anchor, tab)
+        equal(anchor, nil, "server-type prompt opens away from native mail")
+        equal(tab, "preferences", "login prompt opens Contacts preferences")
+        prompts = prompts + 1
+    end
+    mail.contactRulesetLogin = true
+    mail:PromptContactRuleset(); mail:PromptContactRuleset()
+    equal(prompts, 1, "an unresolved login prompts once")
+    equal(mail:SetContactRuleset("Unknown"), false, "unsupported server type cannot be saved")
+    equal(mail:SetContactRuleset("PvE"), true, "the player can choose the server type when name APIs are blank")
+    equal(Find("Same Realm").ruleset, "PvE", "the saved choice restores the matching scope")
+    equal(Find("Other Ruleset"), nil, "a saved choice leaves other rulesets separate")
+    equal(#mail:ContactList("guild", ""), 1, "a saved choice refreshes the live guild roster")
+    equal(mail:Database()[own].ruleset, nil, "a manual choice does not overwrite recorded server data")
+    equal(mail:SaveContact(nil, "New Recipient", "", "") ~= nil, true, "manual scope allows saving a new contact")
+    Suite.db = Suite.InitializeDB(Suite.Copy(Suite.db))
+    mail.contactRulesetLogin = true
+    mail:PromptContactRuleset()
+    equal(prompts, 1, "a saved choice suppresses the next login prompt")
+    equal(Find("New Recipient").ruleset, "PvE", "saved choice survives a saved-variable round trip")
+    local guid = player.guid
+    player.guid = "Other-Blank-Player"
+    equal(#mail:List(true, ""), 0, "the choice belongs to one character")
+    player.guid = guid
+    equal(mail:SetContactRuleset(nil), true, "Automatic can clear the manual choice")
+    equal(#mail:List(true, ""), 0, "the manual scope is gone after clearing")
+    mail.OpenBook = savedOpenBook
+    Suite.db.inventory.characters[player.guid].region = 110
     player.realm = "ForeverUnrecognized"
     equal(#mail:List(true, ""), 0, "unknown live labels do not use the blank-label fallback")
     player.realm = { secret = true }
