@@ -4,6 +4,8 @@
 
 Show a Rested XP column beside Level in the Characters roster. Use the existing character recording switch and distinguish zero, max level, and unrecorded characters. Mark offline estimates with an approximation symbol and an Offline estimate label. Show the last confirmed amount, logout time, rest status, and Well Rested rank in the tooltip. An unreadable rank leaves the confirmed amount on display.
 
+Show a percentage beside the amount using each successive level’s XP requirement. A full current level is 100%. The remaining rested XP uses the next level’s requirement.
+
 ## Saved Contacts server type — November 21, 2026
 
 When Mailbox Contacts is enabled and the server type cannot be recovered from blank realm labels, open Contacts Preferences on initial login. Save the chosen server type per character so subsequent logins use it automatically. Keep the same option available from the standalone contact book.

@@ -6,6 +6,15 @@ local PAGE_SIZE, LIMIT = 5, 200
 local WELL_RESTED_SPELL, WELL_RESTED_MAX_RANK = 1225478, 5
 local REST_XP_CAP, REST_XP_PER_RANK = 1.5, 0.04
 local REST_XP_SECONDS_PER_LEVEL = 8 * 60 * 60 / 0.05
+-- Forever 1.60.1.71037 LevelExperience, ContentSetID 0, levels 1 through 59.
+local LEVEL_XP = {
+    400, 900, 1400, 2100, 2800, 3600, 4500, 5400, 6500, 7600,
+    8800, 10100, 11400, 12900, 14400, 16000, 17700, 19400, 21300, 23200,
+    25200, 27300, 29400, 31700, 34000, 36400, 38900, 41400, 44300, 47400,
+    50800, 54500, 58600, 62800, 67100, 71600, 76100, 80800, 85700, 90700,
+    95800, 101000, 106300, 111800, 117500, 123200, 129100, 135100, 141200, 147500,
+    153900, 160400, 167100, 173900, 180800, 187900, 195000, 202300, 209800,
+}
 local teal, muted, white = { 0.41, 0.84, 0.75 }, { 0.55, 0.65, 0.7 }, { 0.88, 0.91, 0.93 }
 local function Table(value) return Suite.IsReadable(value) and type(value) == "table" end
 local function Text(value, limit)
@@ -22,21 +31,30 @@ local function Call(fn, ...)
 end
 local function At(value) return Integer(value, 1, 10000000000) and value or nil end
 local function SnapshotAt(value) return Table(value) and At(value.at) or nil end
-local function RestedSnapshot(value, now)
+local function RestedCap(xpMax, rank)
+    if Integer(xpMax, 1, 2147483647) and Integer(rank, 0, WELL_RESTED_MAX_RANK) then
+        return xpMax * REST_XP_CAP * (1 + rank * REST_XP_PER_RANK)
+    end
+end
+local function RestedSnapshot(value, now, recordedLevel, levelAt)
     local at = SnapshotAt(value)
     if not at then return end
     if Suite.IsReadable(value.maxLevel) and value.maxLevel == true then return { maxLevel = true, at = at } end
     if not Integer(value.amount, 0, 2147483647) then return end
     local result = { amount = value.amount, at = at }
+    if Integer(value.xpMax, 1, 2147483647) then result.xpMax = value.xpMax end
+    if Integer(value.level, 1, #LEVEL_XP) then result.level = value.level
+    elseif Integer(levelAt, at, at) and Integer(recordedLevel, 1, #LEVEL_XP) then result.level = recordedLevel end
     local offline = value.offline
-    if not now or not Table(offline) or not Integer(offline.logoutAt, at, now)
-        or not Integer(offline.xpMax, 1, 2147483647) or not Integer(offline.rank, 0, WELL_RESTED_MAX_RANK)
+    if not Table(offline) or not Integer(offline.logoutAt, at, 10000000000) then return result end
+    if not result.xpMax and Integer(offline.xpMax, 1, 2147483647) then result.xpMax = offline.xpMax end
+    local cap = RestedCap(offline.xpMax, offline.rank)
+    if not cap or not now or offline.logoutAt > now
         or not Suite.IsReadable(offline.resting) or type(offline.resting) ~= "boolean" then return result end
 
     local bonus = 1 + offline.rank * REST_XP_PER_RANK
     local seconds = now - offline.logoutAt
     local locationRate = offline.resting and 1 or 0.25
-    local cap = offline.xpMax * REST_XP_CAP * bonus
     local gain = seconds / REST_XP_SECONDS_PER_LEVEL * offline.xpMax * locationRate * bonus
     local amount = math.floor(math.min(value.amount + gain, cap))
     if amount > value.amount then
@@ -55,12 +73,31 @@ local function ReadRestedXP(at)
     if amount == nil and Call(GetRestState) == 2 then amount = 0 end
     if Integer(amount, 0, 2147483647) then return { amount = amount, at = at } end
 end
-local function RestedLabel(snapshot)
+local function RestedPercent(amount, xpMax, level)
+    if not xpMax then return end
+    if amount <= xpMax then return math.floor(amount * 100.0 / xpMax) end
+    -- Only use the bundled curve when it agrees with the live reading for this level.
+    if not level or LEVEL_XP[level] ~= xpMax then return end
+    local percent = 100
+    amount = amount - xpMax
+    for nextLevel = level + 1, #LEVEL_XP do
+        local requirement = LEVEL_XP[nextLevel]
+        if amount < requirement then return percent + math.floor(amount * 100.0 / requirement) end
+        amount, percent = amount - requirement, percent + 100
+    end
+    return percent
+end
+local function RestedLabel(snapshot, confirmed)
     if not snapshot then return "Not recorded" end
     if snapshot.maxLevel then return "Max level" end
-    local amount = snapshot.estimate or snapshot.amount
+    local estimate = not confirmed and snapshot.estimate
+    local amount = estimate or snapshot.amount
     local label = Call(BreakUpLargeNumbers, amount)
-    return (snapshot.estimate and "≈" or "") .. (Text(label) and label or tostring(amount))
+    label = (estimate and "≈" or "") .. (Text(label) and label or tostring(amount))
+    local xpMax = estimate and snapshot.offline.xpMax or snapshot.xpMax
+    local percent = RestedPercent(amount, xpMax, snapshot.level)
+    if not percent then return label end
+    return label .. " (" .. (amount > 0 and percent == 0 and "<1" or tostring(percent)) .. "%)", percent
 end
 local function FindWellRestedNode(traits, treeID, configID)
     local nodes = Call(traits.GetTreeNodes, treeID)
@@ -187,7 +224,9 @@ function Dashboard:Capture()
         if rested.amount then
             local xpMax, resting = Call(UnitXPMax, "player"), Call(IsResting)
             local rank = self:ReadWellRestedRank()
-            if Integer(xpMax, 1, 2147483647) and type(resting) == "boolean" and rank ~= nil then
+            if Integer(xpMax, 1, 2147483647) then rested.xpMax = xpMax end
+            if Integer(level, 1, #LEVEL_XP) then rested.level = level end
+            if rested.xpMax and type(resting) == "boolean" and rank ~= nil then
                 self.restedLogout = { snapshot = rested, xpMax = xpMax, resting = resting, rank = rank }
             end
         end
@@ -225,7 +264,7 @@ function Dashboard:Rows(query, sort)
                     or Text(owner.context) and owner.context ~= realm and owner.context or "Unknown ruleset",
                 level = Integer(profile.level, 1, 1000) and profile.level or nil,
                 money = Integer(profile.money, 0, 1000000000000) and profile.money or nil,
-                restedXP = RestedSnapshot(profile.restedXP, guid ~= current and now or nil),
+                restedXP = RestedSnapshot(profile.restedXP, guid ~= current and now or nil, profile.level, profile.levelAt),
                 professions = Professions(profile.professions),
                 at = At(profile.at), levelAt = At(profile.levelAt),
                 moneyAt = At(profile.moneyAt), professionsAt = At(profile.professionsAt),
@@ -268,11 +307,13 @@ function Dashboard:Tooltip(button)
     GameTooltip:AddLine("Level: " .. (row.level or "Not recorded") .. "  ·  " .. ClassName(row.class))
     GameTooltip:AddLine("Level recorded: " .. self:Stamp(row.levelAt), unpack(muted))
     GameTooltip:AddLine("Money: " .. self:Money(row.money)); GameTooltip:AddLine("Money recorded: " .. self:Stamp(row.moneyAt), unpack(muted))
-    GameTooltip:AddLine("Rested XP: " .. RestedLabel(row.restedXP))
     local rested = row.restedXP
+    local restedLabel, restedPercent = RestedLabel(rested)
+    GameTooltip:AddLine("Rested XP: " .. restedLabel)
     if rested then
+        if restedPercent then GameTooltip:AddLine("Percentage of full levels, starting at the recorded level", unpack(muted)) end
         if rested.estimate then
-            GameTooltip:AddLine("Last confirmed: " .. RestedLabel({ amount = rested.amount }), unpack(muted))
+            GameTooltip:AddLine("Last confirmed: " .. RestedLabel(rested, true), unpack(muted))
             GameTooltip:AddLine("Logged out: " .. self:Stamp(rested.offline.logoutAt), unpack(muted))
             GameTooltip:AddLine((rested.offline.resting and "Rested area" or "Outside a rested area")
                 .. " · Well Rested " .. rested.offline.rank .. "/" .. WELL_RESTED_MAX_RANK, unpack(muted))
@@ -334,9 +375,9 @@ function Dashboard:Build(parent)
     end)
     self.summary = Label(panel, 12, white, 0, -40, 780)
     self.coverage = Label(panel, 11, muted, 0, -59, 780)
-    Label(panel, 11, muted, 12, -86, 428):SetText("CHARACTER · CLICK TO SELECT")
-    local levelHeading = Label(panel, 11, muted, 456, -86, 48); levelHeading:SetJustifyH("CENTER"); levelHeading:SetText("LEVEL")
-    local restedHeading = Label(panel, 11, muted, 519, -86, 110); restedHeading:SetJustifyH("RIGHT"); restedHeading:SetText("RESTED XP")
+    Label(panel, 11, muted, 12, -86, 414):SetText("CHARACTER · CLICK TO SELECT")
+    local levelHeading = Label(panel, 11, muted, 442, -86, 48); levelHeading:SetJustifyH("CENTER"); levelHeading:SetText("LEVEL")
+    local restedHeading = Label(panel, 11, muted, 510, -86, 128); restedHeading:SetJustifyH("RIGHT"); restedHeading:SetText("RESTED XP")
     local goldHeading = Label(panel, 11, muted, 645, -86, 123); goldHeading:SetJustifyH("RIGHT"); goldHeading:SetText("GOLD")
     self.empty = Label(panel, 12, muted, 0, -115, 780); self.empty:SetWordWrap(true); self.empty:SetHeight(40)
     for index = 1, PAGE_SIZE do
@@ -346,12 +387,12 @@ function Dashboard:Build(parent)
         row:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" }); row:SetBackdropColor(0.07, 0.095, 0.11)
         row.accent = row:CreateTexture(nil, "ARTWORK"); row.accent:SetPoint("TOPLEFT", 0, -5)
         row.accent:SetSize(3, 42)
-        row.name = Label(row, 14, teal, 12, -8, 428)
-        row.level = Label(row, 14, white, 456, -18, 48); row.level:SetJustifyH("CENTER")
-        row.restedXP = Label(row, 12, white, 519, -8, 110); row.restedXP:SetJustifyH("RIGHT")
-        row.restedAt = Label(row, 10, muted, 519, -30, 110); row.restedAt:SetJustifyH("RIGHT")
+        row.name = Label(row, 14, teal, 12, -8, 414)
+        row.level = Label(row, 14, white, 442, -18, 48); row.level:SetJustifyH("CENTER")
+        row.restedXP = Label(row, 12, white, 510, -8, 128); row.restedXP:SetJustifyH("RIGHT")
+        row.restedAt = Label(row, 10, muted, 510, -30, 128); row.restedAt:SetJustifyH("RIGHT")
         row.money = Label(row, 12, white, 645, -19, 123); row.money:SetJustifyH("RIGHT")
-        row.context = Label(row, 11, muted, 12, -30, 428)
+        row.context = Label(row, 11, muted, 12, -30, 414)
         row:SetScript("OnClick", function()
             if row.entry then self.selected = row.entry.guid; self:RefreshView() end
         end)
@@ -432,7 +473,7 @@ function Dashboard:Render()
         if row then
             button.name:SetText(row.name .. (row.current and " (You)" or "")); button.money:SetText(self:Money(row.money))
             button.level:SetText(row.level or "—")
-            button.restedXP:SetText(RestedLabel(row.restedXP))
+            button.restedXP:SetText((RestedLabel(row.restedXP)))
             button.restedAt:SetText(row.restedXP and (row.restedXP.estimate and "Offline estimate" or self:Stamp(row.restedXP.at)) or "")
             button.context:SetText(ClassName(row.class) .. "  ·  " .. row.ruleset)
             button.name:SetTextColor(ClassColor(row.class)); button.accent:SetColorTexture(ClassColor(row.class))

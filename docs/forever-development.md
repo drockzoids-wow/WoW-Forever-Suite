@@ -8,6 +8,8 @@ Offline estimates use the last readable in-world XP requirement, resting status,
 
 The test model adds 5% of the XP requirement per eight rested hours, or a quarter of that outside rested areas, up to 150% of a level. Well Rested adds 4% per rank to both the rate and cap in the model. In-game comparison of the location rates, cap and perk numbers remains pending. Blizzard confirms the perk affects both rate and cap. [Forever Legacy System](https://worldofwarcraft.blizzard.com/en-gb/news/24307383/get-to-know-the-world-of-warcraft-forever-legacy-system)
 
+The roster also shows how many full levels the amount represents, starting at the beginning of the recorded level. It uses the recorded native XP requirement for the first level and the client LevelExperience table for later levels, only if the table matches the recorded requirement. It stops at level 60. Older observations with no XP requirement keep the raw amount. The table uses ContentSetID 0 from the [Forever 1.60.1.71037 client export](https://wago.tools/db2/LevelExperience/csv?build=1.60.1.71037).
+
 ## Saved Contacts server type — November 21, 2026
 
 A player on Suite 1.0.25 and client build 71037 reported that GetRealmName and SelectedRealmName were blank and GetNativeRealmID was zero. When the live realm labels are blank and the exact character has no recorded server type, Contacts can use a player-selected type saved with the character GUID and region. Mailbox Contacts prompts at initial login only while that character has no saved or detected type. The standalone book offers the same choice in Preferences. Detected server types take priority.

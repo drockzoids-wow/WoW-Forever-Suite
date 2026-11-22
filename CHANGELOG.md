@@ -1,5 +1,9 @@
 # Forever Suite
 
+## 1.0.28 — November 22, 2026
+
+- Characters shows a level percentage beside confirmed and estimated rested XP. One full level is 100%, and any XP beyond it uses the next level’s XP requirement.
+
 ## 1.0.27 — November 22, 2026
 
 - Characters now shows each alt’s last confirmed rested XP. Enable **Record character dashboard** and log into each character to start recording.

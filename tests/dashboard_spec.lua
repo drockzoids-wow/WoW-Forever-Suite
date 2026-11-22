@@ -40,6 +40,7 @@ GameRulesUtil = { IsPlayerAtEffectiveMaxLevel = function() return maxLevel end }
 local function GetRestedXP() return restedXP end
 GetXPExhaustion = GetRestedXP
 GetRestState = function() return restState end
+UnitXPMax = function() return 50000 end
 BreakUpLargeNumbers = function(amount) return amount == 12345 and "12,345" or tostring(amount) end
 GetServerTime = function() return now end; UnitLevel = function() return level end; GetMoney = function() return money end
 GetProfessions = function() return 1, nil, 3, nil, 5, nil, 7 end
@@ -71,6 +72,7 @@ equal(profile.professions[4].name, "Fishing", "the seventh native profession ret
 equal(profile.professions[1].rank, 120, "profession ranks come from the native tuple")
 equal(profile.moneyAt, 1000, "money has an independent recording date")
 equal(profile.restedXP.amount, 12345, "login captures the native rested XP amount")
+equal(profile.restedXP.xpMax, 50000, "the percentage needs no Legacy rank when rested XP is confirmed")
 equal(profile.restedXP.at, 1000, "rested XP has an independent recording date")
 equal(Suite.Inventory:Enabled(), true, "dashboard independently enables shared inventory recording")
 equal(Suite.db.inventorySearch, false, "dashboard does not enable native ownership search")
@@ -182,7 +184,7 @@ equal(dashboard.buttons[1].restedAt:GetText(), "Time 890", "the date appears bel
 equal(dashboard.skills[1].name:GetText(), "Mining", "selected character exposes a separately aligned profession")
 equal(dashboard.skills[1].rank:GetText(), "300/300", "selected character exposes its recorded rank")
 dashboard.search:SetText(""); dashboard.sort = "money"; dashboard:Render()
-equal(dashboard.buttons[1].restedXP:GetText(), "12,345", "larger rested amounts use the native number formatter")
+equal(dashboard.buttons[1].restedXP:GetText(), "12,345 (24%)", "the row shows the formatted amount and whole-level percentage")
 equal(dashboard.buttons[3].restedXP:GetText(), "Not recorded", "unknown rested balances remain distinct in the roster")
 equal(dashboard.buttons[3].restedAt:GetText(), "", "unknown rested balances have no timestamp")
 dashboard.buttons[2].OnClick()
@@ -293,13 +295,17 @@ do
     UnitGUID = function() return "Player-Other" end
     equal(MainRest().estimate, 15000, "eight hours in a rested area adds 5% of the level requirement")
     equal(snapshot.amount, 10000, "estimates never replace confirmed XP")
-    dashboard:Render()
-    for _, button in ipairs(dashboard.buttons) do
-        if button.entry and button.entry.guid == "Player-Main" then
-            equal(button.restedXP:GetText(), "≈15000", "the roster clearly marks an estimate")
-            equal(button.restedAt:GetText(), "Offline estimate", "the roster identifies the estimate in words")
+    local function MainButton()
+        dashboard:Render()
+        for _, button in ipairs(dashboard.buttons) do
+            if button.entry and button.entry.guid == "Player-Main" then return button end
         end
+        error("main character row missing")
     end
+    snapshot.xpMax, snapshot.level = nil, nil
+    local main = MainButton()
+    equal(main.restedXP:GetText(), "≈15000 (15%)", "an older logout record uses its offline XP requirement for the percentage")
+    equal(main.restedAt:GetText(), "Offline estimate", "the roster identifies the estimate in words")
     local originalDB = Suite.db
     Suite.db = Suite.InitializeDB(Suite.Copy(originalDB))
     equal(MainRest().estimate, 15000, "the logout snapshot survives a saved-variable round trip")
@@ -342,6 +348,19 @@ do
     dashboard:Apply()
     equal(snapshot.offline, nil, "a new login ends the previous offline interval even when XP is unreadable")
     equal(snapshot.amount, 10000, "login fallback preserves the confirmed amount")
+
+    profile.restedXP = { amount = 625, xpMax = 400, level = 1, at = clock }
+    equal(MainButton().restedXP:GetText(), "625 (125%)", "XP beyond the first level uses the next level’s higher requirement")
+    profile.restedXP.amount = 400
+    equal(MainButton().restedXP:GetText(), "400 (100%)", "the full current requirement is exactly one level")
+    profile.restedXP.amount = 1
+    equal(MainButton().restedXP:GetText(), "1 (<1%)", "a positive amount below one percent is distinct from empty")
+    profile.restedXP.amount = 0
+    equal(MainButton().restedXP:GetText(), "0 (0%)", "a known empty amount has a zero percentage")
+    profile.restedXP.amount, profile.restedXP.xpMax = 625, 401
+    equal(MainButton().restedXP:GetText(), "625", "a mismatched curve does not assume the next level’s cost")
+    profile.restedXP = { amount = 250000, xpMax = 209800, level = 59, at = clock }
+    equal(MainButton().restedXP:GetText(), "250000 (100%)", "rested XP cannot span beyond Forever’s maximum level")
 end
 
 dashboard:Cancel(); dashboard.panel:Hide()
