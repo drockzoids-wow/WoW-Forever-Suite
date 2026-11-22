@@ -78,7 +78,7 @@ for _, item in ipairs({ { "lock", "Lock damage meters" }, { "snap", "Snap damage
     { "visibility", "Meter visibility" }, { "clickThrough", "Meter mouse input" } }) do
     extras[#extras + 1] = { page = "meters", key = "meter_" .. item[1], label = item[2], target = "meterButtons." .. item[1], words = "damage healing dps hps" }
 end
-local synonyms = { characterDashboard = "recorded characters dashboard alts money gold professions levels snapshots dates",
+local synonyms = { characterDashboard = "recorded characters dashboard alts money gold professions levels rested xp snapshots dates",
     professionLeveling = "profession leveling levelling guide flyout wow professions blacksmithing alchemy engineering enchanting tailoring leatherworking herbalism mining skinning cooking fishing first aid camping lockpicking materials trainers hide done stocked shortages enough green check collapse expand automatic steps select recipe click",
     professionLevelingAutoRecipe = "profession leveling levelling auto automatic select recipe current step skill up manual crafting",
     chatShortcuts = "slash commands hotkeys kb quick keybinding edit mode binds macros cal calendar settings addons rl reload",
@@ -115,7 +115,7 @@ local synonyms = { characterDashboard = "recorded characters dashboard alts mone
 function Catalog:Configure(pages)
     self.pages, self.pageGroup, self.labels, self.entries = pages, {}, {}, {}
     pages.characters = { title = "Recorded characters", description = "Your characters, possessions and saved banks, together.", rows = {
-        { key = "characterDashboard", label = "Record character dashboard", help = "Save level, gold, professions and inventory dates when you play each character.\nTurn recording off without deleting existing records." },
+        { key = "characterDashboard", label = "Record character dashboard", help = "Save level, gold, rested XP, professions and inventory dates as you play.\nTurn recording off without deleting existing records." },
     }, note = "Browse saved records even with recording off. Log into alts and visit banks to refresh them. Unknown locations stay unknown; shared contents count once." }
     local old = pages.windows.rows
     pages.windows.rows = { old[1], old[2] }

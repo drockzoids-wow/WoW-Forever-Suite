@@ -1,5 +1,10 @@
 # Forever Suite
 
+## 1.0.27 — November 22, 2026
+
+- Characters now shows each alt’s last confirmed rested XP. Enable **Record character dashboard** and log into each character to start recording.
+- Offline rested XP estimates account for whether the character logged out in a rested area and their **Well Rested** Legacy rank. If the rank or logout data is unavailable, the roster shows the last confirmed amount.
+
 ## 1.0.26 — November 21, 2026
 
 - When WoW leaves the server type blank, Mailbox Contacts prompts for it at login and saves the choice per character. You can also choose it under **Contacts → Preferences**. Updating in place keeps existing saved contacts.

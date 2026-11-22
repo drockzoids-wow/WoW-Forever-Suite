@@ -1,5 +1,11 @@
 # Forever Suite in game testing
 
+## Rested XP in Characters — November 22, 2026
+
+Turn on Record character dashboard and open `/wfs characters`. Compare the Rested XP column with the native XP-bar tooltip on a leveling character. Earn XP to consume some rest and check for an updated amount and time after combat. Log in on an alt, then switch back and verify each keeps its own last observation. Check a character with no rested XP, a max-level character, and an existing record that has yet to be refreshed. Verify the new column fits with long names and at a smaller UI scale. Turn recording off and confirm saved values remain visible.
+
+For the offline forecast, log out in an inn on a character with a known Well Rested rank and enough room below the cap. Check that character from another login in `/wfs characters` after some time has passed. Note the estimate and compare it to the confirmed amount immediately after signing back in. Repeat from outside a rested area and with a different perk rank. Hover the estimate to verify the logout location and rank. Check that a previously capped amount never drops due to extrapolation, and that an unavailable rank or pending Legacy changes leave the confirmed amount on display. Record the running client build and measured deltas during in-game follow-up.
+
 ## Saved Contacts server type — November 21, 2026
 
 Use the tester's client build with blank realm labels and no previously recorded server type for the current character. Enable Mailbox Contacts and log in to that character. Verify Contacts opens to Preferences and choosing the correct server type restores matching saved contacts and guild entries and allows a new contact to be saved. Relog and verify the same character keeps its choice without a prompt. Check another character to verify the choice is separate. Try Automatic in Preferences to clear the fallback. Confirm a detectable server type takes precedence, and try the same choice from the standalone book with Mailbox Contacts disabled.

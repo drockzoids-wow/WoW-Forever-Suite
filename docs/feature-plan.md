@@ -1,5 +1,9 @@
 # Forever Suite feature plan
 
+## Rested XP in Characters — November 22, 2026
+
+Show a Rested XP column beside Level in the Characters roster. Use the existing character recording switch and distinguish zero, max level, and unrecorded characters. Mark offline estimates with an approximation symbol and an Offline estimate label. Show the last confirmed amount, logout time, rest status, and Well Rested rank in the tooltip. An unreadable rank leaves the confirmed amount on display.
+
 ## Saved Contacts server type — November 21, 2026
 
 When Mailbox Contacts is enabled and the server type cannot be recovered from blank realm labels, open Contacts Preferences on initial login. Save the chosen server type per character so subsequent logins use it automatically. Keep the same option available from the standalone contact book.

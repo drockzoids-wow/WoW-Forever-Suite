@@ -3,6 +3,9 @@ local Dashboard = { page = 1, query = "", sort = "name" }
 Suite.CharacterDashboard = Dashboard
 table.insert(Suite.modules, Dashboard)
 local PAGE_SIZE, LIMIT = 5, 200
+local WELL_RESTED_SPELL, WELL_RESTED_MAX_RANK = 1225478, 5
+local REST_XP_CAP, REST_XP_PER_RANK = 1.5, 0.04
+local REST_XP_SECONDS_PER_LEVEL = 8 * 60 * 60 / 0.05
 local teal, muted, white = { 0.41, 0.84, 0.75 }, { 0.55, 0.65, 0.7 }, { 0.88, 0.91, 0.93 }
 local function Table(value) return Suite.IsReadable(value) and type(value) == "table" end
 local function Text(value, limit)
@@ -19,6 +22,83 @@ local function Call(fn, ...)
 end
 local function At(value) return Integer(value, 1, 10000000000) and value or nil end
 local function SnapshotAt(value) return Table(value) and At(value.at) or nil end
+local function RestedSnapshot(value, now)
+    local at = SnapshotAt(value)
+    if not at then return end
+    if Suite.IsReadable(value.maxLevel) and value.maxLevel == true then return { maxLevel = true, at = at } end
+    if not Integer(value.amount, 0, 2147483647) then return end
+    local result = { amount = value.amount, at = at }
+    local offline = value.offline
+    if not now or not Table(offline) or not Integer(offline.logoutAt, at, now)
+        or not Integer(offline.xpMax, 1, 2147483647) or not Integer(offline.rank, 0, WELL_RESTED_MAX_RANK)
+        or not Suite.IsReadable(offline.resting) or type(offline.resting) ~= "boolean" then return result end
+
+    local bonus = 1 + offline.rank * REST_XP_PER_RANK
+    local seconds = now - offline.logoutAt
+    local locationRate = offline.resting and 1 or 0.25
+    local cap = offline.xpMax * REST_XP_CAP * bonus
+    local gain = seconds / REST_XP_SECONDS_PER_LEVEL * offline.xpMax * locationRate * bonus
+    local amount = math.floor(math.min(value.amount + gain, cap))
+    if amount > value.amount then
+        result.estimate = amount
+        result.offline = offline
+    end
+    return result
+end
+local function ReadRestedXP(at)
+    local maxLevel = Table(GameRulesUtil) and Call(GameRulesUtil.IsPlayerAtEffectiveMaxLevel)
+    if maxLevel == true then return { maxLevel = true, at = at } end
+    if not Suite.IsReadable(GetXPExhaustion) or type(GetXPExhaustion) ~= "function" then return end
+    local ok, amount = pcall(GetXPExhaustion)
+    if not ok or not Suite.IsReadable(amount) then return end
+    -- A nil threshold with Blizzard's normal rest state means there is no rested XP.
+    if amount == nil and Call(GetRestState) == 2 then amount = 0 end
+    if Integer(amount, 0, 2147483647) then return { amount = amount, at = at } end
+end
+local function RestedLabel(snapshot)
+    if not snapshot then return "Not recorded" end
+    if snapshot.maxLevel then return "Max level" end
+    local amount = snapshot.estimate or snapshot.amount
+    local label = Call(BreakUpLargeNumbers, amount)
+    return (snapshot.estimate and "≈" or "") .. (Text(label) and label or tostring(amount))
+end
+local function FindWellRestedNode(traits, treeID, configID)
+    local nodes = Call(traits.GetTreeNodes, treeID)
+    if not Table(nodes) or #nodes > 128 then return end
+    for index = 1, #nodes do
+        local nodeID = nodes[index]
+        if Integer(nodeID, 1, 2147483647) then
+            local node = Call(traits.GetNodeInfo, configID, nodeID)
+            local entries = Table(node) and node.entryIDs
+            if Table(entries) and #entries == 1 and Integer(entries[1], 1, 2147483647) then
+                local entry = Call(traits.GetEntryInfo, configID, entries[1])
+                if Table(entry) and Integer(entry.definitionID, 1, 2147483647) then
+                    local definition = Call(traits.GetDefinitionInfo, entry.definitionID)
+                    if Table(definition) and Integer(definition.spellID, WELL_RESTED_SPELL, WELL_RESTED_SPELL) then
+                        return nodeID, node
+                    end
+                end
+            end
+        end
+    end
+end
+function Dashboard:ReadWellRestedRank()
+    if not Table(C_Traits) or not Table(Constants) or not Table(Constants.LegacyConsts) then return end
+    local treeID = Constants.LegacyConsts.LEGACY_TREE_ADVENTURE_ID
+    if not Integer(treeID, 1, 2147483647) then return end
+    local configID = Call(C_Traits.GetConfigIDByTreeID, treeID)
+    if not Integer(configID, 1, 2147483647) or Call(C_Traits.ConfigHasStagedChanges, configID) ~= false then return end
+
+    local node
+    if self.wellRestedTree == treeID then node = Call(C_Traits.GetNodeInfo, configID, self.wellRestedNode)
+    else
+        local nodeID
+        nodeID, node = FindWellRestedNode(C_Traits, treeID, configID)
+        if nodeID then self.wellRestedTree, self.wellRestedNode = treeID, nodeID end
+    end
+    if Table(node) and Integer(node.maxRanks, WELL_RESTED_MAX_RANK, WELL_RESTED_MAX_RANK)
+        and Integer(node.activeRank, 0, WELL_RESTED_MAX_RANK) then return node.activeRank end
+end
 local function ClassName(token)
     if not Text(token, 32) then return "Unknown class" end
     local names = LOCALIZED_CLASS_NAMES_MALE
@@ -100,6 +180,21 @@ function Dashboard:Capture()
     local level, money = Call(UnitLevel, "player"), Call(GetMoney)
     if Integer(level, 1, 1000) then profile.level, profile.levelAt = level, at end
     if Integer(money, 0, 1000000000000) then profile.money, profile.moneyAt = money, at end
+    local rested = ReadRestedXP(at)
+    self.restedLogout = nil
+    if rested then
+        profile.restedXP = rested
+        if rested.amount then
+            local xpMax, resting = Call(UnitXPMax, "player"), Call(IsResting)
+            local rank = self:ReadWellRestedRank()
+            if Integer(xpMax, 1, 2147483647) and type(resting) == "boolean" and rank ~= nil then
+                self.restedLogout = { snapshot = rested, xpMax = xpMax, resting = resting, rank = rank }
+            end
+        end
+    elseif Table(profile.restedXP) then
+        -- This character has been played again, so the previous offline interval ended.
+        profile.restedXP.offline = nil
+    end
     local professions = self:ReadProfessions()
     if professions then profile.professions, profile.professionsAt = professions, at end
     local ruleset = Call(Suite.Mail.CurrentRuleset, Suite.Mail)
@@ -115,6 +210,7 @@ function Dashboard:Rows(query, sort)
     if not Text(sort) or not ({ name = true, money = true, level = true, at = true })[sort] then sort = "name" end
     local tokens = {}; for token in query:lower():gmatch("%S+") do tokens[#tokens + 1] = token end
     local rows, total, gold, known, limited = {}, 0, 0, 0, false
+    local now = current and At(Call(GetServerTime))
     for guid, character in pairs(Suite.Inventory:Database().characters) do
         if Text(guid) and Table(character) and Text(character.name)
             and Integer(character.region, 1, 1000000) and character.region == region then
@@ -129,7 +225,9 @@ function Dashboard:Rows(query, sort)
                     or Text(owner.context) and owner.context ~= realm and owner.context or "Unknown ruleset",
                 level = Integer(profile.level, 1, 1000) and profile.level or nil,
                 money = Integer(profile.money, 0, 1000000000000) and profile.money or nil,
-                professions = Professions(profile.professions), at = At(profile.at), levelAt = At(profile.levelAt),
+                restedXP = RestedSnapshot(profile.restedXP, guid ~= current and now or nil),
+                professions = Professions(profile.professions),
+                at = At(profile.at), levelAt = At(profile.levelAt),
                 moneyAt = At(profile.moneyAt), professionsAt = At(profile.professionsAt),
                 bagsAt = SnapshotAt(character.bags), bankAt = SnapshotAt(character.bank) or SnapshotAt(character.bankView),
                 mailExpiry = Suite.MailExpiry:Validate(character.mailExpiry) }
@@ -170,6 +268,17 @@ function Dashboard:Tooltip(button)
     GameTooltip:AddLine("Level: " .. (row.level or "Not recorded") .. "  ·  " .. ClassName(row.class))
     GameTooltip:AddLine("Level recorded: " .. self:Stamp(row.levelAt), unpack(muted))
     GameTooltip:AddLine("Money: " .. self:Money(row.money)); GameTooltip:AddLine("Money recorded: " .. self:Stamp(row.moneyAt), unpack(muted))
+    GameTooltip:AddLine("Rested XP: " .. RestedLabel(row.restedXP))
+    local rested = row.restedXP
+    if rested then
+        if rested.estimate then
+            GameTooltip:AddLine("Last confirmed: " .. RestedLabel({ amount = rested.amount }), unpack(muted))
+            GameTooltip:AddLine("Logged out: " .. self:Stamp(rested.offline.logoutAt), unpack(muted))
+            GameTooltip:AddLine((rested.offline.resting and "Rested area" or "Outside a rested area")
+                .. " · Well Rested " .. rested.offline.rank .. "/" .. WELL_RESTED_MAX_RANK, unpack(muted))
+        end
+        GameTooltip:AddLine("Rested XP recorded: " .. self:Stamp(rested.at), unpack(muted))
+    end
     if row.professions then
         for _, skill in ipairs(row.professions) do GameTooltip:AddLine(skill.name .. ": " .. skill.rank .. "/" .. skill.maxRank) end
         if #row.professions == 0 then GameTooltip:AddLine("No professions") end
@@ -225,9 +334,10 @@ function Dashboard:Build(parent)
     end)
     self.summary = Label(panel, 12, white, 0, -40, 780)
     self.coverage = Label(panel, 11, muted, 0, -59, 780)
-    Label(panel, 11, muted, 12, -86, 546):SetText("CHARACTER · CLICK TO SELECT")
-    local levelHeading = Label(panel, 11, muted, 568, -86, 50); levelHeading:SetJustifyH("CENTER"); levelHeading:SetText("LEVEL")
-    local goldHeading = Label(panel, 11, muted, 630, -86, 138); goldHeading:SetJustifyH("RIGHT"); goldHeading:SetText("GOLD")
+    Label(panel, 11, muted, 12, -86, 428):SetText("CHARACTER · CLICK TO SELECT")
+    local levelHeading = Label(panel, 11, muted, 456, -86, 48); levelHeading:SetJustifyH("CENTER"); levelHeading:SetText("LEVEL")
+    local restedHeading = Label(panel, 11, muted, 519, -86, 110); restedHeading:SetJustifyH("RIGHT"); restedHeading:SetText("RESTED XP")
+    local goldHeading = Label(panel, 11, muted, 645, -86, 123); goldHeading:SetJustifyH("RIGHT"); goldHeading:SetText("GOLD")
     self.empty = Label(panel, 12, muted, 0, -115, 780); self.empty:SetWordWrap(true); self.empty:SetHeight(40)
     for index = 1, PAGE_SIZE do
         local row = CreateFrame("Button", nil, panel, "BackdropTemplate"); self.buttons[index] = row
@@ -236,10 +346,12 @@ function Dashboard:Build(parent)
         row:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" }); row:SetBackdropColor(0.07, 0.095, 0.11)
         row.accent = row:CreateTexture(nil, "ARTWORK"); row.accent:SetPoint("TOPLEFT", 0, -5)
         row.accent:SetSize(3, 42)
-        row.name = Label(row, 14, teal, 12, -8, 546)
-        row.money = Label(row, 12, white, 630, -19, 138); row.money:SetJustifyH("RIGHT")
-        row.level = Label(row, 14, white, 568, -18, 50); row.level:SetJustifyH("CENTER")
-        row.context = Label(row, 11, muted, 12, -30, 546)
+        row.name = Label(row, 14, teal, 12, -8, 428)
+        row.level = Label(row, 14, white, 456, -18, 48); row.level:SetJustifyH("CENTER")
+        row.restedXP = Label(row, 12, white, 519, -8, 110); row.restedXP:SetJustifyH("RIGHT")
+        row.restedAt = Label(row, 10, muted, 519, -30, 110); row.restedAt:SetJustifyH("RIGHT")
+        row.money = Label(row, 12, white, 645, -19, 123); row.money:SetJustifyH("RIGHT")
+        row.context = Label(row, 11, muted, 12, -30, 428)
         row:SetScript("OnClick", function()
             if row.entry then self.selected = row.entry.guid; self:RefreshView() end
         end)
@@ -320,6 +432,8 @@ function Dashboard:Render()
         if row then
             button.name:SetText(row.name .. (row.current and " (You)" or "")); button.money:SetText(self:Money(row.money))
             button.level:SetText(row.level or "—")
+            button.restedXP:SetText(RestedLabel(row.restedXP))
+            button.restedAt:SetText(row.restedXP and (row.restedXP.estimate and "Offline estimate" or self:Stamp(row.restedXP.at)) or "")
             button.context:SetText(ClassName(row.class) .. "  ·  " .. row.ruleset)
             button.name:SetTextColor(ClassColor(row.class)); button.accent:SetColorTexture(ClassColor(row.class))
             if row.guid == self.selected then button:SetBackdropColor(0.1, 0.2, 0.21)
@@ -384,19 +498,34 @@ function Dashboard:OnEvent(event)
         -- Preserve the last in-world profile, including money shared with BagMoney.
         -- Player APIs may already return empty/zero values during teardown.
         self.shuttingDown = true; self:Cancel(); Suite.pending.dashboardCapture = nil
-    else self:Schedule() end
+        local candidate, at = self.restedLogout, At(Call(GetServerTime))
+        if candidate and at and at >= candidate.snapshot.at then
+            candidate.snapshot.offline = { logoutAt = at, xpMax = candidate.xpMax,
+                resting = candidate.resting, rank = candidate.rank }
+        end
+        self.restedLogout = nil
+    else
+        -- Required inputs may have changed while the capture is queued or deferred in combat.
+        if event ~= "PLAYER_MONEY" and event ~= "SKILL_LINES_CHANGED" and event ~= "TRADE_SKILL_LIST_UPDATE" then
+            self.restedLogout = nil
+        end
+        self:Schedule()
+    end
 end
 function Dashboard:Apply()
     if not self:Enabled() then
         self:Cancel(); Suite.pending.dashboardEnable, Suite.pending.dashboardCapture = nil, nil
         if self.events then self.events:UnregisterAllEvents() end
-        self.active = nil; self:RefreshView(); return
+        self.active, self.restedLogout = nil, nil; self:RefreshView(); return
     end
     Suite.AfterCombat("dashboardEnable", function()
         if not self:Enabled() or self.active then return end
         if not self.events then self.events = CreateFrame("Frame"); self.events:SetScript("OnEvent", function(_, event) self:OnEvent(event) end) end
         self.active, self.shuttingDown = true, nil
-        for _, event in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_MONEY", "PLAYER_LEVEL_UP", "SKILL_LINES_CHANGED", "TRADE_SKILL_LIST_UPDATE", "PLAYER_LOGOUT" }) do
+        for _, event in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_MONEY", "PLAYER_LEVEL_UP", "PLAYER_XP_UPDATE",
+            "UPDATE_EXHAUSTION", "PLAYER_UPDATE_RESTING", "TRAIT_CONFIG_UPDATED", "TRAIT_NODE_CHANGED",
+            "TRAIT_NODE_CHANGED_PARTIAL", "TRAIT_CONFIG_LIST_UPDATED", "TRAIT_TREE_CHANGED",
+            "SKILL_LINES_CHANGED", "TRADE_SKILL_LIST_UPDATE", "PLAYER_LOGOUT" }) do
             local valid = true
             if Table(C_EventUtils) and type(C_EventUtils.IsEventValid) == "function" then valid = Call(C_EventUtils.IsEventValid, event) == true end
             if valid then pcall(self.events.RegisterEvent, self.events, event) end

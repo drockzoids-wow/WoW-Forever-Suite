@@ -1,5 +1,13 @@
 # WoW Forever addon development reference
 
+## Rested XP in Characters — November 22, 2026
+
+The character dashboard saves the native rested XP amount and observation time in each character's existing profile. It refreshes with the existing coalesced recording workflow on login and XP or exhaustion updates. The native cap predicate distinguishes max-level characters. An absent threshold with a readable normal rest state records zero. Missing, restricted, or failed reads preserve the last saved observation.
+
+Offline estimates use the last readable in-world XP requirement, resting status, and committed Well Rested rank. The Adventure tree is identified by the client's Legacy constant and the perk by spell 1225478 in the client spell table. The logout event records the server time using those in-world observations. Reopening the roster computes the forecast without polling and leaves the confirmed XP untouched. A new login closes the old interval. Missing or staged ranks and pending rest changes leave the confirmed amount as the only value.
+
+The test model adds 5% of the XP requirement per eight rested hours, or a quarter of that outside rested areas, up to 150% of a level. Well Rested adds 4% per rank to both the rate and cap in the model. In-game comparison of the location rates, cap and perk numbers remains pending. Blizzard confirms the perk affects both rate and cap. [Forever Legacy System](https://worldofwarcraft.blizzard.com/en-gb/news/24307383/get-to-know-the-world-of-warcraft-forever-legacy-system)
+
 ## Saved Contacts server type — November 21, 2026
 
 A player on Suite 1.0.25 and client build 71037 reported that GetRealmName and SelectedRealmName were blank and GetNativeRealmID was zero. When the live realm labels are blank and the exact character has no recorded server type, Contacts can use a player-selected type saved with the character GUID and region. Mailbox Contacts prompts at initial login only while that character has no saved or detected type. The standalone book offers the same choice in Preferences. Detected server types take priority.

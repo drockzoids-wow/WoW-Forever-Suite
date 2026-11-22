@@ -1,11 +1,14 @@
 local Suite, equal, Frame, SetCombat = ...
 local dashboard, gui = Suite.CharacterDashboard, Suite.GUI
 local old, globals = {}, { "CreateFrame", "C_Timer", "C_EventUtils", "GetCurrentRegion", "UnitGUID", "UnitName", "UnitClass",
-    "GetNormalizedRealmName", "GetServerTime", "UnitLevel", "GetMoney", "GetProfessions", "GetProfessionInfo", "C_GameRules", "date", "GameTooltip" }
+    "GetNormalizedRealmName", "GetServerTime", "UnitLevel", "GetMoney", "GetProfessions", "GetProfessionInfo",
+    "C_GameRules", "GameRulesUtil", "GetXPExhaustion", "GetRestState", "BreakUpLargeNumbers",
+    "C_Traits", "Constants", "UnitXPMax", "IsResting", "date", "GameTooltip" }
 for _, key in ipairs(globals) do old[key] = _G[key] end
 local saved = {}; for key, value in pairs(dashboard) do saved[key] = value end
 local oldDB, oldPending, oldPage, oldPanel = Suite.db, Suite.pending, gui.page, gui.characterPanel
 local timers, created, now, money, level = {}, 0, 1000, 123456, 36
+local restedXP, restState, maxLevel = 12345, 1, false
 local function Widget(name, parent)
     local frame = Frame(name); frame.parent = parent
     frame.IsForbidden = function() return false end; frame.IsProtected = function() return false end
@@ -33,6 +36,11 @@ GetCurrentRegion = function() return 110 end; UnitGUID = function() return "Play
 UnitName = function() return "Main", "Oak" end; UnitClass = function() return "Mage", "MAGE" end
 GetNormalizedRealmName = function() return "ClassicBetaPvE" end
 C_GameRules = { IsHardcoreActive = function() return false end }
+GameRulesUtil = { IsPlayerAtEffectiveMaxLevel = function() return maxLevel end }
+local function GetRestedXP() return restedXP end
+GetXPExhaustion = GetRestedXP
+GetRestState = function() return restState end
+BreakUpLargeNumbers = function(amount) return amount == 12345 and "12,345" or tostring(amount) end
 GetServerTime = function() return now end; UnitLevel = function() return level end; GetMoney = function() return money end
 GetProfessions = function() return 1, nil, 3, nil, 5, nil, 7 end
 local skills = { [1] = { "Alchemy", 120, 225 }, [3] = { "First Aid", 80, 150 }, [5] = { "Cooking", 60, 150 }, [7] = { "Fishing", 20, 75 } }
@@ -62,24 +70,43 @@ equal(#profile.professions, 4, "nil profession holes do not lose secondary profe
 equal(profile.professions[4].name, "Fishing", "the seventh native profession return is recorded")
 equal(profile.professions[1].rank, 120, "profession ranks come from the native tuple")
 equal(profile.moneyAt, 1000, "money has an independent recording date")
+equal(profile.restedXP.amount, 12345, "login captures the native rested XP amount")
+equal(profile.restedXP.at, 1000, "rested XP has an independent recording date")
 equal(Suite.Inventory:Enabled(), true, "dashboard independently enables shared inventory recording")
 equal(Suite.db.inventorySearch, false, "dashboard does not enable native ownership search")
 equal(Suite.db.itemInventory, false, "dashboard does not enable tooltip counts")
 equal(dashboard.events.registered.PLAYER_MONEY, true, "native money events update the record")
+equal(dashboard.events.registered.UPDATE_EXHAUSTION, true, "native rest changes update the record")
+equal(dashboard.events.registered.PLAYER_XP_UPDATE, true, "XP changes can consume rested XP")
 equal(dashboard.events.registered.TRADE_SKILL_LIST_UPDATE, nil, "runtime-invalid optional events are skipped")
-money, level, now = 0, 37, 1010
+money, level, now, restedXP = 0, 37, 1010, 10000
 dashboard:OnEvent("PLAYER_MONEY"); dashboard:OnEvent("SKILL_LINES_CHANGED"); dashboard:OnEvent("PLAYER_LEVEL_UP")
+dashboard:OnEvent("UPDATE_EXHAUSTION"); dashboard:OnEvent("PLAYER_XP_UPDATE")
 equal(Pending(), 1, "record bursts coalesce into one cancellable update")
 Flush(); equal(profile.money, 0, "known zero gold is recorded rather than treated as missing")
 equal(profile.level, 37, "level updates query current native state")
+equal(profile.restedXP.amount, 10000, "the coalesced XP update saves the new rested balance")
 equal(Pending(), 0, "capture leaves no idle polling")
 money, level, now = { secret = true }, { secret = true }, 1020
+restedXP = { secret = true }
 skills[1][2] = { secret = true }; dashboard:Capture()
 equal(profile.money, 0, "secret money preserves the last readable record")
 equal(profile.moneyAt, 1010, "unavailable money cannot acquire a fresh date")
 equal(profile.level, 37, "secret level cannot replace a readable saved level")
 equal(profile.levelAt, 1010, "unavailable level retains its own old date")
 equal(profile.professionsAt, 1010, "partial profession data cannot replace a complete snapshot")
+equal(profile.restedXP.amount, 10000, "restricted rested XP preserves the previous balance")
+equal(profile.restedXP.at, 1010, "restricted rested XP retains its observation date")
+restedXP = nil; dashboard:Capture()
+equal(profile.restedXP.at, 1010, "a missing threshold in rested state retains the previous observation")
+GetXPExhaustion = function() error("not available") end; restState = 2; dashboard:Capture()
+equal(profile.restedXP.amount, 10000, "a rejected rested XP read does not become zero")
+GetXPExhaustion = GetRestedXP; dashboard:Capture()
+equal(profile.restedXP.amount, 0, "normal rest state with no threshold records zero")
+maxLevel = true; dashboard:Capture()
+equal(profile.restedXP.maxLevel, true, "a capped character is distinguished from zero rested XP")
+equal(profile.restedXP.amount, nil, "a previous balance is cleared when the level cap is observed")
+restedXP, restState, maxLevel = 12345, 1, false
 skills[1][2] = 120
 local nativeProfessions = GetProfessions
 GetProfessions = nil; dashboard:Capture()
@@ -97,7 +124,8 @@ now = { secret = true }; dashboard:Capture()
 equal(profile.at, 1020, "unreadable server time prevents undated writes")
 now = 1030
 characters.alt = { name = "Alt", fullName = "Alt Pine", realm = "OtherRealm", region = 110, class = "WARRIOR",
-    profile = { level = 60, money = 20000, at = 900, moneyAt = 900, professions = { { name = "Mining", rank = 300, maxRank = 300 } } },
+    profile = { level = 60, money = 20000, at = 900, moneyAt = 900, restedXP = { amount = 0, at = 890 },
+        professions = { { name = "Mining", rank = 300, maxRank = 300 } } },
     bags = { at = 800 }, bank = { at = 700 } }
 characters.legacy = { name = "Legacy", realm = "Realm", region = 110 }
 characters.remote = { name = "Remote", realm = "Realm", region = 1, profile = { money = 999999 } }
@@ -113,6 +141,13 @@ equal(rows[1].bankAt, 700, "dashboard shows the actual bank snapshot date")
 equal(rows[2].money, nil, "nonfinite saved gold remains unknown")
 equal(rows[2].professions, nil, "secret saved profession lists remain unknown")
 equal(rows[3].level, nil, "legacy snapshots display unrecorded profile fields")
+equal(rows[3].restedXP, nil, "legacy snapshots leave rested XP unrecorded")
+equal(rows[1].restedXP.amount, 0, "each character retains its own observed amount")
+local dashboardDB = Suite.db
+Suite.db = Suite.InitializeDB(Suite.Copy(dashboardDB))
+equal(dashboard:Rows("main", "name")[1].restedXP.amount, 12345, "the recorded balance survives saved-variable reload")
+equal(dashboard:Rows("alt", "name")[1].restedXP.at, 890, "the alt's recording date survives saved-variable reload")
+Suite.db = dashboardDB
 equal(dashboard:Money(nil), "Not recorded", "unknown money is explicitly disclosed")
 equal(dashboard:Money(123456), "12g 34s 56c", "gold display preserves all denominations")
 equal(dashboard:Money(0), "0g 0s 0c", "known zero is distinct from unknown")
@@ -142,9 +177,14 @@ dashboard.previous.OnClick(); equal(dashboard.page, 2, "previous page exposes ea
 dashboard.search:SetText("mining"); dashboard.search.OnTextChanged(dashboard.search)
 equal(#dashboard.rows, 1, "view search filters the visible roster")
 equal(dashboard.buttons[1].name:GetText(), "Alt Pine", "row displays the recorded full name")
+equal(dashboard.buttons[1].restedXP:GetText(), "0", "a zero rested balance is shown as zero")
+equal(dashboard.buttons[1].restedAt:GetText(), "Time 890", "the date appears below the rested XP amount")
 equal(dashboard.skills[1].name:GetText(), "Mining", "selected character exposes a separately aligned profession")
 equal(dashboard.skills[1].rank:GetText(), "300/300", "selected character exposes its recorded rank")
 dashboard.search:SetText(""); dashboard.sort = "money"; dashboard:Render()
+equal(dashboard.buttons[1].restedXP:GetText(), "12,345", "larger rested amounts use the native number formatter")
+equal(dashboard.buttons[3].restedXP:GetText(), "Not recorded", "unknown rested balances remain distinct in the roster")
+equal(dashboard.buttons[3].restedAt:GetText(), "", "unknown rested balances have no timestamp")
 dashboard.buttons[2].OnClick()
 equal(dashboard.selected, dashboard.buttons[2].entry.guid, "click selects the requested character record")
 equal(dashboard.skills[1].name:GetText(), "Mining", "selection uses the chosen character's professions")
@@ -210,6 +250,100 @@ equal(profile.professionsAt, professionsAt, "dashboard logout preserves the prof
 logoutTimer.callback(); dashboard:Capture(); dashboard:OnEvent("PLAYER_MONEY")
 equal(profile.money, 543210, "late dashboard callbacks cannot erase the saved balance after logout")
 equal(Pending(), 0, "late dashboard events never restart capture after logout")
+
+-- Confirmed observations are kept apart from metadata for one completed logout.
+do
+    local rank, resting, staged, nativeReads = 0, true, false, 0
+    local clock, xpMax = 2000, 100000
+    Constants = { LegacyConsts = { LEGACY_TREE_ADVENTURE_ID = 1188 } }
+    C_Traits = {
+        GetConfigIDByTreeID = function(treeID) if treeID == 1188 then return 7 end end,
+        ConfigHasStagedChanges = function() return staged end,
+        GetTreeNodes = function() return { 83, 84 } end,
+        GetNodeInfo = function(_, nodeID)
+            if nodeID == 83 then return { entryIDs = { 800 }, activeRank = 5, maxRanks = 5 } end
+            if nodeID == 84 then return { entryIDs = { 801 }, activeRank = rank, maxRanks = 5 } end
+        end,
+        GetEntryInfo = function(_, id) return { definitionID = id + 1000 } end,
+        GetDefinitionInfo = function(id) return { spellID = id == 1801 and 1225478 or 429959 } end,
+    }
+    local function CaptureLogout()
+        now = clock
+        dashboard.active = nil
+        UnitGUID = function() return "Player-Main" end
+        UnitXPMax = function() nativeReads = nativeReads + 1; return xpMax end
+        IsResting = function() nativeReads = nativeReads + 1; return resting end
+        GetXPExhaustion = function() nativeReads = nativeReads + 1; return restedXP end
+        dashboard:Apply()
+        now = clock + 20
+        local reads = nativeReads
+        dashboard:OnEvent("PLAYER_LOGOUT")
+        equal(nativeReads, reads, "logout writes only the timestamp against the in-world observation")
+        return profile.restedXP
+    end
+    local function MainRest()
+        return dashboard:Rows("main", "name")[1].restedXP
+    end
+    restedXP = 10000
+    local snapshot = CaptureLogout()
+    equal(snapshot.offline.rank, 0, "an observed zero Legacy rank is usable")
+    equal(snapshot.offline.logoutAt, 2020, "offline time starts at logout rather than the previous observation")
+    now = 2020 + 8 * 3600
+    equal(MainRest().estimate, nil, "the current character always shows its confirmed balance")
+    UnitGUID = function() return "Player-Other" end
+    equal(MainRest().estimate, 15000, "eight hours in a rested area adds 5% of the level requirement")
+    equal(snapshot.amount, 10000, "estimates never replace confirmed XP")
+    dashboard:Render()
+    for _, button in ipairs(dashboard.buttons) do
+        if button.entry and button.entry.guid == "Player-Main" then
+            equal(button.restedXP:GetText(), "≈15000", "the roster clearly marks an estimate")
+            equal(button.restedAt:GetText(), "Offline estimate", "the roster identifies the estimate in words")
+        end
+    end
+    local originalDB = Suite.db
+    Suite.db = Suite.InitializeDB(Suite.Copy(originalDB))
+    equal(MainRest().estimate, 15000, "the logout snapshot survives a saved-variable round trip")
+    Suite.db = originalDB
+
+    rank, resting = 5, false
+    snapshot = CaptureLogout()
+    UnitGUID = function() return "Player-Other" end
+    now = snapshot.offline.logoutAt + 8 * 3600
+    equal(MainRest().estimate, 11500, "outside a rested area the ranked bonus applies to the slower rate")
+    now = snapshot.offline.logoutAt + 100 * 86400
+    equal(MainRest().estimate, 180000, "rank five raises the base cap by twenty percent")
+    now = snapshot.offline.logoutAt - 1
+    equal(MainRest().estimate, nil, "a future logout time cannot create an estimate")
+    snapshot.offline.rank = { secret = true }
+    now = snapshot.offline.logoutAt + 86400
+    equal(MainRest().estimate, nil, "restricted saved ranks fall back to the confirmed balance")
+
+    rank = { secret = true }
+    snapshot = CaptureLogout()
+    equal(snapshot.offline, nil, "unreadable rank cannot authorize an offline interval")
+    rank, staged = 2, true
+    snapshot = CaptureLogout()
+    equal(snapshot.offline, nil, "staged talent changes cannot provide an estimate")
+    staged = false
+    snapshot = CaptureLogout()
+    equal(snapshot.offline.rank, 2, "the committed active rank is read on later captures")
+    dashboard.active = nil
+    dashboard:Apply()
+    resting = true
+    dashboard:OnEvent("PLAYER_UPDATE_RESTING")
+    dashboard:OnEvent("PLAYER_LOGOUT")
+    equal(profile.restedXP.offline, nil, "a pending location change cannot reuse the old logout location")
+    Flush()
+
+    resting = false
+    snapshot = CaptureLogout()
+    dashboard.active = nil
+    restedXP = { secret = true }
+    dashboard:Apply()
+    equal(snapshot.offline, nil, "a new login ends the previous offline interval even when XP is unreadable")
+    equal(snapshot.amount, 10000, "login fallback preserves the confirmed amount")
+end
+
 dashboard:Cancel(); dashboard.panel:Hide()
 for _, key in ipairs(globals) do _G[key] = old[key] end
 for key in pairs(dashboard) do dashboard[key] = nil end
