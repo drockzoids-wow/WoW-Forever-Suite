@@ -237,8 +237,14 @@ equal(mail.frame.rows[1].detail.text, "Checked Time " .. previous.at,
 GetServerTime, date = clock, oldDate
 GetInboxNumItems = oldMailboxRead
 Suite.db.mailExpiry = true; mail:Apply(); mail.warned = nil
-local printed = #messages; mail:OnEvent("PLAYER_ENTERING_WORLD"); mail:OnEvent("PLAYER_ENTERING_WORLD")
+Suite.db.inventory.characters.unvisited = { name = "Unvisited", region = character.region }
+local printed = #messages
+mail.events.OnEvent(mail.events, "PLAYER_ENTERING_WORLD")
+mail.events.OnEvent(mail.events, "PLAYER_ENTERING_WORLD")
 equal(#messages, printed + 1, "near or passed deadline reminds only once per login")
+equal(messages[#messages]:find("on 1 character(s)", 1, true) ~= nil, true,
+    "login reminder skips unvisited mailboxes and counts the recorded deadline")
+Suite.db.inventory.characters.unvisited = nil
 Combat(true); mail.mailOpen = true; mail:Capture(true); equal(character.mailExpiry, previous, "mail capture is blocked in combat")
 Combat(false); mail:OnEvent("MAIL_SHOW"); mail:OnEvent("PLAYER_ENTERING_WORLD"); Flush()
 equal(character.mailExpiry, previous, "world transition cancels stale mailbox capture after login reminder")

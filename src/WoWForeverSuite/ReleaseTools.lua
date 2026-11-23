@@ -505,7 +505,10 @@ function Expiry:OnEvent(event)
         self.warned = true
         local now, due = Call(GetServerTime), 0
         if Integer(now, 1, 10000000000) then
-            for _, row in ipairs(self:Rows()) do if row.snapshot.deadline and row.snapshot.deadline - now <= 3 * 86400 then due = due + 1 end end
+            for _, row in ipairs(self:Rows()) do
+                local deadline = row.snapshot and row.snapshot.deadline
+                if deadline and deadline - now <= 3 * 86400 then due = due + 1 end
+            end
         end
         if due > 0 then Suite.Print("Recorded mail deadlines need attention on " .. due .. " character(s). Open /wfs maildeadlines to review; visit mailboxes to refresh.") end
     end

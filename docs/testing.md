@@ -10,6 +10,8 @@ The player confirmed that the alt’s saved bags show items and the bank and bac
 
 ## Cross-character coverage — November 23, 2026
 
+The player reported a Mail Deadlines Lua error on entering the world with an unvisited mailbox in the roster. Regression coverage now exercises the actual login event with a mix of checked and unvisited mailboxes. Only a recorded deadline should contribute to the reminder, which should appear once per login.
+
 1. Log in on two same-type characters, one with bag, bank, and mailbox observations and one without those observations. Open both native dropdowns and verify missing snapshots are labelled. With blank realm APIs, confirm an eligible alt opens and an unassigned alt remains disabled. Check a known other server type when available.
 2. Hover the money in bags and the live bank. Verify a previously recorded alt and its balance are included with blank realm labels, a confirmed zero remains visible, and unknown balances do not add to the total.
 3. Open Contacts directly and at Send Mail. Verify recorded eligible alts appear in both and removed or other-type contacts remain excluded. In Mail Deadlines, check that an empty recorded inbox shows zero and an unvisited one shows Mailbox not recorded. Verify character names and counts at a smaller UI scale.

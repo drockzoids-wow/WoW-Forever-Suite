@@ -4,7 +4,7 @@
 
 - The backpack and bank character pickers now switch their own windows independently. Saved bags open in the backpack’s place and keep the last in-world contents through logout. Log into an alt once to refresh an older blank bag record.
 - Saved bag and bank pickers list eligible characters with missing snapshots as **Not recorded**. They share the blank-realm fallback with account gold and Contacts. The saved bank also draws above the player cast bar.
-- Open Contacts away from a mailbox to see recorded alts. Mail Deadlines distinguishes an unvisited mailbox from a checked inbox with zero mail.
+- Open Contacts away from a mailbox to see recorded alts. Mail Deadlines distinguishes an unvisited mailbox from a checked inbox with zero mail, and login reminders count only recorded deadlines.
 - Keep cross-character item totals working when two characters share a name and one has no recorded realm. Settings profile sources retain their saved character labels.
 
 ## 1.0.28 — November 22, 2026
