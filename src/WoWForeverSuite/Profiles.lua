@@ -125,10 +125,11 @@ function Profiles:RegisterCharacter()
     local guid = UnitGUID and UnitGUID("player")
     if not Text(guid) then return end
     local name = UnitName and UnitName("player")
-    local realm = GetNormalizedRealmName and GetNormalizedRealmName() or nil
+    local realm = Suite.Inventory:RealmName()
     self.guid = guid
     local record = self.store.characters[guid] or {}
-    record.name, record.realm = Text(name) and name or "Current character", Text(realm) and realm or ""
+    record.name = Text(name) and name or record.name or "Current character"
+    record.realm = Text(realm) and realm or record.realm or ""
     self.store.characters[guid] = record
     self:SaveActive()
 end

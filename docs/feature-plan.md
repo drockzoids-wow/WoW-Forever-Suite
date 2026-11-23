@@ -1,5 +1,17 @@
 # Forever Suite feature plan
 
+## Independent saved bag and bank windows — November 23, 2026
+
+Switching characters from the backpack replaces the visible bags with a read-only saved bag window in the same area. Switching from the bank uses the bank window independently. Returning to the current character from saved bags reopens the native backpack. Preserve the last in-world bag data through logout and label old, unverified empty bag views as Not recorded until refreshed.
+
+## Cross-character coverage — November 23, 2026
+
+Use the same recorded server-type fallback for bag and bank pickers, account money, and Contacts. List eligible owners with no saved slots and label their data as missing. Keep unassigned picker rows disabled and recipient lookup scoped to the current region and server type. Use regional records for Characters & Inventory, inventory tooltip counts, profession shopping lists, and Mail Deadlines. Show an unvisited mailbox without a count and preserve a checked inbox's actual zero.
+
+## Saved bank characters and layering — November 23, 2026
+
+List recorded characters in the bank dropdown, including characters who have yet to visit a bank. Keep saved bank slots scoped to the matching region and server type. Layer the saved bank above the player cast bar.
+
 ## Rested XP in Characters — November 22, 2026
 
 Show a Rested XP column beside Level in the Characters roster. Use the existing character recording switch and distinguish zero, max level, and unrecorded characters. Mark offline estimates with an approximation symbol and an Offline estimate label. Show the last confirmed amount, logout time, rest status, and Well Rested rank in the tooltip. An unreadable rank leaves the confirmed amount on display.

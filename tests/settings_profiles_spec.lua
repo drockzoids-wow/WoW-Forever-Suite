@@ -27,6 +27,14 @@ local db,char=Load({quickLoot=true,windowTools=true,windowPositions={Bag={x=0.2,
 equal(#p.store.entries,1,"migration creates only Default")
 equal(p.activeID,"default","existing characters automatically use Default")
 equal(p.activePersonal,false,"existing shared behavior is preserved")
+do
+    local normalizedRealm, realm = GetNormalizedRealmName, GetRealmName
+    GetNormalizedRealmName = function() return "" end
+    GetRealmName = GetNormalizedRealmName
+    p:RegisterCharacter()
+    equal(p.store.characters["Profile-A"].realm, "Realm", "blank realm APIs retain the registered profile source label")
+    GetNormalizedRealmName, GetRealmName = normalizedRealm, realm
+end
 equal(Suite.db.quickLoot,true,"migration preserves existing feature choices")
 equal(Suite.db.minimapButton,true,"launcher default stays visible")
 equal(Suite.db.guiPosition.scale,1.2,"migration preserves shared Suite panel layout")

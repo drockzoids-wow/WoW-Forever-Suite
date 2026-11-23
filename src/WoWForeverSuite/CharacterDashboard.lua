@@ -260,8 +260,7 @@ function Dashboard:Rows(query, sort)
             local realm = Text(character.realm) and character.realm or "Realm unavailable"
             local row = { guid = guid, name = Text(owner.name) and owner.name or character.name, realm = realm,
                 class = Text(character.class, 32) and character.class or nil, current = guid == current,
-                ruleset = Text(profile.ruleset) and profile.ruleset
-                    or Text(owner.context) and owner.context ~= realm and owner.context or "Unknown ruleset",
+                ruleset = owner.ruleset or "Unknown ruleset",
                 level = Integer(profile.level, 1, 1000) and profile.level or nil,
                 money = Integer(profile.money, 0, 1000000000000) and profile.money or nil,
                 restedXP = RestedSnapshot(profile.restedXP, guid ~= current and now or nil, profile.level, profile.levelAt),

@@ -114,7 +114,8 @@ function Search:Owner(character, guid)
             context = found.ruleset or context
         end
     end
-    return { name = name, context = context, guid = guid, current = guid == self.currentGUID }
+    local ruleset = Suite.Mail:RecordedCharacterRuleset(character, guid, character.region)
+    return { name = name, context = ruleset or context, ruleset = ruleset, guid = guid, current = guid == self.currentGUID }
 end
 
 function Search:BuildIndex()
@@ -491,6 +492,7 @@ function Search:Discover()
     self:Attach(BagItemSearchBox); self:Attach(BankItemSearchBox)
     if Safe(BankFrame) then self:Attach(BankFrame.BankItemSearchBox) end
     if Suite.OfflineBank then self:Attach(Suite.OfflineBank.search) end
+    if Suite.OfflineBags then self:Attach(Suite.OfflineBags.search) end
 end
 function Search:OnEvent(event, id)
     if not self:Enabled() then return end

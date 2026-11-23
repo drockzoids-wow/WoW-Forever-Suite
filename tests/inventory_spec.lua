@@ -293,6 +293,10 @@ equal(inventory:Summary(100).total, 57, "alt bags add to saved first-character b
 local altTip = Hover({ id = 100 })
 equal(altTip.lines[3], HasLine(altTip, "First-RealmB"), "current character appears first")
 equal(HasLine(altTip, "First-RealmA") ~= nil, true, "same character names on different realms remain distinct")
+local records = Suite.db.inventory.characters
+records["Player-blank-realm"] = { name = "First", region = 110, bags = { at = now, items = { [100] = 3 } } }
+equal(inventory:Summary(100).total, 60, "same-name alts with known and blank realms both contribute to the total")
+records["Player-blank-realm"] = nil
 identity.name = "Renamed"; inventory:Refresh()
 equal(Suite.db.inventory.characters[identity.guid].name, "Renamed", "stable GUID updates metadata after rename")
 equal(HasLine(Hover({ id = 100 }), "First") ~= nil, true, "realm suffix disappears when character names are unique")
@@ -308,19 +312,29 @@ Fire("PLAYER_ENTERING_WORLD"); Flush()
 equal(Suite.db.inventory.characters, charactersBefore, "restricted identity does not become a saved key")
 equal(TimerCount(), 0, "inaccessible identity does not leave a retry loop")
 identity.guid = "Player-2-2"
+bags[0][1].hyperlink, bags[0][1].iconFileID = "item:100:321", 1100
+inventory:Refresh()
+local lastOwner = Suite.db.inventory.characters[identity.guid]
+local lastBags, lastSlots = lastOwner.bags, lastOwner.bagView
 Fire("BAG_UPDATE_DELAYED")
-bags[0][1].stackCount = 3
+local lastItem = bags[0][1]
+bags[0][1] = nil
 Fire("PLAYER_LOGOUT")
-equal(Suite.db.inventory.characters[identity.guid].bags.items[100], 3, "logout flushes pending carried counts before serialization")
+equal(lastOwner.bags, lastBags, "logout preserves in-world counts when readable bags become empty")
+equal(lastOwner.bagView, lastSlots, "logout preserves in-world slots when readable bags become empty")
+equal(lastSlots.tabs[1].slots[1].count, 2, "the previous in-world slot remains populated")
 equal(TimerCount(), 0, "logout cancels the queued worker")
-Fire("BAG_UPDATE_DELAYED")
+Fire("BAG_UPDATE_DELAYED"); Flush()
+equal(lastOwner.bagView, lastSlots, "late bag updates after logout cannot overwrite the snapshot")
+bags[0][1] = lastItem
+Fire("PLAYER_ENTERING_WORLD")
 Suite.db.itemInventory = false; inventory:Apply()
 equal(TimerCount(), 0, "disable cancels pending work")
 equal(next(inventory.events.registered), nil, "disable removes every feature event")
 local callsBefore = calls
 Fire("BAG_UPDATE_DELAYED"); Flush()
 equal(calls, callsBefore, "disabled retained callbacks do not query inventory")
-equal(Suite.db.inventory.characters[identity.guid].bags.items[100], 3, "disable retains saved inventories for reenable")
+equal(Suite.db.inventory.characters[identity.guid].bags.items[100], 2, "disable retains saved inventories for reenable")
 
 Suite.db.itemInventory = true
 bags[0][1].hyperlink, bags[0][1].iconFileID = "item:100:321", 1100
@@ -350,5 +364,5 @@ for key, value in pairs(old) do _G[key] = value end
 for _, key in ipairs({ "C_Bank", "UnitName", "GetNormalizedRealmName", "GetRealmName", "GetCurrentRegion",
     "GetServerTime", "NUM_TOTAL_EQUIPPED_BAG_SLOTS", "NUM_BAG_SLOTS", "BankFrame", "RAID_CLASS_COLORS", "CLASS_ICON_TCOORDS" }) do _G[key] = old[key] end
 Suite.db, Suite.pending = oldDB, oldPending
-inventory.active, inventory.events, inventory.timer, inventory.guid, inventory.bankOpen = nil, nil, nil, nil, nil
+inventory.active, inventory.events, inventory.timer, inventory.guid, inventory.bankOpen, inventory.loggingOut = nil, nil, nil, nil, nil, nil
 SetCombat(false)

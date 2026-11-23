@@ -65,6 +65,14 @@ equal(summary.rows[1].guid, "Player-Money", "current character first")
 realm = ""
 equal(feature:Summary().total, 143456, "empty realm APIs use the current character's own saved server type")
 local current = characters["Player-Money"]
+local currentRealm, currentRuleset, altRealm = current.realm, current.profile.ruleset, characters.alt.realm
+current.realm, current.profile.ruleset, characters.alt.realm = nil, nil, nil
+local book = Suite.db.mailContacts
+book.characterRulesets = { ["110:guid:Player-Money"] = "PvE" }
+book.entries = { ["110:guid:alt"] = { guid = "alt", region = 110, ruleset = "PvE" } }
+equal(feature:Summary().total, 143456, "money uses a manual current scope and an exact-GUID alt contact")
+book.characterRulesets, book.entries = {}, {}
+current.realm, current.profile.ruleset, characters.alt.realm = currentRealm, currentRuleset, altRealm
 current.region = 1
 equal(feature:Summary(), nil, "a saved server type from another region cannot select the total")
 current.region = 110

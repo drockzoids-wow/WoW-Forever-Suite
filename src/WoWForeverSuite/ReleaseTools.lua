@@ -395,30 +395,37 @@ end
 function Expiry:Rows()
     local rows, region, now = {}, Call(GetCurrentRegion), Call(GetServerTime)
     if not Integer(region, 1, 1000000) then return rows end
-    for _, character in pairs(Suite.Inventory:Database().characters) do
-        if Read(character, "table") and Integer(character.region, 1, 1000000) and character.region == region
+    local hasRecords = false
+    for guid, character in pairs(Suite.Inventory:Database().characters) do
+        if Text(guid, 128) and Read(character, "table") and Integer(character.region, 1, 1000000) and character.region == region
             and Text(character.name, 128) then
             local saved = self:Validate(character.mailExpiry)
+            local name = Text(character.fullName, 128) and character.fullName or character.name
+            local ruleset = Suite.Mail:RecordedCharacterRuleset(character, guid, region)
+            local title = ClassNameText(name, character.class) .. (ruleset and " · " .. ruleset or "")
+            local row = { guid = guid, name = name, title = title, snapshot = saved,
+                mailCount = "—", detail = "Mailbox not recorded" }
             if saved then
+                hasRecords = true
                 local stamp = Call(date, "%b %d, %H:%M", saved.at)
-                local name = Text(character.fullName, 128) and character.fullName or character.name
-                local ruleset = Suite.Mail:RecordedRuleset(character)
                 local partial = saved.total > saved.count
                 local count = partial and (saved.count .. " / " .. saved.total) or tostring(saved.count)
-                local title = ClassNameText(name, character.class) .. (ruleset and " · " .. ruleset or "")
-                rows[#rows + 1] = { name = name, title = title, snapshot = saved,
-                    mailCount = (saved.count > 0 and "|cff68d6bf" or "|cff8ca6b3") .. count .. "|r",
-                    detail = "Checked " .. (Text(stamp, 80) and stamp or "date unavailable")
-                        .. (partial and " · Partial inbox" or "") .. DeadlineText(saved, now, true) }
+                row.mailCount = (saved.count > 0 and "|cff68d6bf" or "|cff8ca6b3") .. count .. "|r"
+                row.detail = "Checked " .. (Text(stamp, 80) and stamp or "date unavailable")
+                    .. (partial and " · Partial inbox" or "") .. DeadlineText(saved, now, true)
             end
+            rows[#rows + 1] = row
         end
     end
     table.sort(rows, function(a, b)
-        local left, right = a.snapshot.deadline or math.huge, b.snapshot.deadline or math.huge
+        if (a.snapshot == nil) ~= (b.snapshot == nil) then return a.snapshot ~= nil end
+        local left = a.snapshot and a.snapshot.deadline or math.huge
+        local right = b.snapshot and b.snapshot.deadline or math.huge
         if left ~= right then return left < right end
-        return a.name < b.name
+        if a.name ~= b.name then return a.name < b.name end
+        return a.guid < b.guid
     end)
-    return rows
+    return rows, hasRecords
 end
 function Expiry:Summary(value, now)
     local saved = self:Validate(value); if not saved then return "Mail not recorded" end
@@ -430,13 +437,13 @@ end
 function Expiry:Refresh()
     local frame = self.frame
     if not frame or not frame:IsShown() then return end
-    local rows = self:Rows(); Paging(self, rows)
+    local rows, hasRecords = self:Rows(); Paging(self, rows)
     local visible = math.max(1, math.min(#frame.rows, #rows - (self.page - 1) * #frame.rows))
     local height = MAIL_ROW_TOP + visible * MAIL_ROW_STEP + MAIL_FOOTER
     if not InCombatLockdown() and frame:GetHeight() ~= height then frame:SetHeight(height) end
     frame.context:SetText("Counts are from the last mailbox visit.")
     frame.status:SetText(not self:Enabled() and "Recording and login reminders are off. Saved records remain available."
-        or #rows == 0 and "No mailbox recorded. Open a mailbox with recording enabled."
+        or not hasRecords and "No mailbox recorded. Open a mailbox with recording enabled."
         or "Inbox loading can leave partial records. Visit a mailbox to refresh.")
     frame.refresh:SetEnabled(not InCombatLockdown())
 end

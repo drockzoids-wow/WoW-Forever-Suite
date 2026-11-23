@@ -807,7 +807,18 @@ end
 MailFrame = nil; SendMailFrame:Hide()
 mail.query = "unrelated mailbox search"
 local bookWrites, bookSends, bookTabs = writes, sends, tabs
+local inventoryCharacters = Suite.Inventory:Database().characters
+inventoryCharacters["Player-standalone-contacts"] = {
+    name = "Standalone", fullName = "Standalone Alt", realm = "ForeverPvE", region = 110,
+}
 mail:OpenBook()
+local standalone = mail:List(true, "standalone alt")[1]
+equal(standalone and standalone.key, "110:guid:Player-standalone-contacts",
+    "standalone Contacts learns already recorded alts without a mailbox")
+inventoryCharacters["Player-standalone-contacts"] = nil
+local savedContacts = mail:Database()
+savedContacts["110:guid:Player-standalone-contacts"] = nil
+mail:RefreshBook()
 equal(mail.book.frame:IsShown(), true, "contact book opens without mailbox or enabled mail helper")
 equal(mail.book.frame:GetParent(), UIParent, "contact book is independent of mailbox hierarchy")
 assert(loadfile("tests/window_drag_fixture.lua"))(mail.book.frame, equal, "Contacts")

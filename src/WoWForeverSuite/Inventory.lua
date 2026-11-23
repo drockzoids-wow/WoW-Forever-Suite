@@ -49,8 +49,6 @@ function Inventory:RealmName()
     if Text(normalized) then return normalized end
     local realm = GetRealmName and GetRealmName()
     if Text(realm) then return realm end
-    return nil, Suite.IsReadable(normalized) and (normalized == nil or normalized == "")
-        and Suite.IsReadable(realm) and (realm == nil or realm == "")
 end
 
 function Inventory:Character()
@@ -152,7 +150,7 @@ end
 function Inventory:ScanBagView(ids)
     if not C_Container or not C_Container.GetContainerNumSlots or not C_Container.GetContainerItemInfo
         or not C_Container.GetContainerItemID then return end
-    local view = { schema = 1, tabs = {}, totalSlots = 0, at = Timestamp() }
+    local view = { schema = 1, tabs = {}, totalSlots = 0, at = Timestamp(), inWorld = true }
     for _, bag in ipairs(ids) do
         local size = C_Container.GetContainerNumSlots(bag)
         if not Integer(size, 0, 1000) or view.totalSlots + size > 2816 then return end
@@ -186,7 +184,7 @@ function Inventory:ScanBagView(ids)
 end
 
 function Inventory:Refresh()
-    if not self:Enabled() then return end
+    if not self:Enabled() or self.loggingOut then return end
     local character, region = self:Character()
     if not character then return end
     local limit = BagLimit()
@@ -216,18 +214,24 @@ function Inventory:Cancel()
 end
 
 function Inventory:Schedule()
-    if not self:Enabled() or self.timer or not C_Timer or not C_Timer.NewTimer then return end
+    if not self:Enabled() or self.loggingOut or self.timer or not C_Timer or not C_Timer.NewTimer then return end
     self.timer = C_Timer.NewTimer(0.15, function() self.timer = nil; self:Refresh() end)
 end
 
 function Inventory:OnEvent(event)
     if not self:Enabled() then return end
-    if event == "BANKFRAME_OPENED" then self.bankOpen = true
+    if event == "PLAYER_ENTERING_WORLD" then
+        self.loggingOut = nil
+        local view = Suite.OfflineBags and Suite.OfflineBags.frame
+        if view then view:Hide() end
+    elseif event == "BANKFRAME_OPENED" then self.bankOpen = true
     elseif event == "BANKFRAME_CLOSED" then
         -- Never read empty/inaccessible bank containers after leaving the bank.
         self.bankOpen = false
     elseif event == "PLAYER_LOGOUT" then
-        self:Cancel(); self:Refresh(); return
+        -- Container capacities can remain readable after the client has cleared item data.
+        self.loggingOut = true
+        self:Cancel(); return
     end
     self:Schedule()
 end
@@ -307,7 +311,8 @@ function Inventory:Summary(id, includeEmpty, carriedSnapshot)
     table.sort(rows, function(a, b)
         if a.current ~= b.current then return a.current end
         if a.name ~= b.name then return a.name < b.name end
-        if a.realm ~= b.realm then return a.realm < b.realm end
+        local leftRealm, rightRealm = a.realm or "", b.realm or ""
+        if leftRealm ~= rightRealm then return leftRealm < rightRealm end
         return a.guid < b.guid
     end)
     local account = Count(db.accountBanks[region], id)

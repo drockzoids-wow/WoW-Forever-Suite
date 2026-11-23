@@ -22,8 +22,8 @@ end
 
 function Selectors:Enabled(kind)
     if not Suite.db then return false end
-    return kind == "bags" and Suite.Inventory:Enabled() or kind == "bank" and Suite.db.offlineBank
-        or kind == "saved" and (Suite.db.offlineBank or Suite.Inventory:Enabled())
+    if kind == "bags" or kind == "savedBags" then return Suite.Inventory:Enabled() end
+    if kind == "bank" or kind == "saved" then return Suite.db.offlineBank end
 end
 
 function Selectors:CurrentGUID()
@@ -31,24 +31,27 @@ function Selectors:CurrentGUID()
     return Text(guid) and guid or nil
 end
 
-function Selectors:ScopedCharacter(guid)
-    local character = Suite.OfflineBank:ViewContext(guid)
+function Selectors:ScopedCharacter(guid, currentGUID, currentRuleset)
+    local character, _, region = Suite.OfflineBank:ViewContext(guid)
     if not character or not Suite.Mail then return end
-    local current, recorded = Suite.Mail:CurrentRuleset(), Suite.Mail:RecordedRuleset(character)
-    if Text(current) and Text(recorded) and current == recorded then return character, recorded end
-    if not current and guid == self:CurrentGUID() then return character, recorded end
+    local recorded = Suite.Mail:RecordedCharacterRuleset(character, guid, region)
+    if guid == currentGUID then return character, currentRuleset or recorded end
+    if currentRuleset and currentRuleset == recorded then return character, recorded end
+    -- List unassigned characters without exposing their saved slots.
+    if currentRuleset and not recorded then return character, nil, true end
 end
 
 function Selectors:Choices(bags)
     local choices = {}
+    local currentGUID, currentRuleset = self:CurrentGUID(), Suite.Mail:ResolvedRuleset()
     for guid in pairs(Suite.Inventory:Database().characters) do
         if Text(guid) then
-            local character, ruleset = self:ScopedCharacter(guid)
+            local character, ruleset, unknown = self:ScopedCharacter(guid, currentGUID, currentRuleset)
             if character then
                 local name = Text(character.fullName) and character.fullName or character.name
                 choices[#choices + 1] = { guid = guid, name = name,
                     label = ruleset and name .. " · " .. ruleset or name,
-                    recorded = Suite.OfflineBank:GetSnapshot(0, guid, bags) ~= nil }
+                    recorded = Suite.OfflineBank:GetSnapshot(0, guid, bags) ~= nil, unknown = unknown }
             end
         end
     end
@@ -63,13 +66,15 @@ function Selectors:Select(guid, bags, owner)
     if InCombatLockdown() or not Text(guid) or not self:Enabled(bags and "bags" or "bank") then return false end
     local bank = Suite.OfflineBank
     if bags and guid == self:CurrentGUID() then
-        if bank.frame and bank.viewBags then bank.frame:Hide() end
+        local view = Suite.OfflineBags.frame
+        if view then view:Hide() end
         if OpenBackpack then OpenBackpack() end
         return true
     end
-    if not self:ScopedCharacter(guid) then return false end
+    local character, _, unknown = self:ScopedCharacter(guid, self:CurrentGUID(), Suite.Mail:ResolvedRuleset())
+    if not character or unknown then return false end
     if not bank:GetSnapshot(0, guid, bags) then return false end
-    if bags then return bank:OpenBags(guid, owner) end
+    if bags then return Suite.OfflineBags:Open(guid, owner) end
     -- Close the native bank through its normal panel lifecycle, never repurpose
     -- live item buttons or give a saved slot a container identity.
     local shown = Accessible(BankFrame) and BankFrame:IsShown()
@@ -83,9 +88,9 @@ end
 
 function Selectors:Menu(control)
     if InCombatLockdown() or not self:Enabled(control.kind) or not Suite.Menus or not Suite.Menus.CreateContextMenu then return end
-    local bank = Suite.OfflineBank
-    local bags = control.kind == "bags" or control.kind == "saved" and bank.viewBags == true
-    local selected = control.kind == "saved" and bank.viewGUID or self:CurrentGUID()
+    local bags = control.kind == "bags" or control.kind == "savedBags"
+    local view = control.kind == "saved" and Suite.OfflineBank or control.kind == "savedBags" and Suite.OfflineBags
+    local selected = view and view.viewGUID or self:CurrentGUID()
     local choices = self:Choices(bags)
     Suite.Menus.CreateContextMenu(control, function(_, root)
         root:CreateTitle(bags and "Character bags" or "Character bank")
@@ -94,9 +99,10 @@ function Selectors:Menu(control)
             local current = guid == self:CurrentGUID()
             local label = choice.label .. (current and " (current)" or "")
             if not choice.recorded and not (bags and current) then label = label .. " · Not recorded" end
+            if choice.unknown and choice.recorded then label = label .. " · Server type unknown" end
             local row = root:CreateRadio(label, function() return selected == guid end,
                 function() self:Select(guid, bags, control:GetParent()) end)
-            row:SetEnabled(choice.recorded or bags and current)
+            row:SetEnabled(not choice.unknown and (choice.recorded or bags and current))
         end
         if #choices == 0 then root:CreateTitle("No characters recorded") end
     end)
@@ -109,10 +115,10 @@ function Selectors:Reset(control)
     -- The native bank already belongs to the logged-in character.
     if control.kind == "bank" then return true end
     local bank = Suite.OfflineBank
-    if control.kind == "bags" or bank.viewBags then return self:Select(guid, true, control:GetParent()) end
+    if control.kind == "bags" or control.kind == "savedBags" then return self:Select(guid, true, control:GetParent()) end
     if not self:Enabled("bank") or not bank:ViewContext(guid) then return false end
     -- An unrecorded current bank still has a valid empty/unknown view.
-    bank.viewGUID, bank.viewBags, bank.bankType, bank.page = guid, nil, 0, 1
+    bank.viewGUID, bank.bankType, bank.page = guid, 0, 1
     bank:Refresh()
     return true
 end
@@ -120,7 +126,8 @@ end
 function Selectors:UpdateLabels()
     if InCombatLockdown() then return end
     for _, control in ipairs(self.controls) do
-        local guid = control.kind == "saved" and Suite.OfflineBank.viewGUID or self:CurrentGUID()
+        local view = control.kind == "saved" and Suite.OfflineBank or control.kind == "savedBags" and Suite.OfflineBags
+        local guid = view and view.viewGUID or self:CurrentGUID()
         local character = guid and Suite.OfflineBank:ViewContext(guid)
         local name = character and (Text(character.fullName) and character.fullName or character.name) or "Character"
         if guid == "account" then name = "Shared bank" end
@@ -165,7 +172,14 @@ function Selectors:Attach(frame, kind)
     self.watched[frame] = control
     self.controls[#self.controls + 1] = control
     if kind ~= "bags" then control:SetPoint("TOPLEFT", frame, "TOPLEFT", 52, -33) end
-    frame:HookScript("OnShow", function() self:Schedule() end)
+    frame:HookScript("OnShow", function()
+        if kind == "bags" then
+            local view = Suite.OfflineBags.frame
+            if view then view:Hide() end
+            Suite.Inventory:Schedule()
+        end
+        self:Schedule()
+    end)
     self:UpdateLabels()
     return control
 end
@@ -203,7 +217,7 @@ end
 function Selectors:Refresh()
     if InCombatLockdown() then return end
     self:UpdateLabels()
-    if not self:Enabled("saved") then return end
+    if not self:Enabled("bank") and not self:Enabled("bags") then return end
     if self:Enabled("bank") and Accessible(BankFrame) then self:Attach(BankFrame, "bank") end
     for _, frame in ipairs({ ContainerFrameCombinedBags or false, ContainerFrame1 or false }) do
         if Accessible(frame) and type(frame.SetSearchBoxPoint) == "function" then
@@ -225,7 +239,7 @@ function Selectors:Refresh()
 end
 
 function Selectors:Schedule()
-    if not self:Enabled("saved") or self.timer or not C_Timer or not C_Timer.NewTimer then return end
+    if (not self:Enabled("bank") and not self:Enabled("bags")) or self.timer or not C_Timer or not C_Timer.NewTimer then return end
     self.timer = C_Timer.NewTimer(0, function()
         self.timer = nil
         Suite.AfterCombat("inventorySelectors", function() self:Refresh() end)
@@ -235,7 +249,7 @@ end
 function Selectors:Apply()
     if self.timer then self.timer:Cancel(); self.timer = nil end
     Suite.AfterCombat("inventorySelectors", function()
-        local enabled = self:Enabled("saved")
+        local enabled = self:Enabled("bank") or self:Enabled("bags")
         if not self.events and enabled then
             self.events = CreateFrame("Frame")
             self.events:SetScript("OnEvent", function() self:Schedule() end)
@@ -254,7 +268,8 @@ function Selectors:Apply()
                 local parent = BagItemSearchBox:GetParent()
                 if Accessible(parent) and parent.UpdateSearchBox then parent:UpdateSearchBox() end
             end
-            if Suite.OfflineBank.viewBags and Suite.OfflineBank.frame then Suite.OfflineBank.frame:Hide() end
+            local view = Suite.OfflineBags.frame
+            if view then view:Hide() end
         end
     end)
 end

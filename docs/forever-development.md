@@ -1,5 +1,19 @@
 # WoW Forever addon development reference
 
+## Independent saved bag and bank windows — November 23, 2026
+
+The reported bag switch reused the already-open saved bank frame. The account record also contained an 82-slot bag view with no items and an empty aggregate count saved at 06:30:52, the logout save. Bag and bank views now share rendering code with separate windows, selected owners, search fields, and refresh state. The saved bag view takes its initial position from the backpack before the native bags close. Its slots remain read-only. Inventory recording keeps the last in-world observation instead of reading containers during logout. Old empty bag views remain stored, but require a fresh observation before opening. Newly observed empty bags remain valid.
+
+## Cross-character coverage — November 23, 2026
+
+Bag and bank selectors share a GUID- and region-checked scope resolver with account money. It checks recognized native server labels, recorded identity, and the same character's saved choice. Blank realm APIs can use the fallback. Unrecognized and restricted live labels cannot authorize the fallback. Contacts seeds known characters when opened directly as well as at a mailbox. Existing removal markers and mail recipient rules still apply.
+
+Dashboard, Inventory search, item tooltips, profession shopping stock, Mail Deadlines, and the Dashboard's read-only bank shortcut use regional observations. Item summaries tolerate duplicate names with a missing realm, and Mail Deadlines shows which characters still need a mailbox visit. The settings-profile source list uses its own GUID records and retains an existing name and realm when login cannot read them.
+
+## Saved bank characters and layering — November 23, 2026
+
+The affected SavedVariables contained 11 character identities. Ten already had a recognized PvE realm label, and three had a saved bank slot view. When both live realm names were blank, the bank picker ignored the signed-in character's recorded scope and reduced the list to the current character. The picker now uses the same resolved scope as Contacts, including saved identity or an explicit selection, while known other server types and regions stay separate. Recorded characters without a bank view show Not recorded. An owner whose server type is unknown can appear, while selection stays disabled. Bank snapshots record the login identity even with bag recording off. The saved inventory frame uses Dialog strata above Blizzard's High player cast bar.
+
 ## Rested XP in Characters — November 22, 2026
 
 The character dashboard saves the native rested XP amount and observation time in each character's existing profile. It refreshes with the existing coalesced recording workflow on login and XP or exhaustion updates. The native cap predicate distinguishes max-level characters. An absent threshold with a readable normal rest state records zero. Missing, restricted, or failed reads preserve the last saved observation.

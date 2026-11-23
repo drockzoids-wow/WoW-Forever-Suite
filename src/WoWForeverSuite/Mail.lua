@@ -81,13 +81,6 @@ local function ValidRuleset(value)
     return String(value, 64) and value or nil
 end
 
--- Shared with inventory selectors so server labels and unknown scopes follow
--- the same policy as the Contact Book without reading or changing contacts.
-function Mail:RecordedRuleset(character)
-    if not Suite.IsReadable(character) or type(character) ~= "table" then return end
-    return RulesetFromServer(character.realm) or ValidRuleset(character.ruleset)
-end
-
 local function Key(region, name, ruleset, guid)
     if guid then return tostring(region) .. ":guid:" .. guid end
     return tostring(region) .. ":name:" .. (ruleset or "?"):lower() .. ":" .. name:lower()
@@ -104,6 +97,22 @@ local function SavedChoice(region, guid)
     return choices and RulesetFromServer(choices[Key(region, nil, nil, guid)])
 end
 
+local function ObservedRuleset(character)
+    local profile = character and Record(character.profile)
+    return character and (RulesetFromServer(character.realm) or RulesetFromServer(character.ruleset)
+        or RulesetFromServer(profile and profile.ruleset))
+end
+
+local function ContactRuleset(region, guid)
+    local book = Suite.db and Record(Suite.db.mailContacts)
+    local entries = book and Record(book.entries)
+    local entry = entries and Record(entries[Key(region, nil, nil, guid)])
+    if entry and Suite.IsReadable(entry.region) and entry.region == region
+        and String(entry.guid, 128) and entry.guid == guid then
+        return RulesetFromServer(entry.ruleset)
+    end
+end
+
 local function AutomaticRuleset()
     local ruleset, missing = LiveRuleset()
     if ruleset or not missing then return ruleset end
@@ -117,25 +126,30 @@ local function AutomaticRuleset()
     local characters = inventory and Record(inventory.characters)
     local character = characters and Record(characters[guid])
     if character and Suite.IsReadable(character.region) and character.region == region then
-        local profile = Record(character.profile)
-        ruleset = RulesetFromServer(character.realm) or RulesetFromServer(profile and profile.ruleset)
+        ruleset = ObservedRuleset(character)
         if ruleset then return ruleset end
     end
-
-    local book = Record(db.mailContacts)
-    local entries = book and Record(book.entries)
-    local entry = entries and Record(entries[Key(region, nil, nil, guid)])
-    if entry and Suite.IsReadable(entry.region) and entry.region == region
-        and String(entry.guid, 128) and entry.guid == guid then
-        return RulesetFromServer(entry.ruleset), true
-    end
-    return nil, true
+    return ContactRuleset(region, guid), true
 end
 
 local function Ruleset()
     local ruleset, missing = AutomaticRuleset()
     if ruleset or not missing then return ruleset end
     return SavedChoice(Region(), UnitGUID and UnitGUID("player"))
+end
+
+function Mail:ResolvedRuleset()
+    return Ruleset()
+end
+
+function Mail:RecordedCharacterRuleset(character, guid, region)
+    if not Record(character) then return end
+    local ruleset = ObservedRuleset(character)
+    if ruleset then return ruleset end
+    if Number(region, 1, math.huge) and Suite.IsReadable(character.region) and character.region == region
+        and String(guid, 128) then
+        return ContactRuleset(region, guid) or SavedChoice(region, guid)
+    end
 end
 
 local function ContactReference(entry)
@@ -327,8 +341,7 @@ function Mail:SeedRecordedCharacters()
         if String(guid, 128) and Suite.IsReadable(entry) and type(entry) == "table"
             and Suite.IsReadable(entry.region) and entry.region == region then
             local name = Name(entry.fullName) or Name(entry.name, true)
-            local profile = Record(entry.profile)
-            local ruleset = self:RecordedRuleset(entry) or RulesetFromServer(profile and profile.ruleset)
+            local ruleset = ObservedRuleset(entry)
             -- Seed once; removed contacts stay removed until that character is logged in again.
             local contacts = self:Database()
             local key = name and Key(region, name, ruleset, guid)
@@ -1891,5 +1904,5 @@ function Mail:OpenBook(anchor, tab)
         "CLUB_STREAMS_LOADED", "CLUB_MEMBERS_UPDATED", "CLUB_MEMBER_ADDED", "CLUB_MEMBER_REMOVED",
         "CLUB_MEMBER_UPDATED", "PLAYER_ENTERING_WORLD", "GAME_RULES_CHANGED" }) do book.events:RegisterEvent(event) end
     if not self.visit and C_GuildInfo and type(C_GuildInfo.GuildRoster) == "function" then pcall(C_GuildInfo.GuildRoster) end
-    self:ReadGuild(); self:RefreshBook()
+    self:SeedRecordedCharacters(); self:ReadGuild(); self:RefreshBook()
 end

@@ -148,6 +148,13 @@ equal(character.mailExpiry, previous, "disable cancels pending mail writes")
 equal(next(mail.events.registered), nil, "disabled recorder has no event subscriptions")
 Suite.db.inventory.characters.other = { name = "Other", realm = "Other", region = 1, mailExpiry = previous }
 equal(#mail:Rows(), 1, "mail list stays within region")
+Suite.db.inventory.characters.unvisited = { name = "Unvisited", region = character.region }
+local withUnvisited = mail:Rows()
+equal(#withUnvisited, 2, "mail deadlines include same-region characters without a mailbox visit")
+equal(withUnvisited[1].snapshot.count, 1, "a checked inbox stays above missing records")
+equal(withUnvisited[2].mailCount, "—", "an unvisited mailbox does not show zero")
+equal(withUnvisited[2].detail, "Mailbox not recorded", "an unvisited mailbox explains the missing count")
+Suite.db.inventory.characters.unvisited = nil
 now = previous.deadline + 1
 equal(mail:Summary(previous, now):find("Recorded deadline passed", 1, true) ~= nil, true, "past deadline is an observation, not a deletion claim")
 equal(mail:Validate({ at = 1, count = 1, total = 0, deadline = 5 }), nil, "invalid inbox totals rejected")

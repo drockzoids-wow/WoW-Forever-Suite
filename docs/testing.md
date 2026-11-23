@@ -1,5 +1,24 @@
 # Forever Suite in game testing
 
+## Independent saved bags — November 23, 2026
+
+The player confirmed that the alt’s saved bags show items and the bank and backpack dropdowns now work independently in-game. The build, taint results, and remaining layout and interaction checks were unreported.
+
+1. Log into an alt, open the backpack and confirm a known item is present. Wait a moment, then log back into the main character. Open the alt’s saved bank and the main character’s backpack together.
+2. Select the alt from the backpack picker. The right-side bags should switch to the alt and show the known item. The left-side saved bank should keep its contents and position. Switch the bank selection and confirm the bag selection stays put. Repeat from a separate-bag backpack, and try a smaller UI scale.
+3. Click the reset arrow in saved bags and confirm it opens the main character’s live backpack while leaving the bank alone. Check moving, searching, closing, tooltips, and combat deferral. Record any Lua or blocked-action reports.
+
+## Cross-character coverage — November 23, 2026
+
+1. Log in on two same-type characters, one with bag, bank, and mailbox observations and one without those observations. Open both native dropdowns and verify missing snapshots are labelled. With blank realm APIs, confirm an eligible alt opens and an unassigned alt remains disabled. Check a known other server type when available.
+2. Hover the money in bags and the live bank. Verify a previously recorded alt and its balance are included with blank realm labels, a confirmed zero remains visible, and unknown balances do not add to the total.
+3. Open Contacts directly and at Send Mail. Verify recorded eligible alts appear in both and removed or other-type contacts remain excluded. In Mail Deadlines, check that an empty recorded inbox shows zero and an unvisited one shows Mailbox not recorded. Verify character names and counts at a smaller UI scale.
+4. Verify the Characters roster, Inventory results, item tooltip counts, and profession shopping stock with older observations and incomplete records. Verify the Settings Profiles source list still offers the right characters after a relog with blank realm labels. Record client build and any Lua errors or blocked actions.
+
+## Saved bank characters and layering — November 23, 2026
+
+With Bank snapshots on, log into a character that has never visited a banker, then into a character with a recorded bank. Open the saved bank and verify that the dropdown lists the first character as Not recorded and opens an eligible bank alt's saved slots. Repeat when both realm name APIs are blank. Check that another known server type or region stays out of the picker, and that an unknown server type cannot open saved slots. Start crafting and overlap the saved bank with the player cast bar. Verify the bank draws above it and that the bank dropdown, item tooltips and title drag still work. Record the client build and any blocked actions.
+
 ## Rested XP in Characters — November 22, 2026
 
 Turn on Record character dashboard and open `/wfs characters`. Compare the Rested XP column with the native XP-bar tooltip on a leveling character. Earn XP to consume some rest and check for an updated amount and time after combat. Log in on an alt, then switch back and verify each keeps its own last observation. Check a character with no rested XP, a max-level character, and an existing record that has yet to be refreshed. Verify the new column fits with long names and at a smaller UI scale. Turn recording off and confirm saved values remain visible.
@@ -1374,6 +1393,8 @@ Follow-up user report: loaded Suite 1.0.3, client 1.60.1 (70790), Interface 1600
 User reports a native quest-pin `Button:SetPassThroughButtons()` block attributed to Suite, with `TOGGLEWORLDMAP` at the bottom of the stack. The existing November 5 02:20 game taint.log lacks this incident. Root cause and fix remain pending. Installed WorldMap.lua and Windows.lua hashes match canonical source; installed TOC is 1.0.3, but loaded version/build/Interface remain unreported. No code change or native resolution claimed.
 
 Record `/wfs status`, actual build/Interface, Reveal unexplored areas and Window tools toggles, and whether the map was previously opened/moved. For a fresh capture, use `/console taintLog 2` then `/reload` outside combat; reproduce combat entry and map opening. Exit WoW normally to flush `Logs/taint.log`, then inspect the originating taint chain. Disable logging afterward with `/console taintLog 0`. Isolate options one at a time with a reload between trials, since disabling a feature does not remove prior session taint.
+
+November 21 recurrence. A kill triggered a native super-tracking refresh and the same blocked quest-pin call. The installed 1.0.26 package had no test logger, and the on-disk taint log did not update after the affected session ended. The supplied stack shows the blocked call. A fresh level-2 trace is needed to identify where the taint originated. Retest with the development logger enabled and keep the log from the next incident before restarting WoW.
 
 ## Whole-tree Follow build comparison — November 6, 2026
 

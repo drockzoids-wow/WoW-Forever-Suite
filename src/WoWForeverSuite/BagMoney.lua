@@ -43,23 +43,15 @@ function Money:Summary()
     local region, current = Call(GetCurrentRegion), Call(UnitGUID, "player")
     if not Integer(region, 1000000) or region == 0 or not Text(current) then return end
     local characters = Suite.Inventory:Database().characters
-    local ruleset = Suite.Mail:CurrentRuleset()
-    if not Text(ruleset) then
-        local _, realmMissing = Suite.Inventory:RealmName()
-        local character = characters[current]
-        if not realmMissing or not Table(character) or not Integer(character.region, 1000000)
-            or character.region ~= region then return end
-        local profile = Table(character.profile) and character.profile or {}
-        ruleset = Suite.Mail:RecordedRuleset({ realm = character.realm, ruleset = profile.ruleset })
-        if not Text(ruleset) then return end
-    end
+    local ruleset = Suite.Mail:ResolvedRuleset()
+    if not Text(ruleset) then return end
     local rows, total, missing = {}, 0, 0
     for guid, character in pairs(characters) do
         if Text(guid) and Table(character) and Text(character.name)
             and Integer(character.region, 1000000) and character.region == region then
             local profile = Table(character.profile) and character.profile or {}
-            local recorded = Suite.Mail:RecordedRuleset({ realm = character.realm, ruleset = profile.ruleset })
-            if recorded == ruleset then
+            local recorded = Suite.Mail:RecordedCharacterRuleset(character, guid, region)
+            if recorded == ruleset or (guid == current and not recorded) then
                 local amount
                 if guid == current then amount = Call(GetMoney) else amount = profile.money end
                 if Integer(amount, 1000000000000) then
