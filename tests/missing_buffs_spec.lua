@@ -36,6 +36,11 @@ CreateFrame = function(kind, name, parent, templates)
     assert(not InCombatLockdown(), "buff UI construction waits for combat")
     made = made + 1
     local frame = Frame(name)
+    if kind == "Cooldown" then
+        frame.SetCooldown = function(self, start, duration, rate)
+            Mutate(self); self.timing = { start, duration, rate }
+        end
+    end
     frame.objectType=kind
     if parent and parent.children and kind~="Texture" and kind~="FontString" then parent.children[#parent.children+1]=frame end
     frame.parent = parent; frame.protected = parent and parent.protected or templates and templates:find("Secure", 1, true) ~= nil or false
@@ -491,6 +496,21 @@ do
     clock = 102; local deadline = extra.deadline; deadline.callback()
     local entry, button = Find("self", "intellect")
     equal(entry.remaining, 59, "long buff warns without waiting for another aura event")
+    equal(button.countdown.text, "59", "refresh reminder shows the remaining aura duration")
+    local originalCooldown = C_Spell.GetSpellCooldown
+    C_Spell.GetSpellCooldown = function(id)
+        if id == 61304 then return { duration = 1.5, startTime = clock } end
+        if id == 1461 then return { duration = 8, startTime = clock, isOnGCD = false } end
+    end
+    buffs.events:OnEvent("SPELL_UPDATE_COOLDOWN")
+    equal(button.cooldownSwipe:IsShown(), true, "the spell cooldown swipes below the aura number")
+    equal(button.cooldownSwipe.timing[2], 8, "the swipe uses the spell cooldown independently")
+    clock = 103; buffs.expiryTimer.callback()
+    equal(button.countdown.text, "58", "aura countdown ticks without another aura event")
+    C_Spell.GetSpellCooldown = function() return { duration = 1.5, startTime = clock } end
+    buffs.events:OnEvent("SPELL_UPDATE_COOLDOWN")
+    equal(button.cooldownSwipe:IsShown(), false, "the GCD does not display a swipe")
+    C_Spell.GetSpellCooldown = originalCooldown
     equal(button.attributes.type1, "spell", "expiring outside-combat reminder retains native click action")
     auras.player[1].expirationTime = clock + 3600; button:PreClick("LeftButton")
     equal(button.attributes.type1, nil, "freshly refreshed aura cancels stale expiry click")
@@ -1057,6 +1077,7 @@ do
     equal(buffs.preview.samples[1].attributes.type1,nil,"normal preview contains no casting action")
     equal(buffs.preview.samples[1].caption,nil,"normal preview has no caption")
     local normalWidth,normalHeight=buffs.preview:GetWidth(),buffs.preview:GetHeight()
+    Suite.GUI.previewReturn.button:OnClick();Flush()
     manager.combatPreview:OnClick();Flush()
     local combatView=Suite.CombatBuffs
     equal(buffs.preview:IsShown(),false,"combat preview replaces the normal preview")
@@ -1069,7 +1090,7 @@ do
     manager.scale:SetValue(135);Flush()
     equal(combatView.previewRoot:GetScale(),1.35,"scale slider updates the active combat preview live")
     equal(buffs.bar:IsShown(),false,"preview does not leave the real clickable bar underneath")
-    manager.combatPreview:OnClick();Flush()
+    Suite.GUI.previewReturn.button:OnClick();Flush()
     equal(combatView.previewRoot:IsShown(),false,"combat preview can be stopped explicitly")
     equal(buffs.bar:IsShown(),true,"stopping preview restores the actual missing-buff bar")
     manager.scale:SetValue(120);manager.size:SetValue(40);Flush()
@@ -1104,7 +1125,7 @@ do
     equal(math.abs(Suite.db.missingBuffPosition.y*UIParent:GetHeight()-110)<0.001,true,"preview saves vertical movement at non-unit scale")
     equal(buffs.preview.mouseEnabled,false,"preview empty space remains click-through")
     equal(buffs.preview.buffHeader.mouseEnabled,true,"preview title accepts movement input")
-    manager.normalPreview:OnClick();Flush()
+    Suite.GUI.previewReturn.button:OnClick();Flush()
     equal(math.abs(buffs.bar.point[4]*ratio+90)<0.001,true,"live bar adopts the preview horizontal position")
     equal(math.abs(buffs.bar.point[5]*ratio-110)<0.001,true,"live bar adopts the preview vertical position")
     buffs.preview.buffHeader:OnDragStart()
@@ -1113,13 +1134,17 @@ do
     buffs.preview.centerX,buffs.preview.centerY=nil,nil
     manager.combatPreview:OnClick();Flush()
     SetCombat(true);buffs.controller:RunState("combat")
+    Suite.GUI.frame.OnEvent(Suite.GUI.frame, "PLAYER_REGEN_DISABLED")
     manager.panel:OnEvent("PLAYER_REGEN_DISABLED")
-    equal(manager.scale.enabled,false,"display controls disable in combat")
+    equal(Suite.GUI.frame:IsShown(),false,"settings remain hidden during a combat interruption")
     equal(Suite.CombatBuffs.previewRoot:IsShown(),false,"combat entry always stops the visual preview")
     manager:Display("missingBuffScale",1.4)
     equal(Suite.db.missingBuffScale,1.2,"combat cannot change protected scale")
     equal(buffs.bar:IsShown(),false,"secure controller hides actionable and incoming icons in combat")
     SetCombat(false);buffs.controller:RunState("peaceful");manager.panel:OnEvent("PLAYER_REGEN_ENABLED")
+    local restore = Suite.pending.guiPreviewReturn
+    Suite.pending.guiPreviewReturn = nil
+    restore()
     equal(manager.scale.enabled,true,"controls recover without an automatic action after combat")
     for i,control in ipairs(manager.controls) do
         local parent=control.parent

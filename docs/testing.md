@@ -1,5 +1,49 @@
 # Forever Suite in game testing
 
+## Book of Aquor quest item
+
+November 26, 2026. The player confirmed the Book of Aquor appeared on the Quest Item Button at the Tanaris stone circle. Summoning and the Un'Goro turn-in check were unreported.
+
+With Aquementas in the quest log and the Book of Aquor in your bags, approach the summoning circle near Lost Rigger Cove in Tanaris at 70.4, 49.9. Verify the quest button offers the book without a target. Click it from inside the stones to summon Aquementas. The unrelated Un'Goro turn-in marker should never offer the book.
+
+## Mechanical Yeti quest item
+
+With Quest Item Button enabled and Umi's Mechanical Yeti in your bags, approach Sprinkle in Gadgetzan outside combat. The button should show before you target her. Select Sprinkle and click the button to credit the objective. Clear your target or select an unrelated NPC and check that clicking the button leaves the item unused. The same location check applies to Quixxil and Legacki. Leave the vicinity or remove the item to verify the icon clears.
+
+## Action-bar macro names — November 26, 2026
+
+The player confirmed that macro names are hidden both in and out of combat. Client build and the remaining checks below were unreported.
+
+With a named macro and a spell on the action bar, enable **Hide macro names on action bars** in Action Bars. Check that the macro name disappears while hotkeys, counts and cooldowns stay visible. Page the bar to a spell and back, including in combat. Open Macro Builder, confirm its switch is on, then turn it off and verify the label and the Action Bars switch are restored. Reload with the setting enabled to check persistence.
+
+## Buff and proc timers — November 25, 2026
+
+1. Enable Missing Buffs and expiry warnings. Let a learned buff enter its warning window and check that seconds count down on the icon. Refresh the buff and check that the number clears. Trigger a spell's own cooldown and verify the swipe can coexist with the number. Trigger a global cooldown by itself and check that it produces no swipe.
+2. Enable Ability proc popups. Compare Victory Rush with the Victorious buff timer. If a new Victorious window overlaps a readable Victory Rush cooldown, check that the swipe finishes independently of the number. Verify the popup still clears when consumed or expired. Check an existing Overpower opening across stance changes.
+3. Check icon input and alignment at small and large icon sizes. Repeat with Combat Missing Buffs enabled and check for Lua errors or blocked actions when entering and leaving combat. Native combat aura reminders do not have an expiry number yet. In-game results and build are pending.
+4. November 26 retest. Cast Overpower or Revenge in combat and compare the popup with the action-bar spell. The popup should show the spell's own recharge immediately, without a glow. If an independent proc is active, its number should continue alongside the swipe. Once the own cooldown ends, the icon should return to its usual proc behavior. Trigger a global cooldown by itself and confirm it never makes a recharge icon appear. Repeat with Victory Rush while another enemy is attacking.
+5. For the reported Victory Rush case, cast it and trigger a fresh Victorious buff while its action-bar button is still counting down. Target a living enemy. Both the swipe and the Victorious number should appear, with the availability glow suppressed during cooldown. If the popup is missing, capture `/wfs procstatus` during that overlap. Repeat after moving Victory Rush to another action slot.
+6. Keep an enemy alive to hold combat while testing the overlap. Verify the popup appears before combat ends, then confirm it carries through the transition with no duplicate. In a fight without Victorious, the native fallback should show no icon. Check for blocked actions and include the `native aura display` line from `/wfs procstatus` if the in-combat popup is still missing.
+
+## Watched reputation bar colors — November 24, 2026
+
+With the progress bar skin enabled, watch a Neutral faction and cross into Friendly. The bar should change from yellow to green after the native rollover without a reload. Check a normal gain within the same rank, switching watched factions, and a gain during combat. Combat texture repair waits until combat ends. The automated substitute covers a queued color after the animation settles.
+
+## Settings previews — November 24, 2026
+
+1. Open each standalone preview from Settings. Confirm the settings panel disappears and the sample remains visible with Return to settings. Drag a placement sample and return. Check the original page and scroll position and reopen the preview to verify placement.
+2. Let the combat indicator preview expire, then repeat while dragging. Try Escape, the meter's lock and Stop test actions, and entering combat during a sample. Confirm Settings returns once and waits for combat to end if interrupted.
+3. Open the native castbar preview and adjust width and height. Confirm Settings and the preview both stay visible. Check that inline proc sizing can still be adjusted in Settings.
+
+## Warrior ability reminders — November 24, 2026
+
+The player reported that new Overpower openings still did not appear outside Battle Stance. Added coverage for the client's player combat-text activation, even when spell usability, aura and glow are all unavailable. Retest Defensive and Berserker on the actual client. The player confirmed Victory Rush is now working.
+
+1. Enable Ability proc popups under Combat → Action Bars. Have your target dodge in Battle Stance and watch the countdown. Switch to Defensive or Berserker before it ends, switch back and cast Overpower. Check that the timer continues through each switch and the icon clears on use or expiry.
+2. Start in Defensive and then Berserker. Test a new dodge and, if learned, a Bloodthrill proc. Record whether the client exposes the opening before switching to Battle. A dodge of someone else’s attack must not trigger your popup.
+3. Kill an experience-granting enemy while another enemy is attacking. Verify a usable Victory Rush appears in combat and keeps counting after combat ends. Compare its timer with Victorious when readable. If only spell availability is readable, verify the estimated countdown ticks down. Check that a global cooldown alone leaves the popup visible and that casting or expiry clears it. Record client build and any Lua errors or blocked actions.
+4. Kill an experience-granting enemy with the ability off cooldown. Leave the defeated target selected and check that the popup appears without retargeting. Use `/wfs procstatus` if it lags to capture the last Victory Rush check.
+
 ## Independent saved bags — November 23, 2026
 
 The player confirmed that the alt’s saved bags show items and the bank and backpack dropdowns now work independently in-game. The build, taint results, and remaining layout and interaction checks were unreported.

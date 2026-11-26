@@ -1,6 +1,6 @@
 local Suite, equal, Frame, SetCombat = ...
 local module = Suite.QuestItem
-local names = { "CreateFrame", "RegisterStateDriver", "C_Timer", "C_QuestLog", "C_Item", "C_Minimap", "C_SuperTrack", "C_EventUtils",
+local names = { "CreateFrame", "RegisterStateDriver", "C_Timer", "C_QuestLog", "C_Item", "C_Map", "C_Minimap", "C_SuperTrack", "C_EventUtils",
     "GetQuestLogSpecialItemInfo", "IsQuestLogSpecialItemInRange", "UnitIsDeadOrGhost", "UnitGUID", "GetUnitSpeed", "GetCursorInfo", "IsControlKeyDown", "UIParent", "GameTooltip" }
 local old, saved = {}, {}
 for _, name in ipairs(names) do old[name] = _G[name] end
@@ -260,6 +260,52 @@ do
         target = guid
         equal(module:Find(), nil, "unrelated or unreadable targets do not authorize the fallback")
     end
+    rows, carried = {{ id = 5163, distance = 9000000, same = false }}, { [12928] = 1 }
+    local map, x, y = 1446, 0.52, 0.2687
+    C_Map = {
+        GetBestMapForUnit = function() return map end,
+        GetPlayerMapPosition = function() return { GetXY = function() return x, y end } end,
+        GetMapWorldSize = function() return 7000, 7000 end,
+    }
+    target = nil
+    module:OnEvent("PLAYER_STOPPED_MOVING"); Drain()
+    equal(module.candidate.id, 12928, "approaching Sprinkle offers the Yeti without a native shortcut or target")
+    equal(module.button:GetAttribute("type1"), nil, "proximity is enough to show the icon but not use it")
+    equal(module.button:GetAttribute("macrotext1"), "/use [@target,exists,nodead,nocombat] item:12928", "Yeti uses a deliberate living-target click")
+    target = "Creature-0-1-2-3-7583-000000001B"
+    module.button.PreClick(module.button, "LeftButton", false)
+    equal(module.button:GetAttribute("type1"), "macro", "targeting Sprinkle re-arms the click even before the refresh")
+    target = "Creature-0-1-2-3-9999-000000001B"
+    module.button.PreClick(module.button, "LeftButton", false)
+    equal(module.button:GetAttribute("type1"), nil, "changing to an unrelated target blocks the cached click")
+    x = 0.55
+    equal(module:Find(), nil, "the item is hidden outside Sprinkle's vicinity")
+    map, x, y = 1449, 0.4366, 0.0937
+    equal(module:Find().id, 12928, "Quixxil's location offers the same quest tool")
+    map, x, y = 1452, 0.6154, 0.3861
+    equal(module:Find().id, 12928, "Legacki's location offers the same quest tool")
+    carried[12928] = 0
+    equal(module:Find(), nil, "Yeti still needs to be carried")
+
+    rows, carried = {{ id = 4005, distance = 9000000, same = false }}, { [11169] = 1, [11617] = 1 }
+    map, x, y, target = 1446, 0.705, 0.500, nil
+    module:OnEvent("PLAYER_STOPPED_MOVING"); Drain()
+    equal(module.candidate.id, 11169, "the circle offers Book of Aquor despite a remote quest marker and no native shortcut")
+    equal(module.button:GetAttribute("macrotext1"), "/use [nodead] item:11169", "summoning uses the book without an NPC target")
+    module.button.PreClick(module.button, "LeftButton", false)
+    equal(module.button:GetAttribute("type1"), "macro", "the book can be clicked with no selected target")
+    x = 0.735
+    module.button.PreClick(module.button, "LeftButton", false)
+    equal(module.button:GetAttribute("type1"), nil, "leaving the circle's vicinity before refresh disarms the cached click")
+    map, x, y = 1449, 0.7042, 0.4990
+    rows[1].link, rows[1].distance, rows[1].same = "item:11617", 0, true
+    equal(module:Find(), nil, "the quest turn-in marker cannot offer the book or its supplies container")
+    map, carried[11169] = 1446, 0
+    equal(module:Find(), nil, "carrying the supplies container alone cannot offer the book")
+    carried[11169], rows[1].id = 1, 4006
+    rows[1].link = nil
+    equal(module:Find(), nil, "having the book nearby still requires the Aquementas quest")
+    C_Map = old.C_Map
     rows, carried = originalRows, originalCarried
     module:Refresh()
 end

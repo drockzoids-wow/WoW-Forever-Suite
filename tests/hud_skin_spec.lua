@@ -236,6 +236,20 @@ equal(textures, 0, "enabled skins tolerate unavailable native bars")
 equal(skin.events.registered.ADDON_LOADED, true, "HUD skin observes late native loading")
 StatusTrackingBarInfo = { BarsEnum = { Experience = 1, Honor = 2, Reputation = 3, Artifact = 4 } }
 local first, second = Container(), Container()
+local reputation = first.bars[3]
+local reputationFill = reputation.StatusBar
+local yellowFaction = "UI-HUD-ExperienceBar-Fill-Reputation-Faction-Yellow"
+local greenFaction = "UI-HUD-ExperienceBar-Fill-Reputation-Faction-Green"
+reputationFill.atlas = yellowFaction
+reputation.UpdateBarTextures = function(_, atlas) reputationFill.pendingBarTexture = atlas end
+reputationFill.IsDirty = function(self) return self.dirty end
+reputationFill.IsAnimating = function(self) return self.animating end
+reputationFill.ClearDirty = function(self) self.dirty = false end
+reputationFill.OnFinishedAnimating = function(self) self.animating = false end
+reputationFill.ApplyPendingTextures = function(self)
+    assert(not combat, "reputation texture repair must wait for combat to end")
+    self.atlas, self.pendingBarTexture = self.pendingBarTexture, nil
+end
 StatusTrackingBarManager = Widget()
 StatusTrackingBarManager.barContainers = { first, second }
 StatusTrackingBarManager.UpdateBarsShown = function() return "native-manager-result" end
@@ -256,6 +270,27 @@ MicroMenu.AddButton = function(self, button) self.children[#self.children + 1] =
 character.parent, menuButton.parent = MicroMenu, MicroMenu
 local click = character.OnClick
 skin.events:OnEvent("ADDON_LOADED", "Blizzard_StatusTrackingBar"); Flush()
+do
+    first.current = reputation
+    reputationFill.dirty, reputationFill.animating = true, true
+    reputation:UpdateBarTextures(greenFaction); Flush()
+    equal(reputationFill.atlas, yellowFaction, "a pending rank color waits for the native animation")
+    reputationFill:ClearDirty(); Flush()
+    equal(reputationFill.atlas, yellowFaction, "a clean bar still waits while its native rollover plays")
+    reputationFill:OnFinishedAnimating(); Flush()
+    equal(reputationFill.atlas, greenFaction, "an idle watched faction applies a leftover friendly texture without reload")
+    Combat(true)
+    reputation:UpdateBarTextures(yellowFaction)
+    equal(reputationFill.atlas, greenFaction, "combat does not mutate native reputation textures")
+    LeaveCombat()
+    equal(reputationFill.atlas, yellowFaction, "the queued reputation color is repaired after combat")
+    reputationFill.forbidden = true
+    reputation:UpdateBarTextures(greenFaction); Flush()
+    equal(reputationFill.atlas, yellowFaction, "forbidden reputation frames keep native control")
+    reputationFill.forbidden, reputationFill.pendingBarTexture = nil, nil
+    first.current = first.bars[1]
+    StatusTrackingBarManager:UpdateBarsShown(); Flush()
+end
 for _, container in ipairs({ first, second }) do
     for index = 1, 3 do
         local bar = container.bars[index]

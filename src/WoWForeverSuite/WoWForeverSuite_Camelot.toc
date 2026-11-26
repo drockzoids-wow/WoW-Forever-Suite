@@ -3,7 +3,7 @@
 ## Notes: A personal collection of optional tools for WoW Forever.
 ## Author: Drockzoids
 ## IconTexture: Interface\AddOns\WoWForeverSuite\Media\ForeverSuiteIcon.tga
-## Version: 1.0.29
+## Version: 1.0.30
 ## Bindings: Bindings.xml
 ## SavedVariables: WoWForeverSuiteDB
 ## SavedVariablesPerCharacter: WoWForeverSuiteCharDB
@@ -38,6 +38,7 @@ Keybinds.lua
 UnitFrames.lua
 TargetThreat.lua
 CombatIndicator.lua
+ReminderTimers.lua
 ProcAlerts.lua
 Vendor.lua
 MerchantKnown.lua

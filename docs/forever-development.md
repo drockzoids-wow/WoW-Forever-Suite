@@ -1,5 +1,41 @@
 # WoW Forever addon development reference
 
+## Book of Aquor quest item
+
+Quest 4005 gives Eridan's Supplies, which contains the Book of Aquor (11169). Its activation site is the stone circle near Lost Rigger Cove in Tanaris, while the quest turn-in is in Un'Goro Crater. The book uses the same location check as the Mechanical Yeti and keeps the normal click action for untargeted quest items.
+
+## Mechanical Yeti quest item
+
+Quest 5163 uses item 12928 at Sprinkle in Tanaris, Quixxil in Un'Goro Crater, and Legacki in Winterspring. The quest button uses each objective's location for proximity, even when the quest log has no special-item shortcut or its general map location points elsewhere. The protected action requires a deliberate click with one of the three NPCs targeted outside combat.
+
+## Buff and proc timers — November 25, 2026
+
+Reminder icons use the native cooldown widget with a duration object that excludes the global cooldown. The compatibility path displays only readable spell timings that can be distinguished from the global cooldown. Aura expiry numbers run independently. Generic combat procs use a readable matching player aura when available. Native combat aura containers keep their engine-owned expiry warning.
+
+November 26 follow-up: the proc list previously required a confirmed opening before drawing the icon. Learned reactive reminders can now display a confirmed spell cooldown independently of castability. They lose the availability glow while recharging. If cooldown timing is restricted, public active and GCD flags can admit the icon and the native widget animates the opaque duration. Proc detection still supplies the separate expiry number.
+
+The player then observed Victorious and an action-bar cooldown with the Suite popup hidden. A confirmed Victorious window now controls Victory Rush visibility even with a living target and unavailable spell cooldown classification. When the spell occupies an action slot, the swipe uses that slot's native duration with the GCD excluded. The spell duration remains the fallback. `/wfs procstatus` reports whether Suite found the slot.
+
+In the next test, cooldown and aura were recognized together at `PLAYER_REGEN_ENABLED` only. The in-combat fallback prepares a native AuraContainer for player aura 402975 before combat. The container filters Victorious and renders its own expiry text. Its native layout clips Suite's separate spell cooldown swipe. Suite does not read the aura container's dimensions or visibility. The regular popup handles the out-of-combat case.
+
+## Watched reputation bar colors — November 24, 2026
+
+The player reported that the watched bar kept its Neutral color after reaching Friendly and refreshed on reload. The public Forever UI queues reputation artwork for a rollover. When the progress bar skin is enabled, Suite observes native texture requests and animation completion and applies leftover queued artwork only on the visible, idle reputation bar outside combat. Native progress, colors, and animations continue to come from Blizzard. Running-client confirmation remains pending.
+
+## Settings previews — November 24, 2026
+
+Explicit world previews for Camping, buff bars, proc popups, the combat indicator, and meters temporarily hide Settings while retaining its page and scroll position. A separate Return to settings control ends the active preview. The indicator timer and optional meter lock or stop actions restore Settings through the same path. Combat interrupts the sample and defers reopening until out of combat. Castbar previews and inline size controls leave Settings open for live adjustments.
+
+## Warrior ability reminders — November 24, 2026
+
+The player’s proc status showed Overpower ready during the global cooldown and then unusable. Off-stance checks now identify the Warrior form by its stable ID when readable and retain a brief confirmed availability signal immediately, before the queued paint. The diagnostic records the observed stance alongside Overpower transitions.
+
+After the player reproduced missed Overpower openings outside Battle Stance, added support for a readable player `COMBAT_TEXT_UPDATE` activation whose localized name matches Overpower. The synchronous callback reads only the named activation. The popup ignores restricted data and events for other watched units. The module leaves native floating combat text and its settings alone. Delivery and readability of this signal outside Battle Stance still need in-game confirmation.
+
+Ability proc popups use a readable player Overpower aura (1282733) for its native expiry. When spell usability or a native glow confirms an opening without readable timing, the icon estimates five seconds from the first observation and carries the same estimate through stance changes. Refreshes query the Overpower glow directly across ranks, including when the native show event is absent. The client can withhold a new opening outside Battle Stance. A target dodge event cannot establish which attacker triggered it. See [Blizzard's Warrior notes](https://worldofwarcraft.blizzard.com/en-us/news/24301514/world-of-warcraft-forever-class-deep-dives-priest-and-warrior) and the [documented Forever reactive event behavior](https://github.com/mwonng/SpellActivationsForever).
+
+Native usability, a readable Victorious aura (402975), or a public spell activation confirms the learned Victory Rush (402927) opening. The aura provides the native expiry when readable. When the client only exposes usability or activation, the counter estimates the opening from the first observation. Aura queries check the client restriction predicate. Aura changes and combat exit start a bounded recheck burst, and a readable cooldown end schedules a one-shot wakeup even while native usability is false. Other proc popups remain combat-only.
+
 ## Independent saved bag and bank windows — November 23, 2026
 
 The reported bag switch reused the already-open saved bank frame. The account record also contained an 82-slot bag view with no items and an empty aggregate count saved at 06:30:52, the logout save. Bag and bank views now share rendering code with separate windows, selected owners, search fields, and refresh state. The saved bag view takes its initial position from the backpack before the native bags close. Its slots remain read-only. Inventory recording keeps the last in-world observation instead of reading containers during logout. Old empty bag views remain stored, but require a fresh observation before opening. Newly observed empty bags remain valid.

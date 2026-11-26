@@ -1,4 +1,5 @@
 local _, Suite = ...
+local Timers = Suite.ReminderTimers
 local Extra = { combatButtons = {} }
 Suite.BuffReminders = Extra
 table.insert(Suite.modules, Extra)
@@ -319,6 +320,7 @@ function Extra:BuildCombat()
         button.icon = button:CreateTexture(nil, "ARTWORK")
         button.icon:SetPoint("TOPLEFT", 2, -2); button.icon:SetPoint("BOTTOMRIGHT", -2, 2)
         button.icon:SetTexCoord(0.06, 0.94, 0.06, 0.94)
+        Timers:Create(button, 14)
         button:SetScript("OnEnter", function() self:Tooltip(button, true) end)
         button:SetScript("OnLeave", function() if GameTooltip and GameTooltip.IsOwned and GameTooltip:IsOwned(button) then GameTooltip:Hide() end end)
         button:SetScript("OnHide", button:GetScript("OnLeave"))
@@ -444,6 +446,11 @@ function Extra:RefreshCombat()
             button:SetSize(size,size)
             button:ClearAllPoints(); button:SetPoint("TOPLEFT", (width - (rowCount * stride - 9)) / 2 + slot % 8 * stride, -25 - (nativeRows + row) * rowStride)
             button.icon:SetTexture(entry.spell.icon)
+            button.countdown:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", math.max(11, math.floor(size * 0.36)), "OUTLINE")
+            self:Due(Timers:Expiry(button, entry.remaining))
+            Timers:UpdateCooldown(button, entry.spell.id)
+        else
+            Timers:UpdateCooldown(button)
         end
         button:SetShown(entry ~= nil)
     end
@@ -459,6 +466,15 @@ function Extra:ScheduleCombat(delay)
     end
 end
 function Extra:OnEvent(event)
+    if event == "SPELL_UPDATE_COOLDOWN" then
+        if ActiveCombat() then
+            for _, button in ipairs(self.combatButtons) do
+                if button.entry then Timers:UpdateCooldown(button, button.entry.spell.id, nil, true) end
+            end
+            if Suite.CombatBuffs then Suite.CombatBuffs:UpdateCooldowns(true) end
+        end
+        return
+    end
     if Suite.CombatBuffs then Suite.CombatBuffs:RefreshVisibility(event) end
     if not Enabled() then return end
     if event == "PLAYER_REGEN_ENABLED" then

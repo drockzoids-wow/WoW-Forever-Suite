@@ -1,4 +1,5 @@
 local _, Suite = ...
+local Timers = Suite.ReminderTimers
 local Buffs = { buttons = {}, requested = {}, notices = {}, noticeTimes = {}, bookDirty = true, itemsDirty = true }
 Suite.MissingBuffs = Buffs
 table.insert(Suite.modules, Buffs)
@@ -717,6 +718,7 @@ function Buffs:Button(index)
     button:RegisterForClicks("AnyUp", "AnyDown"); button:SetAttribute("useOnKeyDown", false)
     button.icon = button:CreateTexture(nil, "ARTWORK")
     button.icon:SetPoint("TOPLEFT", 2, -2); button.icon:SetPoint("BOTTOMRIGHT", -2, 2); button.icon:SetTexCoord(0.06, 0.94, 0.06, 0.94)
+    Timers:Create(button, 14)
     button:SetScript("OnEnter", function() self:Tooltip(button) end)
     button:SetScript("OnLeave", function() HideTooltip(button) end)
     button:SetScript("OnHide", function() HideTooltip(button) end)
@@ -774,6 +776,36 @@ function Buffs:BarLayout(count)
     return width, 28 + math.ceil(math.max(1, count) / 8) * rowStride, size, stride, rowStride
 end
 
+function Buffs:UpdateCooldowns(cooldownEvent, rebind)
+    if InCombatLockdown() then return end
+    for _, button in ipairs(self.buttons) do
+        local entry = button.entry
+        if entry and (entry.kind == "self" or entry.kind == "group") then
+            Timers:UpdateCooldown(button, entry.spell.id, nil, cooldownEvent, rebind)
+        else
+            Timers:UpdateCooldown(button)
+        end
+    end
+end
+
+function Buffs:UpdateExpiry()
+    if InCombatLockdown() or not self.bar:IsShown() then return end
+    local now = Call(GetTime)
+    if not Number(now) then return end
+    local nextUpdate
+    for _, button in ipairs(self.buttons) do
+        local entry = button.entry
+        local due = Timers:Expiry(button, entry and entry.expires and entry.expires - now)
+        if due and (not nextUpdate or due < nextUpdate) then nextUpdate = due end
+    end
+    if nextUpdate and C_Timer and C_Timer.NewTimer then
+        self.expiryTimer = C_Timer.NewTimer(nextUpdate, function()
+            self.expiryTimer = nil
+            self:UpdateExpiry()
+        end)
+    end
+end
+
 function Buffs:Refresh()
     self:Cancel()
     if InCombatLockdown() then Suite.AfterCombat("missingBuffs", function() self:Apply() end); return end
@@ -801,14 +833,17 @@ function Buffs:Refresh()
     if not self.bar.moving then self:Place(self.bar) end
     self.header.caption:SetText("Missing Buffs")
     local width, height, size, stride, rowStride = self:BarLayout(#entries)
+    local now = Call(GetTime)
     self.bar:SetSize(width, height)
     for index, entry in ipairs(entries) do
         local button = self:Button(index)
         button.entry = entry
+        entry.expires = Number(now) and entry.remaining and now + entry.remaining or nil
         local row = math.floor((index - 1) / 8)
         local rowCount = math.min(8, #entries - row * 8)
         local rowWidth = rowCount * stride - 9
         button:SetSize(size,size)
+        button.countdown:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", math.max(11, math.floor(size * 0.36)), "OUTLINE")
         button:ClearAllPoints(); button:SetPoint("TOPLEFT", (width - rowWidth) / 2 + (index - 1) % 8 * stride, -25 - row * rowStride)
         for _, attribute in ipairs({ "type1", "spell1", "unit", "macrotext1" }) do button:SetAttribute(attribute, nil) end
         if entry.unit then
@@ -827,6 +862,8 @@ function Buffs:Refresh()
     end
     if self.preview and self.preview:IsShown() or Suite.CombatBuffs and Suite.CombatBuffs.previewActive then self.bar:Hide()
     else self.bar:Show() end
+    self:UpdateCooldowns(false, true)
+    self:UpdateExpiry()
     Suite.BuffReminders:PlaceCombat(); Suite.BuffReminders:Schedule()
 end
 
@@ -834,6 +871,7 @@ function Buffs:Cancel()
     Suite.BuffReminders:Cancel()
     self.work = nil
     if self.timer then self.timer:Cancel(); self.timer = nil end
+    if self.expiryTimer then self.expiryTimer:Cancel(); self.expiryTimer = nil end
 end
 function Buffs:Queue()
     if not Enabled() or InCombatLockdown() or self.timer then return end
@@ -863,6 +901,7 @@ function Buffs:Apply()
                 end
                 Suite.BuffReminders:OnEvent(event)
                 if event == "PLAYER_REGEN_DISABLED" then return
+                elseif event == "SPELL_UPDATE_COOLDOWN" then self:UpdateCooldowns(true)
                 elseif event == "PLAYER_REGEN_ENABLED" then self:Refresh()
                 elseif event == "UNIT_AURA" or event == "UNIT_FLAGS" or event == "UNIT_CONNECTION" or event == "UNIT_LEVEL" or event == "UNIT_INVENTORY_CHANGED" then
                     if Text(unit) and (unit == "player" or unit:match("^party%d+$") or unit:match("^raid%d+$")) then self:Queue() end
@@ -875,7 +914,7 @@ function Buffs:Apply()
         end
         for _, event in ipairs({ "UNIT_AURA", "GROUP_ROSTER_UPDATE", "UNIT_CONNECTION", "UNIT_LEVEL", "PLAYER_LEVEL_UP", "SPELLS_CHANGED", "SKILL_LINES_CHANGED", "SPELL_DATA_LOAD_RESULT",
             "PLAYER_ENTERING_WORLD", "PLAYER_UPDATE_RESTING", "MINIMAP_UPDATE_TRACKING", "ZONE_CHANGED_NEW_AREA", "PLAYER_EQUIPMENT_CHANGED", "BAG_UPDATE_DELAYED", "ITEM_DATA_LOAD_RESULT",
-            "UNIT_INVENTORY_CHANGED", "WEAPON_ENCHANT_CHANGED", "WEAPON_SLOT_CHANGED", "UNIT_FLAGS", "PLAYER_ALIVE", "PLAYER_UNGHOST",
+            "UNIT_INVENTORY_CHANGED", "WEAPON_ENCHANT_CHANGED", "WEAPON_SLOT_CHANGED", "UNIT_FLAGS", "PLAYER_ALIVE", "PLAYER_UNGHOST", "SPELL_UPDATE_COOLDOWN",
             "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED" }) do
             if C_EventUtils and type(C_EventUtils.IsEventValid) == "function" then
                 if Call(C_EventUtils.IsEventValid, event) == true then self.events:RegisterEvent(event) end
@@ -901,7 +940,11 @@ function Buffs:SetPreview(show)
         preview:SetFrameStrata("DIALOG")
         preview:EnableMouse(false); self:Header(preview, "Missing Buffs", true)
         preview.samples = {}
-        preview:SetScript("OnHide", function() self:StopMoving(preview); if self.bar and not InCombatLockdown() then self:Place(self.bar) end end)
+        preview:SetScript("OnHide", function()
+            self:StopMoving(preview)
+            if self.bar and not InCombatLockdown() then self:Place(self.bar) end
+            Suite.GUI:EndWorldPreview(true, self)
+        end)
     end
     local entries = self:PreviewEntries()
     local width, height, size, stride = self:BarLayout(#entries)
@@ -922,6 +965,7 @@ function Buffs:SetPreview(show)
     for index = #entries + 1, #self.preview.samples do self.preview.samples[index]:Hide() end
     self:Place(self.preview); self.preview:Show()
     if self.bar then self.bar:Hide() end
+    return true
 end
 
 function Buffs:PreviewEntries()

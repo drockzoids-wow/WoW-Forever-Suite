@@ -136,6 +136,7 @@ function Meters:ClearPreview()
         if window.testOffset ~= nil then window.offset = window.testOffset end
         window.testOffset = nil
     end
+    Suite.GUI:EndWorldPreview(true, self)
 end
 
 function Meters:SetPreview(enabled)
@@ -158,6 +159,7 @@ function Meters:SetPreview(enabled)
         if InCombatLockdown() then self:Refresh() end
     end
     self:RefreshSettings()
+    return self.preview == true
 end
 
 function Meters:Normalize()
@@ -836,6 +838,7 @@ function Meters:SetLocked(locked)
     self:CancelDrag(); self:CancelResize()
     Suite.db.meterLocked = locked
     self:RefreshLock(); self:RefreshSettings()
+    if locked and self.preview and Suite.GUI.worldPreview == self then self:SetPreview(false) end
 end
 
 function Meters:SetOption(index, key, value)

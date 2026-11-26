@@ -22,7 +22,7 @@ Catalog.sections = {
     buffs = { [1] = "Missing Buff Bar", [2] = "Reminder Filters", [6] = "Position & Choices" },
     vendor = { [1] = "Repairs", [3] = "Junk Selling", [6] = "Vendor Conversation", [7] = "Known Items", [8] = "Restocking" },
     quests = { [1] = "Quests & Conversation", [4] = "Loot & Tracker" },
-    actionbars = { [1] = "Appearance & Feedback", [3] = "Ability Proc Popups" }, bars = { [1] = "Bar Appearance" },
+    actionbars = { [1] = "Appearance & Feedback", [4] = "Ability Proc Popups" }, bars = { [1] = "Bar Appearance" },
     unitframes = { [1] = "Health Bars", [2] = "Target Threat" }, mail = { [1] = "Recipients", [4] = "Mail Deadlines" }, meters = { [1] = "Damage Meters" },
     audio = { [1] = "Output Device" },
     leveling = { [1] = "Leveling Tracker", [2] = "Header Controls", [4] = "Session & Position" },
@@ -139,7 +139,7 @@ function Catalog:Configure(pages)
     -- Feature pages use inline sections rather than another layer of tabs.
     self.sections.bags = { [1] = "Bag tools", [2] = "Recorded inventory", [4] = "Bank snapshots", [7] = "Bag space & organization", [12] = "Bank deposits", [13] = "Account money" }
     self.sections.items = { [1] = "Item levels", [4] = "Equipment sets" }
-    self.sections.actionbars = { [1] = "Action buttons", [3] = "Proc popups" }
+    self.sections.actionbars = { [1] = "Action buttons", [4] = "Proc popups" }
     pages.buffs.rows[#pages.buffs.rows + 1] = { key = "missingBuffSmart", label = "Class-aware buff targets",
         help = "Match mana buffs to eligible classes, including Hunters and Druids in any form." }
     pages.buffs.rows[13].label, pages.buffs.rows[14].label = "Custom learned spells", "Buffs to track"

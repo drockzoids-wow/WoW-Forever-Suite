@@ -1,4 +1,5 @@
 local _, Suite = ...
+local Timers = Suite.ReminderTimers
 -- All combat aura decisions stay in Blizzard's native renderer. Inverse clips
 -- reveal our art/text; Lua never reads the native frames, text or their bounds.
 local Combat = { records = {}, coverage = {}, durations = {}, auraIDs = {}, auraDurations = {}, failed = {} }
@@ -160,7 +161,10 @@ function Combat:SetPreview(show)
         local active = self.previewActive
         self.previewActive = nil
         if self.previewRoot then self.previewRoot:Hide() end
-        if active then Suite.MissingBuffs:Queue() end
+        if active then
+            Suite.MissingBuffs:Queue()
+            Suite.GUI:EndWorldPreview(true, self)
+        end
         return
     end
     if InCombatLockdown() or not Suite.MissingBuffs.settingsVisible then return end
@@ -168,6 +172,7 @@ function Combat:SetPreview(show)
     self.previewActive = true
     self:UpdatePreview()
     if Suite.MissingBuffs.bar then Suite.MissingBuffs.bar:Hide() end
+    return true
 end
 
 function Combat:UpdatePreview()
@@ -251,7 +256,10 @@ function Combat:Container(record, member, row, soon)
         local iconClip = Clip(gates.display)
         iconClip:SetPoint("TOPLEFT", container, "TOPRIGHT", 0, 0)
         iconClip:SetPoint("BOTTOMRIGHT", cell, "TOPLEFT", PLANE, -size - 14)
-        self:Chip(iconClip, record, cell)
+        local _, plate, icon = self:Chip(iconClip, record, cell)
+        plate.icon = icon
+        Timers:Create(plate)
+        gates.cooldownPlate = plate
         self:Title(record, gates.display, container, false)
         local nameClip = MissingClip(gates.tooltip, container, cell, tipX, tipY)
         local name = Label(nameClip, member.name)
@@ -453,6 +461,16 @@ function Combat:Prepare()
     self:Place()
 end
 
+function Combat:UpdateCooldowns(cooldownEvent, rebind)
+    for _, key in ipairs(self.order or {}) do
+        local record = self.records[key]
+        for row, member in ipairs(record.descriptor.members) do
+            local plate = record.rangeGates[row].cooldownPlate
+            if plate then Timers:UpdateCooldown(plate, member.spellID or record.descriptor.spell.id, nil, cooldownEvent, rebind) end
+        end
+    end
+end
+
 function Combat:RefreshVisibility(event)
     if InCombatLockdown() then self:SetPreview(false) end
     if not self.frame then return end
@@ -487,6 +505,7 @@ function Combat:RefreshVisibility(event)
     -- The host is transparent, contains no protected widgets and has no input.
     -- Its visibility is driven by public context only, never aura display state.
     self.frame:SetShown(allowed == true)
+    if allowed and event == "PLAYER_REGEN_DISABLED" then self:UpdateCooldowns(false, true) end
 end
 
 function Combat:Apply()

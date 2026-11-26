@@ -11,6 +11,25 @@ Build a personal, modular addon for WoW Forever. The user wants selected QoL fea
 
 Read `docs/forever-development.md`, `docs/feature-plan.md` and `docs/testing.md` before substantial changes. Keep these findings and feature decisions current.
 
+## Workflow defaults
+
+Define success in terms of what the player can observe. Use your judgment on reversible implementation and design details. Confirm decisions that expand the requested scope, materially change existing player-facing behavior or saved data beyond the requested outcome, or require publication authorization.
+
+### Bug fixes
+
+- Trace the failing flow from its normal entry point through the UI, native API calls and saved state as applicable. Use the reported build, steps and setting-toggle results to isolate the cause. Ask for the smallest missing detail that would distinguish likely causes when the available evidence is insufficient.
+- Preserve existing preferences and records. Check both fresh and existing saved data when a change touches persistence, including reload or relog where relevant. Add a focused regression case when existing checks miss the failure. Report what was reproduced, what was checked and what still needs an in-game test.
+
+### UI design
+
+- Start with the player's primary task and what they need to see or act on first. Use screenshots to identify the important interaction, hierarchy or layout problem. Reuse Suite controls and work within the existing visual style. Use other addons as references for specific interactions.
+- Check realistic cases such as long names, wrapped help, small UI scales and empty results. Verify labels and values stay aligned, controls remain reachable, and dropdowns, tooltips and dialogs draw above the windows they belong to.
+
+### Release preparation
+
+- Review the affected player flows for regressions, saved-data loss and unreachable code before preparing a release. Keep cleanup tied to confirmed findings in scope. Run addon and packaging checks on the exact release snapshot and state which in-game checks remain outstanding.
+- Keep the version and changelog in sync. Verify that the package contains only addon files and preserves the existing install folder and SavedVariables names for in-place updates. Publish only with user authorization. Check upload success and public download availability, and report the status of each.
+
 ## Client and source
 
 - November 7 installed executable observation: `Wow.exe` `1.60.1.70862`. The public Forever UI source now matches build 70862 at `9dc84f0d3bbae1768ac3405b3716000bd93eda06`; review snapshot is `.cache/review-20261107/wow-ui-source-9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns`. This supersedes the earlier public-source lag for this review. Actual running build/Interface and native results still require an in-game report.

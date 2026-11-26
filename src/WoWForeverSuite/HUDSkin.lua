@@ -410,6 +410,30 @@ function Skin:Dividers(owner, key, pass, status)
         end
     end
 end
+function Skin:ReputationTexture(status)
+    if InCombatLockdown() or not Usable(status) or type(status.ApplyPendingTextures) ~= "function"
+        or type(status.IsDirty) ~= "function" or type(status.IsAnimating) ~= "function" then return end
+    local atlas = status.pendingBarTexture
+    if not Read(atlas, "string") or not atlas:match("^UI%-HUD%-ExperienceBar%-Fill%-Reputation%-Faction%-[A-Za-z]+$") then return end
+    local flare, rollover = status.pendingGainFlareAnimationTexture, status.pendingLevelUpTexture
+    if not Suite.IsReadable(flare) or not Suite.IsReadable(rollover)
+        or not (flare == nil and rollover == nil or type(flare) == "string" and type(rollover) == "string") then return end
+    local dirtyOK, dirty = pcall(status.IsDirty, status)
+    local animatingOK, animating = pcall(status.IsAnimating, status)
+    if not dirtyOK or not animatingOK or not Suite.IsReadable(dirty) or not Suite.IsReadable(animating)
+        or dirty or animating then return end
+    local animation = status.LevelUpRolloverAnimation
+    if not Suite.IsReadable(animation) then return end
+    if animation then
+        if not Usable(animation) or type(animation.IsPlaying) ~= "function" then return end
+        local playing = animation:IsPlaying()
+        if not Read(playing, "boolean") or playing then return end
+    end
+    -- Native faction updates can leave a texture queued with no rollover to
+    -- consume it. Apply that queued art through the native texture-only path.
+    status:ApplyPendingTextures()
+end
+
 function Skin:StatusBars(pass)
     local manager, info = StatusTrackingBarManager, StatusTrackingBarInfo
     if not Usable(manager) or not Read(manager.barContainers, "table")
@@ -427,7 +451,11 @@ function Skin:StatusBars(pass)
                     local bar = container.bars[barIndex]
                     if Anchorable(bar) and type(bar.CreateTexture) == "function"
                         and Anchorable(bar.StatusBar) and type(bar.StatusBar.CreateTexture) == "function" then
-                        self:Watch(bar, "statusBarSkin")
+                        if name == "Reputation" then
+                            self:Watch(bar, "statusBarSkin", { "UpdateBarTextures" })
+                            self:Watch(bar.StatusBar, "statusBarSkin", { "ClearDirty", "OnFinishedAnimating" })
+                            if Suite.IsReadable(shown) and bar == shown then self:ReputationTexture(bar.StatusBar) end
+                        else self:Watch(bar, "statusBarSkin") end
                         if self:Suppress(bar.StatusBar.Background, "VertexColor", "statusBarSkin", pass) then
                             -- Native fill atlases, values, rested prediction, text and gain animations remain native.
                             self:Panel(bar.StatusBar, "statusBarSkin", pass, false, bar)

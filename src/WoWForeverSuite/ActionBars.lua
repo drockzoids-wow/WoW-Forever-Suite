@@ -1,5 +1,5 @@
 local _, Suite = ...
-local ActionBars = { records = {} }
+local ActionBars = { records = {}, macroLabels = {} }
 Suite.ActionBars = ActionBars
 table.insert(Suite.modules, ActionBars)
 
@@ -117,6 +117,70 @@ function ActionBars:VisitButtons(callback, includeForms)
     end
 end
 
+local function HideMacroNames()
+    return Suite.db and Suite.IsReadable(Suite.db.hideMacroNames) and Suite.db.hideMacroNames == true
+end
+
+function ActionBars:RefreshMacroName(record)
+    local button, label = record.button, record.label
+    if not Usable(button) or not Usable(label) then return end
+    local isMacro = false
+    if HideMacroNames() then
+        local slot = button.action
+        if Suite.IsReadable(slot) and type(slot) == "number" and slot >= 1 and slot < math.huge and slot % 1 == 0
+            and type(GetActionInfo) == "function" then
+            local ok, kind = pcall(GetActionInfo, slot)
+            isMacro = ok and Suite.IsReadable(kind) and kind == "macro"
+        end
+    end
+    if not isMacro and record.alpha == nil then return end
+    local alpha = label:GetAlpha()
+    if not Suite.IsReadable(alpha) or type(alpha) ~= "number" or not (alpha >= 0 and alpha <= 1) then return end
+    -- Leave the text and shown state with Blizzard so paging and editing still
+    -- update the label. Restore only the alpha this option suppressed.
+    if isMacro and alpha ~= 0 then
+        record.alpha = alpha
+        label:SetAlpha(0)
+    elseif not isMacro then
+        if alpha == 0 then label:SetAlpha(record.alpha) end
+        record.alpha = nil
+    end
+end
+
+function ActionBars:ApplyMacroNames()
+    if not HideMacroNames() then
+        Suite.pending.actionMacroNames = nil
+        if self.macroEvents then self.macroEvents:UnregisterAllEvents() end
+        for _, record in pairs(self.macroLabels) do self:RefreshMacroName(record) end
+        return
+    end
+    Suite.AfterCombat("actionMacroNames", function()
+        if not HideMacroNames() then return end
+        if not self.macroEvents then
+            self.macroEvents = CreateFrame("Frame")
+            self.macroEvents:SetScript("OnEvent", function() self:ApplyMacroNames() end)
+        end
+        self.macroEvents:RegisterEvent("ADDON_LOADED")
+        self.macroEvents:RegisterEvent("PLAYER_ENTERING_WORLD")
+        self:VisitButtons(function(button, petSlot)
+            if petSlot or not Usable(button) then return end
+            local label = button.Name
+            if not Usable(label) or type(label.GetAlpha) ~= "function" or type(label.SetAlpha) ~= "function" then return end
+            local record = self.macroLabels[button]
+            if not record then
+                record = { button = button, label = label }
+                self.macroLabels[button] = record
+                if type(button.Update) == "function" then
+                    hooksecurefunc(button, "Update", function()
+                        if HideMacroNames() then self:RefreshMacroName(record) end
+                    end)
+                end
+            end
+            self:RefreshMacroName(record)
+        end)
+    end)
+end
+
 function ActionBars:Discover()
     if InCombatLockdown() then return end
     self:VisitButtons(function(button, petSlot) self:Track(button, petSlot) end)
@@ -164,6 +228,7 @@ function ActionBars:QueueRefresh()
 end
 
 function ActionBars:Apply()
+    self:ApplyMacroNames()
     self:CancelRefresh()
     Suite.pending.actionBars = nil
     if self.events then self.events:UnregisterAllEvents() end

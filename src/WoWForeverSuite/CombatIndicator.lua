@@ -62,7 +62,9 @@ function Indicator:Expire()
     self:CancelTimer()
     if self.active and Enabled() and self.combat and Persistent() and not self.preview then return end
     if not C_Timer or type(C_Timer.NewTimer) ~= "function" then
-        self.state, self.preview = nil, nil; self:Paint(); self:Watch(); return
+        self.state, self.preview = nil, nil; self:Paint(); self:Watch()
+        Suite.GUI:EndWorldPreview(true, self)
+        return
     end
     local work = {}; self.work = work
     self.timer = C_Timer.NewTimer(4, function()
@@ -71,6 +73,7 @@ function Indicator:Expire()
         self.preview = nil
         self.state = self.active and Enabled() and self.combat and Persistent() and "combat" or nil
         self:Paint(); self:Watch()
+        Suite.GUI:EndWorldPreview(true, self)
     end)
 end
 
@@ -164,6 +167,7 @@ function Indicator:StopPreview()
     self:StopDrag(false); self:CancelTimer()
     self.preview, self.state = nil, nil
     self:Paint(); self:Watch()
+    Suite.GUI:EndWorldPreview(true, self)
 end
 
 function Indicator:Preview()
@@ -171,6 +175,7 @@ function Indicator:Preview()
     self:StopDrag(false); self:Configure()
     self.preview, self.state = true, "combat"
     self:Watch(); self:Paint(); self:Expire()
+    return self.preview == true
 end
 
 function Indicator:ResetPosition()

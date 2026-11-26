@@ -1,5 +1,13 @@
 # Forever Suite
 
+## 1.0.30 — November 26, 2026
+
+- Hide macro names on native action bars from **Action Bars** or **Macro Builder**. Both controls share one setting. Hotkeys, counts, and cooldowns stay visible.
+- The Quest Item Button now offers **Umi’s Mechanical Yeti** near Sprinkle, Legacki, and Quixxil, and the **Book of Aquor** near the summoning circle in Tanaris.
+- Buff reminders and combat proc icons distinguish the spell’s cooldown swipe from the remaining buff or proc countdown. Warrior reminders show confirmed Overpower openings across stances where the client exposes them, and Victory Rush can display the Victorious countdown in or out of combat.
+- Standalone previews temporarily hide Settings and return you to the same page when the preview ends. Castbar previews keep Settings open for adjustments.
+- The watched reputation bar updates its color after a standing change without a UI reload.
+
 ## 1.0.29 — November 23, 2026
 
 - The backpack and bank character pickers now switch their own windows independently. Saved bags open in the backpack’s place and keep the last in-world contents through logout. Log into an alt once to refresh an older blank bag record.

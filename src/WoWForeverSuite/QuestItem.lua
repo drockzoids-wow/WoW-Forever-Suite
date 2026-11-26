@@ -8,6 +8,16 @@ table.insert(Suite.modules, QuestItem)
 local corpseItems = {
     [4512] = { [7086] = 11914, [7092] = 11948 },
 }
+-- Are We There, Yeti? uses the same item at three separate objectives.
+local yetiQuest, yetiItem = 5163, 12928
+local yetiFriends = {
+    [7583] = { map = 1446, x = 0.5106, y = 0.2687 }, -- Sprinkle
+    [10977] = { map = 1449, x = 0.4366, y = 0.0937 }, -- Quixxil
+    [10978] = { map = 1452, x = 0.6154, y = 0.3861 }, -- Legacki
+}
+-- Aquementas is turned in at Marshal's Refuge. The book is used in Tanaris.
+local aquementasQuest, aquorBook = 4005, 11169
+local summoningCircle = { { map = 1446, x = 0.7042, y = 0.4990 } }
 
 local function Number(value)
     return Suite.IsReadable(value) and type(value) == "number" and value == value and math.abs(value) < 1000000000000
@@ -33,6 +43,34 @@ local function CursorEmpty()
     local ok, kind = pcall(GetCursorInfo)
     return ok and Suite.IsReadable(kind) and kind == nil
 end
+local function TargetCreature()
+    local guid = Read(UnitGUID, "target")
+    return Text(guid, 128) and tonumber(guid:match("^Creature%-%d+%-%d+%-%d+%-%d+%-(%d+)%-[%x]+$"))
+end
+local function NearbyObjective(points)
+    if not C_Map then return end
+    local map = Read(C_Map.GetBestMapForUnit, "player")
+    for _, point in pairs(points) do
+        if map == point.map then
+            local position = Read(C_Map.GetPlayerMapPosition, map, "player")
+            local x, y
+            if type(position) == "table" or type(position) == "userdata" then x, y = Read(position.GetXY, position) end
+            local width, height = Read(C_Map.GetMapWorldSize, map)
+            if Number(x) and x >= 0 and x <= 1 and Number(y) and y >= 0 and y <= 1
+                and Number(width) and width > 0 and Number(height) and height > 0 then
+                local dx, dy = (x - point.x) * width, (y - point.y) * height
+                local distance = dx * dx + dy * dy
+                if distance <= 10000 then return 2, distance end
+            end
+        end
+    end
+end
+local function YetiObjective(npcID)
+    if yetiFriends[npcID] then
+        return 3, 0, Read(C_Item and C_Item.IsItemInRange, yetiItem, "target"), npcID
+    end
+    return NearbyObjective(yetiFriends)
+end
 function QuestItem:Enabled()
     return Suite.db and Suite.IsReadable(Suite.db.questItemButton) and Suite.db.questItemButton == true
 end
@@ -49,20 +87,28 @@ function QuestItem:Find()
         if Suite.IsReadable(info) and type(info) == "table" and ID(info.questID, 1000000000)
             and Suite.IsReadable(info.isHeader) and info.isHeader ~= true
             and Suite.IsReadable(info.isHidden) and info.isHidden ~= true then
-            local link, icon, item, range, rank, distance
+            local link, icon, item, range, rank, distance, friend
             local targets = corpseItems[info.questID]
             if targets then
-                local guid = Read(UnitGUID, "target")
-                local npcID = Text(guid, 128) and tonumber(guid:match("^Creature%-%d+%-%d+%-%d+%-%d+%-(%d+)%-[%x]+$"))
-                item = targets[npcID]
+                item = targets[TargetCreature()]
             end
             local corpse = item ~= nil
-            if corpse then
+            local yeti = info.questID == yetiQuest
+            local aquementas = info.questID == aquementasQuest
+            if yeti then
+                rank, distance, range, friend = YetiObjective(TargetCreature())
+                if rank then item = yetiItem end
+            elseif aquementas then
+                rank, distance = NearbyObjective(summoningCircle)
+                if rank then item = aquorBook end
+            elseif corpse then
+                rank, distance = 3, math.huge
+                range = Read(C_Item and C_Item.IsItemInRange, item, "target")
+            end
+            if item then
                 link = "item:" .. item
                 icon = Read(C_Item and C_Item.GetItemIconByID, item)
-                range = Read(C_Item and C_Item.IsItemInRange, item, "target")
-                rank, distance = 3, math.huge
-            else
+            elseif not yeti and not aquementas then
                 link, icon = Read(GetQuestLogSpecialItemInfo, index)
                 item = Text(link, 2048) and tonumber(link:match("item:(%d+)")) or nil
                 if ID(item) then
@@ -82,7 +128,7 @@ function QuestItem:Find()
                     local candidate = { questID = info.questID, index = index, id = item, link = link,
                         icon = ID(icon, 2147483647) and icon or 134400,
                         title = Text(info.title, 256) and info.title or "Quest item", count = countCarried,
-                        rank = rank, tracked = info.questID == tracked, corpse = corpse,
+                        rank = rank, tracked = info.questID == tracked, corpse = corpse, yeti = yeti, friend = friend,
                         distance = distance, range = range == false or range == 0 }
                     if not best or candidate.rank > best.rank or candidate.rank == best.rank
                         and (candidate.tracked and not best.tracked or candidate.tracked == best.tracked
@@ -119,7 +165,7 @@ function QuestItem:Tooltip()
     else tip:ClearLines(); tip:AddLine("Quest item") end
     tip:AddLine(" "); tip:AddLine(candidate.title, 0.41, 0.84, 0.75)
     tip:AddLine(candidate.count .. " carried", 0.88, 0.91, 0.93)
-    tip:AddLine("Left-click: use quest item", 0.41, 0.84, 0.75)
+    tip:AddLine(candidate.yeti and "Target Umi's friend, then left-click to use" or "Left-click: use quest item", 0.41, 0.84, 0.75)
     tip:AddLine("Left-drag: move · Ctrl-right-click: reset position", 0.55, 0.65, 0.7)
     tip:Show()
 end
@@ -178,7 +224,7 @@ function QuestItem:Build()
         local fresh = self:Enabled() and not self.moving and not self.suppressClick and CursorEmpty() and self:Find()
         local old = self.candidate
         if mouse ~= "LeftButton" or not fresh or not old or fresh.id ~= old.id
-            or fresh.questID ~= old.questID or fresh.corpse ~= old.corpse then
+            or fresh.questID ~= old.questID or fresh.corpse ~= old.corpse or fresh.yeti and not fresh.friend then
             button:SetAttribute("type1", nil)
         else
             -- A new deliberate click may precede the queued post-drag refresh.
@@ -214,9 +260,11 @@ function QuestItem:Refresh()
     if not self:Build() or self.moving then return end
     local candidate = self:Find(); self.candidate = candidate
     -- Native targeting and item restrictions apply to mouse and binding clicks.
-    -- Keep the prepared item stable throughout combat. Corpse tools require a dead target.
-    self.button:SetAttribute("type1", candidate and "macro" or nil)
+    -- Yeti clicks verify the NPC outside combat. The secure condition prevents
+    -- a cached action from being used on a changed target during combat.
+    self.button:SetAttribute("type1", candidate and (not candidate.yeti or candidate.friend) and "macro" or nil)
     self.button:SetAttribute("macrotext1", candidate and (candidate.corpse and "/use [@target,dead] item:"
+        or candidate.yeti and "/use [@target,exists,nodead,nocombat] item:"
         or "/use [nodead] item:") .. candidate.id or nil)
     if candidate then
         self.button.icon:SetTexture(candidate.icon)

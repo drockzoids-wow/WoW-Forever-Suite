@@ -397,11 +397,13 @@ function Camping:SetPreview(show)
         preview:SetScript("OnHide", function()
             self:StopMoving(preview)
             if self.bar and not InCombatLockdown() then self:Place(self.bar) end
+            Suite.GUI:EndWorldPreview(true, self)
         end)
         table.insert(UISpecialFrames, preview:GetName())
     end
     self:Place(self.preview)
     self.preview:Show()
+    return true
 end
 
 function Camping:SetSettingsVisible(visible)

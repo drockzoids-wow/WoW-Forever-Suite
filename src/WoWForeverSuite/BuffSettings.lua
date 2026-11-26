@@ -176,15 +176,15 @@ function View:Build()
     end
     Label(visibility,"Short buffs warn at 15 seconds. Battle Shout and Commanding Shout appear only in combat.",0,-190,780,11,colors.muted)
     self.normalPreview=Button(display,"Preview normal bar",0,-176,252,function()
-        Buffs:SetPreview(not (Buffs.preview and Buffs.preview:IsShown()));self:Refresh()
+        GUI:StartWorldPreview(Buffs)
     end)
     self.combatPreview=Button(display,"Preview combat icons",264,-176,252,function()
-        if Suite.CombatBuffs then Suite.CombatBuffs:SetPreview(not Suite.CombatBuffs.previewActive) end;self:Refresh()
+        if Suite.CombatBuffs then GUI:StartWorldPreview(Suite.CombatBuffs) end
     end)
     Button(display,"Reset appearance",528,-176,252,function()
         self:Display("missingBuffScale",1);self:Display("missingBuffIconSize",34)
     end)
-    Label(display,"Drag the normal preview header to move both versions. Previews stop when you leave these controls or enter combat.",0,-220,516,11,colors.muted)
+    Label(display,"Drag the normal preview header to move both versions. Use Return to settings when finished.",0,-220,516,11,colors.muted)
     self.resetPosition=Button(display,"Reset position",528,-220,252,function() Buffs:ResetPosition() end)
     local choices=CreateFrame("Frame",nil,panel);self.choices=choices
     choices:SetPoint("TOPLEFT",0,-40);choices:SetSize(780,490)

@@ -26,6 +26,8 @@ local function Text(parent, size, color)
     return font
 end
 
+local hideMacroNamesRow = { key = "hideMacroNames", label = "Hide macro names on action bars",
+    help = "Hide the name printed on macro buttons. Hotkey labels, counts and cooldowns stay visible." }
 local pages = {
     support = { title = "Support", singleColumn = true, description = "Review unavailable or paused features and copy a support snapshot.", rows = {
         { key = "updateNotifications", label = "Update notifications", help = "Warn once per login or reload when another Suite user has a newer version.\nChecks nearby players, guild and groups; check CurseForge to download updates." },
@@ -142,12 +144,12 @@ local pages = {
         { key = "unitLevelColors", label = "Level difficulty colors", help = "Color the level number in unit tooltips by difficulty relative to your level.\nAdd a black outline to target and focus level numbers." },
         { key = "professionUsage", label = "Profession material uses", help = "Show professions and skill ranges from the leveling guides.\nThese are guide recipe ranges, not every possible use or recipe difficulty." },
     }, note = "Player equipment details depend on inspect range and availability. New inspect requests pause during combat." },
-    macros = { title = "Useful macros, without the setup.", description = "Shared recipes and macros for your class. Choose, preview, then create.\nGeneral macros are shared; the last character to update sets their supplies.", rows = {},
+    macros = { title = "Useful macros, without the setup.", description = "Shared recipes and macros for your class. Choose, preview, then create.\nGeneral macros are shared; the last character to update sets their supplies.", rows = { hideMacroNamesRow },
         note = "Create never uses an item. Drag the macro from Blizzard's General tab onto your action bar." },
     camping = { title = "A quiet moment by the fire.", description = "Rest, share a camp object, and continue your journey.", rows = {
         { key = "campingBar", label = "Camping bar", help = "Show a small bar while the Campfire Nearby buff is active.\nYour carried camp objects appear automatically, with counts and cooldowns." },
         { action = "campingPose", label = "Preferred resting pose", help = "Choose Sit, Kneel, Sleep or Lie down.\nThe bar's arrow also lets you choose; click its Rest button to perform it." },
-        { action = "campingPreview", label = "Preview position", help = "Show a movable outline to position the bar away from a camp.\nDrag its header; closing these settings ends the preview." },
+        { action = "campingPreview", label = "Preview position", help = "Show a movable outline to position the bar away from a camp.\nDrag its header, then return to Settings when you're done." },
         { action = "campingReset", label = "Reset bar position", help = "Return the camping bar to its starting position." },
     }, note = "Rest and place objects outside combat. Camp capacity, profession requirements and shared cooldowns still apply." },
     meters = { title = "Two views of the fight.", description = "Suite colors, familiar bars, and independent metric and fight menus.", rows = {
@@ -159,7 +161,7 @@ local pages = {
         { key = "missingBuffOutgoing", label = "Buff my party and raid", help = "Click to buff the first listed member missing your learned buff." },
         { key = "missingBuffIncoming", label = "Buffs my group can give me", help = "Show gold Group icons for relevant buffs a nearby teammate may provide.\nLeft-click an icon to request that buff in group chat; browsing never sends." },
         { key = "missingBuffClass", label = "Self upkeep", help = "Aspects, armor, auras, shields, imbues, rogue poisons and learned tracking spells. Tracking reminders appear only outside combat." },
-        { action = "buffPreview", label = "Preview position", help = "Drag the preview header. Closing settings ends the preview." },
+        { action = "buffPreview", label = "Preview position", help = "Drag the preview header, then return to Settings when you're done." },
         { action = "buffReset", label = "Reset bar position", help = "Restore the top-center position near breath and fatigue bars.\nCtrl+right-click its header also resets." },
         { action = "buffChoices", label = "Restore buff choices", help = "Undo hidden families, selected alternatives and chosen poisons." },
         { key = "missingBuffExpiry", label = "Warn before buffs expire", help = "Short buffs warn at 15 seconds; long buffs use your chosen interval.\nUnknown expiry never counts as an expiring buff." },
@@ -173,8 +175,9 @@ local pages = {
     actionbars = { title = "Your buttons, Suite style.", description = "Slate and teal to match your meters and minimap.", rows = {
         { key = "fullButtonRange", label = "Full button range indicator", help = "Turn the whole action icon red when your target is out of range.\nButtons return to their normal colors when range clears." },
         { key = "actionBarSkin", label = "Suite action bar skin", help = "Square icons, slate backgrounds and fine Suite borders.\nIncludes pet and stance buttons; removes the main bar's ornamental art." },
-        { key = "procAlerts", label = "Ability proc popups", help = "Show spell icons and names in combat when class procs light up.\nIncludes reactive skills such as Overpower. Use your normal keybind to cast." },
-        { action = "procPreview", label = "Preview proc popups", help = "Drag the preview to choose a position. Closing settings ends it.\nLive popups let mouse clicks pass through." },
+        hideMacroNamesRow,
+        { key = "procAlerts", label = "Ability proc popups", help = "Show spell icons and names when class procs light up.\nWarriors see countdowns for Overpower and ready Victory Rush. Victory Rush also shows outside combat." },
+        { action = "procPreview", label = "Preview proc popups", help = "Drag the preview to choose a position, then return to Settings.\nLive popups let mouse clicks pass through." },
         { action = "procReset", label = "Reset proc popup position", help = "Return ability popups above the center of the screen." },
     }, note = "Arrange Blizzard bars in Edit Mode. Bindings, cooldowns, glows and clicks stay native.\nSkin and font changes wait until combat ends; disabling them restores the native look." },
     bars = { title = "The finishing touches.", description = "Slate surfaces and fine Suite borders for your other bars.", rows = {
@@ -189,7 +192,7 @@ local pages = {
         { key = "combatIndicatorLocked", label = "Lock indicator", help = "Make the indicator click-through and prevent dragging.\nUnlock to move it outside combat." },
         { action = "combatPreview", label = "Preview indicator", help = "Show a four-second preview, even while the feature is off.\nDrag to position it when unlocked; dragging holds the preview." },
         { action = "combatReset", label = "Reset indicator position", help = "Return the indicator above the center of the screen." },
-    }, note = "Drag outside combat to move. Ctrl+right-click resets its position.\nThe lock makes the indicator click-through; closing settings ends the preview." },
+    }, note = "Drag outside combat to move. Ctrl+right-click resets its position.\nThe lock makes the indicator click-through." },
     unitframes = { title = "Unit frame details", description = "Optional color and threat details on your existing unit frames.", rows = {
         { key = "classHealthBars", label = "Class colored health bars", help = "Softer class colors for player, target, target of target and focus.\nReplace the original fill so its color stays clear." },
         { key = "targetThreat", label = "Target threat indicator", help = "Your threat against the target: grey at 0%, red at 100%.\nA translucent Blizzard-style rectangle moves below the frame when buffs are on top." },
@@ -252,7 +255,7 @@ function GUI:Action(action, anchor)
     elseif action == "restockOpen" then Suite.MerchantRestock:Open(self.frame)
     elseif action == "keepRulesOpen" then Suite.ItemRules:Open(self.frame)
     elseif action == "mailDeadlines" then Suite.MailExpiry:Open(self.frame)
-    elseif action == "combatPreview" then Suite.CombatIndicator:Preview()
+    elseif action == "combatPreview" then self:StartWorldPreview(Suite.CombatIndicator)
     elseif action == "combatReset" then Suite.CombatIndicator:ResetPosition()
     elseif action == "levelingSession" then Suite.Leveling:ResetSession()
     elseif action == "levelingPosition" then Suite.Leveling:ResetPosition()
@@ -288,12 +291,12 @@ function GUI:Action(action, anchor)
         local options={};for _,pose in ipairs(poses) do options[#options+1]={value=pose.key,label=pose.label} end
         self:Choose(anchor,options,current.key,function(value) Suite.Camping:SelectPose(value);self:Select("camping") end)
     elseif action == "campingPreview" then
-        Suite.Camping:SetPreview(not (Suite.Camping.preview and Suite.Camping.preview:IsShown()))
+        self:StartWorldPreview(Suite.Camping)
     elseif action == "campingReset" then Suite.Camping:ResetPosition()
-    elseif action == "buffPreview" then Suite.MissingBuffs:SetPreview(not (Suite.MissingBuffs.preview and Suite.MissingBuffs.preview:IsShown()))
+    elseif action == "buffPreview" then self:StartWorldPreview(Suite.MissingBuffs)
     elseif action == "buffReset" then Suite.MissingBuffs:ResetPosition()
     elseif action == "buffChoices" then Suite.MissingBuffs:ResetChoices()
-    elseif action == "procPreview" then Suite.ProcAlerts:SetPreview(not Suite.ProcAlerts.preview)
+    elseif action == "procPreview" then self:StartWorldPreview(Suite.ProcAlerts)
     elseif action == "procReset" then Suite.ProcAlerts:ResetPosition()
     elseif action == "repairSource" then
         self:Choose(anchor,{{value="personal",label="Personal gold"},{value="guild",label="Guild gold"}},Suite.db.repairSource,
@@ -2130,8 +2133,13 @@ function GUI:Initialize()
         Suite.MissingBuffs:SetSettingsVisible(self.page == "buffs")
     end)
     frame:SetScript("OnHide", function()
-        Suite.pending.levelingJournalLayout = nil
         self:StopScrollDrags()
+        if self.worldPreview then
+            self.searchBox:ClearFocus()
+            self.searchPopup:Hide()
+            return
+        end
+        Suite.pending.levelingJournalLayout = nil
         Suite.pending.dashboardBuild, Suite.pending.dashboardView = nil, nil
         self:ClearSearch(); self:ClearSettingHighlight(); Suite.pending.settingsReveal = nil
         Suite.CharacterBrowser:SetVisible(false)
@@ -2147,6 +2155,7 @@ function GUI:Initialize()
         if self.macroPreview then self.macroPreview:ClearFocus() end
     end)
     frame:SetScript("OnEvent", function(_, event)
+        if event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_LEAVING_WORLD" then self:EndWorldPreview(true) end
         if event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" then self:RefreshProcSize(); return end
         if event == "DISPLAY_SIZE_CHANGED" or event == "UI_SCALE_CHANGED" then self:FitToScreen(); return end
         if event ~= "GLOBAL_MOUSE_DOWN" or not self.searchPopup:IsShown() then return end
@@ -2167,6 +2176,7 @@ function GUI:Initialize()
     pcall(frame.RegisterEvent, frame, "UI_SCALE_CHANGED")
     frame:RegisterEvent("PLAYER_REGEN_DISABLED")
     frame:RegisterEvent("PLAYER_REGEN_ENABLED")
+    frame:RegisterEvent("PLAYER_LEAVING_WORLD")
     self:FitToScreen()
     local saved = Suite.db.guiPosition
     if type(saved.x) == "number" and type(saved.y) == "number" then
@@ -2232,8 +2242,48 @@ function GUI:OpenFromSettings()
     end)
 end
 
+function GUI:StartWorldPreview(owner)
+    if InCombatLockdown() or self.worldPreview or not self.frame or not self.frame:IsShown() then return end
+    local start = owner.SetPreview or owner.Preview
+    if not start(owner, true) then return end
+    if not self.previewReturn then
+        local frame = CreateFrame("Frame", "WoWForeverSuitePreviewReturn", UIParent)
+        frame:Hide(); frame:SetSize(190, 28); frame:SetPoint("TOP", UIParent, "TOP", 0, -24)
+        frame:SetFrameStrata("TOOLTIP")
+        local button = Suite.Theme:ActionButton(frame, "Return to settings", 190, 28)
+        frame.button = button
+        button:SetPoint("CENTER")
+        button:SetScript("OnClick", function() self:EndWorldPreview(true) end)
+        frame:SetScript("OnHide", function() self:EndWorldPreview(true) end)
+        table.insert(UISpecialFrames, frame:GetName())
+        self.previewReturn = frame
+    end
+    Suite.pending.guiPreviewReturn = nil
+    self.worldPreview = owner
+    self.frame:Hide()
+    self.previewReturn:Show()
+end
+
+function GUI:EndWorldPreview(restore, endedOwner)
+    local owner = self.worldPreview
+    if not owner or endedOwner and endedOwner ~= owner then return end
+    self.worldPreview = nil
+    self.previewReturn:Hide()
+    if not endedOwner then
+        local stop = owner.SetPreview or owner.StopPreview
+        stop(owner, false)
+    end
+    if restore then
+        Suite.AfterCombat("guiPreviewReturn", function()
+            self.frame:Show(); self.frame:Raise()
+            if self.page == "buffs" then Suite.BuffSettings:Refresh() end
+        end)
+    end
+end
+
 function GUI:Toggle()
     if not Suite.db then return end
+    if self.worldPreview then self:EndWorldPreview(true); return end
     if InCombatLockdown() then
         if self.frame and self.frame:IsShown() then
             Suite.pending.guiOpen = nil
@@ -2253,6 +2303,8 @@ function GUI:OpenPage(key, view, owner)
     if not pages[key] then return end
     if key == "setup" and not self.setupPanel and InCombatLockdown() then Suite.Setup:Open(); return end
     if InCombatLockdown() then Suite.AfterCombat("guiOpen", function() self:OpenPage(key, view, owner) end); return end
+    self:EndWorldPreview(false)
+    Suite.pending.guiPreviewReturn = nil
     Suite.pending.guiOpen = nil
     self:Initialize()
     self:Select(key, view)
@@ -2264,6 +2316,8 @@ end
 function GUI:OpenMeters(index, owner)
     if not Suite.db then return end
     if InCombatLockdown() then Suite.AfterCombat("guiOpen", function() self:OpenMeters(index, owner) end); return end
+    self:EndWorldPreview(false)
+    Suite.pending.guiPreviewReturn = nil
     Suite.pending.guiOpen = nil
     self:Initialize()
     if index and index ~= self.meterIndex then self:FinishMeterInputs() end
@@ -2328,7 +2382,10 @@ function GUI:BuildMeters()
         end)
         tab.label:SetText("Window " .. index)
     end
-    Button("test", 264, 0, 248, function() Suite.DamageMeters:SetPreview(not Suite.DamageMeters.preview) end)
+    Button("test", 264, 0, 248, function()
+        if Suite.DamageMeters.preview then Suite.DamageMeters:SetPreview(false)
+        else self:StartWorldPreview(Suite.DamageMeters) end
+    end)
     Button("shown", 0, 38, 248, function()
         local settings = Suite.db.meterWindows[self.meterIndex]
         Suite.DamageMeters:SetOption(self.meterIndex, "shown", not settings.shown)

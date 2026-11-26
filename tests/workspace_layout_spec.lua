@@ -156,10 +156,50 @@ for _, key in ipairs({ "talentPlanner", "talentPlannerRules", "talentsOpen", "mi
     if entry.view then equal(gui.pageViews[entry.page], entry.view, "search selects the view containing the result") end
 end
 gui:Select("buffs", "appearance")
+local previewScroll = gui.scrollOffset
 Suite.BuffSettings.normalPreview:OnClick()
 equal(Suite.MissingBuffs.preview:IsShown(), true, "appearance controls can preview the bar without enabling it")
+equal(gui.frame:IsShown(), false, "normal buff preview hides settings")
+equal(gui.previewReturn:IsShown(), true, "a standalone control remains available during the preview")
+gui.previewReturn.button:OnClick()
+equal(Suite.MissingBuffs.preview:IsShown(), false, "return button ends the placement preview")
+equal(gui.frame:IsShown(), true, "return button restores the settings frame")
+equal(gui.page, "buffs", "return keeps the same settings page")
+equal(gui.scrollOffset, previewScroll, "return keeps the same scroll offset")
+Suite.MissingBuffs:SetPreview(true)
 Suite.BuffSettings.appearanceToggle:OnClick()
 equal(Suite.MissingBuffs.preview:IsShown(), false, "collapsing appearance stops the owned preview")
+gui:Select("combat")
+local originalPreviewTimer, expireIndicator = C_Timer.NewTimer
+local originalIndicatorFrame = Suite.CombatIndicator.frame
+C_Timer.NewTimer = function(delay, callback)
+    if delay ~= 4 then return originalPreviewTimer(delay, callback) end
+    expireIndicator = callback
+    return { Cancel = function() end }
+end
+gui:Action("combatPreview")
+equal(gui.frame:IsShown(), false, "timed combat indicator preview hides settings")
+expireIndicator()
+equal(gui.frame:IsShown(), true, "timed preview restores settings on expiry")
+equal(gui.previewReturn:IsShown(), false, "expiry removes the return button")
+gui:Action("combatPreview")
+SetCombat(true); gui.frame.OnEvent(gui.frame, "PLAYER_REGEN_DISABLED")
+equal(gui.previewReturn:IsShown(), false, "combat interrupts the preview")
+equal(gui.frame:IsShown(), false, "interruption defers reopening during combat")
+local restorePreviewSettings = Suite.pending.guiPreviewReturn
+SetCombat(false); Suite.pending.guiPreviewReturn = nil; restorePreviewSettings()
+C_Timer.NewTimer = originalPreviewTimer
+Suite.CombatIndicator.frame = originalIndicatorFrame
+equal(gui.frame:IsShown(), true, "settings return after combat")
+gui:Select("castbars")
+local oldCastbarPreview, oldStopCastbarPreview = Suite.Castbars.Preview, Suite.Castbars.StopPreview
+Suite.Castbars.Preview = function(self) self.preview = {}; return true end
+Suite.Castbars.StopPreview = function(self) self.preview = nil end
+gui.castbarPreviewButton:OnClick()
+equal(Suite.Castbars.preview ~= nil, true, "castbar button starts its preview")
+equal(gui.frame:IsShown(), true, "castbar preview leaves settings visible for editing")
+gui.castbarPreviewButton:OnClick()
+Suite.Castbars.Preview, Suite.Castbars.StopPreview = oldCastbarPreview, oldStopCastbarPreview
 local oldProcPreview = Suite.ProcAlerts.SetPreview
 Suite.ProcAlerts.SetPreview = function(self, value) self.preview = value and true or nil end
 gui:Select("actionbars", "feedback"); Suite.ProcAlerts:SetPreview(true)

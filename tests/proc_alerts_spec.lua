@@ -3,6 +3,7 @@ local alerts = Suite.ProcAlerts
 local oldDB, oldPending = Suite.db, Suite.pending
 local oldCreate, oldSpell, oldBook, oldOverlay, oldTimer = CreateFrame, C_Spell, C_SpellBook, C_SpellActivationOverlay, C_Timer
 local oldSecret = issecretvalue
+local oldAuras, oldSecrets, oldStance = C_UnitAuras, C_Secrets, GetShapeshiftForm
 local oldGetTime = GetTime
 local now = 100
 GetTime = function() return now end
@@ -16,6 +17,12 @@ CreateFrame = function(kind, name, parent)
     assert(not InCombatLockdown(), "proc widgets must be created before combat")
     created = created + 1
     local frame = Frame(name); frame.parent = parent
+    if kind == "Cooldown" then
+        frame.SetHideCountdownNumbers = function(self, value) self.hideNumbers = value end
+        frame.SetCooldown = function(self, start, duration, rate)
+            self.timing = { start, duration, rate }
+        end
+    end
     local createTexture = frame.CreateTexture
     frame.CreateTexture = function(self, ...)
         local texture = createTexture(self, ...)
@@ -122,6 +129,7 @@ equal(alerts.frame:IsShown(), true, "available Overpower appears in combat")
 equal(alerts.cells[1].name.text, "Overpower", "reaction uses localized spell name")
 equal(alerts.cells[1].icon.texture, 132223, "reaction displays spell icon")
 equal(glow.playing, true, "available ability starts the border animation")
+equal(alerts.cells[1].countdown.text, "5", "a newly confirmed Overpower shows the estimated window")
 equal(alerts.cells[1].glow:IsShown(), true, "available ability shows the sparkly border")
 local plays = glow.plays
 alerts:Paint()
@@ -135,9 +143,12 @@ equal(alerts.cells[1].icon.tint[1], 0.5, "low rage uses native action-bar red ti
 equal(alerts.cells[1].icon.tint[2], 0.5, "low rage uses native action-bar green tint")
 equal(alerts.cells[1].icon.tint[3], 1, "low rage uses native action-bar blue tint")
 equal(glow.playing, true, "low rage preserves the active proc border")
-cooldowns[11585] = { duration = 5, startTime = now }
+cooldowns[11585] = { duration = 5, startTime = now, isOnGCD = false }
 alerts:OnEvent("SPELL_UPDATE_COOLDOWN"); Flush()
-equal(alerts.frame:IsShown(), false, "insufficient rage cannot bypass a real cooldown")
+equal(alerts.frame:IsShown(), true, "a true cooldown can show an icon even with insufficient rage")
+equal(alerts.cells[1].cooldownSwipe:IsShown(), true, "low rage does not hide the cooldown swipe")
+equal(alerts.cells[1].countdown.text, "", "a cooldown alone never creates an Overpower window")
+equal(alerts.cells[1].glow:IsShown(), false, "a recharging spell does not glow as usable")
 cooldowns[11585] = { isActive = false, duration = secret }
 alerts:OnEvent("SPELL_UPDATE_COOLDOWN"); Flush()
 equal(alerts.frame:IsShown(), true, "low-rage proc can first appear with public inactive cooldown")
@@ -210,9 +221,9 @@ equal(alerts.cells[1].icon.tint[1], 0.5, "native highlighted proc also receives 
 usable[999], power[999] = true, false; alerts:OnEvent("UNIT_POWER_UPDATE", "player"); Flush()
 equal(alerts.cells[1].icon.tint[1], 1, "native highlighted proc brightens when resources recover")
 alerts:OnEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 999); Flush()
-equal(#alerts:Entries(), 1, "repeated glow events do not duplicate icons")
+equal(#alerts:Entries(true), 1, "repeated glow events do not duplicate icons")
 alerts:OnEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", secret)
-equal(#alerts:Entries(), 1, "restricted event IDs are ignored")
+equal(#alerts:Entries(true), 1, "restricted event IDs are ignored")
 glows[999] = secret; alerts:Paint()
 equal(alerts.frame:IsShown(), false, "restricted overlay result hides without branching on it")
 glows[999] = true; infos[999].name = secret; alerts:Paint()
@@ -262,18 +273,21 @@ Enum.SpellBookSpellBank = oldBank
 local requests = 0
 C_Spell.RequestLoadSpellData = function() requests = requests + 1 end
 infos[999] = nil
-alerts:Entries(); alerts:Entries()
+alerts:Entries(true); alerts:Entries(true)
 equal(requests, 1, "uncached proc data is requested once without a polling loop")
 infos[999] = { name = "Loaded proc", iconID = 123 }
-equal(alerts:Entries()[1].name, "Loaded proc", "asynchronously available spell data becomes displayable")
+equal(alerts:Entries(true)[1].name, "Loaded proc", "asynchronously available spell data becomes displayable")
 local gui = Suite.GUI
 local oldPage, oldShown = gui.page, gui.frame:IsShown()
-gui.frame:Show(); gui:Select("actionbars", "feedback"); gui.rows[4].OnClick()
+gui.frame:Show(); gui:Select("actionbars", "feedback"); gui.rows[5].OnClick()
 equal(alerts.preview, true, "settings action opens the proc preview")
 gui:Select("overview")
 equal(alerts.preview, nil, "navigation stops proc preview")
-gui:Select("actionbars", "feedback"); gui.rows[4].OnClick(); gui.frame.OnHide(gui.frame)
-equal(alerts.preview, nil, "closing settings stops proc preview")
+gui:Select("actionbars", "feedback"); gui.rows[5].OnClick()
+equal(gui.frame:IsShown(), false, "proc preview hides settings")
+gui.previewReturn.OnHide(gui.previewReturn)
+equal(alerts.preview, nil, "Escape closes the standalone proc preview")
+equal(gui.frame:IsShown(), true, "Escape restores the settings window")
 gui:Select(oldPage); gui.frame:SetShown(oldShown)
 
 -- Reproduce late server availability: one 30ms check was insufficient.
@@ -292,7 +306,7 @@ Advance(0.05)
 equal(alerts.frame:IsShown(), true, "follow-up catches late readiness without another event")
 Advance(2)
 equal(alerts.followTimer, nil, "successful detection leaves no endless retry")
-equal(alerts.cooldownTimer, nil, "ready skills need no cooldown worker")
+equal(alerts.nextWakeCooldown, nil, "a ready skill's countdown does not schedule cooldown retries")
 
 usable[11585] = false
 alerts:OnEvent("UNIT_COMBAT", "target", secret, secret, secret, secret)
@@ -335,11 +349,14 @@ cooldowns[11585] = function()
     return { isEnabled = true, isActive = true, duration = 0.6, startTime = 300, modRate = 1, isOnGCD = false }
 end
 alerts:OnEvent("SPELL_UPDATE_COOLDOWN"); Advance(0.04)
-equal(alerts.frame:IsShown(), false, "real cooldown suppresses an otherwise usable reaction")
+equal(alerts.frame:IsShown(), true, "real cooldown shows the charging icon immediately")
+equal(alerts.cells[1].cooldownSwipe:IsShown(), true, "readable cooldown displays its own swipe")
+equal(alerts.cells[1].countdown.text, "", "the recharge has no fabricated proc expiry")
 equal(alerts.cooldownTimer ~= nil, true, "known cooldown expiry schedules one precise wakeup")
 Advance(0.7)
 equal(alerts.frame:IsShown(), true, "cooldown expiry wakes without another usable or cooldown event")
-equal(alerts.cooldownTimer, nil, "expired cooldown worker is released")
+equal(alerts.cells[1].cooldownSwipe:IsShown(), false, "the finished recharge clears its swipe")
+equal(alerts.nextWakeCooldown, nil, "the expiry wakeup switches from cooldown to countdown")
 
 -- GCD classification is sampled during its authoritative event, before times.
 cooldowns[11585] = { isEnabled = true, isActive = true, duration = secret, startTime = secret, isOnGCD = true }
@@ -375,6 +392,306 @@ equal(alerts.frame:IsShown(), true, "classes without legacy reactive skills also
 SetCombat(false); alerts:OnEvent("PLAYER_REGEN_ENABLED")
 equal(alerts.followTimer, nil, "combat exit cancels generic-proc retries")
 equal(alerts.frame:IsShown(), false, "combat exit removes generic-proc popup")
+do
+    local stance, auras, restrictions = 2, {}, {}
+    GetShapeshiftForm = function() return stance end
+    C_Secrets = { ShouldSpellAuraBeSecret = function(id) return restrictions[id] or false end }
+    C_UnitAuras = { GetPlayerAuraBySpellID = function(id)
+        assert(not restrictions[id], "proc alerts must skip restricted aura lookups")
+        return auras[id]
+    end }
+    known[402927], infos[402927] = true, { name = "Victory Rush", iconID = 132342 }
+    cooldowns[402927] = { isActive = false, duration = secret }
+    usable[11585], power[11585], cooldowns[11585] = false, false, { duration = 0 }
+    glows[999] = false
+    alerts:Apply()
+    equal(alerts.events.registered.UNIT_AURA, true, "known Warrior proc spells watch player aura changes")
+    SetCombat(true); alerts:OnEvent("PLAYER_REGEN_DISABLED")
+    auras[1282733] = { expirationTime = now + 2.8 }
+    alerts:OnEvent("UNIT_AURA", "player"); Flush()
+    equal(alerts.cells[1].name.text, "Overpower", "readable proc aura shows Overpower in Defensive Stance")
+    equal(alerts.cells[1].countdown.text, "3", "Overpower uses the native remaining time")
+    stance = 3; alerts:OnEvent("UPDATE_SHAPESHIFT_FORM"); Flush()
+    auras[1282733] = nil
+    alerts:OnEvent("UNIT_AURA", "player"); Flush()
+    Advance(1)
+    equal(alerts.cells[1].countdown.text, "2", "Berserker keeps the native deadline if the aura stops being readable")
+    Advance(2)
+    equal(alerts.frame:IsShown(), false, "expired aura hides without a new combat event")
+
+    auras[1282733] = nil
+    stance, usable[11585] = 1, true
+    alerts:OnEvent("SPELL_UPDATE_USABLE"); Flush()
+    equal(alerts.cells[1].countdown.text, "5", "readable spell usability starts the fallback countdown")
+    Advance(1.1)
+    stance, usable[11585] = 2, false
+    alerts:OnEvent("UPDATE_SHAPESHIFT_FORM"); Flush()
+    equal(alerts.cells[1].countdown.text, "4", "switching away from Battle keeps the same confirmed window")
+    alerts:OnEvent("PLAYER_TARGET_CHANGED"); Flush()
+    equal(alerts.frame:IsShown(), false, "target change clears the estimated Overpower window")
+    glows[7384] = true
+    alerts:OnEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 7384); Flush()
+    equal(alerts.cells[1].countdown.text, "5", "a base-rank glow confirms a timed opening in Defensive Stance")
+    glows[7384] = false
+    alerts:OnEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 7384); Flush()
+    alerts:OnEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "cast", 7384); Flush()
+    equal(alerts.frame:IsShown(), false, "casting a lower rank clears the carried window")
+    stance, glows[7384] = 3, true
+    alerts:OnEvent("SPELL_UPDATE_USABLE"); Flush()
+    equal(alerts.cells[1].countdown.text, "5", "Berserker Stance can pick up a readable native glow without its show event")
+    glows[7384] = false
+    alerts:OnEvent("PLAYER_TARGET_CHANGED"); Flush()
+    equal(alerts.frame:IsShown(), false, "target change clears the glow-derived estimate")
+    do
+        local originalFormID = GetShapeshiftFormID
+        GetShapeshiftFormID = function() return 19 end
+        stance, usable[11585] = 1, true
+        cooldowns[11585] = { isActive = true, isOnGCD = true, duration = secret }
+        alerts:OnEvent("SPELL_UPDATE_COOLDOWN")
+        usable[11585] = false
+        alerts:OnEvent("SPELL_UPDATE_USABLE"); Flush()
+        equal(alerts.cells[1].countdown.text, "5", "a brief GCD readiness signal survives until paint in Berserker")
+        equal(alerts.lastChecks[11585], "opening shown [Berserker]", "stable form ID wins over the stance-bar slot")
+        Advance(1.1)
+        equal(alerts.cells[1].countdown.text, "4", "later readiness changes do not restart the timer")
+        alerts:OnEvent("PLAYER_TARGET_CHANGED"); Flush()
+        equal(alerts.frame:IsShown(), false, "a target switch clears the captured readiness window")
+        GetShapeshiftFormID = originalFormID
+        stance, cooldowns[11585] = 3, { duration = 0 }
+        alerts:OnEvent("SPELL_UPDATE_COOLDOWN"); Flush()
+    end
+    do
+        local originalCombatText = C_CombatText
+        local watched, notice = "player", secret
+        C_CombatText = {
+            GetActiveUnit = function() return watched end,
+            GetCurrentEventInfo = function() return notice end,
+        }
+        alerts:Watch()
+        equal(alerts.events.registered.COMBAT_TEXT_UPDATE, true, "known Overpower watches native activation text")
+        alerts:OnEvent("COMBAT_TEXT_UPDATE", "SPELL_ACTIVE"); Flush()
+        equal(alerts.frame:IsShown(), false, "restricted combat text cannot start a proc")
+        watched, notice = "vehicle", "Overpower"
+        alerts:OnEvent("COMBAT_TEXT_UPDATE", "SPELL_ACTIVE"); Flush()
+        equal(alerts.frame:IsShown(), false, "activation text for another unit is ignored")
+        watched, notice = "player", "Revenge"
+        alerts:OnEvent("COMBAT_TEXT_UPDATE", "SPELL_ACTIVE"); Flush()
+        equal(alerts.frame:IsShown(), false, "another spell's activation cannot start Overpower")
+        infos[11585].name, notice = "Überwältigen", "Überwältigen"
+        alerts:OnEvent("COMBAT_TEXT_UPDATE", "SPELL_ACTIVE"); Flush()
+        equal(alerts.cells[1].name.text, "Überwältigen", "localized player activation shows in Berserker without aura, glow or usability")
+        equal(alerts.cells[1].countdown.text, "5", "activation text starts a timed opening")
+        Advance(1.1)
+        equal(alerts.cells[1].countdown.text, "4", "a repeated paint follows the original opening")
+        stance = 2
+        alerts:OnEvent("UPDATE_SHAPESHIFT_FORM"); Flush()
+        equal(alerts.cells[1].countdown.text, "4", "a text-confirmed opening survives stance changes")
+        alerts:OnEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "cast", 11585); Flush()
+        equal(alerts.frame:IsShown(), false, "casting clears the text-confirmed opening")
+        infos[11585].name, C_CombatText = "Overpower", originalCombatText
+        alerts:Watch()
+    end
+
+    auras[402975] = { expirationTime = now + 5 }
+    usable[402927] = true
+    cooldowns[402927] = { isActive = true, duration = 10, startTime = now }
+    alerts:OnEvent("SPELL_UPDATE_COOLDOWN"); Flush()
+    equal(alerts.frame:IsShown(), true, "a confirmed Victorious opening can display during a real cooldown")
+    equal(alerts.cells[1].countdown.text, "5", "Victorious expiry is independent of the spell cooldown")
+    local swipe = alerts.cells[1].cooldownSwipe
+    equal(swipe:IsShown(), true, "Victory Rush displays its own cooldown swipe")
+    equal(swipe.timing[2], 10, "the swipe uses the spell cooldown duration")
+    equal(swipe.hideNumbers, true, "the native cooldown cannot draw a second counter")
+    cooldowns[402927] = { isActive = true, isOnGCD = true, duration = secret }
+    alerts:OnEvent("SPELL_UPDATE_COOLDOWN"); Flush()
+    alerts:OnEvent("UNIT_AURA", "player"); Flush()
+    equal(alerts.cells[1].name.text, "Victory Rush", "Victorious shows the Victory Rush spell in combat")
+    equal(alerts.cells[1].countdown.text, "5", "Victory Rush shows remaining native aura seconds")
+    equal(swipe:IsShown(), false, "GCD-only timings remove the spell cooldown swipe")
+    local object, objectCalls = {}, 0
+    C_Spell.GetSpellCooldownDuration = function(id, ignoreGCD)
+        equal(id, 402927, "opaque cooldown belongs to the proc spell")
+        equal(ignoreGCD, true, "native duration explicitly excludes the GCD")
+        return object
+    end
+    swipe.SetCooldownFromDurationObject = function(_, duration, clearIfZero)
+        equal(duration, object, "pass the native duration through without reading its timing")
+        equal(clearIfZero, true, "native widget clears a zero duration")
+        objectCalls = objectCalls + 1
+    end
+    alerts:Paint(); alerts:Paint()
+    equal(objectCalls, 1, "ordinary countdown refreshes do not restart the native swipe")
+    equal(alerts.cells[1].countdown.text, "5", "native swipe binding leaves the proc number independent")
+    C_Spell.GetSpellCooldownDuration, swipe.SetCooldownFromDurationObject = nil, nil
+    do
+        local opaque = {
+            HasSecretValues = function() return true end,
+            IsActive = function() error("must not inspect secret duration state") end,
+        }
+        C_Spell.GetSpellCooldownDuration = function(_, ignoreGCD)
+            equal(ignoreGCD, true, "the opaque swipe excludes GCD")
+            return opaque
+        end
+        swipe.SetCooldownFromDurationObject = function(_, duration)
+            equal(duration, opaque, "engine receives the opaque cooldown unchanged")
+        end
+        usable[402927] = false
+        cooldowns[402927] = { isEnabled = true, isActive = true, isOnGCD = false, duration = secret, startTime = secret }
+        alerts:OnEvent("SPELL_UPDATE_COOLDOWN"); Flush()
+        equal(alerts.frame:IsShown(), true, "public non-GCD flags show Victory Rush before it becomes usable")
+        equal(swipe:IsShown(), true, "restricted spell time still draws the native swipe")
+        equal(alerts.cells[1].countdown.text, "5", "a confirmed proc keeps its independent expiry")
+        equal(alerts.cells[1].glow:IsShown(), false, "the ability stays visually on cooldown")
+        auras[402975] = nil
+        alerts:OnEvent("UNIT_AURA", "player"); Flush()
+        equal(alerts.frame:IsShown(), true, "an ongoing own cooldown can stay visible after the opening is gone")
+        equal(alerts.cells[1].countdown.text, "", "consuming the proc clears just its expiry number")
+        cooldowns[402927] = { isActive = true, isOnGCD = true, duration = secret }
+        alerts:OnEvent("SPELL_UPDATE_COOLDOWN"); Flush()
+        equal(alerts.frame:IsShown(), false, "a GCD-only notification cannot create a recharge icon")
+        equal(swipe:IsShown(), false, "the disappearing icon clears its native swipe")
+        C_Spell.GetSpellCooldownDuration, swipe.SetCooldownFromDurationObject = nil, nil
+        auras[402975], usable[402927] = { expirationTime = now + 5 }, true
+    end
+    SetCombat(false); alerts:OnEvent("PLAYER_REGEN_ENABLED")
+    equal(alerts.frame:IsShown(), true, "Victory Rush stays visible after combat ends")
+    Advance(1.1)
+    equal(alerts.cells[1].countdown.text, "4", "Victory Rush keeps counting outside combat")
+    do
+        local originalDead, originalExists = UnitIsDeadOrGhost, UnitExists
+        local deadTarget = true
+        UnitIsDeadOrGhost = function(unit) return unit == "target" and deadTarget end
+        UnitExists = function(unit) return unit == "target" end
+        usable[402927] = false
+        local started = now
+        cooldowns[402927] = function()
+            if now >= started + 0.5 then return { isActive = false, duration = secret } end
+            return { isActive = true, duration = 0.5, startTime = started }
+        end
+        auras[402975] = { expirationTime = now + 20 }
+        alerts:OnEvent("SPELL_UPDATE_COOLDOWN"); Flush()
+        equal(alerts.frame:IsShown(), true, "Victorious can show the open window while the real cooldown runs")
+        equal(swipe:IsShown(), true, "the cooldown swipe appears while the defeated target stays selected")
+        Advance(0.6)
+        equal(alerts.frame:IsShown(), true, "a clear cooldown displays the proc while the defeated target stays selected")
+        equal(swipe:IsShown(), false, "cooldown expiry clears only the swipe")
+        equal(alerts.cells[1].countdown.text, "20", "the popup uses the current Victorious expiry as soon as the cooldown clears")
+        deadTarget = false
+        alerts:OnEvent("PLAYER_TARGET_CHANGED"); Flush()
+        equal(alerts.frame:IsShown(), true, "a confirmed Victorious window stays visible with an unusable living target")
+        equal(alerts.cells[1].glow:IsShown(), false, "unusable Victory Rush has no availability glow")
+        UnitIsDeadOrGhost, UnitExists = originalDead, originalExists
+    end
+    do
+        local originalActionBar = C_ActionBar
+        local actionDuration = { HasSecretValues = function() return true end }
+        local bound, slot, calls = nil, 70, 0
+        C_ActionBar = {
+            FindSpellActionButtons = function(id)
+                equal(id, 402927, "look up only the known Victory Rush spell")
+                return { slot }
+            end,
+            GetActionCooldownDuration = function(action, ignoreGCD)
+                equal(action, slot, "read the cooldown from the current action slot")
+                equal(ignoreGCD, true, "action cooldown explicitly ignores the GCD")
+                return actionDuration
+            end,
+        }
+        swipe.SetCooldownFromDurationObject = function(_, duration)
+            bound, calls = duration, calls + 1
+        end
+        auras[402975] = { expirationTime = now + 12 }
+        cooldowns[402927] = { isActive = true, duration = secret, startTime = secret }
+        alerts:OnEvent("ACTIONBAR_SLOT_CHANGED"); Flush()
+        equal(alerts.frame:IsShown(), true, "a confirmed Victorious aura shows even without readable cooldown classification")
+        equal(alerts.cells[1].countdown.text, "12", "the aura window keeps its own number")
+        equal(alerts.cells[1].glow:IsShown(), false, "a blocked activation cannot glow")
+        equal(bound, actionDuration, "the swipe receives the same opaque duration as the action slot")
+        equal(swipe:IsShown(), true, "the action-slot swipe is visible while spell timing is restricted")
+        equal(calls, 1, "the action slot binds once per refresh event")
+        slot = 71
+        alerts:OnEvent("ACTIONBAR_SLOT_CHANGED"); Flush()
+        equal(swipe.actionSlot, 71, "moving Victory Rush refreshes the swipe source")
+        equal(calls, 2, "the action slot change rebinds the cooldown")
+        C_ActionBar, swipe.SetCooldownFromDurationObject = originalActionBar, nil
+        cooldowns[402927] = { isActive = false, duration = secret }
+        alerts:OnEvent("ACTIONBAR_SLOT_CHANGED"); Flush()
+    end
+    auras[402975], usable[402927] = nil, false
+    alerts:OnEvent("UNIT_AURA", "player"); Flush()
+    equal(alerts.frame:IsShown(), false, "consumed Victorious hides out of combat")
+    auras[402975] = { expirationTime = now + 2 }
+    usable[402927], cooldowns[402927] = true, { isActive = false, duration = secret }
+    alerts:OnEvent("UNIT_AURA", "player"); Flush()
+    equal(alerts.frame:IsShown(), true, "Victory Rush can first appear out of combat")
+    Advance(2.1)
+    equal(alerts.frame:IsShown(), false, "Victory Rush expires out of combat without an aura event")
+    restrictions[402975], auras[402975] = true, { expirationTime = secret }
+    usable[402927] = false
+    alerts:OnEvent("UNIT_AURA", "player"); Flush()
+    equal(alerts.frame:IsShown(), false, "restricted aura cannot invent an unavailable Victory Rush")
+    SetCombat(true); alerts:OnEvent("PLAYER_REGEN_DISABLED")
+    usable[402927] = true
+    alerts:OnEvent("SPELL_UPDATE_USABLE"); Flush()
+    equal(alerts.cells[1].name.text, "Victory Rush", "native readiness can show Victory Rush with a restricted combat aura")
+    equal(alerts.cells[1].countdown.text, "20", "restricted combat timing shows estimated seconds without a prefix")
+    usable[402927] = false
+    alerts:OnEvent("SPELL_UPDATE_USABLE"); Flush()
+    equal(alerts.frame:IsShown(), false, "loss of castability ends the fallback")
+    SetCombat(false); alerts:OnEvent("PLAYER_REGEN_ENABLED")
+    do
+        local create, addons = CreateFrame, C_AddOns
+        local policy, sort, direction = CustomAuraContainerAuraProcessingPolicy, AuraContainerSortMethod, AuraContainerSortDirection
+        local nativeContainer, durationText
+        C_AddOns = { LoadAddOn = function() return true end }
+        CustomAuraContainerAuraProcessingPolicy, AuraContainerSortMethod, AuraContainerSortDirection =
+            { None = 0 }, { ExpirationOnly = 1 }, { Reverse = 1 }
+        CreateFrame = function(kind, name, parent, template)
+            local widget = create(kind, name, parent, template)
+            widget.SetClipsChildren = function() end
+            if kind == "AuraContainer" then
+                nativeContainer = widget
+                widget.SetEnabled = function(self, enabled) self.enabled = enabled end
+                widget.SetEditModePreviewEnabled = function() end
+                widget.SetAuraProcessingPolicy = function() end
+                widget.SetUnit = function(self, unit) self.unit = unit end
+                widget.AddAuraGroup = function(_, _, filter, options)
+                    equal(filter, "HELPFUL", "native Victory Rush only accepts helpful auras")
+                    equal(options.candidateFilters.includeSpellIDs[1], 402975, "the engine filters for Victorious")
+                    local button = create("Button", nil, widget)
+                    button.SetDurationText = function(_, label) durationText = label end
+                    options.initializeFrame(button)
+                end
+                widget.IsShown = function() error("must never inspect native aura visibility") end
+            end
+            return widget
+        end
+        alerts:PrepareVictoryAura()
+        equal(nativeContainer.unit, "player", "native fallback observes only the player")
+        equal(nativeContainer.enabled and durationText ~= nil, true, "native container renders its own expiry text")
+        local host, plate = alerts.victoryAura.host, alerts.victoryAura.plate
+        local duration, applied = {}, nil
+        C_Spell.GetSpellCooldownDuration = function(id, ignoreGCD)
+            equal(id, 402927, "native fallback binds the spell cooldown separately")
+            equal(ignoreGCD, true, "native fallback swipe excludes GCD")
+            return duration
+        end
+        plate.cooldownSwipe.SetCooldownFromDurationObject = function(_, timing) applied = timing end
+        cooldowns[402927] = { isActive = true, duration = secret }
+        SetCombat(true); local count = created; alerts:OnEvent("PLAYER_REGEN_DISABLED")
+        equal(host:IsShown(), true, "the engine can render Victorious even without a public opening")
+        equal(applied, duration, "the masked icon uses the native spell swipe")
+        equal(created, count, "combat creates no fallback widgets")
+        SetCombat(false); alerts:OnEvent("PLAYER_REGEN_ENABLED")
+        equal(host:IsShown(), false, "combat exit hands the display back to the regular popup")
+        alerts.victoryAura, C_Spell.GetSpellCooldownDuration = nil, nil
+        CreateFrame, C_AddOns = create, addons
+        CustomAuraContainerAuraProcessingPolicy, AuraContainerSortMethod, AuraContainerSortDirection = policy, sort, direction
+    end
+    known[402927], infos[402927], cooldowns[402927] = nil, nil, nil
+    C_UnitAuras, C_Secrets, GetShapeshiftForm = oldAuras, oldSecrets, oldStance
+    alerts:Scan()
+end
 Suite.db.procAlerts = false; alerts:Apply(); alerts.learned = { 11585 }
 local oldPrint, output = Suite.Print, {}
 Suite.Print = function(message) output[#output + 1] = message end

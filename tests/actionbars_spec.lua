@@ -269,6 +269,47 @@ equal(Suite.db.fullButtonRange, true, "range settings switch enables feature")
 
 Suite.db.fullButtonRange = false
 module:Apply()
+do
+    local oldInfo, oldHide = GetActionInfo, Suite.db.hideMacroNames
+    GetActionInfo = function(slot) return slot == 1 and "macro" or "spell" end
+    ActionButton1.action, ActionButton2.action = 1, 2
+    ActionButton1.Name, ActionButton1.HotKey, ActionButton2.Name = Frame(), Frame(), Frame()
+    for _, label in ipairs({ ActionButton1.Name, ActionButton2.Name }) do
+        label.GetAlpha = function(self) return self.alpha or 1 end
+    end
+    ActionButton1.Name:SetAlpha(0.65)
+    ActionButton1.Name:SetText("Food macro")
+    ActionButton1.HotKey:SetText("S1")
+    Suite.Set = function(key, value)
+        equal(key, "hideMacroNames", "both controls edit the same profile setting")
+        Suite.db[key] = value
+        module:Apply()
+    end
+    equal(Suite.db.hideMacroNames, false, "macro names show by default")
+    Suite.GUI:Select("actionbars")
+    equal(Suite.GUI.rows[3].label.text, "Hide macro names on action bars", "Action Bars exposes the macro names setting")
+    Suite.GUI.rows[3].OnClick()
+    equal(ActionButton1.Name:GetAlpha(), 0, "macro name is hidden")
+    equal(ActionButton1.Name.text, "Food macro", "the native text is preserved")
+    equal(ActionButton1.HotKey.text, "S1", "the hotkey label is independent")
+    equal(ActionButton2.Name:GetAlpha(), 1, "non-macro labels stay native")
+    Combat(true)
+    ActionButton1.action = 2; ActionButton1:Update()
+    equal(ActionButton1.Name:GetAlpha(), 0.65, "paging to a spell restores the original alpha in combat")
+    ActionButton1.action = 1; ActionButton1:Update()
+    equal(ActionButton1.Name:GetAlpha(), 0, "paging back to a macro keeps the name hidden in combat")
+    LeaveCombat()
+    Suite.GUI:Select("macros")
+    equal(Suite.GUI.rows[1].label.text, "Hide macro names on action bars", "Macro Builder exposes the same setting")
+    Suite.GUI.rows[1].OnClick()
+    equal(Suite.db.hideMacroNames, false, "Macro Builder turns off the shared Action Bars setting")
+    equal(ActionButton1.Name:GetAlpha(), 0.65, "disabling restores the original name alpha")
+    Suite.GUI:Select("actionbars")
+    Suite.GUI.rows[3].OnClick()
+    equal(Suite.db.hideMacroNames, true, "Action Bars sees the value set in Macro Builder")
+    Suite.db.hideMacroNames = oldHide; module:Apply()
+    GetActionInfo = oldInfo
+end
 CreateFrame, C_Timer, hooksecurefunc = oldCreate, oldTimers, oldHook
 C_ActionBar, ActionButton_UpdateRangeIndicator, GetPetActionInfo, Suite.Set = oldActionAPI, oldRange, oldPetInfo, oldSet
 Suite.pending, Suite.db.fullButtonRange = oldPending, oldPreference

@@ -1,5 +1,21 @@
 # Forever Suite feature plan
 
+## Action-bar macro names — November 26, 2026
+
+Offer one profile setting from both Action Bars and Macro Builder to hide the names on native macro buttons. Keep the names visible by default and leave hotkeys, counts and cooldowns visible.
+
+## Buff and proc timers — November 25, 2026
+
+Use a dark swipe for a spell's own cooldown and a separate number for the remaining buff or proc window. Learned reactive spells can show their recharge before they are usable. A confirmed Victorious buff can display both while Victory Rush recharges. Keep Overpower detection unchanged.
+
+## Settings previews — November 24, 2026
+
+Hide Settings during standalone positioning previews and meter tests. Restore the same page when the sample ends or the player selects Return to settings. Keep Settings visible during native castbar previews and inline adjustments.
+
+## Warrior ability reminders — November 24, 2026
+
+Show seconds on the Overpower icon and keep confirmed openings visible across Warrior stances. Keep Victory Rush visible for a confirmed Victorious window regardless of the target or castability. An overlapping Victory Rush cooldown uses the swipe.
+
 ## Independent saved bag and bank windows — November 23, 2026
 
 Switching characters from the backpack replaces the visible bags with a read-only saved bag window in the same area. Switching from the bank uses the bank window independently. Returning to the current character from saved bags reopens the native backpack. Preserve the last in-world bag data through logout and label old, unverified empty bag views as Not recorded until refreshed.

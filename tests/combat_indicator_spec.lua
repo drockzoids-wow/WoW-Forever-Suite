@@ -184,8 +184,10 @@ equal(indicator.preview, true, "settings preview action reaches the indicator")
 gui:Select("overview")
 equal(indicator.preview, nil, "page navigation ends the preview")
 gui:Select("combat"); gui.rows[4].OnClick()
-gui.frame.OnHide(gui.frame)
-equal(indicator.preview, nil, "closing settings ends the preview")
+equal(gui.frame:IsShown(), false, "settings stay hidden during the indicator preview")
+gui.previewReturn.button:OnClick()
+equal(indicator.preview, nil, "return ends the indicator preview")
+equal(gui.frame:IsShown(), true, "return restores the settings window")
 gui:Select(oldPage); gui.frame:SetShown(oldShown)
 Suite.db, Suite.pending = oldDB, oldPending
 CreateFrame, C_Timer, UIParent, IsControlKeyDown = oldCreate, oldTimer, oldParent, oldControl
