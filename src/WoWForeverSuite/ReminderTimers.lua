@@ -61,7 +61,12 @@ function Timers:ActiveSpellCooldown(id, onGCD, widget, actionSlot, actionOnGCD)
         end
     end
     local info
-    if actionSlot and actionOnGCD == false and C_ActionBar and type(C_ActionBar.GetActionCooldown) == "function" then
+    -- On some updates the action's sampled GCD flag is absent. If the GCD
+    -- spell is publicly inactive, an active action cooldown cannot be the GCD.
+    local gcd = actionSlot and actionOnGCD == nil and CooldownInfo(GLOBAL_COOLDOWN)
+    local actionOwnCooldown = actionOnGCD == false
+        or gcd and Suite.IsReadable(gcd.isActive) and gcd.isActive == false
+    if actionSlot and actionOwnCooldown and C_ActionBar and type(C_ActionBar.GetActionCooldown) == "function" then
         local ok, result = pcall(C_ActionBar.GetActionCooldown, actionSlot)
         if ok and Suite.IsReadable(result) and type(result) == "table" then info = result end
     end
@@ -79,7 +84,7 @@ function Timers:Create(owner, fontSize)
     if swipe.SetDrawSwipe then swipe:SetDrawSwipe(true) end
     if swipe.SetDrawBling then swipe:SetDrawBling(false) end
     if swipe.SetDrawEdge then swipe:SetDrawEdge(false) end
-    if swipe.SetSwipeColor then swipe:SetSwipeColor(0, 0, 0, 0.65) end
+    if swipe.SetSwipeColor then swipe:SetSwipeColor(0, 0, 0, 0.80) end
     swipe:Hide()
     owner.cooldownSwipe = swipe
     if not fontSize then return end

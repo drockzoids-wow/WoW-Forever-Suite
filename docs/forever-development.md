@@ -18,6 +18,16 @@ The player then observed Victorious and an action-bar cooldown with the Suite po
 
 In the next test, cooldown and aura were recognized together at `PLAYER_REGEN_ENABLED` only. The in-combat fallback prepares a native AuraContainer for player aura 402975 before combat. The container filters Victorious and renders its own expiry text. Its native layout clips Suite's separate spell cooldown swipe. Suite does not read the aura container's dimensions or visibility. The regular popup handles the out-of-combat case.
 
+A later in-combat report showed the action slot found and the native aura display prepared, but the visibility check stopped at unavailable cooldown timing. A readable usable result now admits Victory Rush independently of cooldown classification. The native widget receives the action-slot duration, and the ready glow still requires a confirmed clear cooldown. With an unknown action GCD flag, a publicly inactive global cooldown also lets Suite confirm an active action cooldown without reading its timing.
+
+The player confirmed the in-combat Victory Rush popup and reported a line below Overpower. The native fallback clip now follows both dimensions of the aura container and insets the icon border. An empty aura layout can collapse fully instead of leaving an edge along a fixed-height strip.
+
+Overpower now uses its confirmed opening for popup visibility. A successful cast closes that opening even if old aura, glow, or usability signals linger. A fresh aura, activation, or renewed usability can show the popup while the cooldown is still running.
+
+Revenge, Riposte, Mongoose Bite, and Counterattack now follow the same display policy. A readable aura expiry takes priority. Where timing is unavailable, the five-second melee window is estimated from the first public usability, glow, or player activation signal. Shadow Bolt requires Shadow Trance (17941) or a native proc alert and uses the aura's expiry when readable. Other classes continue to use native proc alerts and matching readable aura timing. The shared swipe color is darker.
+
+Victory Rush now also requires an open proc window. The cast closes that window and suppresses stale public aura, overlay and usability signals. Native aura rendering can resume after those signals clear, and a fresh readable aura can reopen the popup while the action is still recharging.
+
 ## Watched reputation bar colors — November 24, 2026
 
 The player reported that the watched bar kept its Neutral color after reaching Friendly and refreshed on reload. The public Forever UI queues reputation artwork for a rollover. When the progress bar skin is enabled, Suite observes native texture requests and animation completion and applies leftover queued artwork only on the visible, idle reputation bar outside combat. Native progress, colors, and animations continue to come from Blizzard. Running-client confirmation remains pending.

@@ -6,7 +6,7 @@ Offer one profile setting from both Action Bars and Macro Builder to hide the na
 
 ## Buff and proc timers — November 25, 2026
 
-Use a dark swipe for a spell's own cooldown and a separate number for the remaining buff or proc window. Learned reactive spells can show their recharge before they are usable. A confirmed Victorious buff can display both while Victory Rush recharges. Keep Overpower detection unchanged.
+Use a dark swipe for a spell's own cooldown and a separate number for the remaining buff or proc window. Overpower, Revenge, Riposte, Mongoose Bite and Counterattack require an active opening to display. Show Shadow Bolt for Nightfall when Shadow Trance or a native proc alert confirms it. Native class alerts use a readable aura deadline when the client provides one.
 
 ## Settings previews — November 24, 2026
 
@@ -15,6 +15,8 @@ Hide Settings during standalone positioning previews and meter tests. Restore th
 ## Warrior ability reminders — November 24, 2026
 
 Show seconds on the Overpower icon and keep confirmed openings visible across Warrior stances. Keep Victory Rush visible for a confirmed Victorious window regardless of the target or castability. An overlapping Victory Rush cooldown uses the swipe.
+
+Show Revenge proc and cooldown reminders only in Defensive Stance.
 
 ## Independent saved bag and bank windows — November 23, 2026
 

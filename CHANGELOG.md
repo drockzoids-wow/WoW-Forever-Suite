@@ -1,5 +1,12 @@
 # Forever Suite
 
+## 1.0.31 — November 26, 2026
+
+- Victory Rush shows during a confirmed Victorious window in combat and clears when used. A fresh proc can show its countdown and cooldown swipe together. Fix a stray line left by the combat display.
+- Overpower, Revenge, Riposte, Mongoose Bite, and Counterattack show for confirmed openings and clear when used. Revenge reminders appear only in Defensive Stance.
+- Show Shadow Bolt for Nightfall when Shadow Trance or a native proc alert confirms the opening.
+- Darken the cooldown swipe so it is easier to read alongside the proc countdown.
+
 ## 1.0.30 — November 26, 2026
 
 - Hide macro names on native action bars from **Action Bars** or **Macro Builder**. Both controls share one setting. Hotkeys, counts, and cooldowns stay visible.

@@ -1,20 +1,28 @@
 local _, Suite = ...
 local Timers = Suite.ReminderTimers
-local Alerts = { glows = {}, learned = {}, cells = {}, requested = {}, cooldownGCD = {}, history = {}, lastChecks = {} }
+local Alerts = { glows = {}, learned = {}, reactions = {}, cells = {}, requested = {}, cooldownGCD = {}, history = {}, lastChecks = {} }
 Suite.ProcAlerts = Alerts
 Suite.modules[#Suite.modules + 1] = Alerts
 
 -- Legacy reactive skills do not necessarily generate native overlay glows.
 -- Rank IDs follow the Forever training catalog; talent roots are included too.
 local overpowerRanks = { 7384, 7887, 11584, 11585 }
+local revengeRanks = { 6572, 6574, 7379, 11600, 11601 }
+local shadowBoltRanks = { 686, 695, 705, 1088, 1106, 7641, 11659, 11660, 11661, 25307 }
 local reactive = {
     overpowerRanks,
-    { 6572, 6574, 7379, 11600, 11601 }, -- Revenge
+    revengeRanks,
     { 14251 }, -- Riposte
     { 1495, 14269, 14270, 14271 }, -- Mongoose Bite
     { 19306, 1242634, 20909, 20910 }, -- Counterattack
+    shadowBoltRanks, -- Nightfall
 }
+local reactiveByRank = {}
+for _, family in ipairs(reactive) do
+    for _, rank in ipairs(family) do reactiveByRank[rank] = family end
+end
 local OVERPOWER_AURA, OVERPOWER_WINDOW = 1282733, 5
+local REACTION_WINDOW, SHADOW_TRANCE = 5, 17941
 local VICTORY_RUSH, VICTORIOUS, VICTORY_WINDOW = 402927, 402975, 20
 local AURA_CLIP = "DisableUntrustedLayoutScriptsTemplate"
 local function Read(callback, ...)
@@ -27,14 +35,12 @@ local function Number(value)
 end
 local function ID(value) return Number(value) and value > 0 and value % 1 == 0 end
 local function IsOverpower(id)
-    if not ID(id) then return false end
-    for _, rank in ipairs(overpowerRanks) do if id == rank then return true end end
-    return false
+    return ID(id) and reactiveByRank[id] == overpowerRanks
 end
-local function OverpowerOverlay()
+local function ReactionOverlay(family, glows)
     local query = C_SpellActivationOverlay and C_SpellActivationOverlay.IsSpellOverlayed
-    for _, rank in ipairs(overpowerRanks) do
-        if Read(query, rank) == true then return true end
+    for _, rank in ipairs(family) do
+        if Read(query, rank) == true or type(query) ~= "function" and glows[rank] then return true end
     end
     return false
 end
@@ -71,6 +77,11 @@ end
 
 local function OutsideBattleStance(stance)
     return stance == "Defensive" or stance == "Berserker"
+end
+local function AllowsProc(id, stance)
+    if stance == "Defensive" then return true end
+    for _, rank in ipairs(revengeRanks) do if id == rank then return false end end
+    return true
 end
 
 function Alerts:IconSize(db)
@@ -235,6 +246,13 @@ function Alerts:VictoryRush(now, onCooldown)
     local usable = Usability(VICTORY_RUSH)
     local active, expires = PlayerProcAura(VICTORIOUS, now)
     local overlay = Read(C_SpellActivationOverlay and C_SpellActivationOverlay.IsSpellOverlayed, VICTORY_RUSH) == true
+    local consumed = self.victoryConsumed
+    if consumed then
+        -- The previous opening may still be reported briefly after the cast.
+        local freshAura = expires and (not consumed.hadAura or consumed.expiry and expires > consumed.expiry)
+        if freshAura or not active and not overlay and usable ~= true then self.victoryConsumed = nil
+        else return false, nil, nil, "opening consumed" end
+    end
     if expires then
         self.victoryUntil, self.victoryEstimated = expires, nil
     elseif not active and not overlay and usable ~= true then
@@ -244,12 +262,11 @@ function Alerts:VictoryRush(now, onCooldown)
     end
     if not active and not overlay and usable ~= true then return false, nil, nil, "no confirmed opening" end
     local ready, cooldown, delay = self:CooldownReady(VICTORY_RUSH, "ready")
-    if not active and not overlay and not ready then return false, nil, delay, cooldown end
     -- A confirmed window drives visibility even if the action is unavailable
     -- or the client only permits the cooldown to be drawn by a widget.
     local glow = not onCooldown and ready and usable == true
     local reason = onCooldown and "opening during cooldown"
-        or glow and cooldown or active and "Victorious active" or "native activation"
+        or glow and cooldown or active and "Victorious active" or overlay and "native activation" or "usable; " .. cooldown
     local untilTime = self.victoryUntil
     if untilTime and Number(now) then
         if untilTime > now then return true, untilTime, delay, reason, glow end
@@ -265,8 +282,21 @@ function Alerts:Record(id, reason)
     if #self.history > 24 then table.remove(self.history, 1) end
 end
 
+function Alerts:ClearOverpower()
+    self.overpowerObserved, self.overpowerUntil, self.overpowerNoticeUntil, self.overpowerAuraEnd = nil, nil, nil, nil
+end
+
 function Alerts:Overpower(confirmed, now, stance)
     local active, expires = PlayerProcAura(OVERPOWER_AURA, now)
+    local consumed = self.overpowerConsumed
+    if consumed then
+        -- A cast can be reported before Blizzard clears the old aura, glow or
+        -- usability. Admit a fresh timed aura, or wait for those signals to clear.
+        local freshAura = expires and (not consumed.hadAura or consumed.expiry and expires > consumed.expiry)
+        if freshAura or not active and not confirmed then self.overpowerConsumed = nil
+        else return false end
+    end
+    self.overpowerAuraEnd = expires
     if expires then
         self.overpowerObserved, self.overpowerUntil = true, expires
         return true, expires
@@ -282,32 +312,67 @@ function Alerts:Overpower(confirmed, now, stance)
         self.overpowerObserved, self.overpowerUntil = nil, nil
     end
     local untilTime = self.overpowerUntil
-    if not untilTime or not Number(now) or untilTime <= now then return active end
-    return active or otherStance == true, untilTime
+    if not untilTime or not Number(now) or untilTime <= now then return false end
+    return confirmed or active or otherStance == true, untilTime
 end
 
-function Alerts:OverpowerCombatText()
-    if not self.overpowerID or not InCombatLockdown() or not C_CombatText
+function Alerts:ReactionCombatText()
+    if not InCombatLockdown() or not C_CombatText
         or Read(C_CombatText.GetActiveUnit) ~= "player" then return end
     -- SPELL_ACTIVE describes a named activation for the watched unit. Read it
     -- during the synchronous event and ignore restricted payloads.
     local spell = Read(C_CombatText.GetCurrentEventInfo)
     if type(spell) ~= "string" then return end
-    local info = Read(C_Spell and C_Spell.GetSpellInfo, self.overpowerID)
-    if not Table(info) or not Suite.IsReadable(info.name) or spell ~= info.name then return end
     local now = Read(GetTime)
     if not Number(now) then return end
-    self.overpowerNoticeUntil = now + OVERPOWER_WINDOW
-    self.lastEvent = "Overpower combat text"
-    self:Queue()
+    local stance = WarriorStance()
+    for _, id in ipairs(self.learned) do
+        local info = Read(C_Spell and C_Spell.GetSpellInfo, id)
+        if reactiveByRank[id] ~= shadowBoltRanks and AllowsProc(id, stance)
+            and Table(info) and Suite.IsReadable(info.name) and spell == info.name then
+            if id == self.overpowerID then
+                self.overpowerConsumed = nil
+                self.overpowerNoticeUntil = now + OVERPOWER_WINDOW
+            else
+                self.reactions[id] = { notice = now + REACTION_WINDOW }
+            end
+            self.lastEvent = "reaction combat text"
+            self:Queue()
+            return
+        end
+    end
+end
+
+function Alerts:ReactiveOpening(id, now, allowUsability)
+    local family = reactiveByRank[id]
+    if not family then return false end
+    local nightfall = family == shadowBoltRanks
+    local aura, expires = PlayerProcAura(nightfall and SHADOW_TRANCE or id, now)
+    local usable, missingPower = Usability(id)
+    -- Shadow Bolt is ordinarily castable. Only its proc aura or native alert
+    -- can confirm the Nightfall window.
+    local active = aura or ReactionOverlay(family, self.glows) or not nightfall and allowUsability and (usable == true or missingPower)
+    local state = self.reactions[id]
+    if active or state and state.notice and Number(now) and state.notice > now then
+        state = state or {}
+        if state.consumed and (not expires or state.auraExpiry and expires <= state.auraExpiry) then return false end
+        state.consumed, state.auraExpiry = nil, expires
+        state.expiry = expires or state.notice or state.expiry
+        if not state.expiry and not nightfall and Number(now) then state.expiry = now + REACTION_WINDOW end
+        self.reactions[id] = state
+        return not state.expiry or Number(now) and state.expiry > now, state.expiry
+    end
+    self.reactions[id] = nil
+    return false
 end
 
 function Alerts:Entries(inCombat)
     local ids, seen, expiry, recharging = {}, {}, {}, {}
     local now = Read(GetTime)
+    local stance = inCombat and WarriorStance()
     local victorySlot, victoryGlow
     local function Add(id)
-        if not seen[id] then ids[#ids + 1] = id; seen[id] = true end
+        if not seen[id] and AllowsProc(id, stance) then ids[#ids + 1] = id; seen[id] = true end
     end
     local function Wake(delay, cooldown)
         if delay and (not self.nextWake or delay < self.nextWake) then
@@ -328,33 +393,43 @@ function Alerts:Entries(inCombat)
             -- Keep the event candidate until GLOW_HIDE. A show event may precede
             -- query readiness; deleting it here would defeat the bounded retries.
             if overlay == true or not C_SpellActivationOverlay or type(C_SpellActivationOverlay.IsSpellOverlayed) ~= "function" then
-                if id ~= VICTORY_RUSH then Add(self.overpowerID and IsOverpower(id) and self.overpowerID or id) end
+                if id ~= VICTORY_RUSH and not reactiveByRank[id] then Add(id) end
             end
         end
         for _, id in ipairs(self.learned) do
-            local ready, reason, delay = self:Ready(id)
-            Wake(delay, true)
-            if id == self.overpowerID then
-                local overlay = seen[id] or OverpowerOverlay()
-                local stance = WarriorStance()
-                local available, expires = self:Overpower(ready or overlay, now, stance)
-                expiry[id] = expires
-                if not ready and (available or overlay) then reason = "opening shown" end
-                reason = reason .. " [" .. (stance or "stance unavailable") .. "]"
-                ready = ready or available or overlay
+            if AllowsProc(id, stance) then
+                local ready, reason, delay = self:Ready(id)
+                Wake(delay, true)
+                if id == self.overpowerID then
+                    local usable, missingPower = Usability(id)
+                    local confirmed = reason ~= "cooldown on hold" and (usable == true or missingPower)
+                    local overlay = ReactionOverlay(overpowerRanks, self.glows)
+                    local available, expires = self:Overpower(confirmed or overlay, now, stance)
+                    expiry[id] = expires
+                    if not ready and available then reason = "opening shown" end
+                    reason = reason .. " [" .. (stance or "stance unavailable") .. "]"
+                    ready = available
+                else
+                    local available, expires = self:ReactiveOpening(id, now, reason ~= "cooldown on hold")
+                    expiry[id] = expires
+                    if not ready and available then reason = "opening shown" end
+                    ready = available
+                end
+                self:Record(id, reason)
+                if ready then Add(id) end
+            else
+                self:Record(id, "Defensive Stance only")
             end
-            self:Record(id, reason)
-            local onCooldown = CheckCooldown(id)
-            if ready or onCooldown then Add(id) end
         end
     end
     if self.victoryRush then
         victorySlot = self:VictoryActionSlot()
         local onCooldown = CheckCooldown(VICTORY_RUSH)
+        self.victoryCooldownConfirmed = onCooldown
         local ready, expires, delay, reason, glow = self:VictoryRush(now, onCooldown)
         self:Record(VICTORY_RUSH, reason)
         Wake(delay, true)
-        if ready or onCooldown then
+        if ready then
             Add(VICTORY_RUSH)
             expiry[VICTORY_RUSH] = expires
             victoryGlow = glow == true
@@ -369,7 +444,7 @@ function Alerts:Entries(inCombat)
             and ID(info.iconID) and not names[info.name] then
             local usable, insufficientPower = Usability(id)
             local untilTime = expiry[id]
-            if id ~= self.overpowerID and id ~= VICTORY_RUSH then
+            if not reactiveByRank[id] and id ~= VICTORY_RUSH then
                 local _, auraExpiry = PlayerProcAura(id, now)
                 untilTime = auraExpiry
             end
@@ -402,14 +477,14 @@ function Alerts:Paint()
     elseif Enabled() and self.active and not self.suspended then entries = self:Entries(Read(InCombatLockdown) == true) end
     local native = self.victoryAura
     local useNative = native and Enabled() and self.active and self.victoryRush and not self.suspended
-        and not preview and InCombatLockdown()
+        and not self.victoryConsumed and not preview and InCombatLockdown()
     local nativeX, nativeY = 0, #entries > 0 and -(self:IconSize() + 22) or 0
     for index, cell in ipairs(self.cells) do
         local entry = entries[index]
         if entry then
             local x = (index - (math.min(#entries, #self.cells) + 1) / 2) * (self.stride or 110)
             if entry.id == VICTORY_RUSH then
-                if entry.countdown then useNative = false end
+                if entry.countdown and not self.victoryEstimated then useNative = false end
                 nativeX, nativeY = x, 0
             end
             -- These cells are ordinary unprotected frames. Only public entry counts
@@ -460,7 +535,7 @@ function Alerts:PrepareVictoryAura()
     host:SetFrameLevel(self.frame:GetFrameLevel() + 5)
     host:SetScale(self:IconSize() / 42)
     local container
-    local ok = pcall(function()
+    local ok, failure = pcall(function()
         container = CreateFrame("AuraContainer", nil, host, "CustomAuraContainerTemplate")
         container:SetEnabled(false); container:SetEditModePreviewEnabled(false)
         container:SetAuraProcessingPolicy(CustomAuraContainerAuraProcessingPolicy.None)
@@ -468,9 +543,11 @@ function Alerts:PrepareVictoryAura()
         local clip = CreateFrame("Frame", nil, host, AURA_CLIP)
         clip:EnableMouse(false); clip:SetClipsChildren(true)
         clip:SetPoint("TOPLEFT", host, "TOPLEFT")
-        clip:SetPoint("BOTTOMRIGHT", container, "TOPRIGHT", 0, -42)
+        -- Follow both native dimensions. A zero-width strip with a fixed
+        -- height could still draw an edge when rounded to screen pixels.
+        clip:SetPoint("BOTTOMRIGHT", container, "BOTTOMRIGHT")
         local plate = CreateFrame("Frame", nil, clip, "BackdropTemplate")
-        plate:SetSize(42, 42); plate:SetPoint("TOPLEFT", clip, "TOPLEFT"); plate:EnableMouse(false)
+        plate:SetSize(40, 40); plate:SetPoint("TOPLEFT", clip, "TOPLEFT", 1, -1); plate:EnableMouse(false)
         plate:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
         plate:SetBackdropColor(0.035, 0.05, 0.065, 0.9); Suite.Theme:Backdrop(plate, 1)
         plate.icon = plate:CreateTexture(nil, "ARTWORK")
@@ -494,13 +571,7 @@ function Alerts:PrepareVictoryAura()
                 local remaining = button:CreateFontString(nil, "OVERLAY")
                 remaining:SetPoint("CENTER", button, "CENTER")
                 remaining:SetFont(font, 19, "OUTLINE"); remaining:SetTextColor(1, 0.94, 0.72)
-                local options = {}
-                if C_StringUtil and C_StringUtil.CreateNumericRuleFormatter and Enum and Enum.NumericRuleFormatRounding then
-                    local formatter = C_StringUtil.CreateNumericRuleFormatter()
-                    formatter:SetBreakpoints({ { threshold = 0, step = 1, rounding = Enum.NumericRuleFormatRounding.Up, format = "%.0f" } })
-                    options.textFormatter = formatter
-                end
-                button:SetDurationText(remaining, options)
+                button:SetDurationText(remaining, {})
             end,
         })
         container:SetEnabled(true)
@@ -508,7 +579,8 @@ function Alerts:PrepareVictoryAura()
     end)
     if not ok then
         if container then pcall(container.SetEnabled, container, false) end
-        self.victoryAuraFailed = true
+        self.victoryAuraFailed = Suite.IsReadable(failure) and type(failure) == "string"
+            and failure:gsub("[%c|]", " "):sub(1, 180) or "setup rejected"
     end
 end
 
@@ -667,15 +739,13 @@ function Alerts:Watch()
             else self.events:RegisterUnitEvent(event, "player") end
         else self.events:RegisterEvent(event) end
     end
-    if self.overpowerID or self.victoryRush then
-        if type(self.events.RegisterUnitEvent) == "function" then self.events:RegisterUnitEvent("UNIT_AURA", "player")
-        else self.events:RegisterEvent("UNIT_AURA") end
-    end
+    if type(self.events.RegisterUnitEvent) == "function" then self.events:RegisterUnitEvent("UNIT_AURA", "player")
+    else self.events:RegisterEvent("UNIT_AURA") end
     if self.victoryRush then
         self.events:RegisterEvent("ACTIONBAR_UPDATE_COOLDOWN")
         self.events:RegisterEvent("ACTIONBAR_SLOT_CHANGED")
     end
-    if self.overpowerID and C_CombatText and type(C_CombatText.GetCurrentEventInfo) == "function" then
+    if #self.learned > 0 and C_CombatText and type(C_CombatText.GetCurrentEventInfo) == "function" then
         pcall(self.events.RegisterEvent, self.events, "COMBAT_TEXT_UPDATE")
     end
 end
@@ -698,7 +768,7 @@ end
 
 function Alerts:OnEvent(event, id, _, spellID)
     if event == "COMBAT_TEXT_UPDATE" then
-        if Suite.IsReadable(id) and id == "SPELL_ACTIVE" then self:OverpowerCombatText() end
+        if Suite.IsReadable(id) and id == "SPELL_ACTIVE" then self:ReactionCombatText() end
         return
     end
     -- Unit combat is only a request to refresh public spell availability. Do not
@@ -708,6 +778,7 @@ function Alerts:OnEvent(event, id, _, spellID)
         if id ~= "player" and not (event == "UNIT_COMBAT" and id == "target") then return end
     end
     if event == "UNIT_AURA" then
+        if not self.victoryRush and (not InCombatLockdown() or #self.learned == 0 and not next(self.glows)) then return end
         self.lastEvent = event
         self.repaintVictory = self.victoryRush
         self:Queue(); self:Followup(true); return
@@ -729,14 +800,16 @@ function Alerts:OnEvent(event, id, _, spellID)
         self:StopDrag(false); self.preview = nil
         self:Watch(); self:Paint(); self:Followup(); return
     elseif event == "PLAYER_REGEN_ENABLED" then
-        self:Cancel(); self.overpowerObserved, self.overpowerUntil, self.overpowerNoticeUntil = nil, nil, nil
+        self:Cancel(); self:ClearOverpower(); self.overpowerConsumed = nil
+        self.reactions = {}
         self:PrepareVictoryAura()
         self:Paint(); if self.victoryRush then self:Followup(true) end
         return
     elseif event == "PLAYER_LEAVING_WORLD" or event == "PLAYER_ENTERING_WORLD" then
         self:Cancel(); self.glows, self.cooldownGCD = {}, {}; self.suspended = event == "PLAYER_LEAVING_WORLD"
-        self.overpowerObserved, self.overpowerUntil, self.overpowerNoticeUntil = nil, nil, nil
-        self.victoryUntil, self.victoryEstimated = nil, nil
+        self:ClearOverpower(); self.overpowerConsumed = nil
+        self.reactions = {}
+        self.victoryUntil, self.victoryEstimated, self.victoryConsumed = nil, nil, nil
         self:StopDrag(false); self.preview = nil
         if not self.suspended then self:Scan(); self:PrepareVictoryAura() end
         self:Watch(); self:Paint(); self:Followup(); return
@@ -746,10 +819,41 @@ function Alerts:OnEvent(event, id, _, spellID)
     elseif event == "SPELLS_CHANGED" then self:Scan(); self:PrepareVictoryAura(); self:Watch()
     elseif event == "SPELL_DATA_LOAD_RESULT" then self:PrepareVictoryAura()
     elseif event == "UNIT_SPELLCAST_SUCCEEDED" and ID(spellID) and spellID == VICTORY_RUSH then
+        local now = Read(GetTime)
+        local active, expires = PlayerProcAura(VICTORIOUS, now)
+        local previous = self.victoryUntil
+        if self.victoryEstimated or previous and (not Number(now) or previous <= now) then previous = nil end
+        self.victoryConsumed = { hadAura = active or previous ~= nil, expiry = previous or expires }
         self.victoryUntil, self.victoryEstimated = nil, nil
         self.cooldownGCD[VICTORY_RUSH] = nil
-    elseif event == "PLAYER_TARGET_CHANGED" or event == "UNIT_SPELLCAST_SUCCEEDED" and IsOverpower(spellID) then
-        self.overpowerObserved, self.overpowerUntil, self.overpowerNoticeUntil = nil, nil, nil
+    elseif event == "UNIT_SPELLCAST_SUCCEEDED" and IsOverpower(spellID) then
+        local now = Read(GetTime)
+        local active, expires = PlayerProcAura(OVERPOWER_AURA, now)
+        local previous = self.overpowerAuraEnd
+        if previous and (not Number(now) or previous <= now) then previous = nil end
+        self.overpowerConsumed = { hadAura = active or previous ~= nil, expiry = previous or expires }
+        self:ClearOverpower()
+    elseif event == "UNIT_SPELLCAST_SUCCEEDED" and ID(spellID) and reactiveByRank[spellID] then
+        local family = reactiveByRank[spellID]
+        for _, learnedID in ipairs(self.learned) do
+            if reactiveByRank[learnedID] == family then
+                local state = self.reactions[learnedID]
+                -- An ordinary Shadow Bolt already in flight can finish after
+                -- Nightfall appears. Let the native aura determine consumption.
+                if family ~= shadowBoltRanks then
+                    local _, expiry = PlayerProcAura(learnedID, Read(GetTime))
+                    self.reactions[learnedID] = { consumed = true, auraExpiry = state and state.auraExpiry or expiry }
+                end
+                break
+            end
+        end
+    elseif event == "PLAYER_TARGET_CHANGED" then
+        self:ClearOverpower()
+        -- The warlock proc belongs to the player. Melee openings should be
+        -- rechecked using the new target rather than carrying their old timer.
+        for id, state in pairs(self.reactions) do
+            if reactiveByRank[id] ~= shadowBoltRanks and not state.consumed then self.reactions[id] = nil end
+        end
     elseif event == "SPELL_UPDATE_COOLDOWN" then self:CaptureCooldownFlags(); self.repaintCooldowns = true end
     if (event == "SPELL_UPDATE_USABLE" or event == "SPELL_UPDATE_COOLDOWN")
         and self.overpowerID and InCombatLockdown() then
@@ -780,7 +884,8 @@ function Alerts:Status()
     if self.victoryRush then
         Suite.Print("Victory Rush: " .. (self.lastChecks[VICTORY_RUSH] or "not checked yet")
             .. "; action slot: " .. (self:VictoryActionSlot() and "found" or "unavailable")
-            .. "; native aura display: " .. (self.victoryAura and "prepared" or "unavailable") .. ".")
+            .. "; own cooldown: " .. (self.victoryCooldownConfirmed and "confirmed" or "unconfirmed")
+            .. "; native aura display: " .. (self.victoryAura and "prepared" or self.victoryAuraFailed or "unavailable") .. ".")
     end
     if #self.history == 0 then Suite.Print("No combat availability changes recorded this session."); return end
     Suite.Print("Recent public availability changes from the latest fight:")
@@ -790,8 +895,9 @@ end
 function Alerts:Apply()
     if not Enabled() then
         self.active, self.preview = nil, nil; self.glows, self.cooldownGCD = {}, {}
-        self.overpowerObserved, self.overpowerUntil, self.overpowerNoticeUntil = nil, nil, nil
-        self.victoryUntil, self.victoryEstimated = nil, nil
+        self:ClearOverpower(); self.overpowerConsumed = nil
+        self.reactions = {}
+        self.victoryUntil, self.victoryEstimated, self.victoryConsumed = nil, nil, nil
         self:Cancel(); self:StopDrag(false)
         self:Watch(); self:Paint(); return
     end
