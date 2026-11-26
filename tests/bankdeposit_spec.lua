@@ -47,6 +47,7 @@ local function NativeSetTab(_, nextKind)
     if layoutCallback then layoutCallback(layoutOwner) end
 end
 BankFrame.SetTab = NativeSetTab
+BankFrame.PurchaseFirstSlot = function() error("Suite must never grant a bank tab") end
 BankFrame.BankPanel = Widget(); BankFrame.BankPanel.PurchaseButton = Widget()
 BankFrame.BankPanel.PurchaseButton:Show()
 Enum = { BankType = { Character = 0, Account = 2 } }
@@ -54,7 +55,12 @@ NUM_TOTAL_EQUIPPED_BAG_SLOTS = 1
 CursorHasItem = function() return held end
 GetCursorInfo = function() return cursor end
 SpellIsTargeting = function() return targeting end
-C_Bank = { CanViewBank = function() return allowed end }
+local purchased = 0
+C_Bank = { CanViewBank = function() return allowed end,
+    FetchNumPurchasedBankTabs = function(bankType)
+        assert(bankType == 0, "read character bank ownership only")
+        return purchased
+    end }
 C_Item = { GetItemInfo = function(id)
     if reagents[id] == nil then return end
     return "Item " .. id, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, reagents[id]
@@ -109,6 +115,16 @@ Suite.db.bankDepositReagents = true
 SetCombat(true); deposit:Apply()
 equal(deposit.button, nil, "first enable defers combat construction")
 SetCombat(false); deposit:Apply()
+equal(deposit.button,nil,"fresh characters have no Suite purchase-adjacent button")
+equal(layoutCallback,nil,"fresh characters have no Suite bank layout observer")
+deposit:OnEvent("BANKFRAME_OPENED"); Flush(0)
+equal(deposit.button,nil,"opening the bank without the free tab leaves native UI alone")
+purchased={secret=true}
+equal(Suite.LiveBankReady(),false,"restricted ownership cannot enable live bank decoration")
+purchased=1
+deposit:OnEvent("BANK_TABS_CHANGED")
+equal(deposit.button,nil,"synchronous native tab notification does not attach the button")
+Flush(0)
 equal(deposit.button:GetText(), "Deposit Reagents", "native-style bank button has requested label")
 equal(deposit.button.point[2], BankFrame.BankPanel.PurchaseButton, "button sits beside Purchase")
 equal(deposit.button.point[4], 8, "button leaves a gap beside Purchase")

@@ -129,7 +129,7 @@ function Money:Discover()
         for _, bag in ipairs(ContainerFrameContainer.ContainerFrames) do AttachBag(bag) end
     end
     AttachBag(ContainerFrame1)
-    local panel = Accessible(BankFrame) and BankFrame.BankPanel
+    local panel = Suite.LiveBankReady() and Accessible(BankFrame) and BankFrame.BankPanel
     local footer = Accessible(panel) and panel.MoneyFrame
     if Accessible(footer) then
         local display = footer.MoneyDisplay
@@ -147,7 +147,10 @@ function Money:OnEvent(event)
     end
     if event == "PLAYER_REGEN_DISABLED" then self:Hide(); return end
     if event ~= "ADDON_LOADED" then self:Capture() end
-    if event ~= "PLAYER_MONEY" then
+    if event == "BANK_TABS_CHANGED" or event == "BANKFRAME_OPENED" and BankFrame
+        and type(BankFrame.PurchaseFirstSlot) == "function" then
+        C_Timer.After(0, function() if not self.shuttingDown then self:Discover() end end)
+    elseif event ~= "PLAYER_MONEY" then
         Suite.AfterCombat("bagMoneyDiscover", function() self:Discover() end)
     end
     if self.owner and event == "PLAYER_MONEY" then self:Tooltip(self.owner) end
@@ -162,7 +165,7 @@ function Money:Apply()
             self.events = CreateFrame("Frame")
             self.events:SetScript("OnEvent", function(_, event) self:OnEvent(event) end)
         end
-        for _, event in ipairs({ "ADDON_LOADED", "PLAYER_ENTERING_WORLD", "BANKFRAME_OPENED", "PLAYER_MONEY", "PLAYER_LOGOUT", "PLAYER_REGEN_DISABLED" }) do
+        for _, event in ipairs({ "ADDON_LOADED", "PLAYER_ENTERING_WORLD", "BANKFRAME_OPENED", "BANK_TABS_CHANGED", "PLAYER_MONEY", "PLAYER_LOGOUT", "PLAYER_REGEN_DISABLED" }) do
             self.events:RegisterEvent(event)
         end
         self:Capture(); self:Discover()

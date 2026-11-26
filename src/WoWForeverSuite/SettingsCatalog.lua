@@ -23,7 +23,7 @@ Catalog.sections = {
     vendor = { [1] = "Repairs", [3] = "Junk Selling", [6] = "Vendor Conversation", [7] = "Known Items", [8] = "Restocking" },
     quests = { [1] = "Quests & Conversation", [4] = "Loot & Tracker" },
     actionbars = { [1] = "Appearance & Feedback", [4] = "Ability Proc Popups" }, bars = { [1] = "Bar Appearance" },
-    unitframes = { [1] = "Health Bars", [2] = "Target Threat" }, mail = { [1] = "Recipients", [4] = "Mail Deadlines" }, meters = { [1] = "Damage Meters" },
+    unitframes = { [1] = "Health Bars", [2] = "Target Threat", [3] = "Nameplates" }, mail = { [1] = "Recipients", [4] = "Mail Deadlines" }, meters = { [1] = "Damage Meters" },
     audio = { [1] = "Output Device" },
     leveling = { [1] = "Leveling Tracker", [2] = "Header Controls", [4] = "Session & Position" },
     professions = { [1] = "Disenchant", [3] = "Enchanting", [4] = "Leveling Guides" },

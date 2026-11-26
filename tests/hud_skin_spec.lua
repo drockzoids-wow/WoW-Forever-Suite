@@ -1063,6 +1063,60 @@ equal(nativeText, "0", "late logout native events cannot re-enable the setting")
 equal(Suite.db.progressBarTextRestore, nil, "late logout events cannot reclaim native preference ownership")
 skin.loggingOut = nil
 Enabled(false, false, false)
+do
+    local previousLevel, previousCurrency, previousCreate = UnitLevel, C_CurrencyInfo, CreateFrame
+    local previousFirstShown, previousSecondShown = first.shown, second.shown
+    local level, balance, cap = 59, 0, 25000
+    UnitLevel = function() return level end
+    C_CurrencyInfo = { GetCurrencyInfo = function(id)
+        equal(id, 1792, "the bar tracks spendable Forever Honor")
+        return { name = "Honor", quantity = balance, maxQuantity = cap }
+    end }
+    CreateFrame = function(kind, ...)
+        local frame = previousCreate(kind, ...)
+        if kind == "StatusBar" then
+            frame.SetStatusBarTexture = function(self, file) self.fill = file end
+            frame.SetStatusBarColor = function(self, ...) self.fillColor = { ... } end
+        end
+        return frame
+    end
+    first.shown, second.shown = true, false
+    Suite.db.maxLevelHonorBar, Suite.db.progressBarValues = true, true
+    skin:Apply()
+    equal(skin.honorBar, nil, "Honor leaves the XP bar alone below level 60")
+    level = 60
+    skin.events:OnEvent("PLAYER_LEVEL_UP"); Flush()
+    local bar = skin.honorBar
+    equal(bar:IsShown(), true, "level 60 shows the Suite Honor bar")
+    equal(bar.value, 0, "zero Honor is still a valid balance")
+    equal(bar.high, 25000, "Honor uses the live currency cap")
+    equal(bar.honorAnchor, second, "Honor uses the free slot beside watched reputation")
+    equal(first.shown, true, "Honor leaves the occupied progress slot visible")
+    first.shown, first.pendingBarToShowIndex = false, 3
+    skin.events:OnEvent("PLAYER_ENTERING_WORLD"); Flush()
+    equal(bar.honorAnchor, second, "Honor avoids the slot reserved for Reputation while it is hidden at login")
+    equal(first.shown, false, "the Honor refresh never changes native slot visibility")
+    first.shown, first.pendingBarToShowIndex = true, nil
+    equal(PanelShown(bar), true, "Honor uses the shared Suite progress bar treatment")
+    balance, cap = 3000, 27000
+    Combat(true)
+    skin.events:OnEvent("CURRENCY_DISPLAY_UPDATE")
+    equal(bar.value, 3000, "the owned fill updates in combat")
+    equal(bar.text.text, "Honor  3000 / 27000", "the label uses the live amount and cap")
+    LeaveCombat()
+    cap = secret
+    skin.events:OnEvent("CURRENCY_DISPLAY_UPDATE")
+    equal(bar:IsShown(), false, "restricted currency data cannot authorize an Honor bar")
+    cap = 27000
+    skin.events:OnEvent("CURRENCY_DISPLAY_UPDATE")
+    equal(bar:IsShown(), true, "restored currency data shows Honor again")
+    Suite.db.maxLevelHonorBar = false
+    skin:Apply()
+    equal(bar:IsShown(), false, "disabling Honor releases its progress-bar slot")
+    skin.honorBar = nil
+    first.shown, second.shown = previousFirstShown, previousSecondShown
+    UnitLevel, C_CurrencyInfo, CreateFrame = previousLevel, previousCurrency, previousCreate
+end
 Suite.GUI:Select(saved.page); Suite.GUI.frame:SetShown(saved.shown)
 Suite.db, Suite.pending, Suite.Set = saved.db, saved.pending, saved.set
 CreateFrame, C_Timer, hooksecurefunc = saved.create, saved.timer, saved.hook

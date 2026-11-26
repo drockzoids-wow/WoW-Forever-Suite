@@ -212,14 +212,20 @@ function View:Build()
             local record=row.record;if not record then return end
             if not Suite.Menus or type(Suite.Menus.CreateContextMenu)~="function" then self.message="Buff selection is unavailable on this client.";self:Refresh();return end
             Suite.Menus.CreateContextMenu(row.alternative,function(_,root)
-                local function Option(name,id)
-                    root:CreateRadio(name,function() return Suite.db.missingBuffChoices[record.key]==id end,function()
+                local function Option(name,id,rank)
+                    root:CreateRadio(name,function()
+                        local chosen=Suite.db.missingBuffChoices[record.key]
+                        return chosen==id or rank~=nil and chosen==rank
+                    end,function()
                         if InCombatLockdown() or not self.mode or GUI.page~="buffs" or not GUI.frame:IsShown() or row.record~=record then return end
                         Suite.db.missingBuffChoices[record.key]=id;self:Changed()
                     end)
                 end
                 Option("Automatic",nil)
-                for _,spell in ipairs(record.family.choices) do Option(spell.name,spell.id) end
+                for _,spell in ipairs(record.family.choices) do
+                    local id=record.key=="SHAMAN:imbue" and spell.root or spell.id
+                    Option(spell.name,id,spell.id)
+                end
             end)
         end)
         self.choiceRows[i]=row

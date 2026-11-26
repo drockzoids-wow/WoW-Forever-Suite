@@ -219,9 +219,19 @@ function Items:Update(button, record)
     end
 end
 
+local function WaitingForBank(frame)
+    if not BankFrame or Suite.LiveBankReady() then return false end
+    -- The global quality observer can see a bank item before container discovery.
+    while Suite.IsReadable(frame) and frame do
+        if frame == BankFrame then return true end
+        frame = Read(frame.GetParent, frame)
+    end
+    return false
+end
+
 function Items:Track(button, item, supplied)
     if not Suite.db or not Suite.db.itemLevels then return end
-    if not self:UsableFrame(button) or type(button.CreateFontString) ~= "function" then return end
+    if not self:UsableFrame(button) or type(button.CreateFontString) ~= "function" or WaitingForBank(button) then return end
     local record = self.buttons[button]
     if not record then
         record = {}
@@ -261,7 +271,7 @@ end
 
 function Items:VisitContainer(frame)
     if not Suite.db or not Suite.db.itemLevels then return end
-    if not self:UsableFrame(frame) then return end
+    if not self:UsableFrame(frame) or WaitingForBank(frame) then return end
     if not self.containers[frame] then
         self.containers[frame] = true
         frame:HookScript("OnShow", function() self:VisitContainer(frame) end)
@@ -336,7 +346,8 @@ function Items:Apply()
     if self.events then
         self.events:UnregisterAllEvents()
         if enabled then
-            for _, event in ipairs({ "BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED", "GET_ITEM_INFO_RECEIVED", "ADDON_LOADED" }) do self.events:RegisterEvent(event) end
+            for _, event in ipairs({ "BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED", "GET_ITEM_INFO_RECEIVED",
+                "ADDON_LOADED", "BANKFRAME_OPENED", "BANK_TABS_CHANGED" }) do self.events:RegisterEvent(event) end
         end
     end
     if not enabled then

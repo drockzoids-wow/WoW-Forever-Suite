@@ -246,7 +246,7 @@ function Bank:Capture()
 end
 
 function Bank:CaptureLayout(character)
-    if not Suite.db.offlineBank or not Visible(BankFrame) then return end
+    if not Suite.db.offlineBank or not Visible(BankFrame) or not Suite.LiveBankReady() then return end
     local layout = ReadLayout(BankFrame)
     if character and layout then character.bankViewLayout = layout end
 end
@@ -254,6 +254,7 @@ end
 function Bank:WatchLayout()
     local frame = BankFrame
     if not frame or self.layoutFrame == frame or InCombatLockdown() or not frame.HookScript then return end
+    if not Suite.LiveBankReady() then return end
     if frame.IsForbidden then
         local forbidden = frame:IsForbidden()
         if not Suite.IsReadable(forbidden) or forbidden ~= false then return end
@@ -721,6 +722,7 @@ function Bank:Schedule(delay)
     self.timer = C_Timer.NewTimer(delay or 0.15, function()
         self.timer = nil
         if not Suite.db.offlineBank then return end
+        if self.bankOpen then self:WatchLayout() end
         if self:Capture() then self:RetryCapture() end
         if Visible(self.frame) then self:Refresh() end
     end)
@@ -734,12 +736,8 @@ function Bank:OnEvent(event)
     elseif event == "BANKFRAME_OPENED" then
         self.bankOpen, self.requested = true, {}
         if self.frame then self.frame:Hide() end
-        Suite.AfterCombat("bankLayoutWatch", function()
-            if Suite.db.offlineBank and self.bankOpen then self:WatchLayout() end
-        end)
     elseif event == "BANKFRAME_CLOSED" then
         -- The close event can arrive after the client has already cleared its bank containers.
-        Suite.pending.bankLayoutWatch = nil
         self.bankOpen = false; self:Cancel(); return
     elseif event == "PLAYER_LOGOUT" then self:Cancel(); self:Capture(); return
     elseif event == "PLAYER_ENTERING_WORLD" then
@@ -772,7 +770,7 @@ function Bank:Apply()
     if not Suite.db.offlineBank then
         self:Cancel()
         Suite.pending.bankViewToggle, Suite.pending.bankViewEnable = nil, nil
-        Suite.pending.bankLayoutWatch, Suite.pending.bankOwner = nil, nil
+        Suite.pending.bankOwner = nil
         if self.events then self.events:UnregisterAllEvents() end
         self:HideTooltip(); Suite.pending.bankViewRefresh = nil
         if self.frame then self.frame:Hide() end
@@ -788,7 +786,7 @@ function Bank:Apply()
         for _, event in ipairs({ "BANKFRAME_OPENED", "BANKFRAME_CLOSED", "BAG_UPDATE_DELAYED",
             "PLAYERBANKSLOTS_CHANGED", "PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED", "BANK_TABS_CHANGED",
             "BANK_TAB_SETTINGS_UPDATED", "ITEM_DATA_LOAD_RESULT", "PLAYER_ENTERING_WORLD", "PLAYER_LOGOUT",
-            "MODIFIER_STATE_CHANGED" }) do self.events:RegisterEvent(event) end
+            "MODIFIER_STATE_CHANGED", "PLAYER_REGEN_ENABLED" }) do self.events:RegisterEvent(event) end
         self.active, self.bankOpen = true, Visible(BankFrame)
         -- Login records the owner even when that character has never visited a bank.
         Suite.Inventory:Character()

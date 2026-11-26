@@ -1,5 +1,14 @@
 # Forever Suite
 
+## 1.0.32 — November 26, 2026
+
+- Missing Buffs shares one position in and out of combat. Missing spells can show their existing action-bar shortcut, and combat expiry warnings show a countdown.
+- Right-click a missing shaman weapon imbue to choose Rockbiter, Flametongue, or another learned imbue. The choice survives reloads and rank upgrades. Weapon buff reminders pause while a fishing pole is equipped.
+- Profiles puts the character picker and new profile name together. Scroll to page through character choices, create a copy, and switch to it when ready.
+- At level 60, optionally show Honor in a Suite progress bar alongside watched reputation.
+- Optional custom nameplates keep Blizzard colors and outlined names while adding a left-side level, health and mana values, and debuff controls. Restricted regions retain their native anchors.
+- Live-bank controls wait for Blizzard to grant a new character’s first bank tab.
+
 ## 1.0.31 — November 26, 2026
 
 - Victory Rush shows during a confirmed Victorious window in combat and clears when used. A fresh proc can show its countdown and cooldown swipe together. Fix a stray line left by the combat display.

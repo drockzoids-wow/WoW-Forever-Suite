@@ -12,7 +12,7 @@ function Theme:RouteWheel(frame, inherited, pageScroll)
     -- A settings page owns wheel gestures over its controls. Genuine nested
     -- scroll views retain their own wheel route and remain independent.
     local kind = frame.GetObjectType and frame:GetObjectType()
-    if pageScroll and (kind == "ScrollFrame" or kind == "Slider" and frame:GetScript("OnMouseWheel")) then
+    if pageScroll and (frame.suiteOwnsWheel or kind == "ScrollFrame" or kind == "Slider" and frame:GetScript("OnMouseWheel")) then
         self:RouteWheel(frame)
         return
     end

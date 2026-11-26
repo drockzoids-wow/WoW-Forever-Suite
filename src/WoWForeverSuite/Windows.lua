@@ -380,6 +380,7 @@ end
 function Windows:PlaceWindow(name, frame)
     if not Suite.IsReadable(name) or type(name) ~= "string" or isBagName[name]
         or not Suite.db.windowTools or InCombatLockdown() then return end
+    if name == "BankFrame" and not Suite.LiveBankReady() then return end
     if FramePositionDelegate then
         local updating = FramePositionDelegate.updatingPanels
         if not Suite.IsReadable(updating) or updating then return end
@@ -618,6 +619,7 @@ function Windows:Reset(record)
 end
 
 function Windows:Track(name, frame)
+    if name == "BankFrame" and not Suite.LiveBankReady() then return end
     if frame and frame.foreverMeter then return end
     if self.tracked[name] then self:Schedule(self.tracked[name]); return end
     if not CanTouch(frame) or not frame.GetNumPoints or not frame.SetScale then return end
@@ -694,6 +696,7 @@ end
 
 function Windows:WatchWindow(name, frame)
     if not Suite.db.windowTools or InCombatLockdown() then return end
+    if name == "BankFrame" and not Suite.LiveBankReady() then return end
     if not frame or frame.foreverMeter or (frame.IsForbidden and frame:IsForbidden()) then return end
     if not self.watched[frame] then
         self.watched[frame] = true
@@ -773,6 +776,8 @@ function Windows:Apply()
         self.events:UnregisterAllEvents()
         if Suite.db.windowTools then
             self.events:RegisterEvent("ADDON_LOADED")
+            self.events:RegisterEvent("BANKFRAME_OPENED")
+            self.events:RegisterEvent("BANK_TABS_CHANGED")
             self.events:RegisterEvent("PLAYER_REGEN_DISABLED")
             self.events:RegisterEvent("PLAYER_ENTERING_WORLD")
             self.events:RegisterEvent("DISPLAY_SIZE_CHANGED")

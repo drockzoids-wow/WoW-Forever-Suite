@@ -489,8 +489,11 @@ end
 function Search:Discover()
     if not self:Enabled() then return end
     if InCombatLockdown() then Suite.pending.inventorySearchDiscover = function() self:Discover() end; return end
-    self:Attach(BagItemSearchBox); self:Attach(BankItemSearchBox)
-    if Safe(BankFrame) then self:Attach(BankFrame.BankItemSearchBox) end
+    self:Attach(BagItemSearchBox)
+    if Suite.LiveBankReady() then
+        self:Attach(BankItemSearchBox)
+        if Safe(BankFrame) then self:Attach(BankFrame.BankItemSearchBox) end
+    end
     if Suite.OfflineBank then self:Attach(Suite.OfflineBank.search) end
     if Suite.OfflineBags then self:Attach(Suite.OfflineBags.search) end
 end
@@ -503,6 +506,8 @@ function Search:OnEvent(event, id)
         if self.owner and Read(self.owner, "IsMouseOver") ~= true and Read(self.popup, "IsMouseOver") ~= true then self:Dismiss() end
     elseif event == "ITEM_DATA_LOAD_RESULT" then
         if Integer(id, 1, 2147483647) and self.requested[id] then self.metadata[id] = nil; self:Schedule() end
+    elseif event == "BANKFRAME_OPENED" or event == "BANK_TABS_CHANGED" then
+        C_Timer.After(0, function() if not self.shuttingDown then self:Discover() end end)
     else
         if event == "PLAYER_ENTERING_WORLD" then self.shuttingDown = nil; self:InventoryChanged() end
         self:Discover()
@@ -520,7 +525,7 @@ function Search:Apply()
             if not self.events then
                 self.events = CreateFrame("Frame"); self.events:SetScript("OnEvent", function(_, ...) self:OnEvent(...) end)
             end
-            for _, event in ipairs({ "ADDON_LOADED", "PLAYER_ENTERING_WORLD", "PLAYER_REGEN_DISABLED",
+            for _, event in ipairs({ "ADDON_LOADED", "PLAYER_ENTERING_WORLD", "BANKFRAME_OPENED", "BANK_TABS_CHANGED", "PLAYER_REGEN_DISABLED",
                 "PLAYER_REGEN_ENABLED", "ITEM_DATA_LOAD_RESULT", "GLOBAL_MOUSE_DOWN", "PLAYER_LOGOUT" }) do
                 local valid = true
                 if C_EventUtils and type(C_EventUtils.IsEventValid) == "function" then

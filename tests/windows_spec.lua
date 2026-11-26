@@ -393,11 +393,16 @@ end
 
 -- Simulate a render opportunity immediately after native bank opening, before timers.
 local oldBank, oldView, oldShow = BankFrame, WoWForeverSuiteBankView, ShowUIPanel
+local oldBankAPI,oldBankEnum=C_Bank,Enum
 local oldBankViewFrame = Suite.OfflineBank.frame
 windows:CancelTimer()
 windows.names, windows.tracked, windows.watched, windows.events = { "BankFrame" }, {}, {}, nil
 BankFrame = Window("BankFrame", false)
 BankFrame:SetSize(480, 460)
+BankFrame.PurchaseFirstSlot=function() error("Suite must never grant the first tab") end
+local purchased=0
+C_Bank={FetchNumPurchasedBankTabs=function() return purchased end}
+Enum={BankType={Character=0}}
 WoWForeverSuiteBankView = Window("WoWForeverSuiteBankView", false)
 Suite.OfflineBank.frame = WoWForeverSuiteBankView
 Suite.Windows.positions.BankFrame = { x = 0.18, y = -0.12, scale = 1.2 }
@@ -412,6 +417,13 @@ ShowUIPanel = function(frame)
 end
 windows:Apply(); Flush()
 equal(windows.tracked.BankFrame, nil, "hidden native bank waits for opening")
+ShowUIPanel(BankFrame)
+equal(windows.watched[BankFrame],nil,"new character's bank gets no native hooks before first grant")
+equal(windows.tracked.BankFrame,nil,"new character's first bank open leaves placement native")
+equal(BankFrame.point[1],"TOPLEFT","unowned native bank stays at Blizzard's position")
+purchased=1
+windows.events:OnEvent("BANK_TABS_CHANGED"); Flush()
+BankFrame:Hide(); BankFrame.OnHide(BankFrame)
 ShowUIPanel(BankFrame)
 equal(BankFrame.point[1], "CENTER", "first bank opening restores its position before the next render")
 equal(BankFrame.point[4], 150, "first bank opening restores saved horizontal offset immediately")
@@ -478,6 +490,7 @@ ShowUIPanel(BankFrame)
 equal(BankFrame.point[1], "TOPLEFT", "disabled bank hooks leave native opening alone")
 equal(ActiveTimers(), 0, "disabled bank opening creates no timers")
 BankFrame, WoWForeverSuiteBankView, ShowUIPanel = oldBank, oldView, oldShow
+C_Bank,Enum=oldBankAPI,oldBankEnum
 Suite.OfflineBank.frame = oldBankViewFrame
 
 -- Saved native panels must settle before rendering, after the whole panel pass.

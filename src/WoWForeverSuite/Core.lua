@@ -1,6 +1,6 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "1.0.31"
+Suite.version = "1.0.32"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {
@@ -15,9 +15,10 @@ Suite.defaults = {
     showFPS = true, showLatency = true, showCoordinates = true, showClock = true,
     windowTools = false, guiPosition = {}, offlineBank = false, bankDepositReagents = false,
     fullButtonRange = false, actionBarSkin = false, hideMacroNames = false, classHealthBars = false, targetThreat = false,
+    customNameplates = false, nameplateDebuffs = "all", nameplateCastHeight = 12,
     combatIndicator = false, combatIndicatorPersistent = false, combatIndicatorLocked = false, combatIndicatorPosition = {},
     procAlerts = false, procAlertPosition = {}, procAlertIconSize = 42,
-    statusBarSkin = false, bagBarSkin = false, microBarSkin = false, playerBuffBorders = false,
+    statusBarSkin = false, maxLevelHonorBar = false, bagBarSkin = false, microBarSkin = false, playerBuffBorders = false,
     progressBarValues = false, progressBarCustomSize = false, progressBarWidth = 600, progressBarHeight = 14, progressBarSegments = false,
     progressBarSegmentPercent = 10,
     shortKeybinds = false, keybindFontStyle = false, keybindFont = "default", keybindSize = 12,
@@ -63,6 +64,21 @@ function Suite.Copy(value)
     local result = {}
     for key, child in pairs(value) do result[key] = Suite.Copy(child) end
     return result
+end
+
+function Suite.LiveBankReady()
+    -- Camelot's native OnShow grants the free first character-bank tab.
+    -- Do not attach to its live UI while that protected path is still needed.
+    if not Suite.IsReadable(BankFrame) then return false end
+    if not BankFrame then return true end
+    local first = BankFrame.PurchaseFirstSlot
+    if not Suite.IsReadable(first) then return false end
+    if type(first) ~= "function" then return true end
+    local bankType = Enum and Enum.BankType and Enum.BankType.Character
+    local countTabs = C_Bank and C_Bank.FetchNumPurchasedBankTabs
+    if not Suite.IsReadable(bankType) or type(bankType) ~= "number" or type(countTabs) ~= "function" then return false end
+    local ok, count = pcall(countTabs, bankType)
+    return ok and Suite.IsReadable(count) and type(count) == "number" and count >= 1 and count % 1 == 0
 end
 
 function Suite.InitializeDB(saved)

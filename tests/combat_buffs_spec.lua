@@ -74,6 +74,12 @@ New = function(kind, name, parent, template)
         self:SetPoint("BOTTOMRIGHT", relative, "BOTTOMRIGHT", 0, 0)
     end
     frame.SetClipsChildren = function(self, value) self.clips = value end
+    if kind == "Cooldown" then
+        frame.SetDrawSwipe = function(self, value) self.drawSwipe = value end
+        frame.SetDrawEdge = function() end
+        frame.SetDrawBling = function() end
+        frame.SetHideCountdownNumbers = function(self, value) self.hideNumbers = value end
+    end
     frame.SetVertexColor = function(self, ...) self.vertex = { ... } end
     frame.SetTexCoord = function(self, ...) self.texCoords = { ... } end
     frame.SetAlpha = function(self, value) self.alpha = value end
@@ -103,6 +109,10 @@ New = function(kind, name, parent, template)
                 button.SetDurationText = function(_, gate, binding)
                     button.gate, button.formatter = gate, binding.textFormatter
                     gate.GetText, gate.GetWidth, gate.GetHeight = NoRead, NoRead, NoRead
+                end
+                button.SetDurationCooldown = function(_, cooldown)
+                    Outside()
+                    button.durationCooldown = cooldown
                 end
                 options.initializeFrame(button)
                 -- The native provider applies access restrictions after the
@@ -205,6 +215,7 @@ local function Aura(unit, present, remaining, permanent)
                     for _, rule in ipairs(button.formatter.points) do if remaining >= rule.threshold then format = rule.format end end
                     button.gate:SetText(format)
                 end
+                if button.durationCooldown then button.durationCooldown.remaining = button.shown and remaining or nil end
             end
         end
     end
@@ -220,6 +231,23 @@ equal(containers[1].options.candidateFilters.includeSpellIDs[1461], true, "learn
 equal(containers[1].options.candidateFilters.includeSpellIDs[10157], true, "other classic ranks are included without spellbook API guesses")
 equal(combat.frame:IsShown(), false, "native combat host stays hidden outside combat")
 local record = combat.records["MAGE:intellect"]
+do
+    local oldButton,oldInfo,oldKey,oldAction=ActionButton1,GetActionInfo,GetBindingKey,GetBindingAction
+    local oldLabels=buffs.bindingLabels
+    local command="ACTIONBUTTON1"
+    ActionButton1={action=1,bindingAction=command,IsVisible=function() return true end}
+    GetActionInfo=function() return "spell",1461 end
+    GetBindingKey=function() return "CTRL-R" end
+    GetBindingAction=function() return command end
+    buffs:RefreshBindingLabels()
+    local label=record.rangeGates[1].cooldownPlate.bindingLabel
+    equal(label.text,"CR","combat missing icon shows the action bar's compact keybind")
+    command="ACTIONBUTTON2"
+    SetCombat(true);buffs:RefreshBindingLabels();SetCombat(false)
+    equal(label.text,"","a different effective binding clears the label during combat")
+    ActionButton1,GetActionInfo,GetBindingKey,GetBindingAction=oldButton,oldInfo,oldKey,oldAction
+    buffs.bindingLabels=oldLabels
+end
 local oldCombatFrame = Suite.BuffReminders.combatFrame
 local legacy = New("Frame", nil, UIParent, "BackdropTemplate")
 Suite.BuffReminders.combatFrame = legacy
@@ -228,10 +256,12 @@ equal(legacy.points.TOP[1], UIParent, "weapon reminders anchor to the ordinary r
 equal(legacy.points.TOP[4], -140, "weapon reminders share the native default row instead of dropping below it")
 Suite.db.missingBuffPosition = { x = 0.1, y = -0.2 }
 Suite.BuffReminders:PlaceCombat()
-equal(legacy.points.CENTER[1], UIParent, "saved placement also avoids the native forbidden-aspect dependency")
-equal(legacy.points.CENTER[2], "CENTER", "saved center position provides an independent shared-row anchor")
-equal(legacy.points.CENTER[3], 0.1 * UIParent:GetWidth(), "weapon row retains the saved horizontal position")
-equal(legacy.points.CENTER[4], -0.2 * UIParent:GetHeight(), "weapon row retains the same saved vertical position")
+equal(legacy.points.TOP[1], UIParent, "saved placement also avoids the native forbidden-aspect dependency")
+equal(legacy.points.TOP[2], "CENTER", "saved center position provides an independent shared-row anchor")
+equal(legacy.points.TOP[3], 0.1 * UIParent:GetWidth(), "weapon row retains the saved horizontal position")
+local _, singleRowHeight=buffs:BarLayout(1)
+equal(legacy.points.TOP[4], -0.2 * UIParent:GetHeight()+singleRowHeight/2, "weapon row follows the shared top edge")
+equal(legacy.points.TOP[4],combat.frame.points.TOP[4],"both combat hosts match the reference row's top")
 Suite.BuffReminders.combatSlots = 1
 Suite.BuffReminders:PlaceCombat()
 local pairWidth,pairHeight,pairSize,pairStride=buffs:BarLayout(1)
@@ -353,14 +383,27 @@ equal(TitleDrawn(),false,"healthy buffs also hide the combat title through nativ
 equal(next(Names()), nil, "healthy member names do not appear in tooltip")
 Aura("player", true, 15)
 equal(Icons(), 1, "native warning window reveals the near-expiry icon")
+local function DrawnCountdown()
+    for _, container in ipairs(containers) do
+        for _, button in ipairs(container.buttons or {}) do
+            local cooldown=button.durationCooldown
+            if cooldown and Drawn(cooldown) then return cooldown.remaining end
+        end
+    end
+end
+equal(DrawnCountdown(),15,"the native cooldown displays the player's remaining buff time")
+Aura("player", true, 12)
+equal(DrawnCountdown(),12,"the countdown follows the native duration in combat")
 equal(TitleDrawn(),true,"native near-expiry warning also reveals the floating title")
 equal(Names().Caster, true, "near-expiry member is listed")
 equal(Names().Friend, nil, "healthy teammate remains absent from tooltip")
 Aura("player", true, 120)
 equal(Icons(), 0, "refreshing in combat clears the near-expiry reminder")
+equal(DrawnCountdown(),nil,"refreshing before expiry hides the countdown")
 equal(TitleDrawn(),false,"refreshing clears the combat title without Lua visibility queries")
 Aura("player", false, 0)
 equal(Icons(), 1, "expiry in combat reveals the missing icon")
+equal(DrawnCountdown(),nil,"an expired buff shows the missing icon without a countdown")
 record.tooltip:Hide()
 equal(next(Names()), nil, "hiding tooltip also clips names parented to native buttons")
 record.tooltip:Show(); record.cell:Hide()

@@ -15,10 +15,23 @@ local function Button(parent, text, x, y, width, callback)
 
     return button
 end
+local function NameField(parent, x, y)
+    local box = CreateFrame("EditBox", nil, parent, "BackdropTemplate")
+    box:SetPoint("TOPLEFT", x, y); box:SetSize(326, 30)
+    box:SetAutoFocus(false); box:SetMaxLetters(40)
+    box:SetFont("Fonts\\FRIZQT__.TTF",12,""); box:SetTextInsets(8,8,0,0)
+    box:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
+    box:SetBackdropColor(0.035,0.05,0.065,1); Suite.Theme:Backdrop(box, 1)
+    box:SetScript("OnEnterPressed",function() box:ClearFocus() end)
+    box:SetScript("OnEscapePressed",function() box:ClearFocus() end)
+    return box
+end
 function View:Dismiss()
     self.review,self.removing,self.message=nil,nil,nil
     Suite.pending.profilesBuild=nil
     if self.name then self.name:ClearFocus() end
+    if self.copyName then self.copyName:ClearFocus() end
+    self.copyMessage=nil
     if self.sourcePopup then self.sourcePopup:Hide() end
 end
 function View:Message(ok,message)
@@ -45,7 +58,11 @@ function View:Build()
     for i=1,6 do
         local row=Button(panel,"",0,-148-(i-1)*46,236,function()
             local entry=Profiles.store and Profiles.store.entries[(self.page-1)*6+i]
-            if entry then self.selected=entry.id;self.review,self.removing,self.message=nil,nil,nil;self:Refresh(true) end
+            if entry then
+                self.selected=entry.id
+                self.review,self.removing,self.message,self.copyMessage=nil,nil,nil,nil
+                self:Refresh(true)
+            end
         end)
         row:SetHeight(38);self.rows[i]=row
     end
@@ -53,52 +70,74 @@ function View:Build()
     self.next=Button(panel,"Next",124,-434,112,function() self.page=math.min(math.ceil(#Profiles.store.entries/6),self.page+1);self:Refresh() end)
     self.wheelArea=Suite.Theme:PageWheel(panel,self.rows,self.prev,self.next,self.next)
     self.count=Label(panel,"",0,-480,236,11,colors.muted)
-    self.detail=Label(panel,"",264,-122,516,16,colors.teal)
-    self.summary=Label(panel,"",264,-151,516,11,colors.muted);self.summary:SetHeight(42)
-    self.use=Button(panel,"Review switch",264,-202,188,function() self:Review(self.selected,Profiles.activePersonal) end)
-    self.delete=Button(panel,"Delete profile",464,-202,156,function()
-        self.removing=self.selected;self.review=nil;self:Refresh()
-    end)
-    Label(panel,"Profile name",264,-254,516,11,colors.muted)
-    local name=CreateFrame("EditBox",nil,panel,"BackdropTemplate")
-    name:SetPoint("TOPLEFT",264,-278);name:SetSize(326,30);name:SetAutoFocus(false);name:SetMaxLetters(40)
-    name:SetFont("Fonts\\FRIZQT__.TTF",12,"");name:SetTextInsets(8,8,0,0)
-    name:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
-    name:SetBackdropColor(0.035,0.05,0.065,1);Suite.Theme:Backdrop(name, 1)
-    name:SetScript("OnEnterPressed",function() name:ClearFocus() end)
-    name:SetScript("OnEscapePressed",function() name:ClearFocus() end);self.name=name
-    self.rename=Button(panel,"Rename",602,-278,178,function()
-        local ok,err=Profiles:Rename(self.selected,name:GetText());self:Message(ok,err)
-    end)
-    Label(panel,"COPY A SETUP",264,-337,516,11,colors.muted)
-    self.source=Button(panel,"",264,-362,516,function()
+    Label(panel,"Copy settings from",264,-122,516,16,colors.teal)
+    self.source=Button(panel,"",264,-148,516,function()
         GUI:ScrollTo(0);self.sourcePage=math.ceil((self.sourceIndex or 1)/6);self.sourcePopup:SetShown(not self.sourcePopup:IsShown());self:RefreshSources()
     end)
     local popup=CreateFrame("Frame",nil,panel,"BackdropTemplate")
-    popup:SetPoint("TOPLEFT",264,-114);popup:SetSize(516,284)
+    local rowCount,rowTop,rowSpacing=6,36,34
+    local footerTop=rowTop+(rowCount-1)*rowSpacing+30+20
+    popup:SetPoint("TOPLEFT",264,-114);popup:SetSize(516,footerTop+30+14)
     popup:SetFrameLevel(panel:GetFrameLevel()+10);popup:EnableMouse(true)
     popup:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
     popup:SetBackdropColor(0.035,0.05,0.065,1);Suite.Theme:Backdrop(popup, 1)
-    Label(popup,"COPY FROM",12,-12,492,11,colors.muted)
+    Label(popup,"Choose a character",12,-12,492,13,colors.text)
     self.sourcePopup,self.sourceRows=popup,{}
-    for i=1,6 do
-        self.sourceRows[i]=Button(popup,"",12,-36-(i-1)*32,492,function()
-            self.sourceIndex=((self.sourcePage or 1)-1)*6+i;popup:Hide();self:Refresh()
+    for i=1,rowCount do
+        self.sourceRows[i]=Button(popup,"",12,-rowTop-(i-1)*rowSpacing,492,function()
+            local source=self.sources[(self.sourcePage-1)*6+i]
+            if source then
+                self.sourceGUID,self.copyMessage=source.guid,nil
+                popup:Hide()
+                self:Refresh()
+            end
         end)
-        self.sourceRows[i]:SetHeight(28)
     end
-    self.sourcePrev=Button(popup,"Previous",12,-242,140,function() self.sourcePage=self.sourcePage-1;self:RefreshSources() end)
-    self.sourceNext=Button(popup,"Next",164,-242,140,function() self.sourcePage=self.sourcePage+1;self:RefreshSources() end)
-    Suite.Theme:PageWheel(popup,self.sourceRows,self.sourcePrev,self.sourceNext,self.sourceRows[#self.sourceRows])
-    Button(popup,"Close",316,-242,188,function() popup:Hide() end)
+    self.sourcePrev=Button(popup,"Previous",12,-footerTop,140,function() self.sourcePage=self.sourcePage-1;self:RefreshSources() end)
+    self.sourceNext=Button(popup,"Next",164,-footerTop,140,function() self.sourcePage=self.sourcePage+1;self:RefreshSources() end)
+    Button(popup,"Close",316,-footerTop,188,function() popup:Hide() end)
+    local wheelArea=Suite.Theme:PageWheel(popup,self.sourceRows,self.sourcePrev,self.sourceNext,self.sourceNext)
+    -- The dropdown pages independently of the settings scroll frame.
+    popup.suiteOwnsWheel=true
+    popup:SetScript("OnMouseWheel",wheelArea:GetScript("OnMouseWheel"))
+    Suite.Theme:RouteWheel(popup)
     popup:Hide()
-    self.copy=Button(panel,"Save as new profile",264,-404,228,function()
-        local source=self.sources[self.sourceIndex or 1]
-        local id,err=Profiles:Create(name:GetText(),source and source.guid)
-        if id then self.selected=id;self.page=math.ceil(#Profiles.store.entries/6);self:Message(true,"Copy saved. Review switch to use it.")
-        else self:Message(false,err) end
+    Label(panel,"New profile name",264,-191,326,11,colors.muted)
+    self.copyName=NameField(panel,264,-209)
+    self.copy=Button(panel,"Create copy",602,-209,178,function()
+        local name=self.copyName:GetText() or ""
+        if name:match("^%s*$") then
+            self.copyMessage="Enter a name for the new profile."
+            self:Refresh()
+            return
+        end
+        local id,err=Profiles:Create(name,self.sourceGUID)
+        if id then
+            self.selected=id
+            self.page=math.ceil(#Profiles.store.entries/6)
+            self.review,self.removing,self.message=nil,nil,nil
+            self.copyName:SetText("")
+            self.copyName:ClearFocus()
+            self.copyMessage="Created "..Profiles:Find(id).name..". Click Switch profile below to use it."
+        else
+            self.copyMessage=err
+        end
+        self:Refresh()
     end)
-    Label(panel,"Choose the source above; enter a new name in Profile name. Character sources use their last saved setup.",264,-450,516,11,colors.muted)
+    Label(panel,"Other characters use the settings saved when they last played.",264,-249,516,11,colors.muted)
+    self.copyStatus=Label(panel,"",264,-273,516,11,colors.gold);self.copyStatus:SetHeight(34)
+
+    self.detail=Label(panel,"",264,-322,516,16,colors.teal)
+    self.summary=Label(panel,"",264,-350,516,11,colors.muted);self.summary:SetHeight(34)
+    self.use=Button(panel,"Switch profile",264,-387,188,function() self:Review(self.selected,Profiles.activePersonal) end)
+    self.delete=Button(panel,"Delete profile",464,-387,156,function()
+        self.removing=self.selected;self.review=nil;self:Refresh()
+    end)
+    Label(panel,"Selected profile name",264,-430,326,11,colors.muted)
+    self.name=NameField(panel,264,-448)
+    self.rename=Button(panel,"Rename",602,-448,178,function()
+        local ok,err=Profiles:Rename(self.selected,self.name:GetText());self:Message(ok,err)
+    end)
     self.status=Label(panel,"",0,-520,780,11,colors.gold);self.status:SetHeight(30)
     self.reviewText=Label(panel,"",0,-562,780,11);self.reviewText:SetHeight(62)
     self.confirm=Button(panel,"Use & reload",0,-638,188,function()
@@ -151,8 +190,8 @@ function View:Refresh(resetName)
     local ready=not InCombatLockdown() and not Profiles.reloadPending
     self.active:SetText("Active: "..current.name)
     self.scope:SetText(Profiles.activePersonal
-        and "Personal changes are saved for this character. Unchanged settings follow the shared profile."
-        or "Shared changes are saved to this profile for every character using it. Default preserves your existing setup.")
+        and "Your changes apply to this character. Other settings follow the shared profile."
+        or "Your changes apply to every character using this profile.")
     self.shared:SetEnabled(ready and Profiles.activePersonal);self.personal:SetEnabled(ready and not Profiles.activePersonal)
     self.shared.label:SetText(Profiles.activePersonal and "Use shared settings" or "Shared profile active")
     self.personal.label:SetText(Profiles.activePersonal and "Personal changes active" or "Only this character")
@@ -169,24 +208,31 @@ function View:Refresh(resetName)
     self.count:SetText(#Profiles.store.entries.." / 12 profiles  |  Page "..self.page)
     self.detail:SetText(entry.name)
     local users=0;for _,r in pairs(Profiles.store.characters) do if r.id==entry.id then users=users+1 end end
-    self.summary:SetText((entry.id==Profiles.activeID and "Currently active. " or "Available to every character. ")
-        ..users.." recorded character(s).\nCopies include Suite feature choices and Suite window layouts.")
+    self.summary:SetText((entry.id==Profiles.activeID and "Currently active. " or "")
+        ..users..(users==1 and " character uses this profile." or " characters use this profile."))
     self.use:SetEnabled(ready and entry.id~=Profiles.activeID)
     self.rename:SetEnabled(ready and entry.id~="default")
     self.delete:SetEnabled(ready and entry.id~="default" and entry.id~=Profiles.activeID and users==0)
     if resetName or self.inputID~=entry.id then self.name:SetText(entry.name);self.inputID=entry.id end
-    self.sources={{label="Current setup"}}
+    self.sources={{label="This character (current settings)"}}
     local characters={}
     for guid,record in pairs(Profiles.store.characters) do
         if guid~=Profiles.guid then characters[#characters+1]={guid=guid,label=record.name..(record.realm~="" and " - "..record.realm or "")} end
     end
     table.sort(characters,function(a,b) if a.label==b.label then return a.guid<b.guid end;return a.label<b.label end)
-    for _,source in ipairs(characters) do self.sources[#self.sources+1]=source end
-    self.sourceIndex=math.min(self.sourceIndex or 1,#self.sources)
-    self.source.label:SetText("Source: "..self.sources[self.sourceIndex].label..(#self.sources>1 and "  (choose)" or ""))
+    self.sourceIndex=1
+    for _,source in ipairs(characters) do
+        self.sources[#self.sources+1]=source
+        if source.guid==self.sourceGUID then self.sourceIndex=#self.sources end
+    end
+    local source=self.sources[self.sourceIndex]
+    self.source.label:SetText(self.sourceGUID and not source.guid and "Character unavailable"
+        or source.label..(#self.sources>1 and "  (choose)" or ""))
+    self.copyStatus:SetText(self.copyMessage or "")
     if InCombatLockdown() then self.sourcePopup:Hide() end
     self:RefreshSources()
-    self.source:SetEnabled(ready and #self.sources>1);self.copy:SetEnabled(ready and #Profiles.store.entries<Profiles.limit)
+    self.source:SetEnabled(ready and (#self.sources>1 or self.sourceGUID~=nil))
+    self.copy:SetEnabled(ready and #Profiles.store.entries<Profiles.limit)
     self.status:SetText(InCombatLockdown() and "Profile actions are available after combat."
         or Profiles.reloadPending and "Profile selection saved. Type /reload to finish switching." or self.message or "")
     local review=self.review

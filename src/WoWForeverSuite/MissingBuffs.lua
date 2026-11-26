@@ -327,6 +327,16 @@ function Buffs:Present(family, auras, expiry)
     return false
 end
 
+function Buffs:FishingPoleEquipped()
+    local id=Call(GetInventoryItemID,"player",16)
+    local getter=C_Item and C_Item.GetItemInfoInstant
+    if not ID(id) or type(getter) ~= "function" then return false end
+    local ok, _, _, _, _, _, class, subclass=pcall(getter,id)
+    -- ItemWeaponSubclass.Fishingpole is 20 on Forever. Use item metadata
+    -- so localized names and combat visibility do not affect the check.
+    return ok and Number(class) and class == 2 and Number(subclass) and subclass == 20
+end
+
 function Buffs:Weapon(slot, weaponSlot, requireImbue)
     if not C_Item or not Enum or not Enum.ItemEnchantType or not Number(weaponSlot) then return end
     local id = Call(GetInventoryItemID, "player", slot)
@@ -372,6 +382,7 @@ function Buffs:Collect()
     if not player then return entries end
     if self.bookDirty then self.learned, self.learnedComplete = self:Learned(); self.bookDirty = false end
     local families = self:Families(player.class, self.learned or {})
+    local fishing = self:FishingPoleEquipped()
     self.weaponBuffAvailable, self.poisonOptionsAvailable = false, false
     for _, family in ipairs(families) do
         if family.catalog.weapon and #family.choices > 0 then self.weaponBuffAvailable = true end
@@ -384,7 +395,7 @@ function Buffs:Collect()
         local personalFamily = self:Recipient(family,player.class)
         local spell, catalog = personalFamily.spell, family.catalog
         local personalEntry
-        if spell and not catalog.combatOnly then
+        if spell and not catalog.combatOnly and not (fishing and catalog.weapon) then
             local personal = not catalog.group or catalog.upkeep
             local present, remaining = self:Present(personalFamily, auras.player, true)
             if catalog.weapon then
@@ -478,7 +489,7 @@ function Buffs:Collect()
             end
         end
     end
-    if player.class == "ROGUE" and Suite.db.missingBuffClass then
+    if not fishing and player.class == "ROGUE" and Suite.db.missingBuffClass then
         local choices = self:PoisonChoices()
         self.poisonOptionsAvailable = #choices > 0
         local trained = C_SpellBook and Call(C_SpellBook.IsSpellKnown, 2842) == true
@@ -497,7 +508,7 @@ function Buffs:Collect()
             end
         end
     end
-    Suite.BuffReminders:AddCoatings(entries)
+    if not fishing then Suite.BuffReminders:AddCoatings(entries) end
     return entries
 end
 
@@ -552,7 +563,11 @@ function Buffs:Place(frame)
     local ratio = effective / parentScale
     frame:ClearAllPoints()
     if Read(saved, "table") and Number(saved.x) and Number(saved.y) and math.abs(saved.x) <= 0.5 and math.abs(saved.y) <= 0.5 then
-        frame:SetPoint("CENTER", UIParent, "CENTER", saved.x * UIParent:GetWidth() / ratio, saved.y * UIParent:GetHeight() / ratio)
+        -- Saved coordinates locate the center of one row. Use its top edge for
+        -- every host so extra rows can grow down without shifting the title.
+        local _, oneRowHeight = self:BarLayout(1)
+        frame:SetPoint("TOP", UIParent, "CENTER", saved.x * UIParent:GetWidth() / ratio,
+            saved.y * UIParent:GetHeight() / ratio + oneRowHeight / 2)
     else frame:SetPoint("TOP", UIParent, "TOP", 0, -140 / ratio) end
 end
 
@@ -564,11 +579,13 @@ function Buffs:StopMoving(frame)
     local x, y = frame:GetCenter()
     local scale, parentScale = frame:GetEffectiveScale(), UIParent:GetEffectiveScale()
     local width, height = UIParent:GetWidth(), UIParent:GetHeight()
+    local frameHeight = frame:GetHeight()
+    local _, oneRowHeight = self:BarLayout(1)
     if Number(x) and Number(y) and Number(scale) and Number(parentScale) and parentScale > 0
-        and Number(width) and Number(height) and width > 0 and height > 0 then
+        and Number(width) and Number(height) and Number(frameHeight) and width > 0 and height > 0 then
         local ratio = scale / parentScale
         Suite.db.missingBuffPosition = { x = math.max(-0.5, math.min(0.5, (x * ratio - width / 2) / width)),
-            y = math.max(-0.5, math.min(0.5, (y * ratio - height / 2) / height)) }
+            y = math.max(-0.5, math.min(0.5, ((y + (frameHeight - oneRowHeight) / 2) * ratio - height / 2) / height)) }
     end
 end
 
@@ -634,6 +651,40 @@ function Buffs:Cycle(entry)
     self:Queue()
 end
 
+function Buffs:ChooseImbue(button)
+    local entry = button.entry
+    if not Enabled() or not self:Context() or not entry or not button:IsShown()
+        or self:FishingPoleEquipped() then return end
+    HideTooltip(button)
+    local key = "SHAMAN:imbue"
+    Suite.Menus.CreateContextMenu(button, function(_, root)
+        root:CreateTitle("Weapon imbue")
+        local function Option(label, id, rank)
+            root:CreateRadio(label, function()
+                local chosen = Suite.db.missingBuffChoices[key]
+                return chosen == id or rank ~= nil and chosen == rank
+            end, function()
+                local current = button.entry
+                if not Enabled() or not self:Context() or not button:IsShown() or not current
+                    or not current.family or current.family.key ~= key or self:FishingPoleEquipped() then return end
+                if id then
+                    local known = false
+                    for _, spell in ipairs(current.family.choices) do
+                        if (spell.root or spell.id) == id then known = true; break end
+                    end
+                    if not known then return end
+                end
+                Suite.db.missingBuffChoices[key] = id
+                self:Refresh()
+            end)
+        end
+        Option("Automatic", nil)
+        for _, spell in ipairs(entry.family.choices) do
+            Option(spell.name, spell.root or spell.id, spell.id)
+        end
+    end)
+end
+
 function Buffs:Tooltip(button)
     local entry = button.entry
     if not entry or not GameTooltip then return end
@@ -653,7 +704,9 @@ function Buffs:Tooltip(button)
             GameTooltip:AddLine(entry.passive and "Check aura coverage and move closer to these members. This reminder will not toggle an active or unknown aura off."
                 or "Left-click buffs the first listed member; party effects cast on you. Native range and reagent rules apply.", 0.66, 0.77, 0.77, true)
         end
-        GameTooltip:AddLine("Right-click cycles learned alternatives, then hides this family. Restore buff choices in settings to show it again.", 0.66, 0.77, 0.77, true)
+        GameTooltip:AddLine(entry.family.key == "SHAMAN:imbue"
+            and "Right-click to choose your preferred weapon imbue."
+            or "Right-click cycles learned alternatives, then hides this family. Restore buff choices in settings to show it again.", 0.66, 0.77, 0.77, true)
     end
     GameTooltip:Show()
 end
@@ -710,6 +763,61 @@ function Buffs:Request(entry)
     return true
 end
 
+function Buffs:BuildBindingLabels()
+    local labels = {}
+    if type(GetActionInfo) ~= "function" or type(GetBindingKey) ~= "function" then return labels end
+    Suite.ActionBars:VisitButtons(function(button)
+        if not Suite.IsReadable(button) or not button or Call(button.IsVisible,button) ~= true then return end
+        if button.IsForbidden and Call(button.IsForbidden,button) ~= false then return end
+        local slot=button.action
+        if not Number(slot) or slot < 1 or slot % 1 ~= 0 then return end
+        local ok,kind,id=pcall(GetActionInfo,slot)
+        if not ok or not Read(kind,"string") or kind ~= "spell" or not Number(id) or labels[id] then return end
+        local command=button.bindingAction
+        local key=Text(command) and Call(GetBindingKey,command)
+        if not Text(key) then
+            local name=Call(button.GetName,button)
+            if not Text(name) then return end
+            command="CLICK "..name..":LeftButton"
+            key=Call(GetBindingKey,command)
+        end
+        if Text(key) and (type(GetBindingAction) ~= "function" or Call(GetBindingAction,key,true) == command) then
+            labels[id]=Suite.Keybinds:Shorten(key)
+        end
+    end)
+    return labels
+end
+
+function Buffs:BindingLabel(owner)
+    local overlay=CreateFrame("Frame",nil,owner)
+    overlay:SetPoint("TOPRIGHT",owner,"TOPRIGHT",-3,-2)
+    overlay:SetSize(1,1)
+    if overlay.SetFrameLevel and owner.GetFrameLevel then overlay:SetFrameLevel(owner:GetFrameLevel()+4) end
+    overlay:EnableMouse(false)
+    local label=Label(overlay,11)
+    label:SetPoint("TOPRIGHT",overlay,"TOPRIGHT")
+    return label
+end
+
+function Buffs:Hotkey(button, spellID)
+    if button.bindingLabel then button.bindingLabel:SetText(spellID and self.bindingLabels and self.bindingLabels[spellID] or "") end
+end
+
+function Buffs:RefreshBindingLabels()
+    self.bindingLabels=self:BuildBindingLabels()
+    if self.bar and not InCombatLockdown() then
+        for _, button in ipairs(self.buttons) do
+            local entry=button.entry
+            self:Hotkey(button,entry and entry.unit and entry.spell.id)
+        end
+    end
+    local native=Suite.CombatBuffs
+    if native then native:UpdateBindingLabels() end
+    for _, button in ipairs(Suite.BuffReminders.combatButtons) do
+        self:Hotkey(button,button.entry and button.entry.spell.id)
+    end
+end
+
 function Buffs:Button(index)
     if self.buttons[index] then return self.buttons[index] end
     local button = CreateFrame("Button", nil, self.bar, "SecureActionButtonTemplate,BackdropTemplate")
@@ -719,6 +827,7 @@ function Buffs:Button(index)
     button.icon = button:CreateTexture(nil, "ARTWORK")
     button.icon:SetPoint("TOPLEFT", 2, -2); button.icon:SetPoint("BOTTOMRIGHT", -2, 2); button.icon:SetTexCoord(0.06, 0.94, 0.06, 0.94)
     Timers:Create(button, 14)
+    button.bindingLabel=self:BindingLabel(button)
     button:SetScript("OnEnter", function() self:Tooltip(button) end)
     button:SetScript("OnLeave", function() HideTooltip(button) end)
     button:SetScript("OnHide", function() HideTooltip(button) end)
@@ -726,6 +835,9 @@ function Buffs:Button(index)
         if InCombatLockdown() or mouseButton ~= "LeftButton" then return end
         local entry = button.entry
         if not Enabled() or not self:Context() or not entry then button:SetAttribute("type1", nil); self:Queue(); return end
+        if (entry.slot or entry.family and entry.family.catalog.weapon) and self:FishingPoleEquipped() then
+            button:SetAttribute("type1", nil); self:Queue(); return
+        end
         if entry.unit then
             local target = self:Unit(entry.unit)
             local check = entry.checkUnit and self:Unit(entry.checkUnit) or target
@@ -751,7 +863,9 @@ function Buffs:Button(index)
     button:SetScript("PostClick", function(_, mouseButton, down)
         if InCombatLockdown() or down then return end
         if mouseButton == "RightButton" then
-            if button.entry and button.entry.kind ~= "coating" then self:Cycle(button.entry) end
+            local entry = button.entry
+            if entry and entry.family and entry.family.key == "SHAMAN:imbue" then self:ChooseImbue(button)
+            elseif entry and entry.kind ~= "coating" then self:Cycle(entry) end
         else
             if mouseButton == "LeftButton" and button.entry and button.entry.kind == "incoming" then
                 self:Request(button.entry)
@@ -809,6 +923,7 @@ end
 function Buffs:Refresh()
     self:Cancel()
     if InCombatLockdown() then Suite.AfterCombat("missingBuffs", function() self:Apply() end); return end
+    if Enabled() and not self.bindingLabels then self:RefreshBindingLabels() end
     Suite.BuffReminders.nextDue = nil
     Suite.BuffReminders:Prepare()
     if self.bar and self.cancelMove then self:StopMoving(self.bar) end
@@ -852,6 +967,7 @@ function Buffs:Refresh()
             button:SetAttribute("type1", "macro"); button:SetAttribute("macrotext1", "/use item:" .. entry.item.id .. "\n/use " .. entry.slot)
         end
         button.icon:SetTexture(entry.spell.icon)
+        self:Hotkey(button,entry.unit and entry.spell.id)
         if entry.kind == "incoming" then Suite.Theme:BuffIconBorder(button, 0.9)
         else Suite.Theme:BuffIconBorder(button, 0.8) end
         button:Show()
@@ -887,22 +1003,28 @@ function Buffs:Apply()
     self:Cancel(); Suite.pending.missingBuffs = nil
     if self.events then self.events:UnregisterAllEvents() end
     if not Enabled() then
+        self.bindingLabels=nil
         self:SetPreview(false)
         Suite.AfterCombat("missingBuffs", function() self:Refresh() end); return
     end
     Suite.AfterCombat("missingBuffs", function()
-        if not Enabled() then return end
+    if not Enabled() then return end
         if not self.events then
             self.events = CreateFrame("Frame")
             self.events:SetScript("OnEvent", function(_, event, unit)
-                if event == "PLAYER_REGEN_DISABLED" then
+                if event == "UPDATE_BINDINGS" or event == "ACTIONBAR_SLOT_CHANGED" or event == "ACTIONBAR_PAGE_CHANGED"
+                    or event == "UPDATE_SHAPESHIFT_FORM" or event == "UPDATE_BONUS_ACTIONBAR" then
+                    self:RefreshBindingLabels()
+                    return
+                elseif event == "PLAYER_REGEN_DISABLED" then
                     self:Cancel(); self:SetPreview(false)
+                    self:RefreshBindingLabels()
                     if self.bar and self.bar.moving then self.cancelMove = true end
                 end
                 Suite.BuffReminders:OnEvent(event)
                 if event == "PLAYER_REGEN_DISABLED" then return
                 elseif event == "SPELL_UPDATE_COOLDOWN" then self:UpdateCooldowns(true)
-                elseif event == "PLAYER_REGEN_ENABLED" then self:Refresh()
+                elseif event == "PLAYER_REGEN_ENABLED" then self:RefreshBindingLabels(); self:Refresh()
                 elseif event == "UNIT_AURA" or event == "UNIT_FLAGS" or event == "UNIT_CONNECTION" or event == "UNIT_LEVEL" or event == "UNIT_INVENTORY_CHANGED" then
                     if Text(unit) and (unit == "player" or unit:match("^party%d+$") or unit:match("^raid%d+$")) then self:Queue() end
                 else
@@ -915,7 +1037,8 @@ function Buffs:Apply()
         for _, event in ipairs({ "UNIT_AURA", "GROUP_ROSTER_UPDATE", "UNIT_CONNECTION", "UNIT_LEVEL", "PLAYER_LEVEL_UP", "SPELLS_CHANGED", "SKILL_LINES_CHANGED", "SPELL_DATA_LOAD_RESULT",
             "PLAYER_ENTERING_WORLD", "PLAYER_UPDATE_RESTING", "MINIMAP_UPDATE_TRACKING", "ZONE_CHANGED_NEW_AREA", "PLAYER_EQUIPMENT_CHANGED", "BAG_UPDATE_DELAYED", "ITEM_DATA_LOAD_RESULT",
             "UNIT_INVENTORY_CHANGED", "WEAPON_ENCHANT_CHANGED", "WEAPON_SLOT_CHANGED", "UNIT_FLAGS", "PLAYER_ALIVE", "PLAYER_UNGHOST", "SPELL_UPDATE_COOLDOWN",
-            "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED" }) do
+            "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "UPDATE_BINDINGS", "ACTIONBAR_SLOT_CHANGED",
+            "ACTIONBAR_PAGE_CHANGED", "UPDATE_SHAPESHIFT_FORM", "UPDATE_BONUS_ACTIONBAR" }) do
             if C_EventUtils and type(C_EventUtils.IsEventValid) == "function" then
                 if Call(C_EventUtils.IsEventValid, event) == true then self.events:RegisterEvent(event) end
             else

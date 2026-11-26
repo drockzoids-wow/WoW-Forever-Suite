@@ -138,6 +138,7 @@ function Extra:Prepare()
     self.watches, self.coatings, self.poisons = nil, nil, nil
     if not Suite.db.missingBuffCombat and not Suite.db.missingBuffWeapons then return end
     self.watches, self.coatings = {}, {}
+    local fishing = buffs:FishingPoleEquipped()
     if Suite.db.missingBuffCombat then
         if buffs.bookDirty then buffs.learned, buffs.learnedComplete = buffs:Learned(); buffs.bookDirty = false end
         local class
@@ -145,13 +146,14 @@ function Extra:Prepare()
         if class then
             for _, family in ipairs(buffs:Families(class, buffs.learned or {})) do
                 local catalog = family.catalog
-                if family.spell and (catalog.combat or catalog.weapon) and not catalog.custom and not catalog.outOfCombatOnly
+                if family.spell and (catalog.combat or catalog.weapon) and not (fishing and catalog.weapon)
+                    and not catalog.custom and not catalog.outOfCombatOnly
                     and ((not catalog.group or catalog.upkeep) and Suite.db.missingBuffClass or catalog.group and Suite.db.missingBuffSelf or catalog.group and Suite.db.missingBuffOutgoing) then
                     self.watches[#self.watches + 1] = family
                     if catalog.weapon then family.weaponID = Call(GetInventoryItemID, "player", 16) end
                 end
             end
-            if class == "ROGUE" and Suite.db.missingBuffClass then
+            if not fishing and class == "ROGUE" and Suite.db.missingBuffClass then
                 local choices = buffs:PoisonChoices()
                 if #choices > 0 or C_SpellBook and Call(C_SpellBook.IsSpellKnown, 2842) == true then
                     self.poisons = {}
@@ -170,7 +172,7 @@ function Extra:Prepare()
             end
         end
     end
-    if Suite.db.missingBuffWeapons then
+    if not fishing and Suite.db.missingBuffWeapons then
         if buffs.itemsDirty or not buffs.items then buffs.items = Suite.MacroItems:Scan(); buffs.itemsDirty = false end
         local snapshot = buffs.items
         if snapshot and not snapshot.incomplete then
@@ -321,6 +323,7 @@ function Extra:BuildCombat()
         button.icon:SetPoint("TOPLEFT", 2, -2); button.icon:SetPoint("BOTTOMRIGHT", -2, 2)
         button.icon:SetTexCoord(0.06, 0.94, 0.06, 0.94)
         Timers:Create(button, 14)
+        button.bindingLabel = Suite.MissingBuffs:BindingLabel(button)
         button:SetScript("OnEnter", function() self:Tooltip(button, true) end)
         button:SetScript("OnLeave", function() if GameTooltip and GameTooltip.IsOwned and GameTooltip:IsOwned(button) then GameTooltip:Hide() end end)
         button:SetScript("OnHide", button:GetScript("OnLeave"))
@@ -403,13 +406,15 @@ function Extra:RefreshCombat()
     end
     self.nextDue = nil
     local entries, units = {}, self:CombatUnits()
+    local fishing = Suite.MissingBuffs:FishingPoleEquipped()
     for _, family in ipairs(self.watches or {}) do
         local names, remaining = {}, nil
         local native = Suite.CombatBuffs and Suite.CombatBuffs.coverage[family.key]
         for _, member in ipairs(units) do
             local catalog = family.catalog
             local selfFilter = (not catalog.group or catalog.upkeep) and Suite.db.missingBuffClass or catalog.group and Suite.db.missingBuffSelf
-            if not native and Suite.MissingBuffs:Relevant(catalog,ClassForBuffs(member.unit),family.spell.root or family.spell.id) and (member.player and selfFilter or not member.player and catalog.group and Suite.db.missingBuffOutgoing)
+            if not native and not (fishing and catalog.weapon)
+                and Suite.MissingBuffs:Relevant(catalog,ClassForBuffs(member.unit),family.spell.root or family.spell.id) and (member.player and selfFilter or not member.player and catalog.group and Suite.db.missingBuffOutgoing)
                 and (member.player or Call(C_Spell and C_Spell.IsSpellInRange, family.spell.id, member.unit) == true)
                 and (not Suite.MissingBuffs:PartyOnly(catalog,family.spell.root or family.spell.id) or member.party) then
                 local auras = not catalog.weapon and self:CombatAuras(family, member.unit) or nil
@@ -432,14 +437,17 @@ function Extra:RefreshCombat()
         end
         if #names > 0 then entries[#entries + 1] = { spell = family.spell, names = names, remaining = remaining } end
     end
-    self:AddCoatings(entries)
-    self:AddCombatPoisons(entries)
+    if not fishing then
+        self:AddCoatings(entries)
+        self:AddCombatPoisons(entries)
+    end
     local count = math.min(#entries, self.combatSlots or 0, 8)
     local nativeCount = Suite.CombatBuffs and Suite.CombatBuffs.count or 0
     local width, _, size, stride, rowStride = Suite.MissingBuffs:BarLayout(nativeCount > 0 and nativeCount or (self.combatSlots or 0))
     local nativeRows = math.ceil(nativeCount / 8)
     for index, button in ipairs(self.combatButtons) do
         local entry = index <= count and entries[index] or nil; button.entry = entry
+        Suite.MissingBuffs:Hotkey(button,entry and entry.spell.id)
         if entry then
             local slot = index - 1
             local row = math.floor(slot / 8); local rowCount = math.min(8, count - row * 8)

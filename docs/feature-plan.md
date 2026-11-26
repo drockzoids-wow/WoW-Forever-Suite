@@ -1,5 +1,35 @@
 # Forever Suite feature plan
 
+## Fishing poles and weapon reminders
+
+Hide weapon coatings, poisons, and class imbue reminders while a fishing pole is equipped. Restore normal reminders when a weapon is re-equipped.
+
+Let a shaman right-click their missing imbue outside combat to choose among learned options. Remember the selected imbue across reloads and rank upgrades.
+
+## Shared Missing Buffs position
+
+Align the title and first icon row across normal and combat reminders. Let additional rows grow downward and keep existing saved positions. The player chose to keep the live combat reminders.
+
+Display a compact shortcut on a missing buff icon when the spell is directly bound on a visible action bar. The shortcut continues to use the normal action bar.
+
+Show Blizzard's remaining-duration number on the combat expiry icon. In a combined family, use the player's duration to avoid overlapping timers.
+
+## First character-bank visit
+
+On clients that automatically grant a free first bank tab, attach Suite's live-bank UI features only after the character owns a tab. Resume those features after Blizzard's bank events. The saved bank viewer remains available separately.
+
+## Custom nameplates
+
+Add an optional layout for native health-bar nameplates. Keep the Blizzard name font and reaction colors. Place level at left, health and mana totals in the middle and percentages at right. Add a rare bracket and place the height-adjustable cast bar below. Offer All, Mine only, Mine larger and Hide for regular debuffs above the name. Keep large crowd-control icons at right and click-through.
+
+## Copy settings from another character
+
+Put the character picker, new profile name and Create copy action together at the top of Profiles. Show the selected source and tell the player how to switch to the copy after it is created. Keep profile creation and activation as separate actions.
+
+## Honor at level 60
+
+Offer an optional Suite-styled bar for spendable Honor at level 60. Use the live currency balance and cap, preserve watched reputation and respect existing progress bar size, value and segment preferences.
+
 ## Action-bar macro names — November 26, 2026
 
 Offer one profile setting from both Action Bars and Macro Builder to hide the names on native macro buttons. Keep the names visible by default and leave hotkeys, counts and cooldowns visible.

@@ -185,6 +185,7 @@ local pages = {
         { key = "bagBarSkin", label = "Suite bag bar skin", help = "Frame native bag icons with fitted Suite borders and hover feedback.\nKeep free-slot counts, highlights and clicks." },
         { key = "microBarSkin", label = "Suite micro menu skin", help = "Slate menu buttons with Suite borders and hover feedback.\nKeep native icons, alerts, tooltips and shortcuts." },
         { key = "playerBuffBorders", label = "Player buff borders", help = "Square icons with fine Suite borders in your top-right buff display.\nDebuffs, weapon enchants and unit-frame auras keep their native appearance." },
+        { key = "maxLevelHonorBar", label = "Show Honor at level 60", help = "Show your current Honor and its cap in a Suite progress bar when you reach level 60." },
     }, note = "Move these bars in Edit Mode. Progress options use the progress bar skin.\nValues stay visible in combat; layout and skin changes wait until it ends." },
     combat = { title = "Know when the fight changes.", description = "A clear signal when combat starts and ends.", rows = {
         { key = "combatIndicator", label = "Combat indicator", help = "Show IN COMBAT in gold and COMBAT ENDED in green.\nEach message stays visible for four seconds." },
@@ -196,6 +197,9 @@ local pages = {
     unitframes = { title = "Unit frame details", description = "Optional color and threat details on your existing unit frames.", rows = {
         { key = "classHealthBars", label = "Class colored health bars", help = "Softer class colors for player, target, target of target and focus.\nReplace the original fill so its color stays clear." },
         { key = "targetThreat", label = "Target threat indicator", help = "Your threat against the target: grey at 0%, red at 100%.\nA translucent Blizzard-style rectangle moves below the frame when buffs are on top." },
+        { key = "customNameplates", label = "Custom nameplates", help = "Keep Blizzard colors and outlined names. Put the level on the left, health and mana values inside the bars, and casts underneath." },
+        { action = "nameplateDebuffs", label = "Nameplate debuffs", help = "Choose which regular debuffs appear above the name. Large crowd-control icons appear to the right and are click-through." },
+        { action = "nameplateCastHeight", label = "Nameplate cast bar height", help = "Adjust the height of the cast bar under the health and mana bars." },
     }, note = "NPCs and vehicles keep their normal health bars. Party and raid use Blizzard's class color setting.\nThreat appears for enemy NPCs; -- means no percentage is available." },
     mail = { title = "A familiar name, a quicker letter.", description = "One place for contacts, groups and mail recipients.", rows = {
         { action = "mailBook", label = "Open Contacts", help = "Browse contacts, edit notes and organize groups in one window.\nThe same window is used beside Send Mail." },
@@ -257,6 +261,10 @@ function GUI:Action(action, anchor)
     elseif action == "mailDeadlines" then Suite.MailExpiry:Open(self.frame)
     elseif action == "combatPreview" then self:StartWorldPreview(Suite.CombatIndicator)
     elseif action == "combatReset" then Suite.CombatIndicator:ResetPosition()
+    elseif action == "nameplateDebuffs" or action == "nameplateCastHeight" then
+        local plates=Suite.Nameplates
+        local choices=action == "nameplateDebuffs" and plates.debuffChoices or plates.castChoices
+        self:Choose(anchor,choices,plates:Option(action).value,function(value) Suite.Set(action,value);self:Select("unitframes") end)
     elseif action == "levelingSession" then Suite.Leveling:ResetSession()
     elseif action == "levelingPosition" then Suite.Leveling:ResetPosition()
     elseif action == "levelingLock" then Suite.Leveling:SetLocked(not Suite.Leveling.db.locked); self:Select("leveling")
@@ -498,6 +506,7 @@ function GUI:Select(key)
                 row.value:SetText(data.action == "buffWarning" and (Suite.db.missingBuffWarning .. "s")
                     or data.action == "disenchantModifier" and Suite.ProfessionHelper:Modifier():upper()
                     or data.action == "campingPose" and Suite.Camping:GetPose().label
+                    or (data.action == "nameplateDebuffs" or data.action == "nameplateCastHeight") and Suite.Nameplates:Option(data.action).label
                     or data.action == "repairSource" and (Suite.db.repairSource == "guild" and "Guild gold" or "Personal gold")
                     or data.action == "junkMode" and (Suite.db.junkMode == "instant" and "Instant" or "Slow")
                     or data.action == "levelingLock" and (Suite.Leveling.db and Suite.Leveling.db.locked and "Locked" or "Unlocked")

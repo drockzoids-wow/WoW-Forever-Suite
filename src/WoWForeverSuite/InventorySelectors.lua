@@ -140,6 +140,7 @@ end
 
 function Selectors:Attach(frame, kind)
     if InCombatLockdown() or not Accessible(frame) or self.watched[frame] then return end
+    if frame == BankFrame and not Suite.LiveBankReady() then return end
     local control = Suite.Theme:ActionButton(frame, "Character", kind == "bags" and 126 or 186, 20)
     control.kind = kind
     control:SetSize(kind == "bags" and 126 or 186, 20)
@@ -257,7 +258,8 @@ function Selectors:Apply()
         if self.events then
             self.events:UnregisterAllEvents()
             if enabled then
-                for _, event in ipairs({ "ADDON_LOADED", "PLAYER_ENTERING_WORLD", "BAG_UPDATE_DELAYED", "GAME_PAD_ACTIVE_CHANGED" }) do
+                for _, event in ipairs({ "ADDON_LOADED", "PLAYER_ENTERING_WORLD", "BAG_UPDATE_DELAYED", "GAME_PAD_ACTIVE_CHANGED",
+                    "BANKFRAME_OPENED", "BANK_TABS_CHANGED", "PLAYER_REGEN_ENABLED" }) do
                     self.events:RegisterEvent(event)
                 end
             end

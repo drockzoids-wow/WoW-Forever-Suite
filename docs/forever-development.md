@@ -1,5 +1,41 @@
 # WoW Forever addon development reference
 
+## Fishing poles and weapon reminders
+
+Missing Buffs uses the equipped main-hand item's weapon subclass to identify a fishing pole. Both the combat preparation and live reminder paths skip weapon upkeep in that context. The normal click path also rechecks equipment before applying a prepared weapon action.
+
+The shaman imbue menu stores the selected root spell in the existing buff-choice preference. The reminder resolves it to the learned rank. The settings menu recognizes both earlier rank-specific choices and new root choices.
+
+## Shared Missing Buffs position
+
+Interpret the existing saved center as the center of a one-row bar. Place each reminder host from that reference row's top edge, and account for preview height when saving a drag. Normal and combat bars can have different heights while keeping one origin. Combat reminder visuals continue to use the native aura renderer.
+
+Keybind labels read the public spell, slot and binding of visible Blizzard action buttons. Ordinary missing icons share the existing key abbreviation logic. Combat reminders only display the shortcut.
+
+Native expiry masks also contain a countdown-only Cooldown widget while the aura is within its warning window. AuraButton binds it to the real duration separately from the text used to clip the icon. Prefer the player's duration for families shared with teammates. No Lua duration sampling or countdown timers are used for the native expiry icon.
+
+## First character-bank visit
+
+The November 26 recurrence follows Blizzard's automatic first-tab path through `PurchaseFirstSlot`. The available taint log ends during startup, so the stack identifies the blocked purchase but leaves the original taint source unknown. Window placement, bank layout observation, reagent deposit, character selectors, search, money tooltips and item overlays now check native tab ownership before attaching to that live bank. Bank events allow deferred discovery after the grant. Suite does not invoke the purchase API or change any saved records for this patch.
+
+## Custom nameplates
+
+The level is rendered on the left by Suite using Blizzard's displayed number, difficulty color or skull. Suppressing the original badge by opacity avoids measuring or moving its restricted anchor. The original opacity is restored on opt-out and when the nameplate is recycled.
+
+The installed Forever executable reports 1.60.1.71139. The matching Blizzard nameplate source uses a separate native hit test and passive aura frames. Suite adds passive text and mana widgets to the native health bar, anchors cosmetic regions outside combat and restores the positions it still owns on disable. The regular list uses native aura filters. The big crowd-control and loss-of-control widgets retain Blizzard's display and click-through behavior. Readable data can drive the layout and supply fallback percentages. Restricted health numbers and icon textures pass directly to documented widget display methods.
+
+The Kharanos report showed that a non-forbidden nameplate region can still reject anchor measurements outside combat. Suite checks the region's anchor restriction before measuring, changing or restoring native layout. Restricted regions keep their Blizzard anchors. The Suite mana bar clears the native cast bar when that bar stays in its original position.
+
+## Copy settings from another character
+
+The character picker owns its wheel input while open. Settings page layout preserves that route so wheel gestures page the picker, including over character rows and footer controls.
+
+The Profiles page puts copy controls above selected-profile management. The copy name has its own field and feedback appears beside the copy controls. The source picker keeps the selected character by GUID across refreshes. Copying uses the last saved settings for an alt and selects the new profile for review. The existing settings snapshot, profile assignment and reload paths handle storage and activation.
+
+## Honor at level 60
+
+The optional Suite Honor bar displays Forever's spendable Honor currency (1792) using the client's balance and cap. It anchors to an unused native progress slot or above occupied slots when needed. It uses Suite's progress panel, sizing and segment settings. Currency updates refresh the owned bar in combat, while frame creation and placement wait until combat ends.
+
 ## Book of Aquor quest item
 
 Quest 4005 gives Eridan's Supplies, which contains the Book of Aquor (11169). Its activation site is the stone circle near Lost Rigger Cove in Tanaris, while the quest turn-in is in Un'Goro Crater. The book uses the same location check as the Mechanical Yeti and keeps the normal click action for untargeted quest items.

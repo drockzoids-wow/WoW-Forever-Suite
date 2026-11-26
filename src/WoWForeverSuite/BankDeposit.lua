@@ -21,7 +21,7 @@ function Deposit:Enabled()
 end
 function Deposit:Ready()
     if not self:Enabled() or not self.bankOpen or InCombatLockdown() or not Safe(BankFrame)
-        or Read(BankFrame.IsShown, BankFrame) ~= true then return false end
+        or not Suite.LiveBankReady() or Read(BankFrame.IsShown, BankFrame) ~= true then return false end
     local kind = Enum and Enum.BankType and Enum.BankType.Character
     if not Int(kind, 0, 10) or Read(BankFrame.GetActiveBankType, BankFrame) ~= kind
         or Read(C_Bank and C_Bank.CanViewBank, kind) ~= true then return false end
@@ -165,7 +165,7 @@ function Deposit:Start()
     self:Step()
 end
 function Deposit:Discover()
-    if not self:Enabled() or InCombatLockdown() or not Safe(BankFrame) then return end
+    if not self:Enabled() or InCombatLockdown() or not Safe(BankFrame) or not Suite.LiveBankReady() then return end
     local kind = Enum and Enum.BankType and Enum.BankType.Character
     if not Int(kind, 0, 10) then return end
     local panel = BankFrame.BankPanel
@@ -214,6 +214,11 @@ function Deposit:OnEvent(event)
         return
     end
     if self.job and not self:Ready() then self:Cancel() end
+    if (event == "BANKFRAME_OPENED" or event == "BANK_TABS_CHANGED") and BankFrame
+        and type(BankFrame.PurchaseFirstSlot) == "function" then
+        self:OnBankLayout()
+        return
+    end
     self:Discover()
 end
 function Deposit:Apply()

@@ -1,5 +1,47 @@
 # Forever Suite in game testing
 
+## Fishing poles and weapon reminders
+
+The player confirmed that equipping a fishing pole suppresses weapon reminders while Lightning Shield still appears, and that equipping a weapon brings the reminders back. A swap during combat remains to be checked.
+
+The player confirmed in-game that right-clicking the missing weapon imbue opened the menu, selecting Rockbiter worked, and the choice persisted after a reload. Left-click application, retaining the choice after learning a higher rank, and switching back to Automatic remain to be checked in-game.
+
+## Shared Missing Buffs position
+
+Move Missing Buffs from its appearance preview, then enter and leave combat with different numbers of visible reminders. The title and first row should start at the same height in both modes, with extra rows growing downward. Repeat at a different scale and with an existing saved position.
+
+Bind Lightning Shield directly on a visible action bar to Ctrl+R. With the buff missing, confirm CR appears in the icon's upper-right corner outside and during combat. Press the existing binding and confirm the native bar handles the cast. Remove or change the binding, or change action-bar pages, and check that the reminder drops the old label. The combat reminder remains passive to clicks.
+
+The player confirmed CR appears on missing Lightning Shield in combat and that the position is shared. With expiry warnings enabled, let Lightning Shield enter its warning window while in combat. Confirm the remaining duration counts down on the icon, clears when refreshed, and switches to the missing reminder when the buff expires. Check for Lua errors with a permanent aura and with group reminders active.
+
+## First character-bank visit
+
+November 26, 2026. The player reported a blocked automatic first-tab purchase in Ironforge. The accessible taint log contained startup records and no purchase entry. With the patched development build and the usual bank options enabled, reload and open the bank on a character who has never received the free tab. The native tab should appear without `PurchaseBankTab` errors, followed by the Suite controls. Then close and reopen it, check saved position, bank snapshots, search and coin hover, and verify Deposit Reagents still requires a click. Check the taint log after the visit. The separate report about paid additional slots remains open.
+
+## Custom nameplates
+
+On the Large Crag Boar, check that the yellow level appears inside the left edge and the right-hand badge is gone. Compare difficulty colors, a skull-level enemy and the restored Blizzard badge after disabling the layout.
+
+Open Combat → Unit Frames → Nameplates outside combat and enable Custom nameplates. Compare outlined text and colors with the feature off. Check a full and injured mob, a mana user, a rare, a long name and overlapping plates. Check that each cast height changes the bar while the native spell name, icon and interrupt feedback still work. Try All, Mine only, Mine larger and Hide with debuffs from two players. With a big crowd-control icon showing, click the scene where the icon sits and verify it behaves the same as the surrounding scene. Check normal clicks on the health bar as well.
+
+Repeat while entering and leaving combat, when a plate is recycled, and after toggling the feature off. Newly acquired plates can use Blizzard's layout until combat ends. Confirm native layout restoration and review the taint log for blocked actions. Record the running build and UI scale. Native verification pending.
+
+The player reported a restricted name anchor error outside combat in Kharanos. With Custom nameplates enabled, revisit Kharanos and walk past friendly NPCs and other players. Check that restricted plates keep their native anchors and the passive Suite values still display. Verify cast and mana bars do not overlap, and check BugGrabber or the taint log for new nameplate errors.
+
+## Copy settings from another character
+
+November 26, 2026. The player confirmed in-game that the last character row shows its full bottom border after the spacing update and that mouse-wheel paging still works. Client build and UI scale were not reported for this check.
+
+Open `/wfs profiles` and pick an alt under **Copy settings from**. Use an alt with a visibly different Suite setting. Click **Create copy** with a blank name and check the prompt below the controls. Enter a unique name and create the copy. Confirm it is selected under **Saved Profiles** and the **Active** label still shows your original profile. Click **Switch profile**, review the settings, then click **Use & reload**. Confirm the alt's saved setting is applied and both profiles are still listed. Repeat with a long character name and check the picker at your usual UI scale. Native results pending.
+
+## Honor at level 60
+
+November 26, 2026. The player confirmed that Honor appears at level 60, matches the Suite XP bar's style, and displays alongside watched reputation.
+
+The player adjusted Reputation in Edit Mode after it appeared out of place on the first login. The Honor bar now skips slots Blizzard has reserved while their contents are still hidden. Relog with the adjusted layout and confirm both positions.
+
+Remaining checks include the XP bar below level 60, the amount and cap against the Currency pane, live updates when gaining or spending Honor, Edit Mode placement, and hiding the bar when the option is off.
+
 ## Book of Aquor quest item
 
 November 26, 2026. The player confirmed the Book of Aquor appeared on the Quest Item Button at the Tanaris stone circle. Summoning and the Un'Goro turn-in check were unreported.

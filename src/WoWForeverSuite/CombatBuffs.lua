@@ -259,6 +259,8 @@ function Combat:Container(record, member, row, soon)
         local _, plate, icon = self:Chip(iconClip, record, cell)
         plate.icon = icon
         Timers:Create(plate)
+        plate.bindingLabel = Suite.MissingBuffs:BindingLabel(plate)
+        Suite.MissingBuffs:Hotkey(plate,member.spellID or record.descriptor.spell.id)
         gates.cooldownPlate = plate
         self:Title(record, gates.display, container, false)
         local nameClip = MissingClip(gates.tooltip, container, cell, tipX, tipY)
@@ -286,7 +288,25 @@ function Combat:Container(record, member, row, soon)
             local iconClip = Clip(button)
             iconClip:SetPoint("TOPLEFT", gate, "TOPLEFT", 0, 0)
             iconClip:SetPoint("BOTTOMRIGHT", gate, "BOTTOMRIGHT", 0, 0)
-            self:Chip(iconClip, record, cell)
+            local _, plate, icon = self:Chip(iconClip, record, cell)
+            -- One clock per icon. When this family also covers party members,
+            -- prefer the player's own timer over overlapping numbers.
+            if (member.unit == "player" or #record.descriptor.members == 1)
+                and type(button.SetDurationCooldown) == "function" then
+                local cooldown = CreateFrame("Cooldown", nil, plate, "CooldownFrameTemplate")
+                cooldown:SetAllPoints(icon)
+                cooldown:EnableMouse(false)
+                cooldown:SetDrawSwipe(false)
+                cooldown:SetDrawEdge(false)
+                cooldown:SetDrawBling(false)
+                cooldown:SetHideCountdownNumbers(false)
+                if cooldown.SetMinimumCountdownDuration then cooldown:SetMinimumCountdownDuration(0) end
+                if cooldown.SetCountdownMillisecondsThreshold then cooldown:SetCountdownMillisecondsThreshold(0) end
+                -- Bind separately from the duration text that gates the icon.
+                -- The client advances both displays without an addon timer.
+                cooldown:Show()
+                if not pcall(button.SetDurationCooldown, button, cooldown) then cooldown:Hide() end
+            end
             self:Title(record, button, gate, true)
             local namePresence = Clip(button)
             namePresence:SetPoint("TOPLEFT", record.tooltip, "TOPLEFT", 0, 0)
@@ -459,6 +479,16 @@ function Combat:Prepare()
     -- least one failed signature, so unavailable native groups cannot loop.
     if failed then self:Prepare(); return end
     self:Place()
+end
+
+function Combat:UpdateBindingLabels()
+    for _, key in ipairs(self.order or {}) do
+        local record=self.records[key]
+        for row, member in ipairs(record.descriptor.members) do
+            local plate=record.rangeGates[row].cooldownPlate
+            if plate then Suite.MissingBuffs:Hotkey(plate,member.spellID or record.descriptor.spell.id) end
+        end
+    end
 end
 
 function Combat:UpdateCooldowns(cooldownEvent, rebind)

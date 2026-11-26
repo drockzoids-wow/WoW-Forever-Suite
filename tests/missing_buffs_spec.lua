@@ -144,7 +144,8 @@ GetInventoryItemID = function(_, slot) return weapons[slot] end
 C_Item = { GetWeaponEnchantInfo = function(slot) return enchants[slot] end,
     GetItemSpell = function(id) return id == 9001 and "Sofort wirkendes Gift" end,
     GetItemIconByID = function() return 777 end,
-    GetItemInfoInstant = function(id) return id, nil, nil, id == 99 and "INVTYPE_SHIELD" or "INVTYPE_WEAPON", nil, id == 99 and 4 or 2 end }
+    GetItemInfoInstant = function(id) return id, nil, nil, id == 99 and "INVTYPE_SHIELD" or "INVTYPE_WEAPON", nil,
+        id == 99 and 4 or 2, id == 6256 and 20 or 4 end }
 local carried = { { id = 9001, name = "Instant Poison", icon = 132273, class = 0, subclass = 6 }, { id = 9002, name = "Occult Poison", icon = 132274, class = 0, subclass = 6 } }
 Suite.MacroItems.Scan = function() itemReads = itemReads + 1; return { list = carried } end
 local function Find(kind, key)
@@ -427,14 +428,53 @@ enchants[0] = { { hasEnchant = true, enchantType = 3 } }; buffs.itemsDirty = tru
 equal(Find("poison", "MH"), nil, "native active imbue satisfies rogue poison upkeep independently of oils")
 enchants[0] = {}; buffs.events:OnEvent("WEAPON_ENCHANT_CHANGED"); Flush()
 equal(Find("poison", "MH") ~= nil, true, "native enchant expiry event restores the missing poison reminder")
+weapons[16]=6256
+buffs:Refresh()
+equal(Find("poison", "MH"),nil,"a fishing pole suppresses rogue poison reminders")
+weapons[16]=1
+buffs:Refresh()
+equal(Find("poison", "MH")~=nil,true,"restoring a weapon brings back its poison reminder")
 enchants[0] = secret; buffs:Refresh(); equal(Find("poison", "MH"), nil, "restricted enchant records cannot establish missing poison")
 units.player.class, learned = "SHAMAN", { 8232 }; buffs.bookDirty = true
 enchants[0] = { { hasEnchant = true, enchantType = 2 } }; buffs:Refresh()
 local imbue, imbueButton = Find("self", "imbue")
 equal(imbue.spell.id, 8232, "temporary oils do not satisfy shaman weapon imbues")
+weapons[16]=6256
+imbueButton:PreClick("LeftButton")
+equal(imbueButton.attributes.type1,nil,"equipping a fishing pole cancels a stale weapon buff button")
+buffs:Refresh()
+equal(Find("self", "imbue"),nil,"a fishing pole suppresses shaman imbue reminders")
+weapons[16]=1; buffs:Refresh(); imbue,imbueButton=Find("self", "imbue")
 enchants[0] = { { hasEnchant = true, enchantType = 3 } }
 imbueButton:PreClick("LeftButton")
 equal(imbueButton.attributes.type1, nil, "already applied weapon imbue cancels stale recasting")
+do
+    local oldMenu, options=Suite.Menus, {}
+    Spell(8024,"Flametongue Weapon"); Spell(8017,"Rockbiter Weapon"); Spell(8018,"Rockbiter Weapon")
+    learned={8024,8017}; buffs.bookDirty=true; enchants[0]={}; buffs:Refresh()
+    local _, button=Find("self","imbue")
+    Suite.Menus={CreateContextMenu=function(owner,generate)
+        equal(owner,button,"imbue menu is anchored to the reminder")
+        generate(owner,{CreateTitle=function() end,CreateRadio=function(_,label,selected,callback)
+            options[label]={selected=selected,callback=callback}
+        end})
+    end}
+    button:PostClick("RightButton",false)
+    equal(options.Automatic.selected(),true,"no choice stays automatic until a menu item is picked")
+    equal(options["Flametongue Weapon"]~=nil,true,"learned Flametongue is offered")
+    equal(options["Windfury Weapon"],nil,"unlearned Windfury is omitted")
+    SetCombat(true); options["Rockbiter Weapon"].callback(); SetCombat(false)
+    equal(Suite.db.missingBuffChoices["SHAMAN:imbue"],nil,"an open menu cannot change the choice in combat")
+    options["Rockbiter Weapon"].callback()
+    equal(Find("self","imbue").spell.id,8017,"selecting Rockbiter replaces the visible reminder")
+    equal(Suite.db.missingBuffChoices["SHAMAN:imbue"],8017,"selected imbue is saved by spell family")
+    learned={8024,8018}; buffs.bookDirty=true; buffs:Refresh()
+    equal(Find("self","imbue").spell.id,8018,"learning a higher rank keeps the selected imbue")
+    equal(buffs:InitializeChoices(Suite.db.missingBuffChoices)["SHAMAN:imbue"],8017,"saved preference survives normalization")
+    options.Automatic.callback()
+    equal(Find("self","imbue").spell.id,8024,"Automatic restores the default learned imbue")
+    Suite.Menus=oldMenu
+end
 learned = { 8232, 8075, 5675, 8512 }; buffs.bookDirty = true; buffs:Refresh()
 for _, key in ipairs({ "earth", "water", "meleetotem" }) do
     equal(Find("self", key), nil, "totems never produce personal upkeep reminders")
@@ -658,6 +698,9 @@ do
     local needed, remaining = extra:CoatingState(coating)
     equal(needed, true, "selected coating warns before expiry")
     equal(remaining, 10, "native enchant milliseconds convert to seconds")
+    weapons[16]=6256; buffs:Refresh()
+    equal(Find("coating", "MH"),nil,"a fishing pole suppresses coating warnings")
+    weapons[16]=50; buffs:Refresh()
     enchantInfo.remainingTimeMs = secret
     equal(extra:CoatingState(coating), false, "unknown remaining time never implies expiration")
     enchantInfo = secret; equal(extra:CoatingState(coating), nil, "restricted enchant records do not imply missing coating")
@@ -1127,7 +1170,13 @@ do
     equal(buffs.preview.buffHeader.mouseEnabled,true,"preview title accepts movement input")
     Suite.GUI.previewReturn.button:OnClick();Flush()
     equal(math.abs(buffs.bar.point[4]*ratio+90)<0.001,true,"live bar adopts the preview horizontal position")
-    equal(math.abs(buffs.bar.point[5]*ratio-110)<0.001,true,"live bar adopts the preview vertical position")
+    local _, oneRowHeight=buffs:BarLayout(1)
+    equal(math.abs((buffs.bar.point[5]-oneRowHeight/2)*ratio-110)<0.001,true,"live bar adopts the preview vertical position")
+    local taller=Frame()
+    taller:SetHeight(oneRowHeight+50)
+    buffs:Place(taller)
+    equal(taller.point[1],"TOP","a taller combat host grows down from the shared title")
+    equal(taller.point[5],buffs.bar.point[5],"different row counts keep the same top edge")
     buffs.preview.buffHeader:OnDragStart()
     equal(buffs.preview.moving,nil,"hidden preview cannot start movement")
     Suite.db.missingBuffLocked=nil
@@ -1371,6 +1420,10 @@ do
     buffs.bookDirty = true; extra:Prepare()
     SetCombat(true); extra:RefreshCombat()
     equal(extra.combatButtons[1].entry.spell.id, 8232, "learned shaman imbue can remind in combat")
+    weapons[16]=6256; extra:RefreshCombat()
+    equal(extra.combatFrame:IsShown(),false,"switching to a fishing pole in combat clears the imbue")
+    weapons[16]=1; extra:RefreshCombat()
+    equal(extra.combatButtons[1].entry.spell.id,8232,"swapping back restores the prepared weapon reminder")
     enchants[0] = { { hasEnchant = true, enchantType = 3 } }; extra:RefreshCombat()
     equal(extra.combatFrame:IsShown(), false, "covered shaman imbue stays hidden")
     SetCombat(false)
@@ -1495,7 +1548,8 @@ equal(buffs.bar.point[1], "TOP", "default missing-buff window uses the top of th
 equal(buffs.bar.point[3], "TOP", "default placement stays horizontally centered")
 equal(buffs.bar.point[5], -140, "default window clears the top edge near breath and fatigue bars")
 Suite.db.missingBuffPosition = { x = 0.1, y = -0.2 }; buffs:Place(buffs.bar)
-equal(buffs.bar.point[1], "CENTER", "an existing dragged position overrides the new default")
+equal(buffs.bar.point[1], "TOP", "an existing dragged position anchors the top of both bars")
+equal(buffs.bar.point[3], "CENTER", "saved coordinates still use the center of the screen")
 equal(Suite.db.missingBuffPosition.x, 0.1, "new default does not rewrite customized placement")
 buffs:ResetPosition()
 Suite.db.missingBuffs = false; buffs:Apply()

@@ -15,7 +15,14 @@ local function ButtonPixel(parent)
     if Positive(pixel) then return pixel end
 end
 local function Enabled(key) return Suite.db and Read(Suite.db[key], "boolean") and Suite.db[key] end
-local function AnyEnabled() return Enabled("statusBarSkin") or Enabled("bagBarSkin") or Enabled("microBarSkin") end
+local function AnyEnabled()
+    return Enabled("statusBarSkin") or Enabled("maxLevelHonorBar") or Enabled("bagBarSkin") or Enabled("microBarSkin")
+end
+local function PublicCall(fn, ...)
+    if type(fn) ~= "function" then return end
+    local ok, value = pcall(fn, ...)
+    if ok and Suite.IsReadable(value) then return value end
+end
 function Skin:SegmentPercent(db)
     db = db or Suite.db
     return Read(db, "table") and Read(db.progressBarSegmentPercent, "number") and db.progressBarSegmentPercent == 5 and 5 or 10
@@ -215,7 +222,9 @@ end
 function Skin:Watch(object, key, methods)
     if not Usable(object) or self.watched[object] or type(hooksecurefunc) ~= "function" then return end
     self.watched[object] = true
-    local function Queue() if not self.sizing and Enabled(key) then self:Queue() end end
+    local function Queue()
+        if not self.sizing and (Enabled(key) or key == "statusBarSkin" and Enabled("maxLevelHonorBar")) then self:Queue() end
+    end
     if type(object.HookScript) == "function" then
         object:HookScript("OnShow", Queue)
         object:HookScript("OnHide", Queue)
@@ -274,15 +283,18 @@ function Skin:Progress(bar, pass, customSize)
         local _, height = self:Options()
         self:Property(bar.ExhaustionLevelFillBar, "Height", "statusBarSkin", pass, { height })
     end
-    local panel = self.panels[bar.StatusBar]
+    self:ProgressSegments(bar.StatusBar)
+end
+function Skin:ProgressSegments(status)
+    local panel = self.panels[status]
     if not panel then return end
-    local width = type(bar.StatusBar.GetWidth) == "function" and bar.StatusBar:GetWidth()
+    local width = type(status.GetWidth) == "function" and status:GetWidth()
     if Enabled("progressBarSegments") and Positive(width) then
         local percent = self:SegmentPercent()
         local sections = 100 / percent
         panel.segments = panel.segments or {}
         for index = #panel.segments + 1, sections - 1 do
-            local line = bar.StatusBar:CreateTexture(nil, "OVERLAY", nil, 6)
+            local line = status:CreateTexture(nil, "OVERLAY", nil, 6)
             line:SetWidth(1); Suite.Theme:Texture(line, 0.35)
             panel.segments[index] = line
         end
@@ -291,8 +303,8 @@ function Skin:Progress(bar, pass, customSize)
             for index, line in ipairs(panel.segments) do
                 if index < sections then
                     line:ClearAllPoints()
-                    line:SetPoint("TOPLEFT", bar.StatusBar, "TOPLEFT", width * index / sections, -1)
-                    line:SetPoint("BOTTOMLEFT", bar.StatusBar, "BOTTOMLEFT", width * index / sections, 1)
+                    line:SetPoint("TOPLEFT", status, "TOPLEFT", width * index / sections, -1)
+                    line:SetPoint("BOTTOMLEFT", status, "BOTTOMLEFT", width * index / sections, 1)
                 end
             end
         end
@@ -476,6 +488,99 @@ function Skin:StatusBars(pass)
         end
     end
 end
+
+function Skin:HonorAnchor()
+    local manager = StatusTrackingBarManager
+    if not Usable(manager) or not Read(manager.barContainers, "table") then return end
+    self:Watch(manager, "statusBarSkin", { "UpdateBarsShown", "CheckForLayoutChange" })
+    local assignments = manager.shownBarIndices
+    local vacant, highest, highestY
+    for index = 1, 4 do
+        local container = manager.barContainers[index]
+        if Usable(container) then
+            self:Watch(container, "statusBarSkin", { "ApplyPendingBarToShow", "ResizeContainerBars" })
+            local shown = PublicCall(container.IsShown, container)
+            -- During login and fades, Blizzard can reserve a slot before it
+            -- becomes visible. Honor must stay clear of that pending bar.
+            local pending = container.pendingBarToShowIndex
+            local assigned = Read(assignments, "table") and assignments[index]
+            local reserved = Read(container.bars, "table") and (Positive(pending) and Usable(container.bars[pending])
+                or Positive(assigned) and Usable(container.bars[assigned]))
+            if shown == false and not reserved then
+                vacant = vacant or container
+            elseif shown == true or reserved then
+                local top = PublicCall(container.GetTop, container)
+                if Read(top, "number") and top == top and math.abs(top) < math.huge and (not highestY or top > highestY) then
+                    highest, highestY = container, top
+                end
+            end
+        end
+    end
+    return vacant or highest, not vacant and highest ~= nil
+end
+
+function Skin:UpdateHonorValue()
+    local bar = self.honorBar
+    if not bar then return end
+    if not Enabled("maxLevelHonorBar") then bar:Hide(); return end
+    local constants = Constants and Constants.CurrencyConsts
+    local id = Read(constants, "table") and constants.HONOR_CURRENCY_ID
+    if not Positive(id) then id = 1792 end -- Forever Honor Points.
+    local currency = PublicCall(C_CurrencyInfo and C_CurrencyInfo.GetCurrencyInfo, id)
+    local level = PublicCall(UnitLevel, "player")
+    if not Positive(level) or level < 60 or not Read(currency, "table")
+        or not Positive(currency.maxQuantity) or not Read(currency.quantity, "number")
+        or not (currency.quantity >= 0 and currency.quantity < math.huge) then
+        bar:Hide()
+        return
+    end
+    bar:SetMinMaxValues(0, currency.maxQuantity)
+    bar:SetValue(math.min(currency.quantity, currency.maxQuantity))
+    local name = Read(currency.name, "string") and currency.name ~= "" and currency.name or "Honor"
+    local values = Enabled("progressBarValues") or bar.honorHovered
+    bar.text:SetText(values and ("%s  %d / %d"):format(name, currency.quantity, currency.maxQuantity) or name)
+    if bar.honorAnchor then bar:Show() end
+end
+
+function Skin:Honor(pass)
+    local bar = self.honorBar
+    local level = Enabled("maxLevelHonorBar") and PublicCall(UnitLevel, "player")
+    if not Positive(level) or level < 60 then
+        if bar then bar:Hide() end
+        return
+    end
+    local anchor, above = self:HonorAnchor()
+    if not anchor then
+        if bar then bar.honorAnchor = nil; bar:Hide() end
+        return
+    end
+    if not bar then
+        bar = CreateFrame("StatusBar", nil, UIParent)
+        self.honorBar = bar
+        bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+        bar:SetStatusBarColor(0.80, 0.48, 0.15)
+        bar:SetFrameStrata("MEDIUM")
+        bar.text = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall", 7)
+        bar.text:SetPoint("CENTER")
+        bar:EnableMouse(true)
+        if bar.SetMouseClickEnabled then bar:SetMouseClickEnabled(false) end
+        bar:SetScript("OnEnter", function() bar.honorHovered = true; self:UpdateHonorValue() end)
+        bar:SetScript("OnLeave", function() bar.honorHovered = nil; self:UpdateHonorValue() end)
+    end
+    local width, height = self:Options()
+    local nativeWidth, nativeHeight = PublicCall(anchor.GetWidth, anchor), PublicCall(anchor.GetHeight, anchor)
+    local inset = Positive(STATUS_BAR_SIZE_ADJUSTMENT) and STATUS_BAR_SIZE_ADJUSTMENT or 0
+    if not Enabled("progressBarCustomSize") and Positive(nativeWidth) and Positive(nativeHeight)
+        and nativeWidth > inset and nativeHeight > inset then width, height = nativeWidth - inset, nativeHeight - inset end
+    bar:SetSize(width, height)
+    bar:ClearAllPoints()
+    if above then bar:SetPoint("BOTTOM", anchor, "TOP", 0, 4)
+    else bar:SetPoint("CENTER", anchor, "CENTER") end
+    bar.honorAnchor = anchor
+    self:Panel(bar, "maxLevelHonorBar", pass)
+    self:ProgressSegments(bar)
+    self:UpdateHonorValue()
+end
 function Skin:Button(button, key, pass)
     if not Anchorable(button) or type(button.CreateTexture) ~= "function" or type(button.HookScript) ~= "function" then return end
     self:Watch(button, key, { "UpdateTextures", "SetScale" })
@@ -564,6 +669,7 @@ function Skin:Refresh()
     end
     local pass = {}
     if Enabled("statusBarSkin") then self:StatusBars(pass) end
+    self:Honor(pass)
     if Enabled("bagBarSkin") then self:BagBar(pass) end
     if Enabled("microBarSkin") then self:MicroBar(pass) end
     self:Finish(pass)
@@ -585,6 +691,10 @@ function Skin:Apply()
     self:ValuesSetting()
     Suite.pending.hudSkin = nil
     if self.events then self.events:UnregisterAllEvents() end
+    if self.honorBar and not Enabled("maxLevelHonorBar") then
+        self.honorBar.honorAnchor = nil
+        self.honorBar:Hide()
+    end
     if InCombatLockdown() then self:CombatValues() end
     if not AnyEnabled() and not next(self.properties) and not TextPreference(Suite.db.progressBarTextRestore) then return end
     Suite.AfterCombat("hudSkin", function()
@@ -596,6 +706,8 @@ function Skin:Apply()
                         self.loggingOut = true
                         self:Cancel()
                         self:ValuesSetting()
+                    elseif event == "CURRENCY_DISPLAY_UPDATE" or event == "HONOR_XP_UPDATE" then
+                        if self.honorBar then self:UpdateHonorValue() else self:Queue() end
                     else self:Queue() end
                 end)
             end
@@ -603,7 +715,12 @@ function Skin:Apply()
             if AnyEnabled() then
                 for _, event in ipairs({ "ADDON_LOADED", "PLAYER_ENTERING_WORLD", "PLAYER_REGEN_DISABLED" }) do self.events:RegisterEvent(event) end
             end
-            if Enabled("bagBarSkin") or Enabled("microBarSkin") then
+            if Enabled("maxLevelHonorBar") then
+                for _, event in ipairs({ "PLAYER_LEVEL_UP", "UNIT_LEVEL", "CURRENCY_DISPLAY_UPDATE", "HONOR_XP_UPDATE" }) do
+                    self.events:RegisterEvent(event)
+                end
+            end
+            if Enabled("bagBarSkin") or Enabled("microBarSkin") or Enabled("maxLevelHonorBar") then
                 self.events:RegisterEvent("UI_SCALE_CHANGED")
                 self.events:RegisterEvent("DISPLAY_SIZE_CHANGED")
             end
