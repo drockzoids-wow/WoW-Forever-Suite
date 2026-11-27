@@ -10,6 +10,42 @@ local Catalog = { groups = {
     { key = "suite", label = "Suite Settings", utility = true, description = "What's new, appearance, settings profiles, support and guided setup.", pages = { { "whatsnew", "What's New" }, { "appearance", "Appearance" }, { "profiles", "Profiles" }, { "support", "Support" }, { "setup", "Setup Guide" } } },
 } }
 Suite.SettingsCatalog = Catalog
+Catalog.previewGroups = {
+    { key = "overview", label = "Home", pages = { { "overview", "Home" } } },
+    { key = "inventory", label = "Characters & Items", pages = {
+        { "characters", "Inventory", "inventory" }, { "characters", "Characters", "characters" },
+        { "bags", "Bags & Bank" }, { "items", "Item Levels" }, { "tooltips", "Tooltips" },
+    } },
+    { key = "supplies", label = "Supplies", pages = {
+        { "restock", "Restock" }, { "shopping", "Shopping List" }, { "supplies", "Supply Checklist" }, { "vendor", "Vendors" },
+    } },
+    { key = "mail", label = "Mail", pages = { { "mail", "Contacts" }, { "deadlines", "Mail Deadlines" } } },
+    { key = "professions", label = "Professions & Training", pages = {
+        { "professions", "Profession Guides" }, { "training", "Training Planner" },
+    } },
+    { key = "combat", label = "Combat", pages = {
+        { "buffs", "Buff Reminders" }, { "meters", "Damage Meters" }, { "actionbars", "Action Bars" },
+        { "castbars", "Castbars" }, { "unitframes", "Unit Frames" }, { "combat", "Combat Indicator" }, { "macros", "Macro Builder" },
+    } },
+    { key = "journey", label = "Questing & Leveling", pages = {
+        { "quests", "Quests & Loot" }, { "leveling", "Leveling Tracker" }, { "talents", "Talent Builds" }, { "camping", "Camping" },
+    } },
+    { key = "layout", label = "Maps & Interface", pages = {
+        { "minimap", "Minimap" }, { "worldmap", "World Map" }, { "windows", "Window Movement" },
+        { "bars", "Progress Bars" }, { "chat", "Chat" }, { "audio", "Audio" }, { "shortcuts", "Shortcuts" },
+    } },
+    { key = "suite", label = "Suite Settings", pages = {
+        { "profiles", "Profiles" }, { "appearance", "Appearance" }, { "whatsnew", "What's New" },
+        { "support", "Support" }, { "setup", "Setup Guide" },
+    } },
+}
+Catalog.previewHome = {
+    { "characters", "Search Inventory", "Find an item across recorded bags and banks.", view = "inventory" },
+    { "restock", "Open Restock", "Edit targets or review offers from the current vendor.", action = "restockOpen" },
+    { "shopping", "Open Shopping List", "See the materials needed for your tracked plans.", action = "shoppingOpen" },
+    { "mail", "Open Contacts", "Find an alt or guild member and manage groups.", action = "mailBook" },
+}
+Catalog.previewFallback = { restock = "supplies", shopping = "supplies", deadlines = "mail" }
 Catalog.sections = {
     combat = { [1] = "Combat Indicator", [4] = "Position & Preview" },
     overview = { [1] = "Maps & Layout", [4] = "Gear Details" },
@@ -203,15 +239,65 @@ function Catalog:Configure(pages)
         if entry.page == "actionbars" then entry.view = nil end
         Add(entry)
     end
+    self:ConfigurePreview()
 end
 
-function Catalog:Search(query)
+function Catalog:ConfigurePreview()
+    local pages, overrides, groups, labels = self.pages, {}, {}, {}
+    local function Page(key, title, description, source, indices, note)
+        local page = { title = title, description = description, rows = {}, singleColumn = true, note = note }
+        for _, index in ipairs(indices) do page.rows[#page.rows + 1] = pages[source].rows[index] end
+        overrides[key] = page
+    end
+    Page("restock", "Restock", "Set carried targets and review vendor offers.", "supplies", { 4, 3 })
+    Page("shopping", "Shopping List", "Review the materials needed for your tracked profession plans.", "supplies", { 8, 5 })
+    Page("supplies", "Supply Checklist", pages.supplies.description, "supplies", { 1, 2, 6, 7 }, pages.supplies.note)
+    Page("vendor", "Vendors", pages.vendor.description, "vendor", { 1, 2, 3, 4, 5, 6, 7 }, pages.vendor.note)
+    Page("mail", "Contacts", pages.mail.description, "mail", { 1, 2, 3 }, pages.mail.note)
+    Page("deadlines", "Mail Deadlines", "Review counts and deadlines from recorded mailbox visits.", "mail", { 4, 5 })
+    overrides.overview = { title = "Home", description = "Open a tool or choose a section on the left.", rows = {}, directory = true }
+    local relocated, movedLabels = {}, {
+        restockOpen = "Open Restock", merchantRestock = "Restock Settings", shoppingOpen = "Open Shopping List",
+        mailDeadlines = "Open Mail Deadlines",
+    }
+    local launches = { restockOpen = true, shoppingOpen = true, suppliesOpen = true, mailBook = true, mailDeadlines = true }
+    for key, page in pairs(overrides) do
+        for index, row in ipairs(page.rows) do
+            if row.key or row.action then relocated[row.key or row.action] = { key, index } end
+        end
+    end
+    for _, group in ipairs(self.previewGroups) do
+        for _, tab in ipairs(group.pages) do groups[tab[1]], labels[tab[1]] = group, tab[2] end
+    end
+    self.previewPages, self.previewPageGroup = overrides, groups
+    self.previewEntries, self.previewEntriesByKey = {}, {}
+    for _, original in ipairs(self.entries) do
+        local entry = Suite.Copy(original)
+        local move = relocated[entry.key]
+        if move then entry.page, entry.row = move[1], move[2] end
+        if launches[entry.key] then entry.launch = entry.key end
+        entry.label = movedLabels[entry.key] or entry.label
+        if entry.key == "inventoryBrowser" then
+            entry.label, entry.view = "Search Inventory", "inventory"
+        end
+        entry.context = groups[entry.page].label .. "  /  " .. (entry.view == "inventory" and "Inventory" or labels[entry.page])
+        entry.words = entry.words .. " " .. (entry.label .. " " .. entry.context):lower()
+        self.previewEntries[#self.previewEntries + 1] = entry
+        self.previewEntriesByKey[entry.key] = entry
+    end
+end
+
+function Catalog:Page(key, preview)
+    return preview and self.previewPages[key] or self.pages[key]
+end
+
+function Catalog:Search(query, preview)
     if not Suite.IsReadable(query) or type(query) ~= "string" or #query > 100 or query:find("[%c|]") then return {} end
     query = query:match("^%s*(.-)%s*$"):lower()
     if query == "" then return {} end
     local tokens, results = {}, {}
     for token in query:gmatch("%S+") do tokens[#tokens + 1] = token end
-    for _, entry in ipairs(self.entries) do
+    for _, entry in ipairs(preview and self.previewEntries or self.entries) do
         local matches = true
         for _, token in ipairs(tokens) do if not entry.words:find(token, 1, true) then matches = false; break end end
         if matches then results[#results + 1] = entry end
@@ -225,10 +311,12 @@ function Catalog:Search(query)
     return results
 end
 
-function Catalog:SectionFor(page, row)
+function Catalog:SectionFor(page, row, preview)
     local section
-    for index = 1, row or #self.pages[page].rows do
-        if self.sections[page] and self.sections[page][index] then section = index end
+    local sections = self.sections[page]
+    if not sections then return end
+    for index = 1, row or #self:Page(page, preview).rows do
+        if sections[index] then section = index end
     end
     return section
 end

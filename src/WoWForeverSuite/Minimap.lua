@@ -549,7 +549,10 @@ function Map:OpenCoordinateMenu()
         end
         Add("Say", "SAY")
         Add("Yell", "YELL")
-        root:CreateButton("Tell...", function() self:AskCoordinateRecipient(location) end)
+        root:CreateButton("Tell...", function()
+            if self.tell and self.tell:IsShown() then self.tell:Hide()
+            else self:AskCoordinateRecipient(location) end
+        end)
         local function Active(callback, ...)
             if type(callback) ~= "function" then return false end
             local value = callback(...)

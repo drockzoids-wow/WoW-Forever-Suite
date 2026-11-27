@@ -96,7 +96,7 @@ function Planner:Attach()
     Label(panel, 11, 14, -42, "Plan freely. Drafts save automatically.")
     local close = Suite.Theme:IconButton(panel, "close", function()
         if InCombatLockdown() then return end
-        self:StopGuide(); self.expanded, self.preview = false, false; panel:Hide(); self:Render()
+        self:Collapse()
     end)
     close:SetPoint("TOPRIGHT", -6, -6)
     self.groupText = Label(panel, 11, 14, -64, "", 248)

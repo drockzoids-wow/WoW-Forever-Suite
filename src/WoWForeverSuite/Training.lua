@@ -805,7 +805,7 @@ function Training:Build()
         self.db.allLevels = self.allLevels
         self.page, self.offset, self.groupTitle = 1, 0, nil; self:Refresh()
     end)
-    frame.settings = Button(frame, "Settings", 388, -487, 98, function() Suite.GUI:OpenPage("training", nil, self.frame) end)
+    frame.settings = Button(frame, "Settings", 388, -487, 98, function() Suite.GUI:TogglePage("training", self.frame) end)
     frame.wheelArea = Suite.Theme:PageWheel(frame, frame.rows, frame.previous, frame.next, frame.next)
     frame:SetScript("OnMouseWheel", frame.wheelArea:GetScript("OnMouseWheel"))
     Suite.Theme:RouteWheel(frame, frame:GetScript("OnMouseWheel"))

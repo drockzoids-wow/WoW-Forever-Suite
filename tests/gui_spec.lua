@@ -36,8 +36,8 @@ local function Serialize(value)
 end
 local baseline = Serialize(Suite.db)
 equal(gui.sidebar.point[1], "BOTTOMLEFT", "the sidebar fills down to the inner edge of the window")
-equal(gui.sidebar.point[2], 1, "the sidebar leaves room for the left border")
-equal(gui.sidebar.point[3], 1, "the sidebar leaves room for the bottom border")
+equal(gui.sidebar.point[2] >= gui.frame.suiteFlatBorder[3]:GetWidth(), true, "the sidebar leaves room for the left border")
+equal(gui.sidebar.point[3] >= gui.frame.suiteFlatBorder[2]:GetHeight(), true, "the sidebar leaves room for the bottom border")
 equal(#catalog.groups, 8, "eight fixed sections retain all destinations")
 local leafCount, seen = 0, {}
 for _, group in ipairs(catalog.groups) do
@@ -54,6 +54,26 @@ for _, group in ipairs(catalog.groups) do
         equal(gui.scrollFrame:GetParent(), gui.body, "the viewport sits inside the content area")
         equal(gui.content:GetParent(), gui.scrollFrame, "setting controls belong to the clipped scroll child")
         equal(gui.contentHeight >= gui.viewportHeight, true, "short pages fill the viewport without a negative scroll range")
+        for _, child in ipairs({gui.content:GetChildren()}) do
+            local point = child.point
+            if child:IsShown() and point and point[1] == "TOPLEFT" and type(point[2]) == "number" then
+                equal(point[2] >= 0 and point[2] + child:GetWidth() <= gui.content:GetWidth(), true,
+                    leaf[1] .. " keeps its rows and panels inside the content width")
+                equal(point[3] <= 0 and -point[3] + child:GetHeight() <= gui.contentHeight, true,
+                    leaf[1] .. " includes the full rows and panels in its scroll extent")
+            end
+        end
+        for _, row in ipairs(gui.rows) do
+            if row:IsShown() then
+                local help = row.help.point
+                equal(-help[3] + row.help:GetHeight() <= row:GetHeight(), true, leaf[1] .. " fits its wrapped help")
+                local control = row.switch:IsShown() and row.switch or row.value:IsShown() and row.value
+                if control then
+                    equal(help[2] + row.help:GetWidth() < row:GetWidth() + control.point[2] - control:GetWidth(), true,
+                        leaf[1] .. " keeps row help clear of the action or switch")
+                end
+            end
+        end
         local range = gui.scrollFrame.suiteMaximum
         for _, fraction in ipairs({ 0, 0.5, 1 }) do
             gui:ScrollTo(range * fraction)
@@ -363,6 +383,99 @@ end,"Ctrl")
 gui.frame:Hide();callbacks.Shift()
 equal(selected,"ctrl","closing settings retires menu actions")
 gui.frame:Show()
+
+local previewBaseline, priorView, priorChanges = Serialize(Suite.db), Suite.CharacterDashboard.view, changes
+local priorSeen = Suite.db.setupGuide.seen
+equal(Suite.defaults.navigationPreview, false, "new and upgraded installations default to the current layout")
+equal(Suite.Profiles:Settings({ navigationPreview = true }).navigationPreview, nil, "profiles do not copy or roll back the layout preview")
+SlashCmdList.WOWFOREVERSUITE("appearance")
+equal(gui.layoutPreviewExit:IsShown(), false, "the exit button is hidden before opting in")
+equal(gui.rows[1].label.text, "Preview tabbed layout", "Appearance provides a visible opt-in")
+gui.rows[1].OnClick()
+equal(gui.page, "overview", "opting in opens the preview Home")
+equal(Suite.db.navigationPreview, true, "opting in writes the account layout preference")
+equal(gui.layoutPreviewExit:IsShown(), true, "the header offers an immediate return")
+equal(gui.homeCards[4].label.text, "Open Contacts", "the preview has four direct Home actions")
+equal(gui.homeCards[5]:IsShown(), false, "the preview removes the old directory cards from Home")
+
+gui.previewCategoryTabs.inventory.OnClick()
+local inventorySearch = Suite.CharacterBrowser.search
+local priorFocus, focused = inventorySearch.SetFocus, false
+inventorySearch.SetFocus = function() focused = true end
+gui.previewCategoryTabs.overview.OnClick()
+gui.homeCards[1].OnClick()
+equal(focused, true, "Home focuses the live inventory search field")
+inventorySearch.SetFocus = priorFocus
+equal(Suite.CharacterDashboard.view, "inventory", "Home opens Inventory instead of the roster")
+equal(Suite.CharacterDashboard.viewTabs.inventory:IsShown(), false, "the preview shows one tab row for the two dashboard views")
+gui.previewTabs[2].OnClick(gui.previewTabs[2])
+equal(Suite.CharacterDashboard.view, "characters", "the Characters tab uses the existing roster")
+equal(gui.heading.text, "Characters", "the page title follows the selected view")
+gui.previewCategoryTabs.supplies.OnClick()
+equal(gui.page, "restock", "Supplies opens Restock directly")
+gui.previewTabs[2].OnClick(gui.previewTabs[2])
+equal(gui.page, "shopping", "the Shopping List tab selects its own settings")
+gui.previewCategoryTabs.mail.OnClick()
+gui.previewCategoryTabs.supplies.OnClick()
+equal(gui.page, "shopping", "the sidebar remembers the last tab visited")
+
+local restock = Suite.MerchantRestock
+local openRestock, restockFrame, opens = restock.Open, restock.frame, 0
+restock.frame = nil
+restock.Open = function(_, owner)
+    equal(owner, gui.frame, "the preview opens the same independent restock window")
+    opens = opens + 1
+end
+Query("restock")
+equal(gui.searchRows[1].label.text, "Open Restock", "preview search distinguishes the launcher")
+equal(gui.searchRows[2].label.text, "Restock Settings", "preview search distinguishes the setting")
+gui.searchRows[1].OnClick()
+equal(opens, 1, "the tool result invokes the native addon launcher")
+Query("restock")
+gui.searchRows[2].OnClick()
+equal(opens, 1, "the settings result never invokes the tool")
+equal(gui.page, "restock", "the settings result opens the preview Restock page")
+equal(gui.settingHighlight:GetParent(), gui.rows[2], "the result highlights the real restock switch")
+local restocking = Suite.db.merchantRestock
+gui.rows[2].OnClick()
+equal(Suite.db.merchantRestock, not restocking, "preview settings update the same live preference")
+gui.rows[2].OnClick()
+gui.previewCategoryTabs.overview.OnClick()
+gui.homeCards[2].OnClick()
+equal(opens, 2, "the Home shortcut uses the same launcher as search")
+restock.Open, restock.frame = openRestock, restockFrame
+
+local visited = {}
+for _, group in ipairs(catalog.previewGroups) do
+    gui.previewCategoryTabs[group.key].OnClick()
+    for index, entry in ipairs(group.pages) do
+        if #group.pages > 1 then
+            local tab = gui.previewTabs[index]
+            equal(tab.point[2] + tab:GetWidth() <= gui.contentWidth, true, entry[2] .. " fits within the tab row")
+            tab.OnClick(tab)
+        end
+        equal(gui.page, entry[1], entry[2] .. " is reachable in the preview")
+        equal(gui.group, group.key, entry[2] .. " selects the correct sidebar section")
+        visited[entry[1]] = true
+    end
+end
+for _, group in ipairs(catalog.groups) do
+    for _, entry in ipairs(group.pages) do equal(visited[entry[1]], true, entry[2] .. " retains a preview route") end
+end
+gui:Select("deadlines")
+gui.frame:Hide(); gui:Toggle()
+equal(gui.page, "deadlines", "reopening retains the preview route")
+gui.layoutPreviewExit.OnClick(gui.layoutPreviewExit)
+equal(gui.page, "mail", "exiting a split page restores its original counterpart")
+equal(gui.previewCategoryTabs.mail:IsShown(), false, "preview sidebar buttons hide on exit")
+equal(gui.groupTabs.everyday:IsShown(), true, "the original sidebar is restored")
+gui:Select("characters")
+equal(Suite.CharacterDashboard.viewTabs.inventory:IsShown(), true, "the original dashboard tabs return")
+Suite.CharacterDashboard.view = priorView
+Suite.db.setupGuide.seen = priorSeen
+equal(Serialize(Suite.db), previewBaseline, "a preview round trip preserves the existing saved settings and records")
+equal(changes, priorChanges + 2, "only clicking actual feature switches reapplies addon features")
+
 Suite.db, Suite.Apply, Suite.pending = oldDB, oldApply, oldPending
 gui:Select(oldPage or "overview"); gui.frame:SetShown(oldShown)
 SetCombat(false)

@@ -161,7 +161,7 @@ equal(mail:Validate({ at = 1, count = 1, total = 0, deadline = 5 }), nil, "inval
 mail:Open(launcher); equal(#mail:Rows(), 1, "saved mail remains readable when disabled")
 assert(loadfile("tests/window_drag_fixture.lua"))(mail.frame, equal, "Mail Deadlines")
 equal(mail.frame.point[1], "BOTTOMLEFT", "mail deadlines uses its launcher for placement")
-equal(mail.frame:GetWidth(), 440, "mail deadlines fits all footer controls on one row")
+equal(mail.frame:GetWidth(), 440, "mail deadlines fits within its compact width")
 equal(supplies.frame:GetWidth(), 620, "supply checklist retains its own width")
 local oneRowHeight = mail.frame:GetHeight()
 equal(oneRowHeight, 209, "one mail row leaves room for a wrapped note and a single control row")
@@ -169,15 +169,11 @@ local settings
 for _, child in ipairs(mail.frame.children) do
     if child:GetText() == "Settings" then settings = child; break end
 end
-equal(mail.frame.previous.point[1], "BOTTOMLEFT", "navigation starts at the left")
+equal(mail.frame.previous, nil, "mail deadlines has no page navigation")
 equal(mail.frame.refresh.point[1], "BOTTOMRIGHT", "Refresh Times anchors to the right")
 equal(settings.point[1], "BOTTOMRIGHT", "Settings anchors to the right")
-for _, control in ipairs({ mail.frame.next, mail.frame.page, mail.frame.refresh, settings }) do
-    equal(control.point[3], mail.frame.previous.point[3], "all footer controls share one row")
-end
+equal(settings.point[3], mail.frame.refresh.point[3], "footer controls share one row")
 local refreshRight = mail.frame:GetWidth() + mail.frame.refresh.point[2]
-equal(refreshRight - mail.frame.refresh:GetWidth() > mail.frame.page.point[2] + mail.frame.page:GetWidth(),
-    true, "the page counter and Refresh Times have separate space")
 equal(mail.frame:GetWidth() + settings.point[2] - settings:GetWidth() > refreshRight, true,
     "Refresh Times and Settings have a gap")
 equal(mail.frame.status.wordWrap, true, "long status messages wrap")
@@ -189,22 +185,53 @@ for _, name in ipairs({ "Character", "Mail" }) do
 end
 equal(headers.Character.justifyH, "LEFT", "Character heading aligns with names")
 equal(headers.Mail.justifyH, "RIGHT", "Mail heading aligns with counts")
-equal(headers.Character.point[2], mail.frame.rows[1].point[2] + mail.frame.rows[1].label.point[2],
+local scroll = mail.frame.scroll
+equal(scroll.suiteScrollBar:IsShown(), false, "a single row does not need a scrollbar")
+equal(headers.Character.point[2], scroll.point[2] + mail.frame.rows[1].label.point[2],
     "Character heading and names share the same left edge")
-equal(headers.Mail.point[2], mail.frame.rows[1].point[2] + mail.frame.rows[1].mailCount.point[2],
+equal(headers.Mail.point[2], scroll.point[2] + mail.frame.rows[1].mailCount.point[2],
     "Mail heading and counts share the same column")
-for index = 1, 8 do
+for index = 1, 10 do
     Suite.db.inventory.characters["extra" .. index] = {
         name = "Extra " .. index, realm = character.realm, region = character.region, mailExpiry = previous,
     }
 end
 mail:Refresh()
-equal(mail.frame:GetHeight(), oneRowHeight + 7 * 40, "a full first page shows eight rows")
-mail.frame.next:OnClick()
-equal(mail.frame:GetHeight(), oneRowHeight, "the last page contracts to one row")
-equal(mail.frame.page:GetText(), "2 / 2", "paging remains available on the compact window")
-for index = 1, 8 do Suite.db.inventory.characters["extra" .. index] = nil end
+equal(mail.frame:GetHeight(), oneRowHeight, "refreshing a larger roster keeps the open window size")
+mail.frame:Hide(); mail:Open(launcher)
+local openHeight, openAnchor = mail.frame:GetHeight(), mail.frame.point
+equal(openHeight, oneRowHeight + 7 * 40, "a large roster opens with room for eight rows")
+equal(scroll.scrollChild, mail.frame.content, "only the character list belongs to the scroll child")
+equal(scroll.suiteMaximum, 3 * 40, "all eleven rows are in one scrolled list")
+equal(scroll.suiteScrollBar:IsShown(), true, "overflow displays a scrollbar")
+local firstRow = mail.frame.rows[1]
+firstRow.OnMouseWheel(firstRow, -1)
+equal(scroll.verticalScroll, 40, "wheel over a character row scrolls one row")
+mail.frame.refresh.OnClick()
+equal(scroll.verticalScroll, 40, "Refresh times keeps the current scroll position")
+local bar = scroll.suiteScrollBar
+local savedCursor, y = GetCursorPosition, 1000
+GetCursorPosition = function() return 0, y end
+bar.thumb.OnMouseDown(bar.thumb, "LeftButton")
+y = y - (scroll.suiteMaximum - scroll.suiteOffset) * bar.travel / scroll.suiteMaximum * bar:GetEffectiveScale()
+bar.OnUpdate()
+bar.thumb.OnMouseUp(bar.thumb, "LeftButton")
+GetCursorPosition = savedCursor
+equal(math.abs(scroll.verticalScroll - 120) < 0.0001, true, "dragging the scrollbar reaches the bottom")
+scroll.OnMouseWheel(scroll, -1)
+equal(scroll.verticalScroll, 120, "wheel clamps to the end of the list")
+local lastRow = mail.frame.rows[11]
+equal(lastRow.label:GetText(), "|cff40bfffTest Character|r · PvE", "the last character is reachable in the same list")
+equal(-lastRow.point[3] + lastRow:GetHeight() - scroll.verticalScroll <= scroll:GetHeight(), true,
+    "the last row fits entirely above the footer")
+equal(mail.frame:GetHeight(), openHeight, "scrolling to the last character keeps the window size")
+equal(mail.frame.point, openAnchor, "scrolling never changes the window anchor")
+for index = 1, 10 do Suite.db.inventory.characters["extra" .. index] = nil end
 mail:Refresh()
+equal(mail.frame:GetHeight(), openHeight, "refreshing a shorter roster keeps the open window size")
+equal(scroll.verticalScroll, 0, "a shorter roster clamps the old scroll position")
+equal(lastRow:IsShown(), false, "unused rows hide after the list shrinks")
+equal(scroll.suiteScrollBar:IsShown(), false, "the scrollbar hides when the list fits")
 local mailRow = mail.frame.rows[1]
 equal(mailRow.label:GetText(), "|cff40bfffTest Character|r · PvE", "the Character column displays the class-colored name and short ruleset")
 equal(mailRow.mailCount:GetText(), "|cff68d6bf1|r", "the Mail column shows a number without a unit label")

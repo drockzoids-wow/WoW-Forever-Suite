@@ -396,12 +396,12 @@ function Search:Render()
     if not self:PlacePopup() then self:Dismiss(); return end
     local pages = math.max(1, math.ceil(#rows / PAGE_SIZE))
     self.page = math.max(1, math.min(pages, self.page or 1))
-    local count = math.min(PAGE_SIZE, #rows - (self.page - 1) * PAGE_SIZE)
+    local rowsPerPage = math.min(PAGE_SIZE, #rows)
     local pending = (self.pendingItems or 0) > 0
     local notice = self.limited and "Some results omitted" or pending and "Names loading/unavailable" or nil
-    local width = count == 0 and (pending and 240 or 180) or WIDTH
+    local width = rowsPerPage == 0 and (pending and 240 or 180) or WIDTH
     popup:SetWidth(width)
-    popup:SetHeight(count == 0 and 28 or (8 + count * ROW_HEIGHT + ((pages > 1 or notice) and 20 or 0)))
+    popup:SetHeight(rowsPerPage == 0 and 28 or (8 + rowsPerPage * ROW_HEIGHT + ((pages > 1 or notice) and 20 or 0)))
     for index, button in ipairs(self.buttons) do
         local row = rows[(self.page - 1) * PAGE_SIZE + index]; button.entry = row
         if row then
@@ -410,9 +410,9 @@ function Search:Render()
         end
         button:SetShown(row ~= nil)
     end
-    self.empty:SetWidth(width - 38); self.empty:SetShown(count == 0)
+    self.empty:SetWidth(width - 38); self.empty:SetShown(rowsPerPage == 0)
     self.empty:SetText(pending and "Names loading/unavailable" or self.limited and "No matches (partial)" or "No matches")
-    self.notice:SetText(notice or ""); self.notice:SetShown(count > 0 and notice ~= nil)
+    self.notice:SetText(notice or ""); self.notice:SetShown(rowsPerPage > 0 and notice ~= nil)
     self.previous:SetEnabled(self.page > 1); self.next:SetEnabled(self.page < pages)
     self.pageLabel:SetText(self.page .. "/" .. pages)
     self.previous:SetShown(pages > 1); self.next:SetShown(pages > 1); self.pageLabel:SetShown(pages > 1); popup:Show()

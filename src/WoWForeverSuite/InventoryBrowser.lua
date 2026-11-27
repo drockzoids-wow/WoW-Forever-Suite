@@ -146,6 +146,8 @@ function Browser:Open()
 end
 function Browser:ShowWowheadLink(row)
     if InCombatLockdown() or not self.visible or not Table(row) or not Integer(row.id, 1, 2147483647) then return end
+    local open = self.wowheadFrame
+    if open and open:IsShown() and open.itemID == row.id then open:Hide(); return end
     self:HideTooltip()
     if not self.wowheadFrame then
         local frame = CreateFrame("Frame", nil, Suite.GUI.frame, "BackdropTemplate")
@@ -167,6 +169,7 @@ function Browser:ShowWowheadLink(row)
         self.wowheadFrame = frame
     end
     local frame = self.wowheadFrame
+    frame.itemID = row.id
     frame.title:SetText(Text(row.name, 256) and row.name or ("Item " .. row.id))
     frame.edit:SetText(string.format("https://www.wowhead.com/forever/item=%d", row.id))
     frame:Show(); frame.edit:SetFocus(); frame.edit:HighlightText()

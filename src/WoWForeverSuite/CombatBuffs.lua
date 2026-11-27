@@ -2,10 +2,14 @@ local _, Suite = ...
 local Timers = Suite.ReminderTimers
 -- All combat aura decisions stay in Blizzard's native renderer. Inverse clips
 -- reveal our art/text; Lua never reads the native frames, text or their bounds.
-local Combat = { records = {}, coverage = {}, durations = {}, auraIDs = {}, auraDurations = {}, failed = {} }
+local Combat = { pool = {}, records = {}, coverage = {}, durations = {}, auraIDs = {}, auraDurations = {}, failed = {} }
 Suite.CombatBuffs = Combat
 table.insert(Suite.modules, Combat)
 local PLANE, LINE = 260, 16
+-- These bounds cover the icon, centered header and up to 40 tooltip rows
+-- for any supported icon size. Resizing the art leaves native masks intact.
+local MASK_WIDTH, MASK_LEFT, MASK_TOP, MASK_DEPTH = 1024, -512, 512, 1024
+local WARNING_GLYPHS = string.rep("W", 128)
 local CLIP = "DisableUntrustedLayoutScriptsTemplate"
 local function Read(v, kind) return Suite.IsReadable(v) and type(v) == kind end
 local function Number(v) return Read(v, "number") and v == v and v >= 0 and v < math.huge end
@@ -29,11 +33,11 @@ local function Clip(parent)
     frame:SetClipsChildren(true); frame:EnableMouse(false)
     return frame
 end
-local function TitleOffsets(total, index, size)
-    local row = math.floor(index / 8)
-    local rowCount = math.min(8, total - row * 8)
-    return (rowCount * (size + 9) - 9 - 110) / 2 - index % 8 * (size + 9),
-        24 + row * (size + 14)
+local function SameIDs(ids, previous)
+    if not previous then return false end
+    for id in pairs(ids) do if not previous[id] then return false end end
+    for id in pairs(previous) do if not ids[id] then return false end end
+    return true
 end
 
 function Combat:IndexRanks()
@@ -117,8 +121,8 @@ function Combat:Descriptors()
     return descriptors
 end
 
-local function Signature(descriptor, size)
-    local parts = { descriptor.key, descriptor.spell.id, size }
+local function Signature(descriptor)
+    local parts = { descriptor.key, descriptor.spell.id, descriptor.spell.icon or "", descriptor.spell.name }
     for _, member in ipairs(descriptor.members) do
         parts[#parts + 1] = member.unit; parts[#parts + 1] = member.guid
         parts[#parts + 1] = member.name; parts[#parts + 1] = member.warning
@@ -214,203 +218,267 @@ function Combat:UpdatePreview()
     Suite.MissingBuffs:Place(self.previewRoot); self.previewRoot:Show()
 end
 
--- The native container's width is either 0 or PLANE. Anchor-only display
--- composition works for both states without calling GetWidth/IsShown/etc.
-local function MissingClip(parent, source, anchor, x, y)
+-- The native group's width is zero or MASK_WIDTH. These clips let the
+-- renderer compose the icon, title and tooltip without reading aura state.
+local function MissingClip(parent, container, cell)
     local clip = Clip(parent)
-    clip:SetPoint("TOPLEFT", source, "TOPRIGHT", x, y)
-    clip:SetPoint("BOTTOMRIGHT", anchor, "TOPLEFT", x + PLANE, y - LINE)
+    clip:SetPoint("TOPLEFT", container, "TOPRIGHT", 0, 0)
+    clip:SetPoint("BOTTOMRIGHT", cell, "TOPLEFT", MASK_LEFT + MASK_WIDTH, -MASK_DEPTH)
     return clip
 end
 
--- Each native missing/expiry mask contributes the same passive title. Thus
--- healthy coverage hides the title too, without Lua testing aura visibility.
-function Combat:Title(record, parent, source, soon)
+local function PresentClip(parent, container)
     local clip = Clip(parent)
-    local x, y = record.titleX, record.titleY
-    -- Native button descendants become forbidden when initializeFrame returns,
-    -- including outside combat. Establish these anchors only during creation.
-    if soon then
-        clip:SetPoint("TOPLEFT", source, "TOPLEFT", x, y)
-        clip:SetPoint("BOTTOMRIGHT", source, "BOTTOMRIGHT", x, y)
-    else
-        clip:SetPoint("TOPLEFT", source, "TOPRIGHT", x, y)
-        clip:SetPoint("BOTTOMRIGHT", record.cell, "TOPLEFT", x + 110, y - 21)
-    end
-    local title = Label(clip, "Missing Buffs", 10)
-    title:SetTextColor(0.88, 0.91, 0.93)
-    title:SetPoint("TOP", self.frame, "TOP", 0, -6)
+    clip:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
+    clip:SetPoint("BOTTOMRIGHT", container, "TOPRIGHT", 0, -MASK_DEPTH - MASK_TOP)
+    return clip
 end
 
-function Combat:Container(record, member, row, soon)
-    local cell, size = record.cell, record.size
-    local gates = record.rangeGates[row]
-    local container = CreateFrame("AuraContainer", nil, gates.display, "CustomAuraContainerTemplate")
-    record.containers[#record.containers + 1] = container
-    container:SetEnabled(false); container:SetEditModePreviewEnabled(false)
+local function WarningClip(parent, gate)
+    local clip = Clip(parent)
+    clip:SetPoint("TOPLEFT", gate, "TOPLEFT", 0, 0)
+    clip:SetPoint("BOTTOMRIGHT", gate, "TOPRIGHT", 0, -MASK_DEPTH - MASK_TOP)
+    return clip
+end
+
+local function Filters(member, expiry)
+    return { includeSpellIDs = member.ids, maxDuration = expiry and 864000 or nil }
+end
+
+function Combat:Visuals(record, display, tooltip)
+    local chip, plate, icon = self:Chip(display, record, record.cell)
+    local title = Label(display, "Missing Buffs", 10)
+    title:SetTextColor(0.88, 0.91, 0.93)
+    title:SetPoint("TOP", self.frame, "TOP", 0, -6)
+    return { display = display, tooltip = tooltip, chip = chip, plate = plate, icon = icon, name = Label(tooltip, "") }
+end
+
+local function MakeContainer(parent, cell)
+    local container = CreateFrame("AuraContainer", nil, parent, "CustomAuraContainerTemplate")
+    container:SetEnabled(false)
+    container:SetEditModePreviewEnabled(false)
     container:SetAuraProcessingPolicy(CustomAuraContainerAuraProcessingPolicy.None)
-    container:SetUnit(member.unit); container:SetPoint("TOPLEFT", cell, "TOPLEFT", 0, 0)
-    local tipX = (size - record.tipWidth) / 2 + 4
-    local tipY = -size - 14 - 6 - 26 - (row - 1) * LINE
-    if not soon then
-        local iconClip = Clip(gates.display)
-        iconClip:SetPoint("TOPLEFT", container, "TOPRIGHT", 0, 0)
-        iconClip:SetPoint("BOTTOMRIGHT", cell, "TOPLEFT", PLANE, -size - 14)
-        local _, plate, icon = self:Chip(iconClip, record, cell)
-        plate.icon = icon
+    container:SetPoint("TOPLEFT", cell, "TOPLEFT", MASK_LEFT, MASK_TOP)
+    return container
+end
+
+local function AddGroup(container, filters)
+    container:AddAuraGroup("Buff", "HELPFUL", {
+        maxFrameCount = 1, candidateFilters = filters,
+        layout = { elementWidth = MASK_WIDTH, elementHeight = 1 },
+        sortMethod = AuraContainerSortMethod.ExpirationOnly, sortDirection = AuraContainerSortDirection.Reverse,
+        initializeFrame = function(button) button:EnableMouse(false); button:SetSize(MASK_WIDTH, 1) end,
+    })
+end
+
+function Combat:PreparePresence(record, row, member)
+    local cell = record.cell
+    if not row.presence then
+        local container = MakeContainer(row.display, cell)
+        row.presence = container
+        local art = self:Visuals(record, MissingClip(row.display, container, cell), MissingClip(row.tooltip, container, cell))
+        row.missingArt = art
+        local plate = art.plate
+        plate.icon = art.icon
         Timers:Create(plate)
         plate.bindingLabel = Suite.MissingBuffs:BindingLabel(plate)
-        Suite.MissingBuffs:Hotkey(plate,member.spellID or record.descriptor.spell.id)
-        gates.cooldownPlate = plate
-        self:Title(record, gates.display, container, false)
-        local nameClip = MissingClip(gates.tooltip, container, cell, tipX, tipY)
-        local name = Label(nameClip, member.name)
-        name:SetPoint("TOPLEFT", cell, "TOPLEFT", tipX, tipY)
+        row.cooldownPlate = plate
     end
-    local options = {
-        maxFrameCount = 1, candidateFilters = { includeSpellIDs = member.ids },
-        layout = { elementWidth = PLANE, elementHeight = size + 14 },
-        sortMethod = AuraContainerSortMethod.ExpirationOnly, sortDirection = AuraContainerSortDirection.Reverse,
-        initializeFrame = function(button)
-            button:EnableMouse(false); button:SetSize(PLANE, size + 14)
-            if not soon then return end
-            local gate = Label(button, "", size + 24)
-            gate:SetPoint("TOPLEFT", button, "TOPLEFT", 0, 0)
-            gate:SetWordWrap(false); gate:SetAlpha(0)
-            local formatter = C_StringUtil.CreateNumericRuleFormatter()
-            formatter:SetBreakpoints({ { threshold = 0, format = "WWWWWWWW" },
-                { threshold = member.warning + 0.001, format = "" } })
-            button:SetDurationText(gate, { textFormatter = formatter })
-            -- Intersect the text's engine-managed bounds with native presence:
-            -- an old glyph on a retired native button cannot reveal anything.
-            -- Inherit this particular pooled button's visibility as well as
-            -- text geometry, so retired buttons cannot leave a stale warning.
-            local iconClip = Clip(button)
-            iconClip:SetPoint("TOPLEFT", gate, "TOPLEFT", 0, 0)
-            iconClip:SetPoint("BOTTOMRIGHT", gate, "BOTTOMRIGHT", 0, 0)
-            local _, plate, icon = self:Chip(iconClip, record, cell)
-            -- One clock per icon. When this family also covers party members,
-            -- prefer the player's own timer over overlapping numbers.
-            if (member.unit == "player" or #record.descriptor.members == 1)
-                and type(button.SetDurationCooldown) == "function" then
-                local cooldown = CreateFrame("Cooldown", nil, plate, "CooldownFrameTemplate")
-                cooldown:SetAllPoints(icon)
-                cooldown:EnableMouse(false)
-                cooldown:SetDrawSwipe(false)
-                cooldown:SetDrawEdge(false)
-                cooldown:SetDrawBling(false)
-                cooldown:SetHideCountdownNumbers(false)
-                if cooldown.SetMinimumCountdownDuration then cooldown:SetMinimumCountdownDuration(0) end
-                if cooldown.SetCountdownMillisecondsThreshold then cooldown:SetCountdownMillisecondsThreshold(0) end
-                -- Bind separately from the duration text that gates the icon.
-                -- The client advances both displays without an addon timer.
-                cooldown:Show()
-                if not pcall(button.SetDurationCooldown, button, cooldown) then cooldown:Hide() end
-            end
-            self:Title(record, button, gate, true)
-            local namePresence = Clip(button)
-            namePresence:SetPoint("TOPLEFT", record.tooltip, "TOPLEFT", 0, 0)
-            namePresence:SetPoint("BOTTOMRIGHT", record.tooltip, "BOTTOMRIGHT", 0, 0)
-            local nameClip = Clip(namePresence)
-            nameClip:SetPoint("TOPLEFT", gate, "TOPLEFT", tipX, tipY)
-            nameClip:SetPoint("BOTTOMRIGHT", gate, "BOTTOMRIGHT", tipX, tipY)
-            local name = Label(nameClip, member.name)
-            name:SetPoint("TOPLEFT", cell, "TOPLEFT", tipX, tipY)
-        end,
-    }
-    -- Permanent auras must never retain stale expiry text from a pooled button.
-    if soon then options.candidateFilters.maxDuration = 864000 end
-    container:AddAuraGroup("Buff", "HELPFUL", options)
+    local container = row.presence
+    if row.unit ~= member.unit then container:SetUnit(member.unit) end
+    if not row.presenceReady then
+        AddGroup(container, Filters(member))
+        row.presenceReady = true
+    elseif not SameIDs(member.ids, row.ids) then
+        container:SetAuraGroupCandidateFilters("Buff", Filters(member))
+    end
     container:SetEnabled(true)
 end
 
-function Combat:Build(descriptor, size, titleX, titleY)
-    local record = { descriptor = descriptor, size = size, containers = {}, rangeGates = {}, titleX = titleX, titleY = titleY }
-    record.cell = CreateFrame("Frame", nil, self.frame, CLIP)
-    record.cell:Hide(); record.cell:SetSize(size, size + 14)
-    local tooltip = CreateFrame("Frame", nil, record.cell, "BackdropTemplate," .. CLIP)
-    record.tooltip = tooltip
-    record.cell:SetScript("OnHide", function() tooltip:Hide() end)
-    tooltip:SetFrameStrata("TOOLTIP"); tooltip:EnableMouse(false); tooltip:SetClipsChildren(true)
-    tooltip:SetPoint("TOP", record.cell, "BOTTOM", 0, -6)
-    local title = Label(tooltip, descriptor.spell.name, 11)
-    title:SetPoint("TOPLEFT", tooltip, "TOPLEFT", 4, -6)
-    local titleWidth = Call(title.GetUnboundedStringWidth, title)
+function Combat:PrepareExpiry(record, row, member)
+    local cell = record.cell
+    if not row.expiry then
+        local container = MakeContainer(row.display, cell)
+        row.expiry = container
+        row.clock = CreateFrame("Frame", nil, row.display, CLIP)
+        row.clock:SetPoint("TOPLEFT", cell, "TOPLEFT", 2, -2)
+        row.formatter = C_StringUtil.CreateNumericRuleFormatter()
+    end
+    local container = row.expiry
+    if row.expiryUnit ~= member.unit then container:SetUnit(member.unit) end
+    if row.warning ~= member.warning then
+        row.formatter:SetBreakpoints({ { threshold = 0, format = WARNING_GLYPHS },
+            { threshold = member.warning + 0.001, format = "" } })
+    end
+    local filters = Filters(member, true)
+    if not row.expiryReady then
+        -- A single slot owns the duration text for this lane. Its sibling group
+        -- collapses when no finite aura matches, covering any retired glyphs.
+        AddGroup(container, filters)
+        container:AddAuraSlot("Warning", "HELPFUL", {
+            candidateFilters = filters,
+            sortMethod = AuraContainerSortMethod.ExpirationOnly, sortDirection = AuraContainerSortDirection.Reverse,
+            initializeFrame = function(button)
+                button:EnableMouse(false)
+                local gate = Label(button, "", 20)
+                gate:SetPoint("TOPLEFT", cell, "TOPLEFT", MASK_LEFT, MASK_TOP)
+                gate:SetWordWrap(false)
+                gate:SetAlpha(0)
+                button:SetDurationText(gate, { textFormatter = row.formatter })
+                -- These masks anchor to the native gate at creation. Their
+                -- artwork and labels belong to Suite and can be updated later.
+                row.expiryArt = self:Visuals(record, WarningClip(PresentClip(row.display, container), gate),
+                    WarningClip(PresentClip(row.tooltip, container), gate))
+                if type(button.SetDurationCooldown) == "function" then
+                    local clip = Clip(WarningClip(button, gate))
+                    clip:SetAllPoints(row.clock)
+                    local cooldown = CreateFrame("Cooldown", nil, clip, "CooldownFrameTemplate")
+                    cooldown:SetAllPoints(row.clock)
+                    cooldown:EnableMouse(false)
+                    cooldown:SetDrawSwipe(false)
+                    cooldown:SetDrawEdge(false)
+                    cooldown:SetDrawBling(false)
+                    cooldown:SetHideCountdownNumbers(false)
+                    if cooldown.SetMinimumCountdownDuration then cooldown:SetMinimumCountdownDuration(0) end
+                    if cooldown.SetCountdownMillisecondsThreshold then cooldown:SetCountdownMillisecondsThreshold(0) end
+                    cooldown:Show()
+                    if not pcall(button.SetDurationCooldown, button, cooldown) then cooldown:Hide() end
+                end
+            end,
+        })
+        row.expiryReady = true
+    elseif not SameIDs(member.ids, row.expiryIDs) then
+        container:SetAuraGroupCandidateFilters("Buff", filters)
+        container:SetAuraSlotCandidateFilters("Warning", filters)
+    end
+    row.expiryUnit, row.expiryIDs, row.warning = member.unit, member.ids, member.warning
+    container:SetEnabled(true)
+end
+
+local function HideRow(row)
+    row.display:Hide()
+    row.tooltip:Hide()
+    if row.presence then row.presence:SetEnabled(false) end
+    if row.expiry then row.expiry:SetEnabled(false) end
+end
+
+local function PlaceArt(art, member, record, row)
+    art.chip:SetSize(record.size, record.size)
+    art.plate:SetSize(record.size, record.size)
+    art.icon:SetSize(record.size - 4, record.size - 4)
+    art.icon:SetTexture(record.descriptor.spell.icon)
+    art.name:SetText(member.name)
+    art.name:ClearAllPoints()
+    art.name:SetPoint("TOPLEFT", record.tooltip, "TOPLEFT", 4, -20 - (row - 1) * LINE)
+end
+
+function Combat:Build(descriptor, size, index, signature)
+    -- Pool by concurrent display slot and recipient count, independent of
+    -- character names, aura filters, warning time and icon size.
+    local record = self.pool[index]
+    if record and record.signature == signature and record.size == size then return record end
+    if not record then
+        record = { rangeGates = {} }
+        self.pool[index] = record
+        local cell = CreateFrame("Frame", nil, self.frame, CLIP)
+        record.cell = cell
+        cell:Hide()
+        local tooltip = CreateFrame("Frame", nil, cell, "BackdropTemplate," .. CLIP)
+        record.tooltip = tooltip
+        cell:SetScript("OnHide", function() tooltip:Hide() end)
+        tooltip:SetFrameStrata("TOOLTIP")
+        tooltip:EnableMouse(false)
+        tooltip:SetClipsChildren(true)
+        tooltip:SetPoint("TOP", cell, "BOTTOM", 0, -6)
+        record.title = Label(tooltip, "", 11)
+        record.title:SetPoint("TOPLEFT", tooltip, "TOPLEFT", 4, -6)
+        record.measure = Label(tooltip, "", 10)
+        record.measure:SetAlpha(0)
+        tooltip:SetScript("OnShow", function() tooltip:SetSize(record.tipWidth, record.tipHeight) end)
+        tooltip:SetScript("OnHide", function() tooltip:SetSize(0, 0) end)
+        tooltip:SetSize(0, 0)
+        tooltip:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+        tooltip:SetBackdropColor(0.035, 0.05, 0.065, 0.94)
+        Suite.Theme:Backdrop(tooltip, 0.45)
+        tooltip:Hide()
+    end
+
+    record.descriptor, record.size, record.signature = descriptor, size, nil
+    record.cell:SetSize(size, size + 14)
+    record.title:SetText(descriptor.spell.name)
+    local titleWidth = Call(record.title.GetUnboundedStringWidth, record.title)
     local textWidth = Number(titleWidth) and titleWidth or 120
-    -- Only public, precombat title/roster strings are measured. Bound native
-    -- text and layout remain opaque; the masking plane need not size the tip.
-    local measure = Label(tooltip, "", 10); measure:SetAlpha(0)
     for _, member in ipairs(descriptor.members) do
-        measure:SetText(member.name)
-        local width = Call(measure.GetUnboundedStringWidth, measure)
+        record.measure:SetText(member.name)
+        local width = Call(record.measure.GetUnboundedStringWidth, record.measure)
         if Number(width) then textWidth = math.max(textWidth, width) end
     end
-    local tipWidth, tipHeight = math.min(PLANE, math.max(100, math.ceil(textWidth) + 8)), 32 + #descriptor.members * LINE
-    record.tipWidth = tipWidth
-    -- Names parented to native buttons need both native visibility and the
-    -- user-controlled tooltip aperture. Never inspect either set of bounds.
-    tooltip:SetScript("OnShow", function() tooltip:SetSize(tipWidth, tipHeight) end)
-    tooltip:SetScript("OnHide", function() tooltip:SetSize(0, 0) end)
-    tooltip:SetSize(0, 0)
-    tooltip:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-    tooltip:SetBackdropColor(0.035, 0.05, 0.065, 0.94); Suite.Theme:Backdrop(tooltip, 0.45)
-    tooltip:Hide()
+    record.tipWidth = math.min(PLANE, math.max(100, math.ceil(textWidth) + 8))
+    record.tipHeight = 32 + #descriptor.members * LINE
+
     local ok, failure = pcall(function()
-        for row, member in ipairs(descriptor.members) do
-            -- These owned ancestors never inherit native aura visibility or
-            -- geometry. Only their public spell-range result controls them.
-            local display = CreateFrame("Frame", nil, record.cell, CLIP)
-            local tipGate = CreateFrame("Frame", nil, tooltip, CLIP)
-            display:EnableMouse(false); tipGate:EnableMouse(false)
-            record.rangeGates[row] = { display = display, tooltip = tipGate }
-            self:Container(record, member, row, false)
+        for index, member in ipairs(descriptor.members) do
+            local row = record.rangeGates[index]
+            if not row then
+                local display = CreateFrame("Frame", nil, record.cell, CLIP)
+                local tipGate = CreateFrame("Frame", nil, record.tooltip, CLIP)
+                display:EnableMouse(false)
+                tipGate:EnableMouse(false)
+                row = { display = display, tooltip = tipGate }
+                record.rangeGates[index] = row
+            end
+            self:PreparePresence(record, row, member)
+            PlaceArt(row.missingArt, member, record, index)
+            Suite.MissingBuffs:Hotkey(row.cooldownPlate, member.spellID or descriptor.spell.id)
+            row.unit, row.ids = member.unit, member.ids
+            local expiry = false
             if member.warning > 0 and not self.soonUnavailable then
-                local before = #record.containers
-                local ready, reason = pcall(self.Container, self, record, member, row, true)
-                if not ready then
-                    for index = before + 1, #record.containers do
-                        pcall(record.containers[index].SetEnabled, record.containers[index], false)
-                        record.containers[index] = nil
-                    end
+                local ready, reason = pcall(self.PrepareExpiry, self, record, row, member)
+                if ready then
+                    expiry = true
+                    PlaceArt(row.expiryArt, member, record, index)
+                    local clockSize = (member.unit == "player" or #descriptor.members == 1) and size - 4 or 0
+                    row.clock:SetSize(clockSize, clockSize)
+                else
                     self.soonUnavailable = true
                     self.expiryFailure = Read(reason, "string") and reason:sub(1, 240) or "Native expiry binding unavailable"
                 end
             end
+            if row.expiryArt then
+                row.expiryArt.display:SetShown(expiry)
+                row.expiryArt.tooltip:SetShown(expiry)
+            end
+            if row.expiry and not expiry then row.expiry:SetEnabled(false) end
         end
     end)
     if not ok then
-        for _, container in ipairs(record.containers) do pcall(container.SetEnabled, container, false) end
+        for _, row in ipairs(record.rangeGates) do HideRow(row) end
+        record.cell:Hide()
         self.failure = Read(failure, "string") and failure:sub(1, 240) or "Native aura setup unavailable"
         return
     end
+    for index = #descriptor.members + 1, #record.rangeGates do HideRow(record.rangeGates[index]) end
+    record.signature = signature
+    record.cell:Show()
     return record
 end
 
 function Combat:Place()
     if not self.frame or InCombatLockdown() then return end
     -- Weapon/fallback reminders occupy their own independently centered row.
-    -- Their public capacity must not shift native aura cells or the title.
     local total = self.count or 0
     local width, height, size, stride, rowStride = Suite.MissingBuffs:BarLayout(total)
+    if total > 0 and self.records[self.order[1]].size ~= size then self:Prepare(); return end
+    self.frame:SetSize(width, height)
     for index, key in ipairs(self.order or {}) do
         local record = self.records[key]
-        local x, y = TitleOffsets(total, index - 1, size)
-        if record.size ~= size or record.titleX ~= x or record.titleY ~= y then
-            self:Prepare()
-            return
-        end
-    end
-    self.frame:SetSize(width, height)
-    local index = 0
-    for _, key in ipairs(self.order or {}) do
-        local record = self.records[key]
-        local row = math.floor(index / 8)
+        local slot = index - 1
+        local row = math.floor(slot / 8)
         local rowCount = math.min(8, total - row * 8)
         local rowWidth = rowCount * stride - 9
-        local cellX, cellY = (width - rowWidth) / 2 + index % 8 * stride, -25 - row * rowStride
+        local cellX, cellY = (width - rowWidth) / 2 + slot % 8 * stride, -25 - row * rowStride
         record.cell:ClearAllPoints()
         record.cell:SetPoint("TOPLEFT", self.frame, "TOPLEFT", cellX, cellY)
-        index = index + 1
     end
     Suite.MissingBuffs:Place(self.frame)
 end
@@ -418,66 +486,39 @@ end
 function Combat:Prepare()
     if InCombatLockdown() then return end
     if Suite.BuffSettings and Suite.BuffSettings.sliding then self.layoutPending = true; return end
-    self.layoutPending = nil
-    self.metadataDirty = nil
-    self.coverage = {}; self.suspended = nil
+    self.layoutPending, self.metadataDirty, self.suspended = nil, nil, nil
+    local previousFailures = self.failed
+    self.failed, self.records, self.coverage, self.order, self.count = {}, {}, {}, {}, 0
     if self.frame then self.frame:Hide() end
-    if not Enabled() then
-        for _, record in pairs(self.records) do
-            for _, container in ipairs(record.containers) do container:SetEnabled(false) end
-        end
-        return
-    end
-    if C_AddOns and type(C_AddOns.LoadAddOn) == "function" then pcall(C_AddOns.LoadAddOn, "Blizzard_AuraContainer") end
-    if not Read(CustomAuraContainerAuraProcessingPolicy, "table") or not Read(AuraContainerSortMethod, "table")
-        or not Read(AuraContainerSortDirection, "table") then return end
-    local descriptors = self:Descriptors()
-    if not self.frame then
-        self.frame = CreateFrame("Frame", nil, UIParent, CLIP)
-        self.frame:SetFrameStrata("MEDIUM"); self.frame:Hide(); self.frame:EnableMouse(false)
-    end
-    local _, size = Suite.MissingBuffs:DisplayOptions()
-    local plans = {}
-    for _, descriptor in ipairs(descriptors) do
-        local signature = Signature(descriptor, size)
-        if not self.failed[signature] then
-            plans[#plans + 1] = { descriptor = descriptor, signature = signature }
-        end
-    end
-    local seen, index, failed = {}, 0, false
-    self.order = {}
-    for slot, plan in ipairs(plans) do
-        local descriptor, signature = plan.descriptor, plan.signature
-        local titleX, titleY = TitleOffsets(#plans, slot - 1, size)
-        local record = self.records[descriptor.key]
-        if record and (record.signature ~= signature or record.titleX ~= titleX or record.titleY ~= titleY) then
-            record.cell:Hide()
-            for _, container in ipairs(record.containers) do container:SetEnabled(false) end
-            record = nil
-        end
-        if not record and not self.failed[signature] then
-            record = self:Build(descriptor, size, titleX, titleY)
-            if not record then self.failed[signature] = true; failed = true end
-        end
-        if record then
-            self.records[descriptor.key], record.signature = record, signature
-            seen[descriptor.key], self.coverage[descriptor.key] = true, true
-            self.order[#self.order + 1] = descriptor.key
-            record.cell:Show()
-            for _, container in ipairs(record.containers) do container:SetEnabled(true) end
-            index = index + 1
+    if Enabled() then
+        if C_AddOns and type(C_AddOns.LoadAddOn) == "function" then pcall(C_AddOns.LoadAddOn, "Blizzard_AuraContainer") end
+        if Read(CustomAuraContainerAuraProcessingPolicy, "table") and Read(AuraContainerSortMethod, "table")
+            and Read(AuraContainerSortDirection, "table") then
+            local descriptors = self:Descriptors()
+            if not self.frame then
+                self.frame = CreateFrame("Frame", nil, UIParent, CLIP)
+                self.frame:SetFrameStrata("MEDIUM"); self.frame:Hide(); self.frame:EnableMouse(false)
+            end
+            local _, size = Suite.MissingBuffs:DisplayOptions()
+            for _, descriptor in ipairs(descriptors) do
+                local signature = Signature(descriptor)
+                local record
+                if not previousFailures[signature] then record = self:Build(descriptor, size, self.count + 1, signature) end
+                if record then
+                    self.count = self.count + 1
+                    self.records[descriptor.key], self.coverage[descriptor.key], self.order[self.count] = record, true, descriptor.key
+                else
+                    self.failed[signature] = true
+                end
+            end
         end
     end
-    for key, record in pairs(self.records) do
-        if not seen[key] then
-            record.cell:Hide()
-            for _, container in ipairs(record.containers) do container:SetEnabled(false) end
-        end
+    for index = self.count + 1, #self.pool do
+        local record = self.pool[index]
+        record.signature = nil
+        record.cell:Hide()
+        for _, row in ipairs(record.rangeGates) do HideRow(row) end
     end
-    self.count = index
-    -- Exclude newly failed families before final layout. Each retry removes at
-    -- least one failed signature, so unavailable native groups cannot loop.
-    if failed then self:Prepare(); return end
     self:Place()
 end
 

@@ -1,10 +1,12 @@
 local _, Suite = ...
-local Supplies, Expiry = { page = 1 }, { page = 1 }
+local Supplies, Expiry = { page = 1 }, {}
 Suite.SupplyChecklist, Suite.MailExpiry = Supplies, Expiry
 table.insert(Suite.modules, Supplies)
 table.insert(Suite.modules, Expiry)
 local ROW_STEP = 44
 local MAIL_WIDTH, MAIL_ROW_TOP, MAIL_ROW_STEP, MAIL_FOOTER, MAIL_COUNT_WIDTH = 440, 93, 40, 76, 68
+local MAIL_LIST_WIDTH = MAIL_WIDTH - 48 -- 14 units of padding on each side and 20 for the scrollbar
+local MAIL_COUNT_X = MAIL_LIST_WIDTH - MAIL_COUNT_WIDTH - 8
 local function Read(v, kind) return Suite.IsReadable(v) and type(v) == kind end
 local function Number(v, low, high) return Read(v, "number") and v >= low and v <= high and v == v end
 local function Integer(v, low, high) return Number(v, low, high) and v % 1 == 0 end
@@ -30,14 +32,9 @@ local function Button(parent, text, x, y, width, callback)
 
     return button
 end
-local function Window(owner, name, title)
-    local mail = owner == Expiry
-    local width = mail and MAIL_WIDTH or 620
-    local rowWidth = width - 28
-    local rowTop = mail and MAIL_ROW_TOP or 104
-    local rowStep = mail and MAIL_ROW_STEP or ROW_STEP
+local function Window(owner, name, title, width, height)
     local frame = CreateFrame("Frame", name, UIParent, "BackdropTemplate"); Surface(frame)
-    frame:SetSize(width, mail and MAIL_ROW_TOP + MAIL_ROW_STEP + MAIL_FOOTER or 580)
+    frame:SetSize(width, height)
     frame:SetPoint("CENTER"); frame:SetFrameStrata("DIALOG")
     frame:SetClampedToScreen(true); frame:EnableMouse(true)
     if UISpecialFrames then table.insert(UISpecialFrames, name) end
@@ -47,33 +44,6 @@ local function Window(owner, name, title)
     Suite.BindWindowDrag(frame, header)
     local close = Suite.Theme:IconButton(frame, "Close " .. title, function() frame:Hide() end)
     close:SetSize(26, 26); close:SetPoint("TOPRIGHT", -8, -6)
-    frame.context = Label(frame, 14, mail and -34 or -48, rowWidth, 11)
-    frame.context:SetHeight(mail and 26 or 46)
-    frame.status = Label(frame, 14, -503, rowWidth, 11); frame.status:SetHeight(30)
-    frame.rows = {}
-    for index = 1, 8 do
-        local row = Button(frame, "", 14, -rowTop - (index - 1) * rowStep, rowWidth, function()
-            if owner == Supplies and Suite.Items:ModifiedClick(frame.rows[index].supplyID, "LeftButton") then return end
-            if owner.Select then owner:Select(index + (owner.page - 1) * 8) end
-        end)
-        row:SetHeight(rowStep - 4); row.label:SetJustifyH("LEFT"); row.label:SetWidth(rowWidth - 14)
-        row.detail = Label(row, 5, -23, rowWidth - 14, 10)
-        row.detail:SetWordWrap(false); row.detail:SetHeight(12)
-        frame.rows[index] = row
-    end
-    frame.previous = Button(frame, "Previous", 14, -544, mail and 80 or 90, function() owner.page = owner.page - 1; owner:Refresh() end)
-    frame.next = Button(frame, "Next", 112, -544, mail and 68 or 90, function() owner.page = owner.page + 1; owner:Refresh() end)
-    frame.page = Label(frame, 218, -550, mail and 42 or 90)
-    if mail then
-        frame.context:SetJustifyV("MIDDLE")
-        frame.status:ClearAllPoints(); frame.status:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 14, 66)
-        frame.status:SetHeight(26); frame.status:SetJustifyV("TOP"); frame.status:SetWordWrap(true)
-        frame.previous:ClearAllPoints(); frame.previous:SetPoint("BOTTOMLEFT", 14, 10)
-        frame.next:ClearAllPoints(); frame.next:SetPoint("BOTTOMLEFT", 102, 10)
-        frame.page:ClearAllPoints(); frame.page:SetPoint("BOTTOMLEFT", 180, 10)
-        frame.page:SetHeight(26); frame.page:SetJustifyH("CENTER"); frame.page:SetJustifyV("MIDDLE")
-    end
-    frame.wheelArea = Suite.Theme:PageWheel(frame, frame.rows, frame.previous, frame.next, frame.next)
     frame:SetScript("OnHide", function()
         owner.confirmRemove = nil
         frame:UnregisterAllEvents()
@@ -97,7 +67,6 @@ local function Paging(owner, rows)
         widget:SetShown(row ~= nil); widget:SetEnabled(not InCombatLockdown())
         if row then
             widget.label:SetText(row.title); widget.detail:SetText(row.detail or "")
-            if widget.mailCount then widget.mailCount:SetText(row.mailCount) end
         end
     end
 end
@@ -168,7 +137,7 @@ function Supplies:Select(index)
     local row = self.db.entries[index]
     if not row then
         self.frame.item:SetText(""); self.frame.quantity:SetText("")
-        Suite.ShoppingList:Open(self.frame); return
+        Suite.ToggleWindow(Suite.ShoppingList, self.frame); return
     end
     self.confirmRemove = nil; self.frame.item:SetText(tostring(row.id)); self.frame.quantity:SetText(tostring(row.wanted))
     self.frame.remove.label:SetText("Remove item")
@@ -266,9 +235,26 @@ function Supplies:Open(owner)
     if InCombatLockdown() then Suite.Print("Open the Supply Checklist outside combat."); return end
     if not self.db then self:InitializeCharacter(nil) end
     if not self.frame then
-        local frame = Window(self, "WoWForeverSuiteSupplies", "Supply Checklist")
+        local frame = Window(self, "WoWForeverSuiteSupplies", "Supply Checklist", 620, 580)
+        local rowWidth = frame:GetWidth() - 28
+        frame.context = Label(frame, 14, -48, rowWidth, 11); frame.context:SetHeight(46)
+        frame.status = Label(frame, 14, -460, rowWidth, 11); frame.status:SetHeight(30)
+        frame.rows = {}
+        for index = 1, 8 do
+            local row = Button(frame, "", 14, -104 - (index - 1) * ROW_STEP, rowWidth, function()
+                if Suite.Items:ModifiedClick(frame.rows[index].supplyID, "LeftButton") then return end
+                self:Select(index + (self.page - 1) * 8)
+            end)
+            row:SetHeight(ROW_STEP - 4); row.label:SetJustifyH("LEFT"); row.label:SetWidth(rowWidth - 14)
+            row.detail = Label(row, 5, -23, rowWidth - 14, 10)
+            row.detail:SetWordWrap(false); row.detail:SetHeight(12)
+            frame.rows[index] = row
+        end
+        frame.previous = Button(frame, "Previous", 14, -544, 90, function() self.page = self.page - 1; self:Refresh() end)
+        frame.next = Button(frame, "Next", 112, -544, 90, function() self.page = self.page + 1; self:Refresh() end)
+        frame.page = Label(frame, 218, -550, 90)
+        frame.wheelArea = Suite.Theme:PageWheel(frame, frame.rows, frame.previous, frame.next, frame.next)
         -- The drop target only fills this editor; saving remains explicit.
-        frame.status:ClearAllPoints(); frame.status:SetPoint("TOPLEFT", 14, -460)
         local function Input(x, width, maximum)
             local box = CreateFrame("EditBox", nil, frame, "BackdropTemplate"); Surface(box)
             box:SetSize(width, 26); box:SetPoint("TOPLEFT", x, -502)
@@ -306,8 +292,8 @@ function Supplies:Open(owner)
             self:Remove(id)
             self.confirmRemove = nil; frame.remove.label:SetText("Remove item"); self:Refresh()
         end)
-        frame.settings = Button(frame, "Settings", 498, -544, 108, function() Suite.GUI:OpenPage("supplies", nil, self.frame) end)
-        frame.shopping = Button(frame, "Shopping list", 330, -544, 158, function() Suite.ShoppingList:Open(self.frame) end)
+        frame.settings = Button(frame, "Settings", 498, -544, 108, function() Suite.GUI:TogglePage("supplies", self.frame) end)
+        frame.shopping = Button(frame, "Shopping list", 330, -544, 158, function() Suite.ToggleWindow(Suite.ShoppingList, self.frame) end)
     end
     Suite.PlaceWindow(self.frame, owner)
     self.requested = {}; self.frame:Show(); self:Apply()
@@ -434,49 +420,99 @@ function Expiry:Summary(value, now)
     if saved.total > saved.count then result = result .. " · Partial inbox (" .. saved.count .. "/" .. saved.total .. ")" end
     return result
 end
-function Expiry:Refresh()
+local function UpdateMailList(frame, rows)
+    local scroll, content = frame.scroll, frame.content
+    for index, entry in ipairs(rows) do
+        local row = frame.rows[index]
+        if not row then
+            row = CreateFrame("Frame", nil, content, "BackdropTemplate")
+            row:SetSize(MAIL_LIST_WIDTH, MAIL_ROW_STEP - 4)
+            row:SetPoint("TOPLEFT", 0, -(index - 1) * MAIL_ROW_STEP)
+            Suite.Theme:FlatBackdrop(row, 0.85)
+            row:SetBackdropColor(0.07, 0.095, 0.11, 1)
+            row.label = Label(row, 6, -4, MAIL_COUNT_X - 12, 13)
+            row.label:SetFont("Fonts\\FRIZQT__.TTF", 13, "")
+            row.label:SetHeight(17); row.label:SetWordWrap(false)
+            row.detail = Label(row, 6, -23, MAIL_LIST_WIDTH - 14, 10)
+            row.detail:SetHeight(12); row.detail:SetWordWrap(false)
+            row.detail:SetTextColor(0.55, 0.65, 0.7)
+            row.mailCount = Label(row, MAIL_COUNT_X, -4, MAIL_COUNT_WIDTH, 13)
+            row.mailCount:SetJustifyH("RIGHT"); row.mailCount:SetWordWrap(false)
+            Suite.Theme:RouteWheel(row, scroll:GetScript("OnMouseWheel"))
+            frame.rows[index] = row
+        end
+        row.label:SetText(entry.title)
+        row.detail:SetText(entry.detail)
+        row.mailCount:SetText(entry.mailCount)
+        row:Show()
+    end
+    for index = #rows + 1, #frame.rows do frame.rows[index]:Hide() end
+    frame.empty:SetShown(#rows == 0)
+    local height = math.max(1, #rows) * MAIL_ROW_STEP
+    local range = math.max(0, height - scroll:GetHeight())
+    if range ~= scroll.suiteMaximum then Suite.GUI:StopScrollDrag(scroll) end
+    scroll.suiteMaximum = range
+    content:SetHeight(height)
+    scroll.suiteOffset = math.min(scroll.suiteOffset, range)
+    scroll:SetVerticalScroll(scroll.suiteOffset)
+    Suite.GUI:SyncScrollBar(scroll)
+end
+function Expiry:Refresh(rows, hasRecords)
     local frame = self.frame
     if not frame or not frame:IsShown() then return end
-    local rows, hasRecords = self:Rows(); Paging(self, rows)
-    local visible = math.max(1, math.min(#frame.rows, #rows - (self.page - 1) * #frame.rows))
-    local height = MAIL_ROW_TOP + visible * MAIL_ROW_STEP + MAIL_FOOTER
-    if not InCombatLockdown() and frame:GetHeight() ~= height then frame:SetHeight(height) end
-    frame.context:SetText("Counts are from the last mailbox visit.")
+    local combat = InCombatLockdown()
+    frame.refresh:SetEnabled(not combat)
+    if combat then return end
+    if not rows then rows, hasRecords = self:Rows() end
+    UpdateMailList(frame, rows)
     frame.status:SetText(not self:Enabled() and "Recording and login reminders are off. Saved records remain available."
         or not hasRecords and "No mailbox recorded. Open a mailbox with recording enabled."
         or "Inbox loading can leave partial records. Visit a mailbox to refresh.")
-    frame.refresh:SetEnabled(not InCombatLockdown())
 end
 function Expiry:Open(owner)
     if InCombatLockdown() then Suite.Print("Open Mail Deadlines outside combat."); return end
     if not self.frame then
-        local frame = Window(self, "WoWForeverSuiteMailDeadlines", "Mail Deadlines")
-        local countX = MAIL_WIDTH - 22 - MAIL_COUNT_WIDTH
+        local frame = Window(self, "WoWForeverSuiteMailDeadlines", "Mail Deadlines",
+            MAIL_WIDTH, MAIL_ROW_TOP + MAIL_ROW_STEP + MAIL_FOOTER)
+        local context = Label(frame, 14, -34, MAIL_LIST_WIDTH, 11)
+        context:SetHeight(26); context:SetJustifyV("MIDDLE"); context:SetText("Counts are from the last mailbox visit.")
+        frame.status = Label(frame, 14, 0, MAIL_WIDTH - 28, 11)
+        frame.status:ClearAllPoints(); frame.status:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 14, 66)
+        frame.status:SetHeight(26); frame.status:SetJustifyV("TOP"); frame.status:SetWordWrap(true)
         local band = frame:CreateTexture(nil, "BORDER")
-        band:SetPoint("TOPLEFT", 14, -64); band:SetSize(MAIL_WIDTH - 28, 24)
+        band:SetPoint("TOPLEFT", 14, -64); band:SetSize(MAIL_LIST_WIDTH, 24)
         band:SetColorTexture(0.08, 0.11, 0.14, 1)
         local function ColumnHeader(text, x, width, justify)
             local label = Label(frame, x, -64, width, 16)
             label:SetHeight(24); label:SetJustifyH(justify); label:SetJustifyV("MIDDLE")
             label:SetText(text)
         end
-        ColumnHeader("Character", 20, countX - 26, "LEFT")
-        ColumnHeader("Mail", countX, MAIL_COUNT_WIDTH, "RIGHT")
-        for _, row in ipairs(frame.rows) do
-            row.label:ClearAllPoints(); row.label:SetPoint("TOPLEFT", 6, -4)
-            row.label:SetFont("Fonts\\FRIZQT__.TTF", 13, "")
-            row.label:SetHeight(17); row.label:SetWidth(countX - 26)
-            row.detail:SetTextColor(0.55, 0.65, 0.7)
-            row.mailCount = Label(row, countX - 14, -4, MAIL_COUNT_WIDTH, 13)
-            row.mailCount:SetJustifyH("RIGHT")
-        end
+        ColumnHeader("Character", 20, MAIL_COUNT_X - 12, "LEFT")
+        ColumnHeader("Mail", 14 + MAIL_COUNT_X, MAIL_COUNT_WIDTH, "RIGHT")
+        local scroll = Suite.GUI:CreateSuiteScrollFrame(frame)
+        scroll:SetPoint("TOPLEFT", 14, -MAIL_ROW_TOP); scroll:SetSize(MAIL_LIST_WIDTH, MAIL_ROW_STEP)
+        local content = CreateFrame("Frame", nil, scroll)
+        content:SetSize(MAIL_LIST_WIDTH, MAIL_ROW_STEP); scroll:SetScrollChild(content)
+        scroll:Show()
+        frame.scroll, frame.content, frame.rows = scroll, content, {}
+        frame.empty = Label(content, 6, -10, MAIL_LIST_WIDTH - 12, 11)
+        frame.empty:SetText("No characters recorded in this region.")
         frame.refresh = Button(frame, "Refresh times", 0, 0, 108, function() self:Refresh() end)
         frame.refresh:ClearAllPoints(); frame.refresh:SetPoint("BOTTOMRIGHT", -104, 10)
-        local settings = Button(frame, "Settings", 0, 0, 82, function() Suite.GUI:OpenPage("mail", nil, self.frame) end)
+        local settings = Button(frame, "Settings", 0, 0, 82, function() Suite.GUI:TogglePage("deadlines", self.frame) end)
         settings:ClearAllPoints(); settings:SetPoint("BOTTOMRIGHT", -14, 10)
     end
-    self.frame:Show(); self:Refresh()
-    Suite.PlaceWindow(self.frame, owner)
+    local frame = self.frame
+    local rows, hasRecords = self:Rows()
+    if not frame:IsShown() then
+        -- Size once for this opening. Wheel input and refresh only move the list.
+        local viewport = math.max(1, math.min(8, #rows)) * MAIL_ROW_STEP
+        frame.scroll:SetHeight(viewport)
+        frame:SetHeight(MAIL_ROW_TOP + viewport + MAIL_FOOTER)
+        frame:Show()
+    end
+    self:Refresh(rows, hasRecords)
+    Suite.PlaceWindow(frame, owner)
 end
 function Expiry:Cancel()
     if self.timer then self.timer:Cancel(); self.timer = nil end

@@ -176,7 +176,12 @@ tips.initialized, Suite.db.itemInventory = initialized, true
 SetCombat(false)
 
 viewable[0], viewable[2] = true, true
+local bankIDs = tabIDs[0]
+tabIDs[0], purchased[0] = {}, 0
 Fire("BANKFRAME_OPENED"); Flush()
+equal(first.bank, nil, "zero character bank tabs keep a first visit unrecorded")
+tabIDs[0], purchased[0] = bankIDs, 2
+Fire("BANK_TABS_CHANGED"); Flush()
 equal(first.bank.items[100], 30, "all purchased character bank tabs combine")
 equal(Suite.db.inventory.accountBanks[110].items[100], 50, "shared bank is stored once per region")
 equal(inventory:Summary(100).total, 95, "bags character bank and account bank sum once")
@@ -184,6 +189,13 @@ equal(HasLine(Hover({ id = 100 }), "First")[2], "|cff80bfffBags:|r 15, |cff80bff
 equal(HasLine(Hover({ id = 100 }), "Warband")[2], "|cff80bfffBank:|r 50", "shared bank has a separate ZoidsTools-style row")
 equal(HasLine(Hover({ id = 100 }), "Inventory")[2], "|cff80bfffTotal:|r 95", "complete sampled character data gets a total")
 local recordedAccount = Suite.db.inventory.accountBanks[110]
+local initialBank, accountIDs = first.bank, tabIDs[2]
+tabIDs[0], purchased[0], tabIDs[2], purchased[2] = {}, 0, {}, 0
+Fire("BANK_TABS_CHANGED"); Flush()
+equal(first.bank, initialBank, "zero character bank tabs preserve recorded inventory counts")
+equal(next(Suite.db.inventory.accountBanks[110].items), nil, "a viewable zero-tab shared bank can be recorded as empty")
+tabIDs[0], purchased[0], tabIDs[2], purchased[2] = bankIDs, 2, accountIDs, 1
+Fire("BANK_TABS_CHANGED"); Flush()
 local equippedBankBag = nil
 C_Bank.ShouldUsePlayerBagsInBank = function() return true end
 C_Bank.BankBagTypeAndIDToInvSlot = function(kind, index)

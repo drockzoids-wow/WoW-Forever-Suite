@@ -413,7 +413,7 @@ function Dashboard:Build(parent)
     end
     self.freshness = Label(self.details, 10, muted, 12, -56, 756)
     self.mailStatus = Label(self.details, 10, muted, 12, -108, 756)
-    self.bankBrowseButton = Button(0, 0, 372, "Open saved bank", function() if self.selected then Suite.OfflineBank:OpenFor(self.selected, 0, Suite.GUI.frame) end end)
+    self.bankBrowseButton = Button(0, 0, 372, "Open saved bank", function() if self.selected then Suite.OfflineBank:ToggleFor(self.selected, 0, Suite.GUI.frame) end end)
     self.bankBrowseButton:SetParent(self.details); self.bankBrowseButton:ClearAllPoints(); self.bankBrowseButton:SetPoint("TOPLEFT", 12, -80)
     for index, labels in ipairs(self.skills) do
         local x, y = 12 + ((index - 1) % 2) * 383, -122 - math.floor((index - 1) / 2) * 26
@@ -443,13 +443,22 @@ function Dashboard:Render()
     if not self.panel or InCombatLockdown() then return end
     self:HideTooltip()
     local inventory = self.view == "inventory"
-    for key, tab in pairs(self.viewTabs) do tab:SetBackdropColor(unpack((key == "inventory") == inventory and { 0.1, 0.2, 0.21 } or { 0.07, 0.095, 0.11 })) end
+    local preview = Suite.GUI:NavigationPreviewEnabled()
+    local tabHeight = preview and 0 or 40
+    for key, tab in pairs(self.viewTabs) do
+        tab:SetShown(not preview)
+        tab:SetBackdropColor(unpack((key == "inventory") == inventory and { 0.1, 0.2, 0.21 } or { 0.07, 0.095, 0.11 }))
+    end
+    self.rosterPanel:SetPoint("TOPLEFT", 0, -tabHeight)
     self.rosterPanel:SetShown(not inventory)
     if inventory then Suite.CharacterBrowser:Build(self.panel) end
     local browser = Suite.CharacterBrowser
-    if browser.panel then browser.panel:SetShown(inventory) end
+    if browser.panel then
+        browser.panel:SetPoint("TOPLEFT", 0, -tabHeight)
+        browser.panel:SetShown(inventory)
+    end
     browser:SetVisible(inventory and Suite.GUI.frame and Suite.GUI.frame:IsShown() == true or false)
-    if inventory then browser:Refresh(); self.panel:SetHeight(40 + browser.panel:GetHeight()); return end
+    if inventory then browser:Refresh(); self.panel:SetHeight(tabHeight + browser.panel:GetHeight()); return end
     local rows, total, gold, known, limited, scoped = self:Rows(self.query, self.sort)
     self.rows = rows
     local pages = math.max(1, math.ceil(#rows / PAGE_SIZE)); self.page = math.max(1, math.min(pages, self.page))
@@ -516,7 +525,7 @@ function Dashboard:Render()
         if skill then labels.name:SetText(skill.name); labels.rank:SetText(skill.rank .. "/" .. skill.maxRank) end
     end
     local height = bottom + (pages > 1 and 38 or 8) + (selected and detailHeight or 0)
-    self.rosterPanel:SetHeight(height); self.panel:SetHeight(40 + height)
+    self.rosterPanel:SetHeight(height); self.panel:SetHeight(tabHeight + height)
 end
 function Dashboard:RefreshView()
     local gui = Suite.GUI

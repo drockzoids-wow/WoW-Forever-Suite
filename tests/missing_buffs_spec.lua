@@ -449,31 +449,67 @@ enchants[0] = { { hasEnchant = true, enchantType = 3 } }
 imbueButton:PreClick("LeftButton")
 equal(imbueButton.attributes.type1, nil, "already applied weapon imbue cancels stale recasting")
 do
-    local oldMenu, options=Suite.Menus, {}
+    local oldMenu, oldCreate=Suite.Menus, CreateFrame
+    local incomingEnabled=Suite.db.missingBuffIncoming
+    Suite.db.missingBuffIncoming=false
+    local function RunHideScript(frame)
+        local hide=frame.Hide
+        frame.Hide=function(self)
+            local shown=self:IsShown()
+            hide(self)
+            if shown and self.OnHide then self:OnHide() end
+        end
+    end
+    CreateFrame=function(...)
+        local frame=oldCreate(...)
+        frame.EnableKeyboard=function() end
+        frame.SetPropagateKeyboardInput=function() end
+        RunHideScript(frame)
+        return frame
+    end
+    assert(loadfile("src/WoWForeverSuite/Menus.lua"))("WoWForeverSuite",Suite)
+    local menu=Suite.Menus
+    local function Option(label)
+        for _,row in ipairs(menu.rows) do if row.entry and row.entry.label==label then return row end end
+    end
     Spell(8024,"Flametongue Weapon"); Spell(8017,"Rockbiter Weapon"); Spell(8018,"Rockbiter Weapon")
-    learned={8024,8017}; buffs.bookDirty=true; enchants[0]={}; buffs:Refresh()
+    Spell(324,"Lightning Shield")
+    learned={324,8024,8017}; buffs.bookDirty=true; enchants[0]={}; buffs:Refresh()
     local _, button=Find("self","imbue")
-    Suite.Menus={CreateContextMenu=function(owner,generate)
-        equal(owner,button,"imbue menu is anchored to the reminder")
-        generate(owner,{CreateTitle=function() end,CreateRadio=function(_,label,selected,callback)
-            options[label]={selected=selected,callback=callback}
-        end})
-    end}
+    local _, shieldButton=Find("self","shield")
+    local oldHide=button.Hide
+    RunHideScript(button)
+    button:PreClick("RightButton")
+    equal(button.attributes.type2,nil,"right-click does not register an imbue cast")
     button:PostClick("RightButton",false)
-    equal(options.Automatic.selected(),true,"no choice stays automatic until a menu item is picked")
-    equal(options["Flametongue Weapon"]~=nil,true,"learned Flametongue is offered")
-    equal(options["Windfury Weapon"],nil,"unlearned Windfury is omitted")
-    SetCombat(true); options["Rockbiter Weapon"].callback(); SetCombat(false)
+    equal(menu.owner.allPoints,button,"imbue menu follows the original icon")
+    equal(Option("Automatic").entry.selected(),true,"no choice stays automatic until a menu item is picked")
+    equal(Option("Flametongue Weapon")~=nil,true,"learned Flametongue is offered")
+    equal(Option("Windfury Weapon"),nil,"unlearned Windfury is omitted")
+    auras.player={{spellId=324,name="Lightning Shield",duration=600,expirationTime=clock+600}}
+    buffs.events:OnEvent("UNIT_AURA","player"); Flush()
+    local _, movedButton=Find("self","imbue")
+    equal(movedButton,shieldButton,"casting Lightning Shield moves the imbue to the freed icon slot")
+    equal(button:IsShown(),false,"the original imbue button is retired by the refresh")
+    equal(menu.frame:IsShown(),true,"the open menu survives the icon moving")
+    equal(menu.owner.allPoints,movedButton,"the open menu follows the imbue's new icon")
+    SetCombat(true); Option("Rockbiter Weapon").entry.callback(); SetCombat(false)
     equal(Suite.db.missingBuffChoices["SHAMAN:imbue"],nil,"an open menu cannot change the choice in combat")
-    options["Rockbiter Weapon"].callback()
+    Option("Rockbiter Weapon"):OnClick()
     equal(Find("self","imbue").spell.id,8017,"selecting Rockbiter replaces the visible reminder")
     equal(Suite.db.missingBuffChoices["SHAMAN:imbue"],8017,"selected imbue is saved by spell family")
     learned={8024,8018}; buffs.bookDirty=true; buffs:Refresh()
     equal(Find("self","imbue").spell.id,8018,"learning a higher rank keeps the selected imbue")
     equal(buffs:InitializeChoices(Suite.db.missingBuffChoices)["SHAMAN:imbue"],8017,"saved preference survives normalization")
-    options.Automatic.callback()
+    movedButton:PostClick("RightButton",false)
+    Option("Automatic"):OnClick()
     equal(Find("self","imbue").spell.id,8024,"Automatic restores the default learned imbue")
-    Suite.Menus=oldMenu
+    movedButton:PostClick("RightButton",false)
+    enchants[0]={{hasEnchant=true,enchantType=3}}; buffs:Refresh()
+    equal(menu.frame:IsShown(),false,"an applied imbue dismisses its now-irrelevant picker")
+    button.Hide=oldHide; enchants[0]={}; auras.player={}
+    Suite.db.missingBuffIncoming=incomingEnabled
+    Suite.Menus, CreateFrame=oldMenu, oldCreate
 end
 learned = { 8232, 8075, 5675, 8512 }; buffs.bookDirty = true; buffs:Refresh()
 for _, key in ipairs({ "earth", "water", "meleetotem" }) do
@@ -547,9 +583,27 @@ do
     equal(button.cooldownSwipe.timing[2], 8, "the swipe uses the spell cooldown independently")
     clock = 103; buffs.expiryTimer.callback()
     equal(button.countdown.text, "58", "aura countdown ticks without another aura event")
-    C_Spell.GetSpellCooldown = function() return { duration = 1.5, startTime = clock } end
+    C_Spell.GetSpellCooldown = function() return { duration = 1.5, startTime = clock, isOnGCD = true } end
     buffs.events:OnEvent("SPELL_UPDATE_COOLDOWN")
-    equal(button.cooldownSwipe:IsShown(), false, "the GCD does not display a swipe")
+    equal(button.cooldownSwipe:IsShown(), true, "the clickable spell shows the global cooldown swipe")
+    equal(button.cooldownSwipe.timing[2], 1.5, "the swipe follows the reported global cooldown duration")
+    equal(button.countdown.text, "58", "the GCD leaves the aura countdown independent")
+    local nativeDuration, applied, excluded = {}, nil, nil
+    local previousDuration = C_Spell.GetSpellCooldownDuration
+    button.cooldownSwipe.SetCooldownFromDurationObject = function(_, duration) applied = duration end
+    C_Spell.GetSpellCooldownDuration = function(id, ignoreGCD)
+        if id ~= 1461 then return end
+        excluded = ignoreGCD
+        return nativeDuration
+    end
+    buffs.events:OnEvent("SPELL_UPDATE_COOLDOWN")
+    equal(excluded, false, "native clickable spells request cooldowns including the GCD")
+    equal(applied, nativeDuration, "the swipe animates the native duration object")
+    button.cooldownSwipe.SetCooldownFromDurationObject = nil
+    C_Spell.GetSpellCooldownDuration = previousDuration
+    C_Spell.GetSpellCooldown = function() return { duration = 0, startTime = 0 } end
+    buffs.events:OnEvent("SPELL_UPDATE_COOLDOWN")
+    equal(button.cooldownSwipe:IsShown(), false, "the swipe clears when the spell is ready")
     C_Spell.GetSpellCooldown = originalCooldown
     equal(button.attributes.type1, "spell", "expiring outside-combat reminder retains native click action")
     auras.player[1].expirationTime = clock + 3600; button:PreClick("LeftButton")
@@ -1426,6 +1480,20 @@ do
     equal(extra.combatButtons[1].entry.spell.id,8232,"swapping back restores the prepared weapon reminder")
     enchants[0] = { { hasEnchant = true, enchantType = 3 } }; extra:RefreshCombat()
     equal(extra.combatFrame:IsShown(), false, "covered shaman imbue stays hidden")
+    SetCombat(false)
+    weapons[16], enchants[0] = 6256, {}
+    buffs.bookDirty = true; extra:Prepare()
+    local prepared = made
+    SetCombat(true); extra:RefreshCombat()
+    equal(extra.combatFrame:IsShown(), false, "the reserved shaman reminder stays hidden while fishing in combat")
+    weapons[16] = 2
+    extra:OnEvent("PLAYER_EQUIPMENT_CHANGED"); Flush()
+    equal(extra.combatFrame:IsShown(), true, "a combat weapon swap from an equipped fishing pole shows the imbue")
+    equal(extra.combatButtons[1].entry.spell.id, 8232, "the swap shows the prepared learned shaman imbue")
+    equal(made, prepared, "the fishing to weapon swap creates no combat widgets")
+    weapons[16] = 6256
+    extra:OnEvent("PLAYER_EQUIPMENT_CHANGED"); Flush()
+    equal(extra.combatFrame:IsShown(), false, "swapping back to the pole suppresses the imbue again")
     SetCombat(false)
     units.player.class, learned, weapons[16], weapons[17] = prior.class, prior.learned, prior.main, prior.off
     enchants[0], enchants[1] = prior.mainEnchant, prior.offEnchant

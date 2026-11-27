@@ -246,11 +246,15 @@ end
 equal(count > 50, true, "feature fixtures register their real created borders")
 equal(methods.SetBackdropBorderColor and methods.SetColorTexture and methods.SetVertexColor, true, "all three native border drawing paths are integrated")
 theme:SetCustom(0.12, 0.34, 0.56)
-equal(gui.frame.borderColor[1], 0.12, "actual Suite settings frame receives custom RGB")
+equal(gui.frame.backdrop.edgeFile, nil, "settings fill has no sliced edge that can round away at fractional scale")
+equal(#gui.frame.suiteFlatBorder, 4, "settings frame has four solid border edges")
+for _, edge in ipairs(gui.frame.suiteFlatBorder) do
+    equal(theme.borders[edge].r, 0.12, "every settings edge receives custom RGB")
+end
 local card = gui.homeCards[1]; card.OnEnter()
-equal(card.borderColor[4], 1, "Home card hover still brightens its selected-color outline")
+equal(theme.borders[card.suiteFlatBorder[1]].alpha, 1, "Home card hover still brightens its outline")
 card.OnLeave()
-equal(card.borderColor[4], 0.35, "Home card leave restores its quiet selected-color outline")
+equal(theme.borders[card.suiteFlatBorder[1]].alpha, 0.35, "Home card leave restores its quiet outline")
 equal(Suite.Minimap.border.borderColor[2], 0.34, "actual minimap border receives custom RGB")
 equal(Suite.Minimap.header.borderColor[3], 0.56, "actual minimap header follows the same color")
 for object, style in pairs(theme.borders) do

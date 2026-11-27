@@ -381,6 +381,18 @@ function Planner:Apply()
         end
     end)
 end
+function Planner:Collapse()
+    self:StopGuide()
+    self.expanded, self.preview = false, false
+    self.panel:Hide()
+    self:Render()
+end
+
+function Planner:Toggle()
+    if not InCombatLockdown() and self.panel and self.panel:IsVisible() then return self:Collapse() end
+    return self:Open()
+end
+
 function Planner:Open()
     if InCombatLockdown() then Suite.Print("Open Talent Builds outside combat."); return end
     if not self:Enabled() then Suite.Print("Enable Talent Builds in Suite settings first."); Suite.GUI:OpenPage("talents"); return end

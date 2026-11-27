@@ -124,26 +124,45 @@ function Theme:Register(object, method, alpha, color)
     else self:Paint(object, style) end
 end
 
-function Theme:Backdrop(object, alpha, color) self:Register(object, "SetBackdropBorderColor", alpha, color) end
+function Theme:Backdrop(object, alpha, color)
+    if Writable(object) and object.suiteFlatBorder then
+        for _, edge in ipairs(object.suiteFlatBorder) do self:Register(edge, "SetColorTexture", alpha, color) end
+    else
+        self:Register(object, "SetBackdropBorderColor", alpha, color)
+    end
+end
 function Theme:Texture(object, alpha) self:Register(object, "SetColorTexture", alpha) end
 function Theme:Vertex(object, alpha) self:Register(object, "SetVertexColor", alpha) end
+
+local function BorderEdges(frame, thickness)
+    local top, bottom, left, right = frame:CreateTexture(nil, "BORDER"), frame:CreateTexture(nil, "BORDER"),
+        frame:CreateTexture(nil, "BORDER"), frame:CreateTexture(nil, "BORDER")
+    top:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+    top:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0); top:SetHeight(thickness)
+    bottom:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
+    bottom:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0); bottom:SetHeight(thickness)
+    left:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -thickness)
+    left:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, thickness); left:SetWidth(thickness)
+    right:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -thickness)
+    right:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, thickness); right:SetWidth(thickness)
+    return { top, bottom, left, right }
+end
+
+-- Flat borders use solid strips above the fill. A little extra thickness
+-- keeps the edges visible when the window is fitted at a fractional scale.
+function Theme:FlatBackdrop(frame, alpha)
+    frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+    frame.suiteFlatBorder = BorderEdges(frame, 1.5)
+    for _, edge in ipairs(frame.suiteFlatBorder) do
+        if edge.SetRoundLayoutToNearestPixel then edge:SetRoundLayoutToNearestPixel(true) end
+    end
+    self:Backdrop(frame, alpha)
+end
 
 -- Buff icons resize independently in combat. Flat strips avoid the separate
 -- one-pixel corner pieces and UV tiling of a WHITE8X8 nine-slice edge.
 function Theme:BuffIconBorder(frame, alpha)
-    if not frame.buffIconEdges then
-        local edges = {}
-        frame.buffIconEdges = edges
-        for index = 1, 4 do edges[index] = frame:CreateTexture(nil, "BORDER") end
-        edges[1]:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
-        edges[1]:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0); edges[1]:SetHeight(1)
-        edges[2]:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
-        edges[2]:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0); edges[2]:SetHeight(1)
-        edges[3]:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -1)
-        edges[3]:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 1); edges[3]:SetWidth(1)
-        edges[4]:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -1)
-        edges[4]:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 1); edges[4]:SetWidth(1)
-    end
+    if not frame.buffIconEdges then frame.buffIconEdges = BorderEdges(frame, 1) end
     for _, edge in ipairs(frame.buffIconEdges) do self:Texture(edge, alpha) end
 end
 
@@ -165,8 +184,7 @@ end
 function Theme:ActionButton(parent, text, width, height, callback)
     local button = CreateFrame("Button", nil, parent, "BackdropTemplate")
     button:SetSize(width, height or 26)
-    button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-    button:SetBackdropColor(0.07, 0.095, 0.11, 1); self:Backdrop(button, 0.85)
+    self:FlatBackdrop(button, 0.85)
     local label = button:CreateFontString(nil, "OVERLAY")
     label:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
     label:SetPoint("LEFT", 6, 0); label:SetPoint("RIGHT", -6, 0)
@@ -192,6 +210,21 @@ function Theme:ActionButton(parent, text, width, height, callback)
     end)
     Paint()
     return button
+end
+
+function Theme:DropdownIndicator(button)
+    button.label:ClearAllPoints(); button.label:SetPoint("LEFT", 9, 0)
+    button.label:SetWidth(button:GetWidth() - 40); button.label:SetJustifyH("LEFT")
+    local divider = button:CreateTexture(nil, "ARTWORK")
+    divider:SetSize(1, 13); divider:SetPoint("RIGHT", -28, 0)
+    divider:SetColorTexture(0.22, 0.43, 0.46, 0.7)
+    -- Keep the chevron distinct from the label, including when long names are truncated.
+    for side = 1, 2 do
+        local line = button:CreateLine(nil, "OVERLAY")
+        line:SetThickness(1.5); line:SetColorTexture(0.55, 0.85, 0.81, 1)
+        line:SetStartPoint("RIGHT", button, side == 1 and -21 or -13, 2)
+        line:SetEndPoint("RIGHT", button, -17, -2)
+    end
 end
 
 -- Suite checkboxes use the same slate surface, theme border and disabled text

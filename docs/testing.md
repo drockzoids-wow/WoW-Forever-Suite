@@ -1,10 +1,72 @@
 # Forever Suite in game testing
 
+## Missing Buffs global cooldown
+
+Outside combat, show two missing spell buffs and cast one from its reminder. The other clickable spell should display a brief swipe and become ready when the global cooldown ends. An actual spell cooldown should still show the full swipe. With expiry warnings enabled, the number should continue to show time left on the active buff. Check both a self-buff and a group buff if available. In-game verification is pending.
+
+## Mail Deadlines and popup paging — November 27, 2026
+
+After `/reload`, open `/wfs maildeadlines` with more than eight regional character records. Wheel over the character rows and drag the scrollbar to the bottom. The last character should be fully visible while the window, column headers, **Refresh times** and **Settings** stay in place. Click **Refresh times** near the bottom and confirm the list keeps its position. Check a shorter roster for the compact layout and verify the list fits at your normal UI scale. Native results are pending.
+
+Search for an item with more than four matches in the bags or bank search field. Page to the last result and back and check that the popup footer stays in place. If a saved bag or bank snapshot spans multiple pages, wheel to the last page and confirm the frame keeps its height while unused slots hide.
+
+## Tabbed settings preview — November 27, 2026
+
+1. After reloading the development build, open `/wfs appearance` and click **Preview tabbed layout**. Check that Home shows four shortcuts and that **Exit layout preview** stays visible across pages.
+2. Click **Search Inventory** and type an item name. Switch to **Characters** and back to **Inventory**. Check the results, tab highlight and scroll area at your normal and a smaller UI scale.
+3. Under **Supplies**, open Restock, Shopping List and Supply Checklist. Verify that each uses your existing saved data. Search for `restock` and check that **Open Restock** opens the tool and **Restock Settings** highlights the feature switch without changing it.
+4. Reload with the preview active, then click **Exit layout preview**. Verify the sidebar directories return and that your profile, settings and records are still present. Check for Lua errors or new Suite-attributed blocked actions in the development taint log.
+
+In-game verification is pending.
+
+## Profiles dropdowns — November 27, 2026
+
+Open `/wfs profiles` and check the right-side arrow on **Saved Profiles** and **Copy settings from**. Open each list. Verify the popup opens below its field and closes when the same field is clicked again. Check the Active label in Saved Profiles, select a different saved profile and verify its details load while the header still shows the active profile. With more than six entries, page using the mouse wheel or footer buttons. Try selecting a long name and check that its arrow remains clear. Native results are pending.
+
+## Settings layout and Profiles borders — November 27, 2026
+
+At the player's current scale, the top borders of **Switch profile**, **Delete profile** and a Maps & Interface card were missing before reload. After loading the flat borders from the development checkout, all four edges were visible on both profile buttons and on the Maps & Interface and Suite Settings cards. The character picker showed all six rows and its footer. **Switch profile** brought the review, **Use & reload** and **Cancel** into view. The active profile was left in place. The installed executable reports 1.60.1.71139.
+
+The final substitute checks cover returning to the previous scroll position on Cancel and the extra picker padding that covers the action row behind it. Spot-check those adjustments in game along with the same controls at a smaller scale. For other pages, scroll to the final control and check its whole label and border clear the footer. The page-wide bounds and scroll checks use substitute frames.
+
+## Auction House Shopping list launcher — November 27, 2026
+
+The player confirmed that the full Shopping list button is visible and opens the saved list. Search, Filter, tabs and window dragging still need an in-game check after closing and reopening the Auction House.
+
+## Window launcher toggles
+
+November 27, 2026. The player confirmed in-game that clicking **Supply Checklist** a second time closes it and leaves the **Shopping List** open.
+
+1. Open the Auction House and click **Shopping list** twice to open and close it. Open the Supply Checklist separately and check its **Shopping list** button the same way.
+2. In Suite settings, try the independent **Restock**, **Contacts**, **Mail Deadlines**, **Training Planner** and **Support** launchers. Each should close on the second click. From two different companion windows, open **Settings** and confirm the correct page is selected each time. Click again while that page is open to close settings.
+3. Try the **Wowhead** buttons on two different items, or details on two different damage meter rows. The second item or row should replace the first selection. Clicking it again should close the details. Confirm X, Escape and meter click-away still work.
+
+## Paid bank-slot confirmation — November 27, 2026
+
+The flushed level-2 trace captured one blocked action at 6:57:04 a.m. Central. Blizzard reached `C_Bank.PurchaseBankTab` through the native confirmation dialog's `OnAccept` and the client attributed the block to Suite. The lead-in lacks the original taint source. This is separate from the first-visit automatic grant. The captured session contained no `UseContainerItem` block.
+
+Capture the next failure during an intended purchase. Note the last bank or bag action and enabled bank tools, then exit before reloading. For isolation, change one setting and reload between attempts so installed hooks are cleared. Confirm the bank tab count before retrying. A paid purchase solely for testing is unnecessary.
+
+## Recipe right-click blocked action — November 26, 2026
+
+BugGrabber saved the Suite-attributed UseContainerItem error at 6:46:29 p.m. Central. Its counter increased from five to six across sessions. The player reported no recurrence after reloading and exited normally. The flushed taint log starts at 6:47:24 p.m. and contains no blocked action. The failing session's trace is unavailable.
+
+Keep the usual options enabled for the next attempt. If right-clicking a recipe fails again, note the recipe and the preceding interaction, then exit normally before reloading. Read the flushed taint log before reopening WoW and trace the earliest contamination leading into the blocked call.
+
+## Bank and combat reminder regression checklist
+
+1. Reload the development build. At a bank with **Bank snapshots** enabled, open a character's established bank, move a stack in or out, then walk away and use `/wfs bank`. Check the saved slots and the item's bank count in Inventory. On a fresh character, open the bank for the first time and check that the free tab loads and can be recorded. Check BugGrabber for `PurchaseBankTab` errors.
+2. Enable **Combat reminders** and **Expiry warnings** under **Missing Buffs**. Toggle between two icon sizes a few times and, if possible, change party membership. In the next fight, check that the title and icons align, the tooltip names match the current party, and a near-expiry buff shows a countdown that clears when refreshed.
+3. On a shaman, start combat with a fishing pole equipped and swap to an unimbued weapon while still fighting. Confirm the selected imbue reminder appears, then swap back to the pole and confirm it disappears. Lightning Shield can still remind in both cases.
+4. Exit WoW normally to flush `Logs/taint.log`. Check the test session for new `ADDON_ACTION_BLOCKED` or `ADDON_ACTION_FORBIDDEN` entries attributed to `WoWForeverSuite`. Native results are pending.
+
 ## Fishing poles and weapon reminders
 
 The player confirmed that equipping a fishing pole suppresses weapon reminders while Lightning Shield still appears, and that equipping a weapon brings the reminders back. A swap during combat remains to be checked.
 
 The player confirmed in-game that right-clicking the missing weapon imbue opened the menu, selecting Rockbiter worked, and the choice persisted after a reload. Left-click application, retaining the choice after learning a higher rank, and switching back to Automatic remain to be checked in-game.
+
+November 27, 2026. The player confirmed that after casting Lightning Shield, right-clicking the weapon reminder kept the menu open and let them select Rockbiter. Still to check in game is whether applying an imbue or equipping a fishing pole closes the picker when the reminder clears.
 
 ## Shared Missing Buffs position
 
@@ -1032,7 +1094,7 @@ Offline validation passes 82 Lua 5.1 files, matching TOCs and 32,208 behavior as
 Native validation pending; record actual running build/Interface, UI scale, wheel bindings and Lua/blocked-action/taint results. Offline substitutes cannot prove native input capture.
 
 1. Keep the user's normal wheel-up/down action bindings. In Contact book, test All/Alts/Guild/Other and unassigned recovery with more than eight names. Wheel down over a name, row edge/gap, empty list space and footer advances one page; up returns. First/last/empty/single-page lists stay bounded while retaining wheel capture. Hover outside the list/editor/window and verify normal native behavior. Row clicks, category/search inputs, Save/Remove and paging buttons retain their actions.
-2. Repeat wheel paging on Mail contacts, training (catalog and grouped/weapon views), character dashboard, inventory results, profiles and source popup, buff choices/learned spells, talent builds/point order, leveling journal, supply checklist and mail deadlines. Verify paging does not also move the outer settings viewport or invoke a row action, remove, cast, apply settings or send mail. Inventory result rows should page without Shift; surrounding inventory controls retain normal viewport scrolling.
+2. Repeat wheel paging on Mail contacts, training (catalog and grouped/weapon views), character dashboard, inventory results, profiles and source popup, buff choices/learned spells, talent builds/point order, leveling journal and supply checklist. Verify paging does not also move the outer settings viewport or invoke a row action, remove, cast, apply settings or send mail. Inventory result rows should page without Shift; surrounding inventory controls retain normal viewport scrolling. For Mail Deadlines, use the scrolling check at the top of this document.
 3. Repeat on recorded bags/personal/shared banks with multiple pages: slot/background/side-tab wheel input changes pages only within the selected snapshot; item modified-click/tooltips remain native view-only behavior. First/last bounds, empty snapshots, changing character/bank type and short final pages remain correct.
 4. On every settings page, hover row controls, labels and blank content and check normal scrolling. Settings search/inventory result popup rows must wheel-page. Nested macro list/preview, setup cards, sliders, meter menus/details and other existing wheel controls retain their own behavior without scrolling both inner/outer panes. Long content remains reachable.
 5. Enter combat while each paginated view is open: wheel paging must do nothing and not replay later. Check invalid/restricted input substitute coverage separately. After combat and close/reopen, paging resumes with no timers, recurring scans or changed keybindings. Native Ctrl-wheel window resizing remains confined to its supported headers.

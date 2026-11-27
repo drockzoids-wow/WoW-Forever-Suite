@@ -102,7 +102,7 @@ function Meters:CreateDetails()
             frame:RegisterEvent("GLOBAL_MOUSE_DOWN")
         end
     end)
-    frame:SetScript("OnEvent", function(_, event)
+    frame:SetScript("OnEvent", function(_, event, button)
         if details.selection and details.selection.sticky then return end
         if event ~= "GLOBAL_MOUSE_DOWN" or type(GetMouseFoci) ~= "function"
             or type(DoesAncestryIncludeAny) ~= "function" then return end
@@ -111,7 +111,13 @@ function Meters:CreateDetails()
         if not Read(foci, "table") or not Number(#foci) then return end
         for _, focus in ipairs(foci) do if not Suite.IsReadable(focus) then return end end
         local inside = DoesAncestryIncludeAny(frame, foci)
-        if Read(inside, "boolean") and not inside then frame:Hide() end
+        if not Read(inside, "boolean") or inside then return end
+        local launcher = details.selection and details.selection.launcher
+        if launcher and Read(button, "string") and (button == "LeftButton" or button == "RightButton") then
+            local overLauncher = DoesAncestryIncludeAny(launcher, foci)
+            if not Read(overLauncher, "boolean") or overLauncher then return end
+        end
+        frame:Hide()
     end)
     frame:SetScript("OnHide", function()
         frame:UnregisterEvent("GLOBAL_MOUSE_DOWN")
@@ -136,9 +142,18 @@ function Meters:OpenDetails(window, row)
     sticky = Read(sticky, "boolean") and sticky
     local selection = { windowIndex = window.index, metric = settings.metric, session = settings.session,
         fightID = window.fightID, guid = guid, creatureID = creatureID, preview = self.preview == true,
-        sampleIndex = self.preview and row.sourceIndex or nil, restricted = restricted,
+        sampleIndex = self.preview and row.sourceIndex or nil, sourceIndex = row.sourceIndex, launcher = row,
+        restricted = restricted,
         sticky = sticky,
         class = Read(source.classFilename, "string") and source.classFilename or nil }
+    local previous = details.selection
+    if details.frame:IsShown() and previous and previous.windowIndex == selection.windowIndex
+        and previous.fightID == selection.fightID and previous.metric == selection.metric and previous.session == selection.session
+        and previous.sourceIndex == selection.sourceIndex and previous.guid == guid and previous.creatureID == creatureID
+        and previous.preview == selection.preview and previous.sticky == sticky and previous.restricted == restricted then
+        self:CloseDetails()
+        return
+    end
     details.selection, details.offset, details.requested = selection, 0, {}
     TextValue(details.title, source.name, "Combat details")
     ui.number(details.total, source.totalAmount, settings.numbers == "compact")

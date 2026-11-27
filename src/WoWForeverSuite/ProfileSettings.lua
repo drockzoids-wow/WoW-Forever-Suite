@@ -1,7 +1,8 @@
 local _, Suite = ...
-local View = { page=1 }
+local View = {}
 Suite.ProfileSettings = View
 local Profiles,GUI = Suite.Profiles,Suite.GUI
+local PICKER_ROWS, PICKER_ROW_TOP, PICKER_ROW_STEP, PICKER_ROW_HEIGHT = 6, 36, 34, 30
 local colors = {text={0.88,0.91,0.93},muted={0.55,0.65,0.7},teal={0.41,0.84,0.75},gold={0.9,0.72,0.4}}
 local function Label(parent,text,x,y,width,size,color)
     local f=parent:CreateFontString(nil,"OVERLAY")
@@ -20,19 +21,19 @@ local function NameField(parent, x, y)
     box:SetPoint("TOPLEFT", x, y); box:SetSize(326, 30)
     box:SetAutoFocus(false); box:SetMaxLetters(40)
     box:SetFont("Fonts\\FRIZQT__.TTF",12,""); box:SetTextInsets(8,8,0,0)
-    box:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
-    box:SetBackdropColor(0.035,0.05,0.065,1); Suite.Theme:Backdrop(box, 1)
+    Suite.Theme:FlatBackdrop(box, 1)
+    box:SetBackdropColor(0.035,0.05,0.065,1)
     box:SetScript("OnEnterPressed",function() box:ClearFocus() end)
     box:SetScript("OnEscapePressed",function() box:ClearFocus() end)
     return box
 end
 function View:Dismiss()
-    self.review,self.removing,self.message=nil,nil,nil
+    self.review,self.removing,self.message,self.reviewOffset=nil,nil,nil,nil
     Suite.pending.profilesBuild=nil
     if self.name then self.name:ClearFocus() end
     if self.copyName then self.copyName:ClearFocus() end
     self.copyMessage=nil
-    if self.sourcePopup then self.sourcePopup:Hide() end
+    self:ClosePicker()
 end
 function View:Message(ok,message)
     self.message=message or (ok and "Saved." or "Unable to save this change.")
@@ -53,50 +54,27 @@ function View:Build()
     self.scope=Label(panel,"",0,-27,780,11,colors.muted)
     self.shared=Button(panel,"Use shared settings",0,-66,176,function() self:Review(Profiles.activeID,false) end)
     self.personal=Button(panel,"Only this character",188,-66,190,function() self:Review(Profiles.activeID,true) end)
-    Label(panel,"SAVED PROFILES",0,-122,236,11,colors.muted)
-    self.rows={}
-    for i=1,6 do
-        local row=Button(panel,"",0,-148-(i-1)*46,236,function()
-            local entry=Profiles.store and Profiles.store.entries[(self.page-1)*6+i]
-            if entry then
-                self.selected=entry.id
-                self.review,self.removing,self.message,self.copyMessage=nil,nil,nil,nil
-                self:Refresh(true)
-            end
-        end)
-        row:SetHeight(38);self.rows[i]=row
-    end
-    self.prev=Button(panel,"Previous",0,-434,112,function() self.page=math.max(1,self.page-1);self:Refresh() end)
-    self.next=Button(panel,"Next",124,-434,112,function() self.page=math.min(math.ceil(#Profiles.store.entries/6),self.page+1);self:Refresh() end)
-    self.wheelArea=Suite.Theme:PageWheel(panel,self.rows,self.prev,self.next,self.next)
-    self.count=Label(panel,"",0,-480,236,11,colors.muted)
+    Label(panel,"Saved Profiles",0,-122,236,16,colors.teal)
+    self.savedProfile=Button(panel,"",0,-148,236,function() self:TogglePicker("profiles") end)
+    Suite.Theme:DropdownIndicator(self.savedProfile)
+    self.count=Label(panel,"",0,-191,236,11,colors.muted)
     Label(panel,"Copy settings from",264,-122,516,16,colors.teal)
-    self.source=Button(panel,"",264,-148,516,function()
-        GUI:ScrollTo(0);self.sourcePage=math.ceil((self.sourceIndex or 1)/6);self.sourcePopup:SetShown(not self.sourcePopup:IsShown());self:RefreshSources()
-    end)
+    self.source=Button(panel,"",264,-148,516,function() self:TogglePicker("characters") end)
+    Suite.Theme:DropdownIndicator(self.source)
     local popup=CreateFrame("Frame",nil,panel,"BackdropTemplate")
-    local rowCount,rowTop,rowSpacing=6,36,34
-    local footerTop=rowTop+(rowCount-1)*rowSpacing+30+20
-    popup:SetPoint("TOPLEFT",264,-114);popup:SetSize(516,footerTop+30+14)
+    popup:SetWidth(516)
     popup:SetFrameLevel(panel:GetFrameLevel()+10);popup:EnableMouse(true)
-    popup:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
-    popup:SetBackdropColor(0.035,0.05,0.065,1);Suite.Theme:Backdrop(popup, 1)
-    Label(popup,"Choose a character",12,-12,492,13,colors.text)
-    self.sourcePopup,self.sourceRows=popup,{}
-    for i=1,rowCount do
-        self.sourceRows[i]=Button(popup,"",12,-rowTop-(i-1)*rowSpacing,492,function()
-            local source=self.sources[(self.sourcePage-1)*6+i]
-            if source then
-                self.sourceGUID,self.copyMessage=source.guid,nil
-                popup:Hide()
-                self:Refresh()
-            end
-        end)
+    Suite.Theme:FlatBackdrop(popup, 1)
+    popup:SetBackdropColor(0.035,0.05,0.065,1)
+    self.pickerTitle=Label(popup,"",12,-12,492,13,colors.text)
+    self.pickerPopup,self.pickerRows=popup,{}
+    for i=1,PICKER_ROWS do
+        self.pickerRows[i]=Button(popup,"",12,-PICKER_ROW_TOP-(i-1)*PICKER_ROW_STEP,492,function() self:ChoosePickerRow(i) end)
     end
-    self.sourcePrev=Button(popup,"Previous",12,-footerTop,140,function() self.sourcePage=self.sourcePage-1;self:RefreshSources() end)
-    self.sourceNext=Button(popup,"Next",164,-footerTop,140,function() self.sourcePage=self.sourcePage+1;self:RefreshSources() end)
-    Button(popup,"Close",316,-footerTop,188,function() popup:Hide() end)
-    local wheelArea=Suite.Theme:PageWheel(popup,self.sourceRows,self.sourcePrev,self.sourceNext,self.sourceNext)
+    self.pickerPrev=Button(popup,"Previous",12,0,140,function() self.pickerPage=self.pickerPage-1;self:RefreshPicker() end)
+    self.pickerNext=Button(popup,"Next",164,0,140,function() self.pickerPage=self.pickerPage+1;self:RefreshPicker() end)
+    self.pickerClose=Button(popup,"Close",316,0,188,function() self:ClosePicker() end)
+    local wheelArea=Suite.Theme:PageWheel(popup,self.pickerRows,self.pickerPrev,self.pickerNext,self.pickerNext)
     -- The dropdown pages independently of the settings scroll frame.
     popup.suiteOwnsWheel=true
     popup:SetScript("OnMouseWheel",wheelArea:GetScript("OnMouseWheel"))
@@ -114,8 +92,7 @@ function View:Build()
         local id,err=Profiles:Create(name,self.sourceGUID)
         if id then
             self.selected=id
-            self.page=math.ceil(#Profiles.store.entries/6)
-            self.review,self.removing,self.message=nil,nil,nil
+            self.review,self.removing,self.message,self.reviewOffset=nil,nil,nil,nil
             self.copyName:SetText("")
             self.copyName:ClearFocus()
             self.copyMessage="Created "..Profiles:Find(id).name..". Click Switch profile below to use it."
@@ -128,10 +105,11 @@ function View:Build()
     self.copyStatus=Label(panel,"",264,-273,516,11,colors.gold);self.copyStatus:SetHeight(34)
 
     self.detail=Label(panel,"",264,-322,516,16,colors.teal)
-    self.summary=Label(panel,"",264,-350,516,11,colors.muted);self.summary:SetHeight(34)
+    self.detail:SetHeight(34);self.detail:SetJustifyV("TOP")
+    self.summary=Label(panel,"",264,-359,516,11,colors.muted)
     self.use=Button(panel,"Switch profile",264,-387,188,function() self:Review(self.selected,Profiles.activePersonal) end)
     self.delete=Button(panel,"Delete profile",464,-387,156,function()
-        self.removing=self.selected;self.review=nil;self:Refresh()
+        self.removing=self.selected;self.review=nil;self:RevealReview()
     end)
     Label(panel,"Selected profile name",264,-430,326,11,colors.muted)
     self.name=NameField(panel,264,-448)
@@ -143,14 +121,19 @@ function View:Build()
     self.confirm=Button(panel,"Use & reload",0,-638,188,function()
         if self.removing then
             local ok,err=Profiles:Delete(self.removing)
-            self.removing=nil;if ok then self.selected=Profiles.activeID;self.page=1 end
+            self.removing,self.reviewOffset=nil,nil;if ok then self.selected=Profiles.activeID end
             self:Message(ok,err)
         elseif self.review then
-            local ok,err=Profiles:Activate(self.review);self.review=nil
+            local ok,err=Profiles:Activate(self.review);self.review,self.reviewOffset=nil,nil
             self:Message(ok,err or "Reload requested. If it does not start, type /reload.")
         end
     end)
-    self.cancel=Button(panel,"Cancel",200,-638,112,function() self.review,self.removing=nil,nil;self:Refresh() end)
+    self.cancel=Button(panel,"Cancel",200,-638,112,function()
+        local offset=self.reviewOffset
+        self.review,self.removing,self.reviewOffset=nil,nil,nil
+        self:Refresh()
+        if offset then GUI:ScrollTo(offset) end
+    end)
     panel:SetScript("OnHide",function() self:Dismiss() end)
     panel:RegisterEvent("PLAYER_REGEN_DISABLED");panel:RegisterEvent("PLAYER_REGEN_ENABLED")
     panel:SetScript("OnEvent",function() if GUI.page=="profiles" and panel:IsShown() then self:Refresh() end end)
@@ -161,20 +144,80 @@ function View:RefreshCaption()
     GUI.profileSubtitle:SetText(active and ("Profile: "..active.name..(Profiles.activePersonal and "  /  Personal" or "  /  Shared"))
         or "A setup that feels like yours.")
 end
-function View:RefreshSources()
-    if not self.sources or not self.sourcePopup then return end
-    self.sourcePage=math.max(1,math.min(self.sourcePage or 1,math.ceil(#self.sources/6)))
-    for i,row in ipairs(self.sourceRows) do
-        local source=self.sources[(self.sourcePage-1)*6+i]
-        row:SetShown(source~=nil)
-        if source then row.label:SetText(source.label);row:SetEnabled(not InCombatLockdown()) end
+function View:ClosePicker()
+    self.pickerKind=nil
+    if self.pickerPopup then self.pickerPopup:Hide() end
+end
+function View:TogglePicker(kind)
+    if self.pickerKind==kind then self:ClosePicker();return end
+    local saved=kind=="profiles"
+    local anchor=saved and self.savedProfile or self.source
+    local index=self.sourceIndex or 1
+    if saved then
+        index=1
+        for i,entry in ipairs(Profiles.store.entries) do
+            if entry.id==self.selected then index=i;break end
+        end
     end
-    self.sourcePrev:SetEnabled(self.sourcePage>1 and not InCombatLockdown())
-    self.sourceNext:SetEnabled(self.sourcePage*6<#self.sources and not InCombatLockdown())
+    GUI:ScrollTo(0)
+    self.pickerKind,self.pickerPage=kind,math.ceil(index/PICKER_ROWS)
+    local popup=self.pickerPopup
+    popup:ClearAllPoints();popup:SetPoint("TOPLEFT",anchor,"BOTTOMLEFT",0,-6)
+    self.pickerTitle:SetText(saved and "Choose a saved profile" or "Choose a character")
+    self:RefreshPicker()
+    popup:Show()
+end
+function View:ChoosePickerRow(index)
+    if not self.pickerKind then return end
+    local saved=self.pickerKind=="profiles"
+    local choices=saved and Profiles.store.entries or self.sources
+    local entry=choices[(self.pickerPage-1)*PICKER_ROWS+index]
+    if not entry then return end
+    self:ClosePicker()
+    if saved then
+        self.selected=entry.id
+        self.review,self.removing,self.message,self.copyMessage,self.reviewOffset=nil,nil,nil,nil,nil
+    else self.sourceGUID,self.copyMessage=entry.guid,nil end
+    self:Refresh(saved)
+end
+function View:RefreshPicker()
+    if not self.pickerKind then return end
+    local saved=self.pickerKind=="profiles"
+    local choices=saved and Profiles.store.entries or self.sources
+    local pages=math.max(1,math.ceil(#choices/PICKER_ROWS))
+    self.pickerPage=math.max(1,math.min(self.pickerPage,pages))
+    local rows=math.min(#choices,PICKER_ROWS)
+    local footerTop=PICKER_ROW_TOP+(rows-1)*PICKER_ROW_STEP+PICKER_ROW_HEIGHT+20
+    self.pickerPopup:SetHeight(footerTop+PICKER_ROW_HEIGHT+20)
+    self.pickerPrev:SetPoint("TOPLEFT",12,-footerTop)
+    self.pickerNext:SetPoint("TOPLEFT",164,-footerTop)
+    self.pickerClose:SetPoint("TOPLEFT",316,-footerTop)
+    for i,row in ipairs(self.pickerRows) do
+        local entry=choices[(self.pickerPage-1)*PICKER_ROWS+i]
+        row:SetShown(entry~=nil)
+        if entry then
+            local label=entry.label
+            local selected=entry.guid==self.sourceGUID
+            if saved then
+                label=(entry.id==Profiles.activeID and "Active · " or "")..entry.name
+                selected=entry.id==self.selected
+            end
+            row.label:SetText(label)
+            Suite.Theme:Backdrop(row,selected and 1 or 0.35)
+        end
+    end
+    self.pickerPrev:SetShown(pages>1);self.pickerNext:SetShown(pages>1)
+    self.pickerPrev:SetEnabled(self.pickerPage>1)
+    self.pickerNext:SetEnabled(self.pickerPage<pages)
 end
 function View:Review(id,personal)
-    self.removing=nil;self.review=Profiles:Review(id,personal);self.message=nil;self:Refresh()
-    GUI:LayoutPage("profiles");GUI:ScrollTo(200)
+    self.removing=nil;self.review=Profiles:Review(id,personal);self.message=nil
+    if self.review then self:RevealReview() else self:Refresh() end
+end
+function View:RevealReview()
+    self.reviewOffset=self.reviewOffset or GUI.scrollOffset
+    self:Refresh()
+    GUI:ScrollTo(GUI.contentHeight)
 end
 function View:Refresh(resetName)
     if not self.panel then return end
@@ -186,7 +229,6 @@ function View:Refresh(resetName)
     self:RefreshCaption()
     local current=Profiles:Find(Profiles.activeID)
     local entry=Profiles:Find(self.selected) or current;self.selected=entry.id
-    self.page=math.max(1,math.min(self.page,math.ceil(#Profiles.store.entries/6)))
     local ready=not InCombatLockdown() and not Profiles.reloadPending
     self.active:SetText("Active: "..current.name)
     self.scope:SetText(Profiles.activePersonal
@@ -195,17 +237,9 @@ function View:Refresh(resetName)
     self.shared:SetEnabled(ready and Profiles.activePersonal);self.personal:SetEnabled(ready and not Profiles.activePersonal)
     self.shared.label:SetText(Profiles.activePersonal and "Use shared settings" or "Shared profile active")
     self.personal.label:SetText(Profiles.activePersonal and "Personal changes active" or "Only this character")
-    for i,row in ipairs(self.rows) do
-        local item=Profiles.store.entries[(self.page-1)*6+i]
-        row:SetShown(item~=nil)
-        if item then
-            row.label:SetText((item.id==Profiles.activeID and "* " or "")..item.name)
-            Suite.Theme:Backdrop(row, item.id == entry.id and 1 or 0.35)
-            row:SetEnabled(ready)
-        end
-    end
-    self.prev:SetEnabled(ready and self.page>1);self.next:SetEnabled(ready and self.page*6<#Profiles.store.entries)
-    self.count:SetText(#Profiles.store.entries.." / 12 profiles  |  Page "..self.page)
+    self.savedProfile.label:SetText(entry.name)
+    self.savedProfile:SetEnabled(ready)
+    self.count:SetText(#Profiles.store.entries.." / "..Profiles.limit.." profiles")
     self.detail:SetText(entry.name)
     local users=0;for _,r in pairs(Profiles.store.characters) do if r.id==entry.id then users=users+1 end end
     self.summary:SetText((entry.id==Profiles.activeID and "Currently active. " or "")
@@ -226,12 +260,10 @@ function View:Refresh(resetName)
         if source.guid==self.sourceGUID then self.sourceIndex=#self.sources end
     end
     local source=self.sources[self.sourceIndex]
-    self.source.label:SetText(self.sourceGUID and not source.guid and "Character unavailable"
-        or source.label..(#self.sources>1 and "  (choose)" or ""))
+    self.source.label:SetText(self.sourceGUID and not source.guid and "Character unavailable" or source.label)
     self.copyStatus:SetText(self.copyMessage or "")
-    if InCombatLockdown() then self.sourcePopup:Hide() end
-    self:RefreshSources()
-    self.source:SetEnabled(ready and (#self.sources>1 or self.sourceGUID~=nil))
+    self.source:SetEnabled(ready)
+    if ready then self:RefreshPicker() else self:ClosePicker() end
     self.copy:SetEnabled(ready and #Profiles.store.entries<Profiles.limit)
     self.status:SetText(InCombatLockdown() and "Profile actions are available after combat."
         or Profiles.reloadPending and "Profile selection saved. Type /reload to finish switching." or self.message or "")
@@ -247,15 +279,15 @@ function View:Refresh(resetName)
         if #review.changes>0 then text=text.."\n"..table.concat(review.changes,"; ") end
         text=text.."\nThe UI will reload. Your current settings are saved first."
         self.reviewText:SetText(text);self.confirm.label:SetText("Use & reload")
-        if not InCombatLockdown() then
-            self.reviewText:SetHeight(0)
-            self.reviewText:SetHeight(math.max(62,self.reviewText:GetStringHeight()+8))
-        end
     else self.reviewText:SetText("") end
     local showing=self.removing~=nil or review~=nil
     self.confirm:SetShown(showing);self.cancel:SetShown(showing)
     self.confirm:SetEnabled(ready);self.cancel:SetEnabled(ready)
     if not InCombatLockdown() then
+        if showing then
+            self.reviewText:SetHeight(0)
+            self.reviewText:SetHeight(math.max(62,self.reviewText:GetStringHeight()+8))
+        end
         local bottom=math.max(638,562+self.reviewText:GetHeight()+12)
         self.confirm:ClearAllPoints();self.confirm:SetPoint("TOPLEFT",0,-bottom)
         self.cancel:ClearAllPoints();self.cancel:SetPoint("TOPLEFT",200,-bottom)

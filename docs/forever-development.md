@@ -1,10 +1,42 @@
 # WoW Forever addon development reference
 
+## Missing Buffs global cooldown
+
+The existing spell cooldown update event refreshes the swipe on clickable self and group spells. It passes the native duration to the widget with the global cooldown included. The numeric fallback uses readable spell timing. Combat reminders and procs continue to use the spell's own cooldown.
+
+## Mail Deadlines scrolling
+
+The character rows use the shared Suite scroll frame. Opening sets the viewport height from the roster, up to eight rows. Later refreshes keep the window size, preserve any valid scroll offset and reuse the existing row widgets. The headers, status and footer buttons sit outside the scroll child.
+
+The inventory search popup and saved bag and bank viewers size their viewports from the current result set or snapshot capacity. That keeps the viewport stable when paging to a shorter final page.
+
+## Tabbed settings preview
+
+The preview changes the navigation of the existing settings window. It uses the live Inventory and Characters views and launches the existing companion windows for Restock, Shopping List, Supply Checklist, and Contacts. Search can open a tool or reveal its setting. The account-wide opt-in is independent of settings profiles and survives reloads. Switching layouts writes only that preference.
+
+## Settings outlines and Profiles review
+
+The missing edges appeared within the settings viewport and reproduced on directory cards. Settings surfaces and shared action buttons use solid themed edge textures above the backdrop fill. The sidebar is inset from the outer border. Profiles brings staged switch and delete reviews into view and returns to the previous scroll position on Cancel. The character picker covers the action row behind it when open.
+
+## Window launchers
+
+Suite-owned window launchers close on a second click. Contextual launchers switch the open window to a different item, character, plan or settings page. Explicit open methods still handle automatic opening and existing slash commands. Dismissal uses the window's normal hide cleanup.
+
+## Paid bank-slot confirmation
+
+The November 27 level-2 capture shows a paid bank slot blocked in Blizzard's confirmation handler. Suite neither calls the purchase API nor installs a purchase-handler replacement. The trace shows the failing call without identifying the original taint. The automatic first-tab grant is a separate path. See the dated entry in testing.md for reproduction and isolation steps.
+
+## Recipe right-click blocked action
+
+The November 26 recurrence reaches Blizzard's normal bag right-click handler. That handler passes both the item's bag and slot and the native bank's active type into UseContainerItem. The stack identifies where the call was blocked. The flushed log starts after the reload and lacks the first taint in the failing session. Diagnostic procedure and capture times are recorded in testing.md.
+
 ## Fishing poles and weapon reminders
 
-Missing Buffs uses the equipped main-hand item's weapon subclass to identify a fishing pole. Both the combat preparation and live reminder paths skip weapon upkeep in that context. The normal click path also rechecks equipment before applying a prepared weapon action.
+Missing Buffs uses the equipped main-hand item's weapon subclass to identify a fishing pole and suppress weapon reminders while the pole is equipped. The combat display reserves a slot for a learned shaman imbue before combat so a weapon swap can show the reminder during the fight. The normal click path also rechecks equipment before applying a prepared weapon action.
 
 The shaman imbue menu stores the selected root spell in the existing buff-choice preference. The reminder resolves it to the learned rank. The settings menu recognizes both earlier rank-specific choices and new root choices.
+
+The imbue menu has a stable anchor that follows the current weapon reminder when another buff clears and the icon moves to a different button. Menu choices check the current reminder before saving. The menu closes when the reminder is no longer applicable.
 
 ## Shared Missing Buffs position
 
@@ -12,11 +44,13 @@ Interpret the existing saved center as the center of a one-row bar. Place each r
 
 Keybind labels read the public spell, slot and binding of visible Blizzard action buttons. Ordinary missing icons share the existing key abbreviation logic. Combat reminders only display the shortcut.
 
-Native expiry masks also contain a countdown-only Cooldown widget while the aura is within its warning window. AuraButton binds it to the real duration separately from the text used to clip the icon. Prefer the player's duration for families shared with teammates. No Lua duration sampling or countdown timers are used for the native expiry icon.
+Native combat aura display slots and their recipient rows are reused across size, roster, and spell changes. The native presence group supplies the coverage mask. A single native slot supplies the expiry mask and binds the countdown to the actual duration. The finite-aura group collapses the expiry artwork when its aura is gone. Suite updates the owned icon and tooltip labels outside combat and uses public range and identity checks for visibility. Shared families prefer the player's countdown.
 
 ## First character-bank visit
 
 The November 26 recurrence follows Blizzard's automatic first-tab path through `PurchaseFirstSlot`. The available taint log ends during startup, so the stack identifies the blocked purchase but leaves the original taint source unknown. Window placement, bank layout observation, reagent deposit, character selectors, search, money tooltips and item overlays now check native tab ownership before attaching to that live bank. Bank events allow deferred discovery after the grant. Suite does not invoke the purchase API or change any saved records for this patch.
+
+Both personal-bank readers wait for a purchased tab before recording contents. A zero-tab response preserves the last recorded slots and counts, or leaves a first visit unrecorded. The saved viewer uses its existing bounded retry while waiting for the first tab.
 
 ## Custom nameplates
 

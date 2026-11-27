@@ -1,5 +1,6 @@
 local Suite, equal, Frame, SetCombat = ...
 local combat = Suite.CombatBuffs
+combat.pool = {}
 local globals = { "CreateFrame", "C_AddOns", "CustomAuraContainerAuraProcessingPolicy", "AuraContainerSortMethod",
     "AuraContainerSortDirection", "C_StringUtil", "C_Timer", "C_Spell", "C_UnitAuras", "UnitIsDeadOrGhost", "IsResting", "UnitGUID",
     "UnitExists", "UnitIsConnected", "UnitIsVisible", "UnitCanAssist" }
@@ -97,37 +98,57 @@ New = function(kind, name, parent, template)
         frame.SetEnabled = function(self, value) Outside(); self.enabled = value end
         frame.SetEditModePreviewEnabled = function(self, value) Outside(); self.preview = value end
         frame.SetAuraProcessingPolicy = function() Outside() end
-        frame.SetUnit = function(self, unit) Outside(); self.unit = unit end
+        frame.SetUnit = function(self, unit)
+            Outside()
+            if unit == rejectUnit then error("rejected native unit") end
+            self.unit = unit
+        end
+        local function MakeButton(self, options)
+            local button = New("AuraButton", nil, self)
+            button:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
+            button.SetDurationText = function(_, gate, binding)
+                button.gate, button.formatter = gate, binding.textFormatter
+                gate.GetText, gate.GetWidth, gate.GetHeight = NoRead, NoRead, NoRead
+            end
+            button.SetDurationCooldown = function(_, cooldown)
+                Outside()
+                button.durationCooldown = cooldown
+            end
+            options.initializeFrame(button)
+            -- Native descendants stay forbidden after their initializer returns.
+            for _, widget in ipairs(widgets) do
+                local ancestor = widget
+                while ancestor do
+                    if ancestor == button then widget.forbidden = true; break end
+                    ancestor = ancestor.parent
+                end
+            end
+            button.IsShown, button.GetWidth, button.GetHeight, button.GetPoint = NoRead, NoRead, NoRead, NoRead
+            button.shown = false
+            return button
+        end
         frame.AddAuraGroup = function(self, _, filter, options)
-            Outside(); if reject or self.unit == rejectUnit then error("rejected native setup") end
+            Outside()
+            if reject then error("rejected native setup") end
             equal(filter, "HELPFUL", "only helpful auras can cover reminders")
             equal(options.maxFrameCount, 1, "one native match per member/family")
-            self.options, self.buttons = options, {}
-            for index = 1, 2 do
-                local button = New("AuraButton", nil, self)
-                button:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
-                button.SetDurationText = function(_, gate, binding)
-                    button.gate, button.formatter = gate, binding.textFormatter
-                    gate.GetText, gate.GetWidth, gate.GetHeight = NoRead, NoRead, NoRead
-                end
-                button.SetDurationCooldown = function(_, cooldown)
-                    Outside()
-                    button.durationCooldown = cooldown
-                end
-                options.initializeFrame(button)
-                -- The native provider applies access restrictions after the
-                -- initializer returns; descendants remain forbidden after combat.
-                for _, widget in ipairs(widgets) do
-                    local ancestor = widget
-                    while ancestor do
-                        if ancestor == button then widget.forbidden = true; break end
-                        ancestor = ancestor.parent
-                    end
-                end
-                self.buttons[index] = button
-                button.IsShown, button.GetWidth, button.GetHeight, button.GetPoint = NoRead, NoRead, NoRead, NoRead
-                button.shown = false
-            end
+            self.options, self.buttons = options, { MakeButton(self, options), MakeButton(self, options) }
+        end
+        frame.SetAuraGroupCandidateFilters = function(self, _, filters)
+            Outside()
+            if reject then error("rejected native filter update") end
+            self.options.candidateFilters = filters
+        end
+        frame.AddAuraSlot = function(self, _, filter, options)
+            Outside()
+            equal(filter, "HELPFUL", "only helpful auras can drive the expiry slot")
+            equal(options.candidateFilters.maxDuration, 864000, "the expiry slot only admits finite auras")
+            self.slotOptions = options
+            self.buttons[#self.buttons + 1] = MakeButton(self, options)
+        end
+        frame.SetAuraSlotCandidateFilters = function(self, _, filters)
+            Outside()
+            self.slotOptions.candidateFilters = filters
         end
         frame.IsShown, frame.GetWidth, frame.GetHeight, frame.GetPoint = NoRead, NoRead, NoRead, NoRead
         frame.GetAuraGroupFrameCount, frame.GetChildren = NoRead, NoRead
@@ -184,7 +205,8 @@ end
 local function Names()
     local names = {}
     for _, widget in ipairs(widgets) do
-        if widget.kind == "FontString" and (widget.text == "Caster" or widget.text == "Friend") and Drawn(widget) then names[widget.text] = true end
+        if widget.kind == "FontString" and (widget.text == "Caster" or widget.text == "Friend" or widget.text == "New Friend")
+            and Drawn(widget) then names[widget.text] = true end
     end
     return names
 end
@@ -203,14 +225,17 @@ local function Icons()
     end
     local count = 0; for _ in pairs(positions) do count = count + 1 end; return count
 end
-local function Aura(unit, present, remaining, permanent)
+local function Aura(unit, present, remaining, permanent, spellID)
     for _, container in ipairs(containers) do
         if container.unit == unit and container.options then
             local active = present and not (permanent and container.options.candidateFilters.maxDuration)
-            container.width, container.height = active and 260 or 0, active and 48 or 0
+                and (not spellID or container.options.candidateFilters.includeSpellIDs[spellID])
+            local layout = container.options.layout
+            container.width, container.height = active and layout.elementWidth or 0, active and layout.elementHeight or 0
             for index, button in ipairs(container.buttons) do
-                button.shown = active and index == 1
-                if button.gate and active then
+                local slotActive = button.gate and active and (not spellID or container.slotOptions.candidateFilters.includeSpellIDs[spellID])
+                button.shown = slotActive or (not button.gate and active and index == 1) or false
+                if slotActive then
                     local format = ""
                     for _, rule in ipairs(button.formatter.points) do if remaining >= rule.threshold then format = rule.format end end
                     button.gate:SetText(format)
@@ -428,19 +453,44 @@ equal(type(Suite.pending.combatBuffs), "function", "combat option changes queue 
 equal(made, prepared, "queued combat reconfiguration creates no widgets")
 SetCombat(false); combat:Prepare()
 equal(made, prepared, "unchanged descriptors reuse native widgets")
+do
+    local member = roster[2]
+    for index = 1, 5 do
+        member.guid, member.name = "replacement" .. index, "New Friend"
+        combat:Prepare()
+    end
+    equal(made, prepared, "new group identities reuse existing frames")
+    combat:Observe("party1", { name = "Intellect", spellId = 9999, duration = 20 })
+    combat:Prepare()
+    equal(made, prepared, "new aura filters reuse existing frames")
+    SetCombat(true); combat:RefreshVisibility()
+    Aura("player", true, 120); Aura("party1", true, 15, false, 9999)
+    record.tooltip:Show()
+    equal(Names()["New Friend"], true, "the rebound expiry uses the current member's name and aura filter")
+    equal(Names().Friend, nil, "the rebound tooltip drops the former member's name")
+    Aura("party1", false, 0)
+    equal(Names()["New Friend"], true, "the replacement name stays on the missing reminder after expiry")
+    member.guid, member.name = "two", "Friend"
+    SetCombat(false); combat:Prepare()
+    equal(made, prepared, "returning members reuse the same native frames")
+end
 combat:Observe("player", { name = "Intellect", spellId = 1461, duration = 1800 })
 combat:Prepare()
 equal(combat.records["MAGE:intellect"].descriptor.members[1].warning, 60, "known long buffs use the selected warning interval")
-local formatters = C_StringUtil
-C_StringUtil = nil; Suite.db.missingBuffWarning = 120; combat:Prepare()
+local formatter = record.rangeGates[1].formatter
+local setBreakpoints = formatter.SetBreakpoints
+formatter.SetBreakpoints = function() error("native duration formatter rejected its breakpoints") end
+Suite.db.missingBuffWarning = 120; combat:Prepare()
 equal(combat.coverage["MAGE:intellect"], true, "missing detection survives an unavailable expiry formatter")
 equal(combat.soonUnavailable, true, "unavailable expiry binding is recorded without a misleading timer fallback")
-C_StringUtil = formatters; combat.soonUnavailable, combat.expiryFailure = nil, nil
+formatter.SetBreakpoints = setBreakpoints
+combat.soonUnavailable, combat.expiryFailure = nil, nil
 Suite.db.missingBuffOutgoing = false; combat:Prepare()
 equal(#combat.records["MAGE:intellect"].descriptor.members, 1, "outgoing opt-out removes party tracking")
 Suite.db.missingBuffSelf = false; combat:Prepare()
 equal(combat.count, 0, "all scopes off leave no native reminders")
 Suite.db.missingBuffSelf = true; Suite.db.missingBuffExpiry = false; reject = true
+combat:Observe("player", { name = "Intellect", spellId = 98765, duration = 1800 })
 combat:Prepare(); local failedMade = made; combat:Prepare()
 equal(made, failedMade, "rejected setup is not retried on every aura refresh")
 reject = false
@@ -516,9 +566,19 @@ do
     local member = descriptor.members[1]
     local expiryMember = { unit = member.unit, guid = member.guid, name = member.name, ids = member.ids, warning = 15 }
     for _, layout in ipairs(layouts) do layout.members = { expiryMember } end
+    layouts[9].members = {
+        { unit = member.unit, guid = member.guid, name = member.name, ids = { [99999] = true }, warning = 15 },
+    }
     combat:Prepare()
     equal(combat.count, 9, "native layout supports a second row with already-forbidden title descendants")
-    equal(combat.records["layout:9"].titleY, 24 + 64 + 14, "second-row title mask aligns to the shared header")
+    local _, secondY = Rect(combat.records["layout:9"].cell)
+    local _, firstY = Rect(combat.records["layout:1"].cell)
+    equal(firstY - secondY, 64 + 14, "the second row is positioned below the first")
+    SetCombat(true); combat:RefreshVisibility()
+    Aura(member.unit, true, 120, false, 9005)
+    equal(Icons(), 1, "only the uncovered second-row icon is drawn")
+    equal(TitleDrawn(), true, "the second row alone can reveal the shared title")
+    SetCombat(false)
     local unchanged, first = made, combat.records["layout:1"]
     combat:Prepare(); combat:Place()
     equal(made, unchanged, "repeated dungeon refreshes reuse immutable native title masks")
@@ -526,8 +586,12 @@ do
     layouts = { layouts[9], layouts[1] }
     combat:Prepare()
     equal(combat.count, 2, "removing and reordering families recomposes the public layout")
-    equal(combat.records["layout:1"] ~= first, true, "changed title offset rebuilds rather than re-anchors forbidden descendants")
-    equal(combat.records["layout:9"].titleY, 24, "former second-row title returns to the shared first-row header")
+    equal(combat.records["layout:9"], first, "reordered families reuse the frames in their display slots")
+    for _ = 1, 5 do
+        Suite.db.missingBuffIconSize = 34; combat:Prepare()
+        Suite.db.missingBuffIconSize = 64; combat:Prepare()
+    end
+    equal(made, unchanged, "repeated icon size changes allocate no additional frames")
     SetCombat(true); combat:RefreshVisibility()
     Aura(member.unit, true, 120)
     equal(TitleDrawn(), false, "rebuilt title masks stay hidden for healthy coverage")
@@ -539,7 +603,9 @@ do
         { unit = rejectUnit, guid = "rejected", name = "Rejected", ids = member.ids, warning = 15 } } }
     combat:Prepare()
     equal(combat.count, 1, "a native setup failure is excluded from the final layout")
-    equal(combat.records["layout:9"].titleX, (64 - 110) / 2, "surviving title mask is rebuilt for a centered lone slot")
+    local x = Rect(combat.records["layout:9"].cell)
+    local hostX = Rect(combat.frame)
+    equal(x - hostX, (combat.frame.width - 64) / 2, "a surviving icon stays centered after a native setup failure")
     unchanged = made; combat:Prepare()
     equal(made, unchanged, "failed layouts are not retried and successful layouts stay reusable")
     rejectUnit = nil
@@ -551,7 +617,7 @@ equal(combat.count, 0, "another player's capabilities never authorize a buff the
 Suite.db.missingBuffs = false; combat:Prepare()
 for _, container in ipairs(containers) do equal(container.enabled, false, "disable stops native processing, including retired records") end
 
-combat.records, combat.coverage, combat.durations, combat.auraIDs, combat.failed = {}, {}, {}, {}, {}
+combat.pool, combat.records, combat.coverage, combat.durations, combat.auraIDs, combat.failed = {}, {}, {}, {}, {}, {}
 combat.auraDurations, combat.metadataDirty = {}, nil
 combat.frame, combat.count, combat.suspended, combat.failure = nil, nil, nil, nil
 combat.soonUnavailable, combat.expiryFailure = nil, nil

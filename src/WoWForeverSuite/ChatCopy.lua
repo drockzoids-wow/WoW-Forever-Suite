@@ -158,6 +158,11 @@ function Copy:Build()
     end)
 end
 
+function Copy:Toggle(source)
+    if not InCombatLockdown() and self.frame and self.frame:IsShown() and self.owner == source then return self:Hide() end
+    return self:Open(source)
+end
+
 function Copy:Open(source, keepPosition)
     if InCombatLockdown() then Suite.Print("Copy chat outside combat."); return end
     local text, omitted, count = self:Snapshot(source)

@@ -40,18 +40,7 @@ local function Button(parent, text, width, callback)
 end
 local function GuideDropdown(parent, callback)
     local button = Button(parent, "Choose profession", 188, callback)
-    button.label:ClearAllPoints(); button.label:SetPoint("LEFT", 9, 0)
-    button.label:SetWidth(148); button.label:SetJustifyH("LEFT")
-    local divider = button:CreateTexture(nil, "ARTWORK")
-    divider:SetSize(1, 13); divider:SetPoint("RIGHT", -28, 0)
-    divider:SetColorTexture(0.22, 0.43, 0.46, 0.7)
-    -- Draw the chevron separately so it stays crisp and never shrinks with the label.
-    for side = 1, 2 do
-        local line = button:CreateLine(nil, "OVERLAY")
-        line:SetThickness(1.5); line:SetColorTexture(0.55, 0.85, 0.81, 1)
-        line:SetStartPoint("RIGHT", button, side == 1 and -21 or -13, 2)
-        line:SetEndPoint("RIGHT", button, -17, -2)
-    end
+    Suite.Theme:DropdownIndicator(button)
     return button
 end
 function Leveling:Enabled() return Suite.db and Read(Suite.db.professionLeveling, "boolean") and Suite.db.professionLeveling == true end
@@ -1131,7 +1120,7 @@ function Leveling:TrackMaterials(sectionOnly)
         end
         if not limit then Suite.Print("There is no unfinished section at this skill level."); return end
     end
-    Suite.ShoppingList:Review(guide.name, rank, limit, self.frame)
+    Suite.ShoppingList:ToggleReview(guide.name, rank, limit, self.frame)
 end
 function Leveling:CreatePanel()
     if self.frame or InCombatLockdown() then return end
@@ -1204,7 +1193,7 @@ function Leveling:CreatePanel()
     frame.trackSection:SetPoint("TOPLEFT", 14, -552)
     frame.trackRemaining = Button(frame, "Track remaining", 144, function() self:TrackMaterials(false) end)
     frame.trackRemaining:SetPoint("LEFT", frame.trackSection, "RIGHT", 8, 0)
-    frame.shopping = Button(frame, "Shopping list", 134, function() Suite.ShoppingList:Open(frame) end)
+    frame.shopping = Button(frame, "Shopping list", 134, function() Suite.ToggleWindow(Suite.ShoppingList, frame) end)
     frame.shopping:SetPoint("LEFT", frame.trackRemaining, "RIGHT", 8, 0)
     frame.follow, frame.close = follow, close
 end

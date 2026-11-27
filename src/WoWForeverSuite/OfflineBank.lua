@@ -133,7 +133,9 @@ function Bank:Scan(bankType)
     local metadata = C_Bank.FetchPurchasedBankTabData(bankType)
     if not Suite.IsReadable(ids) or type(ids) ~= "table" or not Integer(purchased, 0, 32)
         or #ids ~= purchased or not Suite.IsReadable(metadata) or type(metadata) ~= "table"
-        or #metadata ~= purchased then return nil, "Purchased bank lists incomplete" end
+        or #metadata ~= purchased or (bankType == Enum.BankType.Character and purchased == 0) then
+        return nil, "Purchased bank lists incomplete"
+    end
     local seen, details, snapshot = {}, {}, { schema = 1, tabs = {}, totalSlots = 0 }
     local incomplete
     for _, tab in ipairs(metadata) do
@@ -521,7 +523,8 @@ function View:Refresh()
     local pages = snapshot and math.max(1, math.ceil(snapshot.totalSlots / PAGE_SIZE)) or 1
     self.page = math.max(1, math.min(self.page, pages))
     local slots = snapshot and self:Slots(snapshot, self.page) or {}
-    local height = 460 + math.max(0, math.ceil(#slots / COLUMNS) - 6) * 47
+    local slotsPerPage = snapshot and math.min(snapshot.totalSlots, PAGE_SIZE) or 0
+    local height = 460 + math.max(0, math.ceil(slotsPerPage / COLUMNS) - 6) * 47
     self.frame:SetHeight(height)
     local title = self.bankType == 2 and (ACCOUNT_BANK_PANEL_TITLE or "Account Bank") or (BANK or "Bank")
     if self.bagMode then title = "Saved bags" end
@@ -641,6 +644,15 @@ function Bank:RefreshBags(snapshot)
         button:Show()
     end
     for index, button in pairs(self.bagButtons) do if index > #tabs then button:Hide() end end
+end
+
+function Bank:ToggleFor(guid, bankType, owner)
+    if not InCombatLockdown() and Visible(self.frame) and Suite.IsReadable(guid) and Suite.IsReadable(bankType)
+        and self.viewGUID == guid and self.bankType == bankType then
+        self.frame:Hide()
+        return true
+    end
+    return self:OpenFor(guid, bankType, owner)
 end
 
 function Bank:OpenFor(guid, bankType, owner)

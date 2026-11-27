@@ -1,5 +1,14 @@
 # Forever Suite
 
+## 1.0.33 — November 27, 2026
+
+- Try the optional tabbed settings layout from **Appearance → Preview tabbed layout**. It adds Home shortcuts and groups Restock, Shopping List, and Supply Checklist together. Return to the original layout from the header with your settings intact.
+- Mail Deadlines scrolls as one list and keeps its position when you refresh. Inventory search results and saved bag and bank views keep their height on shorter pages.
+- Profiles uses clear dropdowns for **Saved Profiles** and **Copy settings from**. Settings outlines remain visible, and profile switch and delete reviews scroll into view.
+- Suite window launchers toggle their windows on a second click. The Auction House **Shopping list** button is fully visible.
+- Clickable Missing Buffs spell reminders show the global cooldown swipe. The expiry number stays separate. Combat reminders reuse their displays, and the shaman imbue picker stays open when its reminder moves.
+- Bank recording waits for the first personal bank tab before saving a snapshot.
+
 ## 1.0.32 — November 26, 2026
 
 - Missing Buffs shares one position in and out of combat. Missing spells can show their existing action-bar shortcut, and combat expiry warnings show a countdown.

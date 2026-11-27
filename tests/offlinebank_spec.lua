@@ -257,6 +257,7 @@ bank.pageTabs[2].customMouseUpHandler(bank.pageTabs[2], "LeftButton", true)
 equal(bank.page, 2, "native side tab changes personal bank page")
 equal(bank.buttons[10].bankItem.id, 300, "last partial page retains final bank slot")
 equal(bank.buttons[11]:IsShown(), false, "buttons beyond partial page hidden")
+equal(bank.frame.height, 695, "short final page keeps the personal bank window height")
 Near(bank.frame.point[5], -204, "short final page does not shift the native top edge")
 equal(bank.buttons[1].bankItem, nil, "page switch cannot reuse prior item tooltip")
 equal(GameTooltip:IsShown(), false, "page change dismisses prior hover")
@@ -273,6 +274,7 @@ equal(bank.page, 2, "restricted saved bank wheel input is ignored")
 bank.pageTabs[4].customMouseUpHandler(bank.pageTabs[4], "LeftButton", true)
 equal(bank.bankType, 2, "shared-bank page selected")
 equal(bank.buttons[2].bankItem.id, 400, "shared-bank page uses its own slots")
+equal(bank.frame.height, 695, "short final page also keeps the shared bank window height")
 equal(bank.buttons[2].Background.atlas, "warband-bank-slot", "account slots retain their native bank background")
 bank.search:SetText("400"); bank.search.OnTextChanged(bank.search)
 equal(bank.buttons[2].searchOverlay:IsShown(), false, "literal search keeps matching item visible")
@@ -412,6 +414,27 @@ accessible[0], accessible[2] = true, true
 BankFrame:Show(); Fire("BANKFRAME_OPENED"); Flush()
 personal = bank:GetSnapshot(0)
 equal(bank.frame:IsShown(), false, "real banker automatically dismisses cached view")
+do
+    local character, tabs, count, data = bank:Context(), ids[0], purchased[0], metadata[0]
+    local aggregate = character.bank
+    ids[0], purchased[0], metadata[0] = {}, 0, {}
+    Fire("BANK_TABS_CHANGED"); Flush()
+    equal(bank:GetSnapshot(0), personal, "zero personal bank tabs preserve the last saved slots")
+    equal(character.bank, aggregate, "zero personal bank tabs preserve the last counts")
+    equal(TimerCount(), 1, "zero personal bank tabs use the bounded loading retry")
+    local previousIdentity = identity
+    identity = "Player-110-first-visit"
+    Flush()
+    local first = bank:Context()
+    equal(first.bank, nil, "a first visit waiting for its tab stays unrecorded")
+    equal(first.bankView, nil, "a zero-tab personal bank view is never saved")
+    ids[0], purchased[0], metadata[0] = tabs, count, data
+    Fire("BANK_TABS_CHANGED"); Flush()
+    equal(first.bankView.totalSlots, 98, "the grant event records real personal slots")
+    equal(first.bank.items[100], 8, "first complete scan records both bags' stacks")
+    identity = previousIdentity
+    Suite.db.inventory.characters["Player-110-first-visit"] = nil
+end
 bags[6].pending = { [2] = 999, [3] = 998 }
 Fire("PLAYERBANKSLOTS_CHANGED"); Flush()
 equal(bank:GetSnapshot(0), personal, "loading occupied slot retains prior complete snapshot")
@@ -669,6 +692,21 @@ equal(savedBags.buttons[2].bankItem, nil, "empty saved bag slot stays empty")
 equal(savedBags.frame.title, "Alt Pine · Saved bags", "saved bag title identifies character and source")
 equal(savedBags.status.text, "Saved bags · date 222 · View only", "saved bag footer discloses capture time and read-only status")
 equal(savedBags.bagLabel:IsShown(), false, "saved bags do not inherit bank bag purchase decorations")
+do
+    local larger = Suite.Copy(altBags)
+    larger.tabs[1].size, larger.totalSlots = 16, 100
+    for bag = 1, 3 do larger.tabs[bag + 1] = { bag = bag, size = 28, slots = {} } end
+    alt.bagView = larger
+    savedBags:Refresh()
+    local height = savedBags.frame:GetHeight()
+    savedBags.frame:OnMouseWheel(-1)
+    equal(savedBags.page, 2, "saved bags reach their last page with the wheel")
+    equal(savedBags.buttons[13]:IsShown(), false, "the short last page shows only recorded slots")
+    equal(savedBags.frame:GetHeight(), height, "the saved bags window stays the same size across pages")
+    alt.bagView = altBags
+    savedBags:Refresh()
+    equal(savedBags.page, 1, "switching back to a small snapshot clamps the selected page")
+end
 local bagCalls = calls
 SetCombat(true)
 equal(selectors:Select("Player-alt", true), false, "combat rejects dropdown selection")

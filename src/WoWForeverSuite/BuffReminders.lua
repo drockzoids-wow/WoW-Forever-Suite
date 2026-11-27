@@ -146,11 +146,12 @@ function Extra:Prepare()
         if class then
             for _, family in ipairs(buffs:Families(class, buffs.learned or {})) do
                 local catalog = family.catalog
-                if family.spell and (catalog.combat or catalog.weapon) and not (fishing and catalog.weapon)
+                -- Prepare an imbue even with a pole equipped so an in-combat
+                -- weapon swap can show the passive reminder without rebuilding.
+                if family.spell and (catalog.combat or catalog.weapon)
                     and not catalog.custom and not catalog.outOfCombatOnly
                     and ((not catalog.group or catalog.upkeep) and Suite.db.missingBuffClass or catalog.group and Suite.db.missingBuffSelf or catalog.group and Suite.db.missingBuffOutgoing) then
                     self.watches[#self.watches + 1] = family
-                    if catalog.weapon then family.weaponID = Call(GetInventoryItemID, "player", 16) end
                 end
             end
             if not fishing and class == "ROGUE" and Suite.db.missingBuffClass then
@@ -423,8 +424,9 @@ function Extra:RefreshCombat()
                     if self:HasCoating(16) then present = true
                     else
                         present = Suite.MissingBuffs:Weapon(16, Enum and Enum.WeaponSlot and Enum.WeaponSlot.MainHand, true)
-                        if present == true and ID(family.weaponID) then
-                            local needed, remaining = self:CoatingState({ slot = 16, weapon = family.weaponID })
+                        if present == true then
+                            local weapon = Call(GetInventoryItemID, "player", 16)
+                            local needed, remaining = self:CoatingState({ slot = 16, weapon = weapon })
                             if needed == true and remaining then present, seconds = false, remaining end
                         end
                     end

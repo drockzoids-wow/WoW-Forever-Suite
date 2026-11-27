@@ -1672,6 +1672,14 @@ function Mail:PlaceBook(anchor)
     end
 end
 
+function Mail:ToggleBook(anchor)
+    if not InCombatLockdown() and self.book and Shown(self.book.frame) then
+        self.book.frame:Hide()
+        return
+    end
+    return self:OpenBook(anchor)
+end
+
 function Mail:OpenBook(anchor, tab)
     if InCombatLockdown() then Suite.Print("Open Contacts after combat."); return end
     local wasShown = self.book and Shown(self.book.frame)

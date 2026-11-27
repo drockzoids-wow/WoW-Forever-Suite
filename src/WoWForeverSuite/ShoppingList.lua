@@ -125,6 +125,16 @@ function Shopping:QuantityCells(row)
         or (row.incomplete and "Up to " or "") .. row.need
     return tostring(row.wanted), stock, buy, row.need == nil and tones.unknown or row.need == 0 and tones.stocked or tones.shortage
 end
+function Shopping:ToggleReview(name, rank, endSkill, owner)
+    local draft = self.pending
+    if not InCombatLockdown() and self.frame and self.frame:IsShown() and draft
+        and Suite.IsReadable(name) and Suite.IsReadable(rank) and Suite.IsReadable(endSkill)
+        and draft.name == name and draft.plan.rank == rank and draft.plan.endSkill == endSkill then
+        self.frame:Hide()
+        return
+    end
+    return self:Review(name, rank, endSkill, owner)
+end
 function Shopping:Review(name, rank, endSkill, owner)
     if InCombatLockdown() or not Text(name) or not Int(rank, 0, 300) then Suite.Print("Open a guide with a known skill level first."); return false end
     local normalized = self:Normalize({ [name] = { rank = rank, endSkill = endSkill } })
@@ -258,7 +268,7 @@ function Shopping:Open(owner)
         frame.context = Label(frame, 14, -43, 630, 11); frame.context:SetHeight(42)
         frame.save = Button(frame, "Save & track", 14, -91, 124, function() self:SavePlan() end)
         frame.manage = Button(frame, "Manage plans", 146, -91, 132, function() self:Manage(frame.manage) end)
-        frame.checklist = Button(frame, "Supply Checklist", 286, -91, 154, function() Suite.SupplyChecklist:Open(frame) end)
+        frame.checklist = Button(frame, "Supply Checklist", 286, -91, 154, function() Suite.ToggleWindow(Suite.SupplyChecklist, frame) end)
         Label(frame, 54, -126, 220, 10):SetText("ITEM")
         for _, column in ipairs({ { "REQUIRED", 296, 76 }, { "RECORDED STOCK", 390, 110 }, { "BUY", 520, 124 } }) do
             local label = Label(frame, column[2], -126, column[3], 10)
@@ -308,11 +318,22 @@ function Shopping:AuctionButton()
     local owner = AuctionHouseFrame
     if not Safe(owner) then return end
     if not self.auctionButton then
-        self.auctionButton = Suite.Theme:ActionButton(owner, "Shopping list", 110, 22, function()
-            if not InCombatLockdown() and self:Enabled() then self.pending = nil; self:Open(owner) end
+        local title = owner.TitleContainer
+        local parent = Safe(title) and title or owner
+        self.auctionButton = Suite.Theme:ActionButton(parent, "Shopping list", 110, 18, function()
+            if InCombatLockdown() or not self:Enabled() then return end
+            if self.pending then
+                self.pending = nil
+                return self:Open(owner)
+            end
+            Suite.ToggleWindow(self, owner)
         end)
-        -- The native title's right edge leaves the close control and tabs available.
-        self.auctionButton:SetPoint("TOPRIGHT", owner, "TOPRIGHT", -42, -5)
+        -- Inherit the raised title layer and leave room for the close button.
+        if parent == title then
+            self.auctionButton:SetPoint("RIGHT", title, "RIGHT", -18, 0)
+        else
+            self.auctionButton:SetPoint("TOPRIGHT", owner, "TOPRIGHT", -42, -2)
+        end
     end
     self.auctionButton:SetShown(self:Enabled())
 end

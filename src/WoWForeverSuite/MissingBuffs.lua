@@ -1,6 +1,7 @@
 local _, Suite = ...
 local Timers = Suite.ReminderTimers
 local Buffs = { buttons = {}, requested = {}, notices = {}, noticeTimes = {}, bookDirty = true, itemsDirty = true }
+local IMBUE_KEY = "SHAMAN:imbue"
 Suite.MissingBuffs = Buffs
 table.insert(Suite.modules, Buffs)
 local function Read(value, kind) return Suite.IsReadable(value) and type(value) == kind end
@@ -651,22 +652,37 @@ function Buffs:Cycle(entry)
     self:Queue()
 end
 
+function Buffs:SyncImbueAnchor(button)
+    local anchor = self.imbueAnchor
+    if not anchor then return end
+    if not button then anchor:Hide(); anchor.button = nil; return end
+    if anchor.button ~= button then
+        anchor:ClearAllPoints(); anchor:SetAllPoints(button)
+        anchor.button = button
+    end
+    anchor:Show()
+end
+
 function Buffs:ChooseImbue(button)
     local entry = button.entry
     if not Enabled() or not self:Context() or not entry or not button:IsShown()
         or self:FishingPoleEquipped() then return end
     HideTooltip(button)
-    local key = "SHAMAN:imbue"
-    Suite.Menus.CreateContextMenu(button, function(_, root)
+    -- Refreshes reuse buttons by position. Keep the menu attached to the
+    -- weapon reminder even when a different button takes over its icon.
+    if not self.imbueAnchor then self.imbueAnchor = CreateFrame("Frame", nil, self.bar) end
+    self:SyncImbueAnchor(button)
+    local anchor = self.imbueAnchor
+    Suite.Menus.CreateContextMenu(anchor, function(_, root)
         root:CreateTitle("Weapon imbue")
         local function Option(label, id, rank)
             root:CreateRadio(label, function()
-                local chosen = Suite.db.missingBuffChoices[key]
+                local chosen = Suite.db.missingBuffChoices[IMBUE_KEY]
                 return chosen == id or rank ~= nil and chosen == rank
             end, function()
-                local current = button.entry
-                if not Enabled() or not self:Context() or not button:IsShown() or not current
-                    or not current.family or current.family.key ~= key or self:FishingPoleEquipped() then return end
+                local current = anchor.button and anchor.button.entry
+                if not Enabled() or not self:Context() or not anchor:IsVisible() or not current
+                    or not current.family or current.family.key ~= IMBUE_KEY or self:FishingPoleEquipped() then return end
                 if id then
                     local known = false
                     for _, spell in ipairs(current.family.choices) do
@@ -674,7 +690,7 @@ function Buffs:ChooseImbue(button)
                     end
                     if not known then return end
                 end
-                Suite.db.missingBuffChoices[key] = id
+                Suite.db.missingBuffChoices[IMBUE_KEY] = id
                 self:Refresh()
             end)
         end
@@ -704,7 +720,7 @@ function Buffs:Tooltip(button)
             GameTooltip:AddLine(entry.passive and "Check aura coverage and move closer to these members. This reminder will not toggle an active or unknown aura off."
                 or "Left-click buffs the first listed member; party effects cast on you. Native range and reagent rules apply.", 0.66, 0.77, 0.77, true)
         end
-        GameTooltip:AddLine(entry.family.key == "SHAMAN:imbue"
+        GameTooltip:AddLine(entry.family.key == IMBUE_KEY
             and "Right-click to choose your preferred weapon imbue."
             or "Right-click cycles learned alternatives, then hides this family. Restore buff choices in settings to show it again.", 0.66, 0.77, 0.77, true)
     end
@@ -864,7 +880,7 @@ function Buffs:Button(index)
         if InCombatLockdown() or down then return end
         if mouseButton == "RightButton" then
             local entry = button.entry
-            if entry and entry.family and entry.family.key == "SHAMAN:imbue" then self:ChooseImbue(button)
+            if entry and entry.family and entry.family.key == IMBUE_KEY then self:ChooseImbue(button)
             elseif entry and entry.kind ~= "coating" then self:Cycle(entry) end
         else
             if mouseButton == "LeftButton" and button.entry and button.entry.kind == "incoming" then
@@ -895,7 +911,8 @@ function Buffs:UpdateCooldowns(cooldownEvent, rebind)
     for _, button in ipairs(self.buttons) do
         local entry = button.entry
         if entry and (entry.kind == "self" or entry.kind == "group") then
-            Timers:UpdateCooldown(button, entry.spell.id, nil, cooldownEvent, rebind)
+            -- Clickable spell reminders follow the same cooldown as the cast.
+            Timers:UpdateCooldown(button, entry.spell.id, nil, cooldownEvent, rebind, nil, entry.unit ~= nil)
         else
             Timers:UpdateCooldown(button)
         end
@@ -928,6 +945,7 @@ function Buffs:Refresh()
     Suite.BuffReminders:Prepare()
     if self.bar and self.cancelMove then self:StopMoving(self.bar) end
     if not Enabled() or not self:Context() then
+        self:SyncImbueAnchor()
         if self.bar then self:StopMoving(self.bar); self.bar:Hide() end
         self.entries = {}
         if not Enabled() then self.notices = {} end
@@ -937,6 +955,7 @@ function Buffs:Refresh()
     local entries, notices = self:Route(collected)
     self:Notify(notices)
     if #entries == 0 then
+        self:SyncImbueAnchor()
         for _, button in ipairs(self.buttons) do
             button:Hide(); button.entry = nil
             for _, attribute in ipairs({ "type1", "spell1", "unit", "macrotext1" }) do button:SetAttribute(attribute, nil) end
@@ -949,10 +968,12 @@ function Buffs:Refresh()
     self.header.caption:SetText("Missing Buffs")
     local width, height, size, stride, rowStride = self:BarLayout(#entries)
     local now = Call(GetTime)
+    local imbueButton
     self.bar:SetSize(width, height)
     for index, entry in ipairs(entries) do
         local button = self:Button(index)
         button.entry = entry
+        if entry.family and entry.family.key == IMBUE_KEY then imbueButton = button end
         entry.expires = Number(now) and entry.remaining and now + entry.remaining or nil
         local row = math.floor((index - 1) / 8)
         local rowCount = math.min(8, #entries - row * 8)
@@ -978,6 +999,7 @@ function Buffs:Refresh()
     end
     if self.preview and self.preview:IsShown() or Suite.CombatBuffs and Suite.CombatBuffs.previewActive then self.bar:Hide()
     else self.bar:Show() end
+    self:SyncImbueAnchor(self.bar:IsShown() and imbueButton)
     self:UpdateCooldowns(false, true)
     self:UpdateExpiry()
     Suite.BuffReminders:PlaceCombat(); Suite.BuffReminders:Schedule()

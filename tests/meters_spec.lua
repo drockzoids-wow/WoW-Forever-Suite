@@ -1303,7 +1303,7 @@ do
     details.frame:OnEvent("GLOBAL_MOUSE_DOWN", "LeftButton")
     equal(details.frame:IsShown(), true, "restricted ancestry result is never used in a condition")
     DoesAncestryIncludeAny = ancestryAPI
-    for _, foci in ipairs({ { UIParent }, {}, { first.rows[1] } }) do
+    for _, foci in ipairs({ { UIParent }, {}, { first.rows[2] } }) do
         mouseFoci = foci; details.frame:OnEvent("GLOBAL_MOUSE_DOWN", "RightButton")
         equal(details.frame:IsShown(), false, "clicking another window or the world dismisses the popup in combat")
         equal(details.selection, nil, "click-away clears the captured source")
@@ -1312,6 +1312,12 @@ do
         first.rows[1]:OnClick()
         equal(details.frame.events.GLOBAL_MOUSE_DOWN, true, "new player click restores click-away dismissal")
     end
+    mouseFoci = { first.rows[1] }; details.frame:OnEvent("GLOBAL_MOUSE_DOWN", "LeftButton")
+    equal(details.frame:IsShown(), true, "mouse-down on the launcher leaves dismissal to its click handler")
+    first.rows[1]:OnClick()
+    equal(details.frame:IsShown(), false, "clicking the same meter row again closes its details")
+    first.rows[1]:OnClick()
+    equal(details.frame:IsShown(), true, "the row can reopen its details after a second-click dismissal")
     mouseFoci = {}
     equal(created, beforeCombatDetails, "click-away and reopening do not create combat frames")
 end

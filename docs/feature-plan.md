@@ -1,5 +1,17 @@
 # Forever Suite feature plan
 
+## Missing Buffs global cooldown
+
+Show the spell's active cooldown, including the global cooldown, on clickable Missing Buffs spell reminders outside combat. Keep aura expiry in the separate number.
+
+## Mail Deadlines scrolling
+
+Use a continuous character list with fixed headers and footer controls. Size the window when it opens for up to eight rows. Keep that size and the current scroll position during refreshes, clamping the position when the list gets shorter.
+
+## Optional tabbed settings preview
+
+Keep the current settings layout as the default. Offer a tabbed layout under Appearance with a fixed sidebar, a tab row for each category and four Home shortcuts. Group Restock, Shopping List and Supply Checklist together. Use the existing tool windows, settings and records. Provide a header button to return to the original layout immediately.
+
 ## Fishing poles and weapon reminders
 
 Hide weapon coatings, poisons, and class imbue reminders while a fishing pole is equipped. Restore normal reminders when a weapon is re-equipped.
@@ -25,6 +37,10 @@ Add an optional layout for native health-bar nameplates. Keep the Blizzard name 
 ## Copy settings from another character
 
 Put the character picker, new profile name and Create copy action together at the top of Profiles. Show the selected source and tell the player how to switch to the copy after it is created. Keep profile creation and activation as separate actions.
+
+Use matching dropdowns with visible chevrons for Saved Profiles and Copy settings from. Keep the selected name in each field, mark the active profile in the saved list, and keep mouse-wheel paging for longer lists.
+
+Keep the switch and delete button borders complete at the default placement and when the window is scaled. Scroll staged reviews into view and return to the previous position on Cancel.
 
 ## Honor at level 60
 

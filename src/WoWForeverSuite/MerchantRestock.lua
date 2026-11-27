@@ -441,7 +441,11 @@ function Restock:Refresh(selection)
         or self.message or (#self.rows == 0 and "Drop an item above to add a restock target." or "Review the selected quantities and cost before buying."))
 end
 function Restock:Open(owner, selection)
-    if not self:Enabled() then Suite.Print("Enable Merchant restocking in /wfs supplies first."); return end
+    if not self:Enabled() then
+        local settings = Suite.GUI:NavigationPreviewEnabled() and "Supplies → Restock" or "/wfs supplies"
+        Suite.Print("Enable Merchant restocking in " .. settings .. " first.")
+        return
+    end
     if InCombatLockdown() then Suite.Print("Open Restock outside combat."); return end
     self:CancelVisit()
     self:Stop()

@@ -3,7 +3,7 @@ local Profiles = { limit = 12 }
 Suite.Profiles = Profiles
 -- These records describe possessions, ownership, safety rules or native restoration state.
 -- They must never be rolled back or copied by a settings/layout switch.
-Profiles.excluded = { schema=true, setupGuide=true, inventory=true, inventoryBrowser=true, windowPositions=true,
+Profiles.excluded = { schema=true, setupGuide=true, inventory=true, inventoryBrowser=true, windowPositions=true, navigationPreview=true,
     mailContacts=true, coordinateTellHistory=true, macroOwnership=true, bagSpaceBlacklist=true,
     itemKeepRules=true, itemKeepRulesEnabled=true, scorePreset=true, upgradePreference=true, talentBuilds=true }
 local function Table(v) return Suite.IsReadable(v) and type(v) == "table" end

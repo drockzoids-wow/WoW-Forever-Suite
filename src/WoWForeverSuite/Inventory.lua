@@ -139,6 +139,8 @@ function Inventory:ScanBank(bankType)
     local purchased = C_Bank.FetchNumPurchasedBankTabs(bankType)
     if not Suite.IsReadable(ids) or type(ids) ~= "table" or not Integer(purchased, 0, 100)
         or #ids ~= purchased then return end
+    -- The personal bank does not have readable contents before the first tab.
+    if bankType == Enum.BankType.Character and purchased == 0 then return end
     local limit = BagLimit()
     if not limit then return end
     for _, id in ipairs(ids) do if not Integer(id, limit + 1, 1000) then return end end

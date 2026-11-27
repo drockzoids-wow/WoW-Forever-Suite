@@ -345,9 +345,17 @@ function Review:Refresh()
     frame.previous:SetEnabled(not combat and self.page > 1); frame.next:SetEnabled(not combat and self.page * 6 < #self.rows)
     frame.page:SetText(self.page .. " / " .. math.max(1, math.ceil(#self.rows / 6)))
 end
+function Review:Toggle(view, owner, draft)
+    if not InCombatLockdown() and self.frame and self.frame:IsShown() and self.launchView == view and self.preview == draft then
+        self.frame:Hide()
+        return
+    end
+    return self:Open(view, owner, draft)
+end
 function Review:Open(view, owner, draft)
     if InCombatLockdown() then Suite.Print("Open the feature review outside combat."); return end
     self.view, self.page = view == "overlaps" and "overlaps" or "enabled", 1
+    self.launchView = self.view
     self.preview = Read(draft, "table") and draft or nil
     if not self.frame then
         local frame = CreateFrame("Frame", "WoWForeverSuiteFeatureReview", UIParent, "BackdropTemplate"); self.frame = frame

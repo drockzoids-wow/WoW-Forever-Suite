@@ -328,7 +328,7 @@ function Chat:Button(record)
         paper:SetSize(10, 14); paper:SetPoint("TOPLEFT", 7 + (index - 1) * 3, -4 - (index - 1) * 3)
         paper:SetColorTexture(0.41, 0.84, 0.75, index == 1 and 0.5 or 1)
     end
-    button:SetScript("OnClick", function() Suite.ChatCopy:Open(frame) end)
+    button:SetScript("OnClick", function() Suite.ChatCopy:Toggle(frame) end)
     button:SetScript("OnEnter", function()
         if not GameTooltip or not self:Enabled() then return end
         GameTooltip:SetOwner(button, "ANCHOR_RIGHT")

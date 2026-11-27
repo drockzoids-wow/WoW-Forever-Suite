@@ -1,5 +1,15 @@
 local _, Suite = ...
 
+-- For launcher clicks targeting a Suite-owned window. Programmatic callers
+-- can still open or refresh the window explicitly.
+function Suite.ToggleWindow(window, ...)
+    if not InCombatLockdown() and window.frame and window.frame:IsShown() then
+        window.frame:Hide()
+        return
+    end
+    return window:Open(...)
+end
+
 local function Number(value)
     return Suite.IsReadable(value) and type(value) == "number" and value == value and math.abs(value) < math.huge
 end

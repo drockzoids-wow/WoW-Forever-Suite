@@ -68,7 +68,9 @@ local pages = {
         { key = "talentPlannerFullBuild", label = "Always show full build information", help = "With the planner enabled, show the last selected build's comparison markers whenever your talent window opens.\nWorks with Builds closed. Leveling builds show the full level-60 plan. Starts off; never spends points." },
         { action = "talentsOpen", label = "Open Talent Builds", help = "Create an empty draft or copy the native tree, then edit its overlay.\nLeft-click adds ranks; right-click removes. Drafts save automatically." },
     }, note = "Tree tiers and prerequisites always apply. Turn Limit to current level off to plan ahead.\nSuite build codes work with this planner. Selecting a draft never applies talents." },
-    appearance = { title = "Appearance", description = "One border color across Forever Suite.", rows = {},
+    appearance = { title = "Appearance", description = "Choose your settings layout and Suite border color.", rows = {
+        { action = "navigationPreview", label = "Preview tabbed layout", help = "Try the new sidebar, tabs and Home shortcuts. Both layouts use your existing settings.\nChoose Exit layout preview in the header to switch back." },
+    },
         note = "Applies to borders added or styled by the Suite. Changes during combat apply when combat ends." },
     leveling = { title = "Leveling", description = "Your XP, gold and pace in one compact tracker.", rows = {
         { key = "levelingBar", label = "Leveling tracker", help = "Stack XP/hour, net gold/hour, level progress and time to level.\nStarts at the top left. Drag its unlocked header; position saves per character." },
@@ -254,11 +256,12 @@ end
 function GUI:Action(action, anchor)
     local news = { newsTraining = "training", newsSupplies = "supplies", newsMail = "mail", newsTalents = "talents", newsContacts = "mail", newsMacros = "macros", newsShortcuts = "shortcuts" }
     if news[action] then self:OpenPage(news[action])
-    elseif action == "suppliesOpen" then Suite.SupplyChecklist:Open(self.frame)
-    elseif action == "shoppingOpen" then Suite.ShoppingList:Open(self.frame)
-    elseif action == "restockOpen" then Suite.MerchantRestock:Open(self.frame)
-    elseif action == "keepRulesOpen" then Suite.ItemRules:Open(self.frame)
-    elseif action == "mailDeadlines" then Suite.MailExpiry:Open(self.frame)
+    elseif action == "navigationPreview" then self:ToggleNavigationPreview()
+    elseif action == "suppliesOpen" then Suite.ToggleWindow(Suite.SupplyChecklist, self.frame)
+    elseif action == "shoppingOpen" then Suite.ToggleWindow(Suite.ShoppingList, self.frame)
+    elseif action == "restockOpen" then Suite.ToggleWindow(Suite.MerchantRestock, self.frame)
+    elseif action == "keepRulesOpen" then Suite.ToggleWindow(Suite.ItemRules, self.frame)
+    elseif action == "mailDeadlines" then Suite.ToggleWindow(Suite.MailExpiry, self.frame)
     elseif action == "combatPreview" then self:StartWorldPreview(Suite.CombatIndicator)
     elseif action == "combatReset" then Suite.CombatIndicator:ResetPosition()
     elseif action == "nameplateDebuffs" or action == "nameplateCastHeight" then
@@ -272,9 +275,9 @@ function GUI:Action(action, anchor)
     elseif action == "disenchantModifier" then
         self:Choose(anchor, {{value="alt",label="Alt"},{value="ctrl",label="Ctrl"},{value="shift",label="Shift"}},
             Suite.ProfessionHelper:Modifier(), function(value) Suite.Set("disenchantModifier",value);self:Select("professions") end)
-    elseif action == "trainingOpen" then Suite.Training:Open(nil, nil, self.frame)
-    elseif action == "mailBook" then Suite.Mail:OpenBook(self.frame)
-    elseif action == "talentsOpen" then Suite.TalentPlanner:Open()
+    elseif action == "trainingOpen" then Suite.ToggleWindow(Suite.Training, nil, nil, self.frame)
+    elseif action == "mailBook" then Suite.Mail:ToggleBook(self.frame)
+    elseif action == "talentsOpen" then Suite.TalentPlanner:Toggle()
     elseif action == "buffCustom" then Suite.BuffReminders:OpenOptions()
     elseif action == "buffAppearance" then Suite.BuffSettings:Open("display")
     elseif action == "buffManage" then Suite.BuffSettings:Open("choices")
@@ -291,9 +294,9 @@ function GUI:Action(action, anchor)
             self.frame:Hide()
             Settings.OpenToCategory(Settings.KEYBINDINGS_CATEGORY_ID, BINDING_HEADER_WOWFOREVERSUITE)
         else Suite.Print("Open Options → Keybindings → Forever Suite to assign Open bank view.") end
-    elseif action == "supportOpen" then Suite.Diagnostics:Open(self.frame)
-    elseif action == "enabledFeatures" then Suite.FeatureReview:Open("enabled", self.frame)
-    elseif action == "addonOverlap" then Suite.FeatureReview:Open("overlaps", self.frame)
+    elseif action == "supportOpen" then Suite.ToggleWindow(Suite.Diagnostics, self.frame)
+    elseif action == "enabledFeatures" then Suite.FeatureReview:Toggle("enabled", self.frame)
+    elseif action == "addonOverlap" then Suite.FeatureReview:Toggle("overlaps", self.frame)
     elseif action == "campingPose" then
         local poses, current = Suite.Camping.poses, Suite.Camping:GetPose()
         local options={};for _,pose in ipairs(poses) do options[#options+1]={value=pose.key,label=pose.label} end
@@ -350,14 +353,32 @@ function GUI:GetRow(index)
     return row
 end
 
-function GUI:Select(key)
+function GUI:NavigationPreviewEnabled()
+    return Suite.db and Suite.db.navigationPreview == true
+end
+
+function GUI:ToggleNavigationPreview()
+    if not Suite.db or InCombatLockdown() then return end
+    local enable = not self:NavigationPreviewEnabled()
+    Suite.db.navigationPreview = enable
+    self:Select(enable and "overview" or self.page)
+end
+
+function GUI:Select(key, view)
     self:StopScrollDrags()
-    if not Suite.IsReadable(key) or type(key) ~= "string" or not pages[key] then return end
+    if not Suite.IsReadable(key) or type(key) ~= "string" then return end
+    local preview = self:NavigationPreviewEnabled()
+    if preview and pages[key] and pages[key].directory and key ~= "overview" then
+        key = Catalog.pageGroup[key].pages[1][1]
+    elseif not preview then
+        key = Catalog.previewFallback[key] or key
+    end
+    local page = Catalog:Page(key, preview)
+    if not page then return end
     if key ~= "leveling" then Suite.pending.levelingJournalLayout = nil end
     local previousPage, previousScroll = self.page, self.scrollOffset or 0
     self.pageScroll = self.pageScroll or {}
     if previousPage then self.pageScroll[previousPage] = previousScroll end
-    local page = pages[key]
     Suite.pending.settingsReveal = nil
     self.selectionSerial = (self.selectionSerial or 0) + 1
     if key == "setup" and not self.setupPanel and InCombatLockdown() then Suite.Setup:Open(); return end
@@ -370,11 +391,15 @@ function GUI:Select(key)
     if key ~= "buffs" then Suite.BuffSettings:Dismiss() end
     if key ~= "profiles" then Suite.ProfileSettings:Dismiss() end
     self.page = key
+    if key == "characters" and Suite.IsReadable(view) and (view == "characters" or view == "inventory") then
+        Suite.CharacterDashboard.view = view
+    end
     self:ClearSettingHighlight()
     self:ClearSearch()
     self:LayoutNavigation(key)
     Suite.ProfileSettings:RefreshCaption()
-    self.heading:SetText(page.title)
+    local dashboardTitle = Suite.CharacterDashboard.view == "inventory" and "Inventory" or "Characters"
+    self.heading:SetText(preview and key == "characters" and dashboardTitle or page.title)
     self.description:SetText(page.description)
     self.note:SetHeight(key == "setup" and 12 or 40)
     self.note:SetText(page.note or "Every tool is optional. Changes apply as you make them.")
@@ -420,7 +445,7 @@ function GUI:Select(key)
     local offset, sectionIndex, sectionStart, collapsed = 0, 0, nil, false
     local column, lineHeight, pairedRow = 0, 0, nil
     local function FlushRows()
-        if column > 0 then offset = offset + lineHeight + 12; column, lineHeight = 0, 0 end
+        if column > 0 then offset = offset + lineHeight + 12; column, lineHeight, pairedRow = 0, 0, nil end
     end
     self.rowOffsets = {}
     for i, data in ipairs(page.rows) do
@@ -504,6 +529,7 @@ function GUI:Select(key)
                 row:SetScript("OnClick", function() Suite.Set(data.key, not Suite.db[data.key]); self:Select(key) end)
             else
                 row.value:SetText(data.action == "buffWarning" and (Suite.db.missingBuffWarning .. "s")
+                    or data.action == "navigationPreview" and (preview and "On" or "Off")
                     or data.action == "disenchantModifier" and Suite.ProfessionHelper:Modifier():upper()
                     or data.action == "campingPose" and Suite.Camping:GetPose().label
                     or (data.action == "nameplateDebuffs" or data.action == "nameplateCastHeight") and Suite.Nameplates:Option(data.action).label
@@ -583,7 +609,10 @@ function GUI:BuildHome(key)
         self.homeCards = {}
     end
     local panel, entries = self.homePanel, {}
-    if key == "overview" then
+    local preview = self:NavigationPreviewEnabled()
+    if preview then
+        entries = Catalog.previewHome
+    elseif key == "overview" then
         for _, group in ipairs(Catalog.groups) do
             if group.key ~= "overview" and not group.utility then entries[#entries + 1] = { group.directory, group.label, group.description } end
         end
@@ -595,7 +624,7 @@ function GUI:BuildHome(key)
     panel:SetSize(780, math.ceil(#entries / 2) * 112 - 12)
     if self.homeToolHeading then self.homeToolHeading:Hide() end
     for _, button in ipairs(self.homeToolButtons or {}) do button:Hide() end
-    if key == "overview" then
+    if key == "overview" and not preview then
         if not self.homeToolHeading then
             self.homeToolHeading = Text(panel, 14, palette.text)
             self.homeToolHeading:SetPoint("TOPLEFT", 0, -342); self.homeToolHeading:SetText("Open a tool")
@@ -605,8 +634,8 @@ function GUI:BuildHome(key)
                 button:SetSize(186, 34); button:SetPoint("TOPLEFT", (index - 1) * 198, -370)
                 button:SetScript("OnClick", function()
                     if InCombatLockdown() then return end
-                    if route == "training" then Suite.Training:Open(nil, nil, self.frame)
-                    elseif route == "talents" then Suite.TalentPlanner:Open()
+                    if route == "training" then Suite.ToggleWindow(Suite.Training, nil, nil, self.frame)
+                    elseif route == "talents" then Suite.TalentPlanner:Toggle()
                     else self:Select(route) end
                 end)
                 button.page = route; self.homeToolButtons[index] = button
@@ -623,22 +652,37 @@ function GUI:BuildHome(key)
         if not card then
         card = CreateFrame("Button", nil, panel, "BackdropTemplate")
         Suite.Theme:ButtonFeedback(card)
-        card:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-        card:SetBackdropColor(unpack(palette.row)); Suite.Theme:Backdrop(card, 0.35)
+        Suite.Theme:FlatBackdrop(card, 0.35)
+        card:SetBackdropColor(unpack(palette.row))
         card.label = Text(card, 14, palette.text); card.label:SetPoint("TOPLEFT", 18, -17)
         card.label:SetWidth(330)
         card.help = Text(card, 11, palette.muted); card.help:SetPoint("TOPLEFT", 18, -44)
         card.help:SetSize(346, 42); card.help:SetWordWrap(true); card.help:SetJustifyV("TOP"); card.help:SetText(entry[3])
         card.arrow = Text(card, 16, palette.accent); card.arrow:SetPoint("TOPRIGHT", -16, -16); card.arrow:SetText("›")
-        card:SetScript("OnClick", function() if not InCombatLockdown() then self:Select(card.page) end end)
+        card:SetScript("OnClick", function()
+            if InCombatLockdown() then return end
+            if card.action then self:Action(card.action, card)
+            else
+                self:Select(card.page, card.view)
+                if card.view == "inventory" then self:FocusInventorySearch() end
+            end
+        end)
         card:SetScript("OnEnter", function() Suite.Theme:Backdrop(card, 1) end)
         card:SetScript("OnLeave", function() Suite.Theme:Backdrop(card, 0.35) end)
         self.homeCards[index] = card
         end
         card:SetSize(382, 100); card:ClearAllPoints()
         card:SetPoint("TOPLEFT", ((index - 1) % 2) * 398, -math.floor((index - 1) / 2) * 112)
-        card.page = entry[1]; card.label:SetText(entry[2]); card.help:SetText(entry[3]); card:Show()
+        card.page, card.action, card.view = entry[1], entry.action, entry.view
+        card.label:SetText(entry[2]); card.help:SetText(entry[3]); card:Show()
     end
+end
+
+function GUI:FocusInventorySearch()
+    local search = Suite.CharacterBrowser.search
+    if not search or self.page ~= "characters" or Suite.CharacterDashboard.view ~= "inventory" then return end
+    self:ScrollTo(0)
+    search:SetFocus()
 end
 
 function GUI:BuildLevelingLog()
@@ -926,7 +970,7 @@ function GUI:BuildAppearance()
         local button = CreateFrame("Button", nil, panel, "BackdropTemplate")
         Suite.Theme:ButtonFeedback(button)
         button:SetSize(choiceWidth, 38); button:SetPoint("TOPLEFT", (index - 1) * (choiceWidth + 12), -76)
-        button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+        Suite.Theme:FlatBackdrop(button, 0.35)
         button.label = Text(button, 12, palette.text)
         button.label:SetPoint("CENTER"); button.label:SetText(choice[2])
         button:SetScript("OnClick", function() Suite.Theme:SetMode(mode) end)
@@ -938,8 +982,8 @@ function GUI:BuildAppearance()
     Suite.Theme:ButtonFeedback(button)
     self.borderColorButton = button
     button:SetSize(206, 38); button:SetPoint("TOPLEFT", 0, -136)
-    button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-    button:SetBackdropColor(unpack(palette.row)); Suite.Theme:Backdrop(button, 0.65)
+    Suite.Theme:FlatBackdrop(button, 0.65)
+    button:SetBackdropColor(unpack(palette.row))
     button.swatch = button:CreateTexture(nil, "ARTWORK")
     button.swatch:SetSize(22, 22); button.swatch:SetPoint("LEFT", 8, 0)
     button.label = Text(button, 12, palette.text)
@@ -1068,7 +1112,7 @@ function GUI:BuildSetup()
     self.setupBack = Button(0, -512, 88, "Back", function() Suite.Setup:Move(Suite.Setup.page - 1) end)
     self.setupLater = Button(94, -512, 110, "Later", function() self:Select("overview") end)
     self.setupOverlap = Button(214, -512, 152, "Review overlaps", function()
-        Suite.FeatureReview:Open("overlaps", self.frame, Suite.Setup.draft)
+        Suite.FeatureReview:Toggle("overlaps", self.frame, Suite.Setup.draft)
     end)
     self.setupNext = Button(width - 174, -512, 174, "Next", function()
         if Suite.Setup.page == #Suite.Setup.pages then Suite.Setup:Finish()
@@ -1809,7 +1853,70 @@ function GUI:ScrollTo(offset)
     end
 end
 
-function GUI:LayoutNavigation(key)
+function GUI:CreateCategoryTab(entry, callback)
+    local tab = CreateFrame("Button", nil, self.sidebar, "BackdropTemplate")
+    Suite.Theme:ButtonFeedback(tab)
+    tab:SetSize(SIDEBAR_WIDTH - 24, 36)
+    tab.label = Text(tab, 13, palette.muted)
+    tab.label:SetPoint("LEFT", 15, 0); tab.label:SetText(entry.label)
+    tab.indicator = tab:CreateTexture(nil, "ARTWORK")
+    tab.indicator:SetWidth(2)
+    tab.indicator:SetPoint("TOPLEFT", 0, -8); tab.indicator:SetPoint("BOTTOMLEFT", 0, 8)
+    Suite.Theme:Texture(tab.indicator, 1)
+    tab:SetScript("OnClick", function() if not InCombatLockdown() then callback() end end)
+    return tab
+end
+
+local function PaintCategory(tab, active)
+    Fill(tab, active and { 0.1, 0.2, 0.21 } or palette.sidebar)
+    tab.indicator:SetShown(active); tab.label:SetTextColor(unpack(active and palette.accent or palette.text))
+end
+
+function GUI:LayoutPreviewNavigation(key)
+    if not self.previewCategoryTabs then
+        self.previewCategoryTabs, self.previewTabs, self.previewLastTab = {}, {}, {}
+        for index, entry in ipairs(Catalog.previewGroups) do
+            local tab = self:CreateCategoryTab(entry, function()
+                local page = self.previewLastTab[entry.key] or entry.pages[1]
+                self:Select(page[1], page[3])
+            end)
+            tab:SetPoint("TOPLEFT", 12, -42 - (index - 1) * 42)
+            self.previewCategoryTabs[entry.key] = tab
+        end
+    end
+    local group = Catalog.previewPageGroup[key]
+    self.group = group.key
+    for category, tab in pairs(self.previewCategoryTabs) do
+        PaintCategory(tab, category == group.key); tab:Show()
+    end
+    for _, tab in ipairs(self.previewTabs) do tab:Hide() end
+    local view = Suite.CharacterDashboard.view or "characters"
+    local x = 0
+    for index, entry in ipairs(group.pages) do
+        local active = entry[1] == key and (not entry[3] or view == entry[3])
+        if active then self.previewLastTab[group.key] = entry end
+        if #group.pages > 1 then
+            local tab = self.previewTabs[index]
+            if not tab then
+                tab = Suite.Theme:ActionButton(self.body, "", 80, 29, function(button)
+                    if not InCombatLockdown() then self:Select(button.entry[1], button.entry[3]) end
+                end)
+                self.previewTabs[index] = tab
+            end
+            local width = math.max(70, #entry[2] * 7 + 16)
+            tab.entry, tab.selected = entry, active
+            tab:ClearAllPoints(); tab:SetPoint("TOPLEFT", x, 0)
+            tab:SetWidth(width); tab.label:SetWidth(width - 12); tab.label:SetText(entry[2])
+            tab:Show(); tab.paint()
+            tab.label:SetTextColor(unpack(active and palette.accent or palette.text))
+            x = x + width + 6
+        end
+    end
+end
+
+function GUI:LayoutDirectoryNavigation(key)
+    for _, tab in pairs(self.previewCategoryTabs or {}) do tab:Hide() end
+    for _, tab in ipairs(self.previewTabs or {}) do tab:Hide() end
     local group = Catalog.pageGroup[key]
     self.group = group.key
     local y = 42
@@ -1818,8 +1925,7 @@ function GUI:LayoutNavigation(key)
         tab:Show();tab:ClearAllPoints()
         if candidate.utility then tab:SetPoint("BOTTOMLEFT", 12, 46)
         else tab:SetPoint("TOPLEFT", 12, -y); y = y + 42 end
-        Fill(tab, active and { 0.1, 0.2, 0.21 } or palette.sidebar)
-        tab.indicator:SetShown(active); tab.label:SetTextColor(unpack(active and palette.accent or palette.text))
+        PaintCategory(tab, active)
         if #candidate.pages > 1 then
             for _, leaf in ipairs(candidate.pages) do
                 local child = self.tabs[leaf[1]]
@@ -1830,10 +1936,27 @@ function GUI:LayoutNavigation(key)
     self.breadcrumbGroup.label:SetText(group.label)
     self.breadcrumbGroup:SetShown(key ~= "overview")
     self.breadcrumbGroup.route = group.directory
-    self.heading:ClearAllPoints(); self.heading:SetPoint("TOPLEFT", 0, -24)
-    self.description:ClearAllPoints(); self.description:SetPoint("TOPLEFT", 0, -58)
-    self.viewportHeight = BODY_HEIGHT - 100 - 40
-    self.scrollFrame:ClearAllPoints(); self.scrollFrame:SetPoint("TOPLEFT", 0, -100)
+end
+
+function GUI:LayoutNavigation(key)
+    local preview = self:NavigationPreviewEnabled()
+    self.layoutPreviewExit:SetShown(preview)
+    self.breadcrumbHome:SetShown(not preview); self.navHelp:SetShown(not preview)
+    self.searchBox.placeholder:SetText(preview and "Search tools and settings…" or "Search settings…")
+    local titleTop, descriptionTop, viewportTop = 24, 58, 100
+    if preview then
+        for _, tab in pairs(self.groupTabs) do tab:Hide() end
+        self.breadcrumbGroup:Hide()
+        self:LayoutPreviewNavigation(key)
+        if key == "overview" then titleTop, descriptionTop, viewportTop = 0, 34, 72
+        else titleTop, descriptionTop, viewportTop = 40, 74, 116 end
+    else
+        self:LayoutDirectoryNavigation(key)
+    end
+    self.heading:ClearAllPoints(); self.heading:SetPoint("TOPLEFT", 0, -titleTop)
+    self.description:ClearAllPoints(); self.description:SetPoint("TOPLEFT", 0, -descriptionTop)
+    self.viewportHeight = BODY_HEIGHT - viewportTop - 40
+    self.scrollFrame:ClearAllPoints(); self.scrollFrame:SetPoint("TOPLEFT", 0, -viewportTop)
     self.scrollFrame:SetSize(CONTENT_WIDTH, self.viewportHeight)
 end
 
@@ -1841,7 +1964,9 @@ function GUI:LayoutPage(key)
     local panels = { leveling = self.levelingLogPanel, appearance = self.appearancePanel, buffs = Suite.BuffSettings.mode and self.buffPanel or nil, profiles = self.profilePanel, overview = self.homePanel, macros = self.macroPanel, meters = self.meterPanel, chat = self.chatPanel,
         actionbars = self.procPanel,
         bars = self.progressPanel, worldmap = self.mapPanel, characters = self.characterPanel, castbars = self.castbarPanel }
-    if pages[key].directory then panels[key] = self.homePanel end
+    local preview = self:NavigationPreviewEnabled()
+    if Catalog:Page(key, preview).directory then panels[key] = self.homePanel end
+    if key == "setup" and self.setupPanel then self.setupPanel:SetPoint("TOPLEFT", 18, preview and -24 or 0) end
     if key == "actionbars" then
         self.keybindPanel:Show(); self.procPanel:Show()
     end
@@ -1874,7 +1999,7 @@ function GUI:ClearSettingHighlight()
 end
 
 function GUI:RevealSetting(entry)
-    if not entry or not pages[entry.page] then return end
+    if not entry then return end
     if InCombatLockdown() then
         self:ClearSearch()
         Suite.AfterCombat("settingsReveal", function()
@@ -1882,7 +2007,10 @@ function GUI:RevealSetting(entry)
         end)
         return
     end
-    self:SetSectionCollapsed(entry.page, Catalog:SectionFor(entry.page, entry.row), false)
+    local preview = self:NavigationPreviewEnabled()
+    if preview then entry = Catalog.previewEntriesByKey[entry.key] or entry end
+    if not Catalog:Page(entry.page, preview) then return end
+    self:SetSectionCollapsed(entry.page, Catalog:SectionFor(entry.page, entry.row, preview), false)
     self:Select(entry.page, entry.view)
     if entry.page == "buffs" then Suite.BuffSettings:Reveal(entry.target) end
     local target, offset = Catalog:Target(self, entry)
@@ -1906,6 +2034,17 @@ function GUI:RevealSetting(entry)
     end)
 end
 
+function GUI:ActivateSearchResult(entry)
+    if not entry then return end
+    if entry.launch and self:NavigationPreviewEnabled() then
+        self:ClearSearch()
+        self:Action(entry.launch)
+    elseif entry.key == "inventoryBrowser" and self:NavigationPreviewEnabled() and not InCombatLockdown() then
+        self:Select("characters", "inventory")
+        self:FocusInventorySearch()
+    else self:RevealSetting(entry) end
+end
+
 function GUI:ClearSearch()
     if self.searchBox then
         self.searchBox:SetText(""); self.searchBox:ClearFocus()
@@ -1926,7 +2065,9 @@ function GUI:PaintSearch()
     end
     self.searchEmpty:SetShown(#results == 0)
     self.searchPopup:SetHeight(26 + math.max(1, math.min(6, #results)) * 45 + 28)
-    self.searchCount:SetText(#results .. (#results == 1 and " setting" or " settings"))
+    local preview = self:NavigationPreviewEnabled()
+    self.searchCount:SetText(#results .. (preview and (#results == 1 and " result" or " results") or (#results == 1 and " setting" or " settings")))
+    self.searchEmpty:SetText(preview and "No matching tools or settings." or "No matching settings. Try a shorter phrase.")
     self.searchPrevious:SetEnabled(page > 1); self.searchNext:SetEnabled(page < pagesCount)
     self.searchPrevious:SetShown(pagesCount > 1); self.searchNext:SetShown(pagesCount > 1)
     self.searchPageLabel:SetText(page .. "/" .. pagesCount); self.searchPageLabel:SetShown(pagesCount > 1)
@@ -1941,7 +2082,7 @@ function GUI:UpdateSearch()
         return
     end
     self.searchBox.placeholder:Hide()
-    self.searchResults, self.searchPage = Catalog:Search(query), 1
+    self.searchResults, self.searchPage = Catalog:Search(query, self:NavigationPreviewEnabled()), 1
     self:PaintSearch()
 end
 
@@ -1952,8 +2093,8 @@ function GUI:BuildSettingsSearch(header)
     search:SetFrameLevel(header:GetFrameLevel() + 2)
     search:SetFont("Fonts\\FRIZQT__.TTF", 11, ""); search:SetTextColor(unpack(palette.text))
     search:SetAutoFocus(false); search:SetMaxLetters(100); search:SetTextInsets(11, 30, 0, 0)
-    search:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-    search:SetBackdropColor(unpack(palette.row)); Suite.Theme:Backdrop(search, 1)
+    Suite.Theme:FlatBackdrop(search, 1)
+    search:SetBackdropColor(unpack(palette.row))
     search.placeholder = Text(search, 11, palette.muted)
     search.placeholder:SetPoint("LEFT", 11, 0); search.placeholder:SetText("Search settings…")
     local clear = Suite.Theme:IconButton(search, "Clear search", function() self:ClearSearch() end)
@@ -1963,8 +2104,8 @@ function GUI:BuildSettingsSearch(header)
     self.searchPopup, self.searchRows = popup, {}
     popup:SetWidth(350); popup:SetPoint("TOPRIGHT", search, "BOTTOMRIGHT", 0, -5)
     popup:SetFrameLevel(header:GetFrameLevel() + 10); popup:EnableMouse(true); popup:EnableMouseWheel(true)
-    popup:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-    popup:SetBackdropColor(0.035, 0.05, 0.065, 0.98); Suite.Theme:Backdrop(popup, 1)
+    Suite.Theme:FlatBackdrop(popup, 1)
+    popup:SetBackdropColor(0.035, 0.05, 0.065, 0.98)
     self.searchCount = Text(popup, 10, palette.muted); self.searchCount:SetPoint("TOPLEFT", 12, -9)
     self.searchEmpty = Text(popup, 11, palette.muted)
     self.searchEmpty:SetPoint("TOPLEFT", 12, -34); self.searchEmpty:SetText("No matching settings. Try a shorter phrase.")
@@ -1976,7 +2117,7 @@ function GUI:BuildSettingsSearch(header)
         button.context = Text(button, 10, palette.muted); button.context:SetPoint("TOPLEFT", 9, -23); button.context:SetWidth(316)
         button:SetScript("OnEnter", function() button:SetBackdropColor(0.09, 0.13, 0.145) end)
         button:SetScript("OnLeave", function() Fill(button, palette.row) end)
-        button:SetScript("OnClick", function() self:RevealSetting(button.entry) end)
+        button:SetScript("OnClick", function() self:ActivateSearchResult(button.entry) end)
         self.searchRows[index] = button
     end
     local function PageButton(x, label, delta)
@@ -2000,7 +2141,7 @@ function GUI:BuildSettingsSearch(header)
     search:SetScript("OnEscapePressed", function() self:ClearSearch() end)
     search:SetScript("OnEnterPressed", function()
         local entry = self.searchResults and self.searchResults[((self.searchPage or 1) - 1) * 6 + 1]
-        if entry then self:RevealSetting(entry) end
+        self:ActivateSearchResult(entry)
     end)
     popup:Hide()
 end
@@ -2016,9 +2157,8 @@ function GUI:Initialize()
     frame:SetToplevel(true)
     frame:SetClampedToScreen(false)
     frame:EnableMouse(true)
-    frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+    Suite.Theme:FlatBackdrop(frame, 1)
     frame:SetBackdropColor(unpack(palette.background))
-    Suite.Theme:Backdrop(frame, 1)
     frame:Hide()
     table.insert(UISpecialFrames, frame:GetName())
 
@@ -2048,6 +2188,11 @@ function GUI:Initialize()
     close:SetPoint("TOPRIGHT", -14, -22)
     close:SetFrameLevel(header:GetFrameLevel() + 1)
     self:BuildSettingsSearch(header)
+    self.layoutPreviewExit = Suite.Theme:ActionButton(header, "Exit layout preview", 162, 32, function()
+        self:ToggleNavigationPreview()
+    end)
+    self.layoutPreviewExit:SetPoint("RIGHT", self.searchBox, "LEFT", -12, 0)
+    self.layoutPreviewExit:SetFrameLevel(header:GetFrameLevel() + 1)
     local rule = header:CreateTexture(nil, "ARTWORK")
     rule:SetHeight(1)
     rule:SetPoint("BOTTOMLEFT", 24, 0)
@@ -2055,28 +2200,16 @@ function GUI:Initialize()
     Suite.Theme:Texture(rule, 0.35)
 
     local sidebar = CreateFrame("Frame", nil, frame, "BackdropTemplate")
-    sidebar:SetPoint("TOPLEFT", 1, -77)
-    sidebar:SetPoint("BOTTOMLEFT", 1, 1)
-    sidebar:SetWidth(SIDEBAR_WIDTH - 1)
+    sidebar:SetPoint("TOPLEFT", 2, -77)
+    sidebar:SetPoint("BOTTOMLEFT", 2, 2)
+    sidebar:SetWidth(SIDEBAR_WIDTH - 2)
     self.sidebar = sidebar
     Fill(sidebar, palette.sidebar)
     self.groupTabs = {}
     for i, entry in ipairs(Catalog.groups) do
-        local key, label = entry.key, entry.label
-        local tab = CreateFrame("Button", nil, sidebar, "BackdropTemplate")
-        Suite.Theme:ButtonFeedback(tab)
-        tab:SetSize(SIDEBAR_WIDTH - 24, 36)
+        local tab = self:CreateCategoryTab(entry, function() self:Select(entry.directory) end)
         tab:SetPoint("TOPLEFT", 12, -18 - (i - 1) * 42)
-        tab.label = Text(tab, 13, palette.muted)
-        tab.label:SetPoint("LEFT", 15, 0)
-        tab.label:SetText(label)
-        tab.indicator = tab:CreateTexture(nil, "ARTWORK")
-        tab.indicator:SetWidth(2)
-        tab.indicator:SetPoint("TOPLEFT", 0, -8)
-        tab.indicator:SetPoint("BOTTOMLEFT", 0, 8)
-        Suite.Theme:Texture(tab.indicator, 1)
-        tab:SetScript("OnClick", function() if not InCombatLockdown() then self:Select(entry.directory) end end)
-        self.groupTabs[key] = tab
+        self.groupTabs[entry.key] = tab
         if #entry.pages == 1 then self.tabs[entry.pages[1][1]] = tab end
     end
     local stamp = Text(sidebar, 10, palette.gold)
@@ -2084,6 +2217,7 @@ function GUI:Initialize()
     stamp:SetText("PERSONAL EDITION  ·  " .. Suite.version)
 
     local navHelp = Text(sidebar, 10, palette.muted)
+    self.navHelp = navHelp
     navHelp:SetPoint("BOTTOMLEFT", 24, 94); navHelp:SetWidth(160)
     navHelp:SetText("Browse a section.\nEvery feature is optional.")
     self.body = CreateFrame("Frame", nil, frame)
@@ -2117,7 +2251,7 @@ function GUI:Initialize()
         button:SetScript("OnClick", function() if not InCombatLockdown() then callback(button) end end)
         return button
     end
-    Crumb(0, 48, "Home", function() self:Select("overview") end)
+    self.breadcrumbHome = Crumb(0, 48, "Home", function() self:Select("overview") end)
     self.breadcrumbGroup = Crumb(64, 240, "", function(button) self:Select(button.route) end)
     self.heading = Text(self.body, 24, palette.text)
     self.heading:SetPoint("TOPLEFT", 0, 0)
@@ -2216,7 +2350,9 @@ function GUI:RegisterSettings()
         button:SetSize(220, 28)
         button:SetPoint("TOPLEFT", description, "BOTTOMLEFT", 0, -20)
         button:SetText("Open Forever Suite")
-        button:SetScript("OnClick", function() self:OpenFromSettings() end)
+        button:SetScript("OnClick", function()
+            if self.frame and self.frame:IsShown() then self:Toggle() else self:OpenFromSettings() end
+        end)
         panel.openButton = button
         self.settingsPanel = panel
         self.settingsCategory = Settings.RegisterCanvasLayoutCategory(panel, "Forever Suite")
@@ -2307,9 +2443,17 @@ function GUI:Toggle()
     if self.frame:IsShown() then self.frame:Raise() end
 end
 
+function GUI:TogglePage(key, owner)
+    if not self:NavigationPreviewEnabled() then key = Catalog.previewFallback[key] or key end
+    if not InCombatLockdown() and self.frame and self.frame:IsShown() and self.page == key then return self:Toggle() end
+    return self:OpenPage(key, nil, owner)
+end
+
 function GUI:OpenPage(key, view, owner)
     if not Suite.db then return end
-    if not pages[key] then return end
+    local preview = self:NavigationPreviewEnabled()
+    if not preview then key = Catalog.previewFallback[key] or key end
+    if not Catalog:Page(key, preview) then return end
     if key == "setup" and not self.setupPanel and InCombatLockdown() then Suite.Setup:Open(); return end
     if InCombatLockdown() then Suite.AfterCombat("guiOpen", function() self:OpenPage(key, view, owner) end); return end
     self:EndWorldPreview(false)
@@ -2335,6 +2479,12 @@ function GUI:OpenMeters(index, owner)
     self.frame:Show()
     Suite.PlaceWindow(self.frame, owner)
     self.frame:Raise()
+end
+
+function GUI:ToggleMeterPage(index, owner)
+    if not InCombatLockdown() and self.frame and self.frame:IsShown()
+        and self.page == "meters" and self.meterIndex == index then return self:Toggle() end
+    return self:OpenMeters(index, owner)
 end
 
 local function MeterNumber(value)
@@ -2410,8 +2560,8 @@ function GUI:BuildMeters()
         input:SetSize(64, 24); input:SetPoint("TOPLEFT", x + 184, -y)
         input:SetFont("Fonts\\FRIZQT__.TTF", 11, ""); input:SetTextColor(unpack(palette.text))
         input:SetJustifyH("RIGHT"); input:SetAutoFocus(false); input:SetMaxLetters(8); input:SetTextInsets(6, 6, 0, 0)
-        input:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-        input:SetBackdropColor(unpack(palette.background)); Suite.Theme:Backdrop(input, 1)
+        Suite.Theme:FlatBackdrop(input, 1)
+        input:SetBackdropColor(unpack(palette.background))
         local slider = CreateFrame("Slider", nil, panel)
         input.slider, input.caption = slider, caption
         slider:SetSize(248, 18); slider:SetPoint("TOPLEFT", x, -y - 32)

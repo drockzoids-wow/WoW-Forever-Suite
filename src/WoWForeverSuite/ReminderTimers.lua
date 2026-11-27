@@ -13,32 +13,34 @@ local function CooldownInfo(id)
     if ok and Suite.IsReadable(info) and type(info) == "table" then return info end
 end
 
-local function CooldownDuration(id, actionSlot)
+local function CooldownDuration(id, actionSlot, ignoreGCD)
     if actionSlot and C_ActionBar and type(C_ActionBar.GetActionCooldownDuration) == "function" then
-        local ok, duration = pcall(C_ActionBar.GetActionCooldownDuration, actionSlot, true)
+        local ok, duration = pcall(C_ActionBar.GetActionCooldownDuration, actionSlot, ignoreGCD)
         if ok and Suite.IsReadable(duration) and duration then return duration end
     end
     if not C_Spell or type(C_Spell.GetSpellCooldownDuration) ~= "function" then return end
-    local ok, duration = pcall(C_Spell.GetSpellCooldownDuration, id, true)
+    local ok, duration = pcall(C_Spell.GetSpellCooldownDuration, id, ignoreGCD)
     if ok and Suite.IsReadable(duration) then return duration end
 end
 
-function Timers:SpellCooldown(id, onGCD, cooldownEvent)
+function Timers:SpellCooldown(id, onGCD, cooldownEvent, includeGCD)
     if not Number(id) or id == 0 or id == GLOBAL_COOLDOWN then return end
     local info = CooldownInfo(id)
     if not info then return end
     if cooldownEvent and Suite.IsReadable(info.isOnGCD) and type(info.isOnGCD) == "boolean" then onGCD = info.isOnGCD end
-    if onGCD == true or Suite.IsReadable(info.isActive) and info.isActive == false
+    if not includeGCD and onGCD == true or Suite.IsReadable(info.isActive) and info.isActive == false
         or Suite.IsReadable(info.isEnabled) and info.isEnabled == false then return end
     local start, duration, rate = info.startTime, info.duration, info.modRate
     if not Number(start) or not Number(duration) or duration == 0 or not Suite.IsReadable(rate) then return end
     if rate == nil then rate = 1 end
     if not Number(rate) or rate == 0 then return end
-    local gcd = CooldownInfo(GLOBAL_COOLDOWN)
-    if gcd and Number(gcd.duration) and (gcd.duration == 0 or Number(gcd.startTime)) then
-        if gcd.duration == duration and gcd.startTime == start then return end
-    elseif onGCD ~= false then
-        return
+    if not includeGCD then
+        local gcd = CooldownInfo(GLOBAL_COOLDOWN)
+        if gcd and Number(gcd.duration) and (gcd.duration == 0 or Number(gcd.startTime)) then
+            if gcd.duration == duration and gcd.startTime == start then return end
+        elseif onGCD ~= false then
+            return
+        end
     end
     local now = GetTime()
     if Number(now) and start + duration / rate > now then return start, duration, rate end
@@ -48,7 +50,7 @@ function Timers:ActiveSpellCooldown(id, onGCD, widget, actionSlot, actionOnGCD)
     local start, duration, rate = self:SpellCooldown(id, onGCD)
     if start then return true, math.max(0.02, start + duration / rate - GetTime() + 0.05) end
     if not widget or not widget.SetCooldownFromDurationObject then return false end
-    local native = CooldownDuration(id, actionSlot)
+    local native = CooldownDuration(id, actionSlot, true)
     if not native then return false end
     -- Read duration state only when the client identifies the object as public.
     -- Otherwise rely on the public active and GCD flags, then bind the object
@@ -116,25 +118,27 @@ function Timers:Swipe(owner, start, duration, rate)
     end
 end
 
-function Timers:UpdateCooldown(owner, spellID, onGCD, cooldownEvent, rebind, actionSlot)
+function Timers:UpdateCooldown(owner, spellID, onGCD, cooldownEvent, rebind, actionSlot, includeGCD)
     local swipe = owner.cooldownSwipe
     if spellID and swipe.SetCooldownFromDurationObject then
-        if swipe.spellID == spellID and swipe.actionSlot == actionSlot and not cooldownEvent and not rebind then return end
-        -- The client can animate an opaque duration directly and exclude the GCD.
-        local duration = CooldownDuration(spellID, actionSlot)
+        if swipe.spellID == spellID and swipe.actionSlot == actionSlot and swipe.includeGCD == includeGCD
+            and not cooldownEvent and not rebind then return end
+        -- Pass the spell's selected cooldown directly to the native widget.
+        local duration = CooldownDuration(spellID, actionSlot, not includeGCD)
         if duration and pcall(swipe.SetCooldownFromDurationObject, swipe, duration, true) then
             swipe.spellID = spellID
             swipe.actionSlot = actionSlot
+            swipe.includeGCD = includeGCD
             swipe.start, swipe.duration, swipe.rate = nil, nil, nil
             swipe:Show()
             return
         end
     end
     if swipe.spellID then
-        swipe.spellID, swipe.actionSlot = nil, nil
+        swipe.spellID, swipe.actionSlot, swipe.includeGCD = nil, nil, nil
         swipe:Hide()
     end
-    self:Swipe(owner, self:SpellCooldown(spellID, onGCD, cooldownEvent))
+    self:Swipe(owner, self:SpellCooldown(spellID, onGCD, cooldownEvent, includeGCD))
 end
 
 function Timers:Expiry(owner, remaining)

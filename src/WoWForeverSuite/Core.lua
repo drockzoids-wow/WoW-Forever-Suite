@@ -1,6 +1,6 @@
 local addonName, Suite = ...
 Suite.name = addonName
-Suite.version = "1.0.32"
+Suite.version = "1.0.33"
 Suite.modules = {}
 Suite.pending = {}
 Suite.defaults = {
@@ -13,7 +13,7 @@ Suite.defaults = {
     minimapButton = true, minimapButtonAngle = 225,
     minimapDrawer = false, minimapDrawerAngle = 225, minimapDrawerMoved = false,
     showFPS = true, showLatency = true, showCoordinates = true, showClock = true,
-    windowTools = false, guiPosition = {}, offlineBank = false, bankDepositReagents = false,
+    windowTools = false, guiPosition = {}, navigationPreview = false, offlineBank = false, bankDepositReagents = false,
     fullButtonRange = false, actionBarSkin = false, hideMacroNames = false, classHealthBars = false, targetThreat = false,
     customNameplates = false, nameplateDebuffs = "all", nameplateCastHeight = 12,
     combatIndicator = false, combatIndicatorPersistent = false, combatIndicatorLocked = false, combatIndicatorPosition = {},
